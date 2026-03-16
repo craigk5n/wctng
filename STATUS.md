@@ -20,10 +20,10 @@
 | P2-E5 | Journals | 3 | 3 | DONE |
 | P2-E6 | Import/Export | 3 | 3 | DONE |
 | P2-E7 | Search | 2 | 2 | DONE |
-| P2-E8 | Real-time (Mercure) | 3 | 2 | IN PROGRESS |
+| P2-E8 | Real-time (Mercure) | 3 | 3 | DONE |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 3 | IN PROGRESS |
-| **Total** | | **32** | **27** | |
+| **Total** | | **32** | **28** | |
 
 ---
 
@@ -540,7 +540,7 @@ Publish SSE notifications when events are created, updated, or deleted.
 
 ### P2-E8-S3: Client-Side SSE Subscription
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 React hook that subscribes to Mercure SSE and updates the calendar in real-time.
@@ -548,12 +548,12 @@ React hook that subscribes to Mercure SSE and updates the calendar in real-time.
 **Preconditions:** P2-E8-S2
 
 **Acceptance Criteria:**
-- [ ] `src/hooks/useMercure.ts` — subscribes to event topics via EventSource
-- [ ] On `event.created` / `event.updated`: refetch events (invalidate React Query cache)
-- [ ] On `event.deleted`: remove event from calendar immediately
-- [ ] Reconnects automatically on connection loss
-- [ ] Toast notification: "Calendar updated by [user]"
-- [ ] Vitest tests pass
+- [x] `src/hooks/useMercure.ts` — subscribes to event topics via EventSource
+- [x] On `event.created` / `event.updated`: refetch events (invalidate React Query cache)
+- [x] On `event.deleted`: remove event from calendar immediately
+- [x] Reconnects automatically on connection loss
+- [x] Toast notification: "Calendar updated by [user]"
+- [x] Vitest tests pass
 
 ---
 

@@ -14,6 +14,7 @@ import { useGlobalShortcuts } from '../components/shortcuts/useGlobalShortcuts';
 import { ExportButton } from './ExportButton';
 import { ImportDialog } from './ImportDialog';
 import { LayerPanel, type LayerVisibility } from './LayerPanel';
+import { useMercure, type MercureMessage } from '../hooks/useMercure';
 
 type DialogState =
   | { type: 'none' }
@@ -85,6 +86,32 @@ export function CalendarPage() {
   }), []);
 
   useGlobalShortcuts(shortcutHandlers);
+
+  // --- Mercure real-time subscription ---
+  const mercureHubUrl = import.meta.env.VITE_MERCURE_URL as string | undefined
+    ?? 'http://localhost:47181/.well-known/mercure';
+  const mercureTopics = useMemo(() => ['/calendars/events'], []);
+
+  const handleMercureMessage = useCallback((msg: MercureMessage) => {
+    if (msg.type === 'event.created' || msg.type === 'event.updated') {
+      calendarRef.current?.refetchEvents();
+      const eventData = msg.event as Record<string, unknown> | undefined;
+      const createdBy = eventData?.created_by as string | undefined;
+      if (createdBy && createdBy !== user?.login) {
+        toast({ title: `Calendar updated by ${createdBy}` });
+      }
+    } else if (msg.type === 'event.deleted') {
+      calendarRef.current?.refetchEvents();
+    } else if (msg.type === 'participant.changed') {
+      calendarRef.current?.refetchEvents();
+    }
+  }, [toast, user?.login]);
+
+  useMercure({
+    hubUrl: mercureHubUrl,
+    topics: mercureTopics,
+    onMessage: handleMercureMessage,
+  });
 
   // --- Task click: navigate to tasks page ---
   const handleTaskClick = useCallback((_taskId: number) => {
