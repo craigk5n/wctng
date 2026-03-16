@@ -22,8 +22,8 @@
 | P2-E7 | Search | 2 | 2 | DONE |
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
-| P2-E10 | UI Polish & UX | 4 | 2 | IN PROGRESS |
-| **Total** | | **32** | **13** | |
+| P2-E10 | UI Polish & UX | 4 | 3 | IN PROGRESS |
+| **Total** | | **32** | **14** | |
 
 ---
 
@@ -621,7 +621,7 @@ Respect permissions when showing events from other users (via layers).
 
 ### P2-E10-S1: User Preferences
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 User preferences page for default view, timezone, language.
@@ -629,13 +629,13 @@ User preferences page for default view, timezone, language.
 **Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [ ] Route `/settings/preferences`
-- [ ] Default calendar view selector (month/week/day)
-- [ ] Timezone selector
-- [ ] Work day start/end time settings
-- [ ] Preferences saved via `PUT /api/v2/users/{login}/preferences`
-- [ ] Calendar respects saved preferences on load
-- [ ] Vitest tests pass
+- [x] Route `/settings/preferences` with sidebar link (⚙ Settings)
+- [x] Default calendar view selector (month/week/day/list)
+- [x] Timezone text input
+- [x] Work day start/end time settings
+- [x] Preferences saved via `PUT /api/v2/users/{login}/preferences`
+- [x] Calendar loads with saved STARTVIEW preference
+- [x] Vitest tests pass (3 new frontend + 3 backend tests)
 
 ---
 

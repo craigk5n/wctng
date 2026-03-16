@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FullCalendarWrapper, type FullCalendarWrapperHandle } from './FullCalendarWrapper';
 import { EventDetailDialog } from './EventDetailDialog';
 import { EventDialog, type EventFormData } from './EventDialog';
@@ -24,8 +24,21 @@ export function CalendarPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isResponding, setIsResponding] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [defaultView, setDefaultView] = useState('dayGridMonth');
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Load saved default view preference
+  useEffect(() => {
+    if (!user?.login) return;
+    void (async () => {
+      const { data } = await apiFetch<Array<{ key: string; value: string }>>(`/users/${user.login}/preferences`);
+      if (data) {
+        const viewPref = data.find((p) => p.key === 'STARTVIEW');
+        if (viewPref) setDefaultView(viewPref.value);
+      }
+    })();
+  }, [user?.login]);
 
   // --- Global keyboard shortcuts ---
   const shortcutHandlers = useMemo(() => ({
@@ -216,6 +229,7 @@ export function CalendarPage() {
       {/* Calendar */}
       <FullCalendarWrapper
         ref={calendarRef}
+        initialView={defaultView}
         onEventClick={handleEventClick}
         onDateSelect={handleDateSelect}
       />

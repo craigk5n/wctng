@@ -6,6 +6,7 @@ import { AppLayout } from './components/layout/AppLayout';
 import { CalendarPage } from './calendar/CalendarPage';
 import { UserManagement } from './admin/UserManagement';
 import { CategoryManagement } from './admin/CategoryManagement';
+import { PreferencesPage } from './settings/PreferencesPage';
 import { NotFound } from './pages/NotFound';
 
 export default function App() {
@@ -43,6 +44,16 @@ export default function App() {
             <ProtectedRoute>
               <AppLayout>
                 <CategoryManagement />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/preferences"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <PreferencesPage />
               </AppLayout>
             </ProtectedRoute>
           }

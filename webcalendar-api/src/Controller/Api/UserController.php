@@ -229,6 +229,57 @@ final class UserController
         return ApiResponse::success(self::userToArray($updatedUser));
     }
 
+    #[Route('/api/v2/users/{login}/preferences', name: 'api_users_get_preferences', methods: ['GET'])]
+    public function getPreferences(string $login, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
+    {
+        if ($user === null) {
+            return ApiResponse::error(401, 'Authentication required');
+        }
+
+        $coreUser = $user->getCoreUser();
+        $prefs = $this->coreServiceFactory->getUserService()->getPreferences($login, $coreUser);
+
+        $items = [];
+        foreach ($prefs as $pref) {
+            $items[] = ['key' => $pref->key(), 'value' => $pref->value()];
+        }
+
+        return ApiResponse::success($items);
+    }
+
+    #[Route('/api/v2/users/{login}/preferences', name: 'api_users_set_preferences', methods: ['PUT'])]
+    public function setPreferences(string $login, Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
+    {
+        if ($user === null) {
+            return ApiResponse::error(401, 'Authentication required');
+        }
+
+        $decoded = json_decode($request->getContent(), true);
+        if (!\is_array($decoded)) {
+            return ApiResponse::error(400, 'Invalid JSON body');
+        }
+
+        $coreUser = $user->getCoreUser();
+
+        /** @var array<string, string> $prefMap */
+        $prefMap = [];
+        /**
+         * @var string $k
+         * @var mixed $v
+         */
+        foreach ($decoded as $k => $v) {
+            if (\is_string($v)) {
+                $prefMap[$k] = $v;
+            }
+        }
+
+        foreach ($prefMap as $key => $value) {
+            $this->coreServiceFactory->getUserService()->updatePreference($login, $key, $value, $coreUser);
+        }
+
+        return ApiResponse::success(['message' => 'Preferences saved']);
+    }
+
     /**
      * @return array<string, mixed>
      */

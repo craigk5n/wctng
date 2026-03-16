@@ -10,6 +10,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const navItems = [
     { label: 'Calendar', href: '/', icon: '📅' },
+    { label: 'Settings', href: '/settings/preferences', icon: '⚙' },
   ];
 
   if (user?.is_admin) {
