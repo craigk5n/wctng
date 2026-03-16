@@ -22,8 +22,8 @@
 | P2-E7 | Search | 2 | 2 | DONE |
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
-| P2-E10 | UI Polish & UX | 4 | 0 | NOT STARTED |
-| **Total** | | **32** | **9** | |
+| P2-E10 | UI Polish & UX | 4 | 1 | IN PROGRESS |
+| **Total** | | **32** | **10** | |
 
 ---
 
@@ -642,7 +642,7 @@ User preferences page for default view, timezone, language.
 
 ### P2-E10-S2: Dark Mode
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Toggle between light and dark themes using the existing Tailwind CSS variable system.
@@ -650,11 +650,11 @@ Toggle between light and dark themes using the existing Tailwind CSS variable sy
 **Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [ ] Dark mode toggle in header
-- [ ] Preference saved in localStorage
-- [ ] All components render correctly in dark mode (including FullCalendar)
-- [ ] System preference detection (prefers-color-scheme)
-- [ ] Vitest tests pass
+- [x] Dark mode toggle in header (🌙/☀️ button)
+- [x] Preference saved in localStorage (`wctng_theme`)
+- [x] All components render correctly in dark mode (including FullCalendar via CSS variables)
+- [x] System preference detection (`prefers-color-scheme` media query)
+- [x] Vitest tests pass (7 new tests)
 
 ---
 

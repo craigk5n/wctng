@@ -4,18 +4,21 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TOKEN_STORAGE_KEY } from '../api/client';
 import { ToastProvider } from '../components/toast/ToastProvider';
+import { ThemeProvider } from '../components/theme/ThemeProvider';
 import App from '../App';
 
 function renderApp(initialRoute = '/') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <QueryClientProvider client={qc}>
-      <ToastProvider>
-        <MemoryRouter initialEntries={[initialRoute]}>
-          <App />
+    <ThemeProvider>
+      <QueryClientProvider client={qc}>
+        <ToastProvider>
+          <MemoryRouter initialEntries={[initialRoute]}>
+            <App />
         </MemoryRouter>
       </ToastProvider>
-    </QueryClientProvider>,
+    </QueryClientProvider>
+    </ThemeProvider>,
   );
 }
 

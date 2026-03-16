@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/auth-context';
 import { cn } from '../../lib/utils';
 import { SearchBar } from '../search/SearchBar';
+import { ThemeToggle } from '../theme/ThemeToggle';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
@@ -73,6 +74,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             {user && (
               <span className="text-sm text-muted-foreground">
                 {user.login}

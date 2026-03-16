@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthContext, type AuthContextValue } from '../../../auth/auth-context';
+import { ThemeProvider } from '../../theme/ThemeProvider';
 import { AppLayout } from '../AppLayout';
 
 function renderWithAuth(authValue: Partial<AuthContextValue>, initialRoute = '/') {
@@ -16,13 +17,15 @@ function renderWithAuth(authValue: Partial<AuthContextValue>, initialRoute = '/'
   };
 
   return render(
-    <MemoryRouter initialEntries={[initialRoute]}>
-      <AuthContext.Provider value={defaultAuth}>
-        <AppLayout>
-          <div data-testid="content">Page Content</div>
-        </AppLayout>
-      </AuthContext.Provider>
-    </MemoryRouter>,
+    <ThemeProvider>
+      <MemoryRouter initialEntries={[initialRoute]}>
+        <AuthContext.Provider value={defaultAuth}>
+          <AppLayout>
+            <div data-testid="content">Page Content</div>
+          </AppLayout>
+        </AuthContext.Provider>
+      </MemoryRouter>
+    </ThemeProvider>,
   );
 }
 
