@@ -1,10 +1,11 @@
-# WCTNG — Phase 1 Development Plan & Status
+# WCTNG — Phase 2 Development Plan & Status
 
-> **Last Updated:** 2026-03-15
-> **Phase:** 1 — MVP
-> **Goal:** Working calendar app with login, event CRUD, day/week/month views
+> **Last Updated:** 2026-03-16
+> **Phase:** 2 — Multi-User & Collaboration
+> **Goal:** Participants, groups, permissions, layers, tasks, journals, import/export, real-time updates
 > **Methodology:** TDD (write tests first, then implementation)
 > **Developed by:** AI Agent
+> **Phase 1 Archive:** See `STATUS-PHASE1-ARCHIVE.md`
 
 ---
 
@@ -12,2420 +13,691 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| E1 | Development Infrastructure | 5 | 5 | DONE |
-| E2 | OpenAPI Specification | 4 | 4 | DONE |
-| E3 | Symfony API Skeleton | 5 | 5 | DONE |
-| E4 | Authentication | 4 | 4 | DONE |
-| E5 | Events API | 6 | 6 | DONE |
-| E6 | Users API | 3 | 3 | DONE |
-| E7 | Categories API | 2 | 2 | DONE |
-| E8 | React SPA Foundation | 5 | 5 | DONE |
-| E9 | Calendar Views | 4 | 4 | DONE |
-| E10 | Event Management UI | 4 | 4 | DONE |
-| E11 | E2E Tests | 3 | 3 | DONE |
-| **Total** | | **45** | **45** | |
+| P2-E1 | Event Participants | 4 | 0 | NOT STARTED |
+| P2-E2 | Groups | 3 | 0 | NOT STARTED |
+| P2-E3 | Calendar Layers | 3 | 0 | NOT STARTED |
+| P2-E4 | Tasks | 4 | 0 | NOT STARTED |
+| P2-E5 | Journals | 3 | 0 | NOT STARTED |
+| P2-E6 | Import/Export | 3 | 0 | NOT STARTED |
+| P2-E7 | Search | 2 | 0 | NOT STARTED |
+| P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
+| P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
+| P2-E10 | UI Polish & UX | 4 | 0 | NOT STARTED |
+| **Total** | | **32** | **0** | |
 
 ---
 
 ## Dependency Graph
 
 ```
-E1 (Infrastructure)
- ├──► E2 (OpenAPI Spec)
- │     └──► E5 (Events API) ──► E10 (Event Mgmt UI)
- │     └──► E6 (Users API)
- │     └──► E7 (Categories API)
- ├──► E3 (Symfony Skeleton)
- │     └──► E4 (Authentication) ──► E8 (React SPA Foundation)
- │                                    └──► E9 (Calendar Views)
- │                                    └──► E10 (Event Mgmt UI)
- └──► E11 (E2E Tests) — depends on E9, E10
+P2-E1 (Participants) ──► P2-E8 (Real-time)
+P2-E2 (Groups) ──► P2-E9 (Permissions)
+P2-E3 (Layers) ──► P2-E10 (UI Polish)
+P2-E4 (Tasks)
+P2-E5 (Journals)
+P2-E6 (Import/Export) — depends on P2-E4 (tasks in iCal)
+P2-E7 (Search)
+P2-E9 (Permissions) ──► P2-E3 (Layers need permissions)
 ```
 
-**Critical path:** E1 → E3 → E4 → E8 → E9 → E11
+**Critical path:** P2-E1 → P2-E8 (participants before real-time)
+**Independent:** P2-E4, P2-E5, P2-E7 can be done in parallel
 
 ---
 
-## Global Standards (apply to ALL stories)
+## Global Standards
 
-### PHP (webcalendar-api)
-- PHP 8.2+ with `declare(strict_types=1)` on all files
-- PSR-12 code style
-- PHPStan level 9 — zero errors
-- Psalm — zero errors
-- PHPUnit 10+ for unit and integration tests
-- Target: 95%+ line coverage
-- All tests must pass in Docker containers
-
-### TypeScript (webcalendar-web)
-- Strict mode (`"strict": true` in tsconfig.json)
-- ESLint + Prettier
-- Vitest for unit/component tests
-- Playwright for E2E tests
-- Target: 90%+ line coverage for non-UI code
-
-### Docker Development Ports
-All services use high ports to avoid conflicts with local services:
-
-| Service | Container Port | Host Port |
-|---------|---------------|-----------|
-| nginx (API + SPA) | 80 | 47180 |
-| PHP-FPM | 9000 | (internal only) |
-| MySQL | 3306 | 47106 |
-| Vite dev server | 5173 | 47173 |
-| Playwright UI | 8080 | 47188 |
-
-### Commit Convention
-```
-type(scope): description
-
-Types: feat, fix, test, refactor, docs, chore, ci
-Scopes: api, web, openapi, docker, e2e
-```
+Same as Phase 1:
+- PHP 8.2+, PHPStan level 9, Psalm errorLevel 1, PHPUnit 10
+- React 18, TypeScript strict, ESLint, Vitest, Playwright
+- TDD: write tests first, then implementation
+- Docker-based development on ports 47180/47106/47173
 
 ---
 
-## Epic E1: Development Infrastructure
+## Epic P2-E1: Event Participants
 
-**Goal:** Docker-based development environment for all repos, CI configuration, and shared tooling.
+**Goal:** Allow events to have multiple participants with status tracking (accepted, rejected, tentative).
 
-### E1-S1: Docker Compose Development Environment
+### P2-E1-S1: Participants API Endpoints
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Create a `docker-compose.dev.yml` in the wctng root directory that orchestrates all services needed for local development. This is the top-level compose file that ties together the API, database, and frontend dev server. All services must use high ports (47100-47199 range) to avoid conflicts with other local services.
+Implement REST endpoints for managing event participants. Delegates to webcalendar-core's `EventService::addParticipant()`, `removeParticipant()`, `setParticipantStatus()`.
+
+**Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [x] `docker-compose.dev.yml` exists at `/var/www/html/wctng/docker-compose.dev.yml`
-- [x] Services defined: `nginx`, `php-fpm`, `mysql`, `vite-dev`
-- [x] nginx listens on host port 47180
-- [x] MySQL listens on host port 47106
-- [x] Vite dev server listens on host port 47173
-- [x] PHP-FPM is internal only (not exposed to host)
-- [x] MySQL uses a named volume for data persistence
-- [x] `.env.example` file with all required environment variables
-- [x] `make up` starts all services, `make down` stops them
-- [x] `make logs` tails all service logs
-- [x] Health checks defined for nginx, mysql, php-fpm
-- [x] nginx routes `/api/*` to php-fpm and `/*` to vite dev server
-- [x] Running `docker compose -f docker-compose.dev.yml up` succeeds with no errors
-- [x] MySQL container initializes with webcalendar-core schema on first run
-
-**Recommended Tests:**
-```bash
-# Verify all containers start and become healthy
-docker compose -f docker-compose.dev.yml up -d --wait
-docker compose -f docker-compose.dev.yml ps  # all services "healthy"
-
-# Verify ports are correct
-curl -s -o /dev/null -w "%{http_code}" http://localhost:47180/  # 200 or 502 (no app yet)
-mysql -h 127.0.0.1 -P 47106 -u webcalendar -p -e "SHOW TABLES;"
-
-# Verify schema loaded
-mysql -h 127.0.0.1 -P 47106 -u webcalendar -p webcalendar -e "DESCRIBE webcal_entry;"
-```
+- [ ] `GET /api/v2/events/{id}/participants` — returns list of participants with status
+- [ ] `POST /api/v2/events/{id}/participants` — add participants (body: `{participants: ["user1", "user2"]}`)
+- [ ] `DELETE /api/v2/events/{id}/participants/{login}` — remove a participant
+- [ ] `PUT /api/v2/events/{id}/participants/{login}` — update participant status (body: `{status: "A"}`)
+- [ ] Only event owner or admin can add/remove participants
+- [ ] Participant can update their own status
+- [ ] Event response includes `participants` array with login + status
+- [ ] PHPStan level 9 passes
+- [ ] Psalm passes
 
 ---
 
-### E1-S2: webcalendar-api Project Scaffold
+### P2-E1-S2: Approve/Reject Event Endpoints
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Initialize the Symfony 7.x project in `webcalendar-api/` directory. Install required Composer dependencies including webcalendar-core, PHPStan, Psalm, PHPUnit, PHP-CS-Fixer. Configure all static analysis tools to their strictest settings.
+Implement `POST /api/v2/events/{id}/approve` and `POST /api/v2/events/{id}/reject` for participants to respond to event invitations.
 
-**Preconditions:** None (can be done in parallel with E1-S1)
+**Preconditions:** P2-E1-S1
 
 **Acceptance Criteria:**
-- [x] `webcalendar-api/` directory exists with Symfony 7.x skeleton
-- [x] `composer.json` requires: `symfony/framework-bundle`, `symfony/security-bundle`, `lexik/jwt-authentication-bundle`, `craigk5n/webcalendar-core`, `nelmio/cors-bundle`
-- [x] `composer.json` requires-dev: `phpunit/phpunit` (^10), `phpstan/phpstan` (level 9), `phpstan/phpstan-symfony`, `vimeo/psalm`, `friendsofphp/php-cs-fixer`
-- [x] `phpstan.neon` configured at level 9 with Symfony extensions
-- [x] `psalm.xml` configured with `errorLevel="1"` (strictest)
-- [x] `phpunit.xml.dist` configured with coverage reporting
-- [x] `php-cs-fixer` configured for PSR-12
-- [x] `Makefile` with targets: `test`, `phpstan`, `psalm`, `cs-fix`, `cs-check`, `coverage`, `ci` (runs all)
-- [x] Running `make ci` passes with zero errors (on empty project)
-- [x] `.gitignore` includes vendor/, var/, .env.local
-- [x] `Dockerfile` for production PHP-FPM image
-- [x] `docker/php-fpm.conf` with development-friendly settings
-
-**Recommended Tests:**
-```bash
-cd webcalendar-api
-composer install
-make phpstan   # exit 0, zero errors
-make psalm     # exit 0, zero errors
-make test      # exit 0 (no tests yet, but PHPUnit runs)
-make cs-check  # exit 0
-```
+- [ ] `POST /api/v2/events/{id}/approve` — sets current user's status to Accepted
+- [ ] `POST /api/v2/events/{id}/reject` — sets current user's status to Rejected
+- [ ] Only participants of the event can approve/reject
+- [ ] Returns 404 if user is not a participant
+- [ ] PHPStan level 9 passes
 
 ---
 
-### E1-S3: webcalendar-web Project Scaffold
+### P2-E1-S3: Participants UI in Event Detail
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Initialize the React + Vite + TypeScript project in `webcalendar-web/` directory. Install Tailwind CSS, Shadcn/ui foundation, FullCalendar, React Router, React Query (TanStack Query), openapi-fetch. Configure ESLint, Prettier, Vitest, Playwright.
+Show participants in EventDetailDialog and allow adding/removing participants in EventDialog.
 
-**Preconditions:** None (can be done in parallel with E1-S1, E1-S2)
+**Preconditions:** P2-E1-S1
 
 **Acceptance Criteria:**
-- [x] `webcalendar-web/` directory exists with Vite + React + TypeScript scaffold
-- [x] `package.json` dependencies include: `react`, `react-dom`, `react-router-dom`, `@tanstack/react-query`, `@fullcalendar/core`, `@fullcalendar/react`, `@fullcalendar/daygrid`, `@fullcalendar/timegrid`, `@fullcalendar/list`, `@fullcalendar/interaction`, `openapi-fetch`, `tailwindcss`, `@radix-ui/react-dialog`, `@radix-ui/react-dropdown-menu`
-- [x] `package.json` devDependencies include: `vitest`, `@testing-library/react`, `@testing-library/jest-dom`, `@playwright/test`, `eslint`, `prettier`, `typescript`
-- [x] `tsconfig.json` with `"strict": true`, path aliases (`@/` → `src/`)
-- [x] `tailwind.config.ts` configured
-- [x] `vite.config.ts` with proxy for `/api` → `http://nginx:80` (in Docker), test config for Vitest
-- [x] `playwright.config.ts` targeting `http://localhost:47180`
-- [x] `.eslintrc.cjs` with React + TypeScript rules
-- [x] `.prettierrc` configured
-- [x] `Makefile` with targets: `dev`, `build`, `test`, `test-e2e`, `lint`, `format`, `ci`
-- [x] `src/main.tsx` renders a "Hello WCTNG" placeholder
-- [x] Running `npm run build` produces static output in `dist/`
-- [x] Running `npx vitest run` passes (no tests yet but Vitest executes)
-- [x] Running `npx playwright test` runs (may fail with no tests, but binary installed)
-
-**Recommended Tests:**
-```bash
-cd webcalendar-web
-npm ci
-npm run build          # exit 0, dist/ created
-npx vitest run         # exit 0
-npx tsc --noEmit       # exit 0, no type errors
-npx eslint src/        # exit 0, no lint errors
-```
+- [ ] EventDetailDialog shows participant list with name + status badge (Accepted/Rejected/Tentative)
+- [ ] EventDialog (edit mode) has a participant input field — type to search users, add by clicking
+- [ ] Participants can be removed from the edit dialog
+- [ ] Status badges are color-coded (green=accepted, red=rejected, yellow=tentative)
+- [ ] Vitest tests pass
 
 ---
 
-### E1-S4: webcalendar-openapi Project Scaffold
+### P2-E1-S4: Participant Status Response UI
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Initialize the OpenAPI spec project in `webcalendar-openapi/` directory. Create the base OpenAPI 3.1 document structure with shared schema definitions, Spectral linting, and TypeScript client generation scripts.
+When viewing an event the user is invited to, show Accept/Reject buttons.
 
-**Preconditions:** None (can be done in parallel)
+**Preconditions:** P2-E1-S2, P2-E1-S3
 
 **Acceptance Criteria:**
-- [x] `webcalendar-openapi/` directory exists
-- [x] `package.json` with devDependencies: `openapi-typescript`, `openapi-fetch`, `@stoplight/spectral-cli`
-- [x] `openapi.yaml` exists with:
-  - OpenAPI 3.1.0 version
-  - Info block (title: "WebCalendar API", version: "2.0.0")
-  - Server URLs for dev (`http://localhost:47180/api/v2`) and production placeholder
-  - Security scheme: Bearer JWT
-  - Empty paths (to be filled in E2)
-  - `components/schemas/` section with `ErrorResponse` and `PaginationMeta` schemas
-- [x] `.spectral.yaml` linting rules configured
-- [x] `scripts/generate.sh` runs `openapi-typescript` and outputs to `generated/typescript/`
-- [x] `Makefile` with targets: `lint`, `generate`, `ci`
-- [x] Running `make lint` passes on the base spec
-- [x] Running `make generate` produces TypeScript types in `generated/typescript/`
-
-**Recommended Tests:**
-```bash
-cd webcalendar-openapi
-npm ci
-make lint       # exit 0, spectral passes
-make generate   # exit 0, generated/typescript/ exists
-# Verify generated types compile
-npx tsc --noEmit generated/typescript/index.ts 2>/dev/null || echo "types generated"
-```
+- [ ] Events where current user is a pending participant show Accept/Reject buttons in detail view
+- [ ] Clicking Accept calls `POST /events/{id}/approve`, updates UI
+- [ ] Clicking Reject calls `POST /events/{id}/reject`, updates UI
+- [ ] Already-responded events show current status with option to change
+- [ ] Vitest tests pass
 
 ---
 
-### E1-S5: CI Pipeline Configuration
+## Epic P2-E2: Groups
 
-**Status:** DONE
+**Goal:** User groups for organizing participants and permissions.
+
+### P2-E2-S1: Groups API Endpoints
+
+**Status:** NOT STARTED
 
 **Description:**
-Create GitHub Actions CI workflow files for each repository. Each workflow runs all tests, static analysis, and linting in Docker containers. The API workflow validates controllers against the OpenAPI spec.
+CRUD endpoints for groups and group membership.
 
-**Preconditions:** E1-S2, E1-S3, E1-S4
+**Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [x] `.github/workflows/api.yml` — runs on webcalendar-api changes: `composer install`, `make ci` (phpstan, psalm, phpunit, cs-check)
-- [x] `.github/workflows/web.yml` — runs on webcalendar-web changes: `npm ci`, `make ci` (tsc, eslint, vitest, build)
-- [x] `.github/workflows/openapi.yml` — runs on webcalendar-openapi changes: `npm ci`, `make ci` (spectral lint, generate)
-- [x] `.github/workflows/e2e.yml` — runs Playwright tests against Docker Compose stack
-- [x] All workflows use PHP 8.2, Node 20 LTS
-- [x] API workflow includes MySQL service container for integration tests
-- [x] Coverage reports uploaded as artifacts
-- [x] Workflows fail on any PHPStan, Psalm, ESLint, or type error
-
-**Recommended Tests:**
-```bash
-# Validate workflow syntax
-actionlint .github/workflows/*.yml
-
-# Dry-run CI locally (using act or similar)
-# Each make ci target should succeed locally before pushing
-cd webcalendar-api && make ci
-cd webcalendar-web && make ci
-cd webcalendar-openapi && make ci
-```
+- [ ] `GET /api/v2/groups` — list groups
+- [ ] `POST /api/v2/groups` — create group (body: `{name, description}`)
+- [ ] `GET /api/v2/groups/{id}` — get group with members
+- [ ] `PUT /api/v2/groups/{id}` — update group
+- [ ] `DELETE /api/v2/groups/{id}` — delete group
+- [ ] `POST /api/v2/groups/{id}/members` — add members (body: `{users: ["user1"]}`)
+- [ ] `DELETE /api/v2/groups/{id}/members/{login}` — remove member
+- [ ] PHPStan level 9 passes
 
 ---
 
-## Epic E2: OpenAPI Specification
+### P2-E2-S2: Groups Management UI
 
-**Goal:** Define the API contract for Phase 1 endpoints. This is the source of truth consumed by both the API and frontend.
-
-### E2-S1: Authentication Endpoints Spec
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Define OpenAPI schemas and paths for authentication endpoints. Reference: webcalendar-core `API.md` Section 2.
+Admin page for managing groups and their members.
 
-**Preconditions:** E1-S4
+**Preconditions:** P2-E2-S1
 
 **Acceptance Criteria:**
-- [x] `schemas/AuthLoginRequest.yaml` — properties: `username` (string, required), `password` (string, required)
-- [x] `schemas/AuthLoginResponse.yaml` — properties: `token` (string), `user` (UserSummary), `expires_at` (string, date-time)
-- [x] `schemas/UserSummary.yaml` — properties: `login`, `firstname`, `lastname`, `email`, `is_admin`
-- [x] Path `POST /auth/login` — request body: AuthLoginRequest, responses: 200 (AuthLoginResponse wrapped in standard envelope), 401 (ErrorResponse)
-- [x] Path `POST /auth/logout` — requires Bearer token, responses: 204, 401
-- [x] Path `POST /auth/refresh` — requires Bearer token, responses: 200 (AuthLoginResponse), 401
-- [x] Standard response envelope schema defined: `{ data: T, meta: object|null, error: ErrorResponse|null }`
-- [x] `make lint` passes
-- [x] `make generate` produces TypeScript types including auth paths
-
-**Recommended Tests:**
-```bash
-cd webcalendar-openapi
-make lint      # spectral passes
-make generate  # types include paths['/auth/login']
-# Grep generated types to confirm
-grep -q "'/auth/login'" generated/typescript/*.ts
-grep -q "AuthLoginRequest" generated/typescript/*.ts
-grep -q "AuthLoginResponse" generated/typescript/*.ts
-```
+- [ ] Route `/admin/groups` with sidebar link (admin only)
+- [ ] List all groups with member count
+- [ ] Create group form with name field
+- [ ] Click group to see/manage members
+- [ ] Add/remove members from a group
+- [ ] Vitest tests pass
 
 ---
 
-### E2-S2: Events Endpoints Spec
+### P2-E2-S3: Group Selection in Event Participants
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Define OpenAPI schemas and paths for event CRUD. Reference: webcalendar-core `API.md` Sections 3.1-3.6. For Phase 1 MVP, include core CRUD and date-range listing. Participants, recurrence, exceptions, attachments, and comments are defined but can be stubbed initially.
+Allow adding an entire group as participants to an event.
 
-**Preconditions:** E2-S1 (needs standard envelope, auth scheme)
+**Preconditions:** P2-E2-S1, P2-E1-S3
 
 **Acceptance Criteria:**
-- [x] Event schema — all core fields: `id`, `title`, `description`, `start_date`, `start_time`, `end_date`, `end_time`, `duration`, `location`, `access` (enum), `type` (enum), `created_by`, `all_day`, `uid`, `sequence`, `status`
-- [x] EventCreateRequest — required: `title`, `start_date`; optional: all other writable fields
-- [x] EventUpdateRequest — all fields optional
-- [x] `GET /events` — query params: `start`, `end`, `page`, `limit`; response: Event array + PaginationMeta in envelope
-- [x] `POST /events` — body: EventCreateRequest; response: 201 (Event in envelope)
-- [x] `GET /events/{id}` — response: Event in envelope, 404
-- [x] `PUT /events/{id}` — body: EventUpdateRequest; response: 200 (Event in envelope)
-- [x] `DELETE /events/{id}` — query param: `mode` (enum: single, future, all); response: 204
-- [x] `make lint` passes (zero errors)
-- [x] `make generate` produces TypeScript types for all event paths
-
-**Recommended Tests:**
-```bash
-cd webcalendar-openapi
-make lint
-make generate
-grep -q "'/events'" generated/typescript/*.ts
-grep -q "'/events/{id}'" generated/typescript/*.ts
-grep -q "EventCreateRequest" generated/typescript/*.ts
-```
+- [ ] EventDialog participant input shows groups in addition to individual users
+- [ ] Selecting a group expands to all group members as individual participants
+- [ ] Groups shown with a distinct icon/badge
+- [ ] Vitest tests pass
 
 ---
 
-### E2-S3: Users Endpoints Spec
+## Epic P2-E3: Calendar Layers
 
-**Status:** DONE
+**Goal:** Overlay other users' calendars on your own view.
+
+### P2-E3-S1: Layers API Endpoints
+
+**Status:** NOT STARTED
 
 **Description:**
-Define OpenAPI schemas and paths for user management. Reference: webcalendar-core `API.md` Sections 3.9-3.10. Phase 1 includes user listing, profile retrieval, and self-update.
+CRUD endpoints for calendar layers (overlays).
 
-**Preconditions:** E2-S1
+**Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [x] User schema — `login`, `firstname`, `lastname`, `email`, `is_admin`, `enabled`
-- [x] UserCreateRequest — required: `login`, `password`, `email`; optional: `firstname`, `lastname`, `is_admin`
-- [x] UserUpdateRequest — all fields optional (`firstname`, `lastname`, `email`, `is_admin`, `enabled`)
-- [x] PasswordChangeRequest — required: `new_password`; optional: `current_password`
-- [x] `GET /users` — admin only, returns User array + PaginationMeta
-- [x] `GET /users/{login}` — User in envelope, 403/404
-- [x] `POST /users` — admin only, body: UserCreateRequest, 201/409
-- [x] `PUT /users/{login}` — body: UserUpdateRequest
-- [x] `PUT /users/{login}/password` — body: PasswordChangeRequest
-- [x] `make lint` passes (zero errors)
-
-**Recommended Tests:**
-```bash
-cd webcalendar-openapi
-make lint
-make generate
-grep -q "'/users'" generated/typescript/*.ts
-grep -q "UserCreateRequest" generated/typescript/*.ts
-```
+- [ ] `GET /api/v2/layers` — list current user's layers
+- [ ] `POST /api/v2/layers` — add a layer (body: `{source_user, color, visible}`)
+- [ ] `PUT /api/v2/layers/{id}` — update layer settings
+- [ ] `DELETE /api/v2/layers/{id}` — remove a layer
+- [ ] Events from layered users included in `GET /events` when layers are active
+- [ ] PHPStan level 9 passes
 
 ---
 
-### E2-S4: Categories Endpoints Spec
+### P2-E3-S2: Layer Management UI
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Define OpenAPI schemas and paths for category management. Reference: webcalendar-core `API.md` Section 3.14.
+Sidebar panel for managing calendar layers.
 
-**Preconditions:** E2-S1
+**Preconditions:** P2-E3-S1
 
 **Acceptance Criteria:**
-- [x] Category schema — `id`, `name`, `color` (nullable), `is_global`, `owner` (nullable)
-- [x] CategoryCreateRequest — required: `name`; optional: `color`, `is_global`
-- [x] CategoryUpdateRequest — all fields optional (`name`, `color`)
-- [x] `GET /categories` — returns global + personal categories
-- [x] `POST /categories` — creates category, 201
-- [x] `GET /categories/{id}` — single category
-- [x] `PUT /categories/{id}` — update, 403/404
-- [x] `DELETE /categories/{id}` — delete, 204/403/404
-- [x] `make lint` passes (zero errors)
-
-**Recommended Tests:**
-```bash
-cd webcalendar-openapi
-make lint
-make generate
-grep -q "'/categories'" generated/typescript/*.ts
-grep -q "CategoryCreateRequest" generated/typescript/*.ts
-```
+- [ ] Sidebar section showing active layers with color + user name
+- [ ] Toggle visibility per layer (checkbox)
+- [ ] Add layer: user search dropdown + color picker
+- [ ] Remove layer button
+- [ ] Layer events shown on calendar with layer color
+- [ ] Vitest tests pass
 
 ---
 
-## Epic E3: Symfony API Skeleton
+### P2-E3-S3: Multi-User Calendar View
 
-**Goal:** Working Symfony application that boots, connects to the database via webcalendar-core, and serves a health check endpoint.
-
-### E3-S1: Symfony Kernel and Base Configuration
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Configure the Symfony kernel, environment handling, and base service wiring. The app must boot in the Docker environment and respond to requests.
+When layers are active, fetch and display events from multiple users on the same calendar with distinct colors.
 
-**Preconditions:** E1-S1, E1-S2
+**Preconditions:** P2-E3-S2
 
 **Acceptance Criteria:**
-- [x] `src/Kernel.php` exists and extends Symfony's base kernel
-- [x] `config/packages/framework.yaml` configured
-- [x] `.env` with `APP_ENV=dev`, `APP_SECRET`, `DATABASE_URL`
-- [x] `public/index.php` as Symfony front controller
-- [x] `GET /api/v2/health` returns `{"status":"ok","timestamp":"..."}` with HTTP 200
-- [x] App boots in Docker container with `make up`
-- [x] PHPStan level 9 passes on all new code
-- [x] Psalm passes on all new code
-
-**Recommended Tests:**
-```php
-// tests/Controller/HealthControllerTest.php
-class HealthControllerTest extends WebTestCase
-{
-    public function testHealthEndpoint(): void
-    {
-        $client = static::createClient();
-        $client->request('GET', '/api/v2/health');
-
-        $this->assertResponseIsSuccessful();
-        $response = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('ok', $response['status']);
-        $this->assertArrayHasKey('timestamp', $response);
-    }
-}
-```
+- [ ] FullCalendarWrapper fetches events from all active layers + own events
+- [ ] Events from different users have different colors (from layer settings)
+- [ ] Event detail shows which user's calendar the event belongs to
+- [ ] Layer toggle immediately adds/removes events without page reload
+- [ ] Vitest tests pass
 
 ---
 
-### E3-S2: webcalendar-core Service Wiring
+## Epic P2-E4: Tasks
 
-**Status:** DONE
+**Goal:** Task (to-do) management with due dates, priority, and completion tracking.
+
+### P2-E4-S1: Tasks API Endpoints
+
+**Status:** NOT STARTED
 
 **Description:**
-Create a Symfony service configuration that wires webcalendar-core's repositories and services into the dependency injection container. The `CoreServiceFactory` creates all webcalendar-core services with the correct PDO connection. For Phase 1, use standalone mode (single database).
+CRUD endpoints for tasks. Tasks are calendar entries with type 'T' or 'N'.
 
-**Preconditions:** E3-S1
+**Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [x] `src/Service/CoreServiceFactory.php` exists
-- [x] Factory creates a PDO connection from `DATABASE_URL` environment variable
-- [x] Factory instantiates all webcalendar-core PDO repository implementations
-- [x] Factory instantiates all webcalendar-core application services with correct dependencies
-- [x] `config/services.yaml` registers webcalendar-core interfaces with their PDO implementations
-- [x] All webcalendar-core services are available via Symfony's DI container
-- [x] Integration test verifies `EventService` can be retrieved from the container
-- [x] Integration test verifies `UserService` can be retrieved from the container
-- [x] PHPStan level 9 passes
-- [x] Psalm passes
-
-**Recommended Tests:**
-```php
-// tests/Service/CoreServiceFactoryTest.php (Unit)
-class CoreServiceFactoryTest extends TestCase
-{
-    public function testCreatesEventService(): void
-    {
-        $pdo = $this->createMock(\PDO::class);
-        $factory = new CoreServiceFactory($pdo);
-        $this->assertInstanceOf(EventService::class, $factory->getEventService());
-    }
-
-    public function testCreatesUserService(): void
-    {
-        $pdo = $this->createMock(\PDO::class);
-        $factory = new CoreServiceFactory($pdo);
-        $this->assertInstanceOf(UserService::class, $factory->getUserService());
-    }
-}
-
-// tests/Integration/ServiceWiringTest.php (Integration — runs in Docker)
-class ServiceWiringTest extends KernelTestCase
-{
-    public function testEventServiceAvailableInContainer(): void
-    {
-        self::bootKernel();
-        $service = self::getContainer()->get(EventService::class);
-        $this->assertInstanceOf(EventService::class, $service);
-    }
-}
-```
+- [ ] `GET /api/v2/tasks` — list tasks with filters: `status` (pending/completed/all), `due_before`
+- [ ] `POST /api/v2/tasks` — create task (body: `{title, due_date, priority, assigned_to}`)
+- [ ] `GET /api/v2/tasks/{id}` — get task details
+- [ ] `PUT /api/v2/tasks/{id}` — update task (including `percent_complete`)
+- [ ] `DELETE /api/v2/tasks/{id}` — delete task
+- [ ] Task response includes: `title`, `due_date`, `due_time`, `priority`, `percent_complete`, `status`
+- [ ] PHPStan level 9 passes
 
 ---
 
-### E3-S3: Standard Response Envelope and Error Handling
+### P2-E4-S2: Tasks Page UI
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Implement the standard JSON response envelope (`{data, meta, error}`) as a Symfony response helper/trait. Implement a global exception handler that converts exceptions to the standard error format. All API responses must use this envelope.
+Dedicated tasks page with list view, filtering, and inline completion.
 
-**Preconditions:** E3-S1
+**Preconditions:** P2-E4-S1
 
 **Acceptance Criteria:**
-- [x] `src/Response/ApiResponse.php` — helper class with static methods:
-  - `success(mixed $data, ?array $meta = null): JsonResponse` — wraps data in `{data, meta, error: null}`
-  - `error(int $code, string $message, array $details = []): JsonResponse` — wraps error in `{data: null, meta: null, error: {code, message, details}}`
-  - `paginated(array $items, int $total, int $page, int $limit): JsonResponse`
-- [x] `src/EventSubscriber/ExceptionSubscriber.php` — catches all exceptions:
-  - `HttpException` → appropriate HTTP status + error envelope
-  - `\InvalidArgumentException` → 400 + error envelope
-  - Any unhandled exception → 500 + generic error envelope (no stack trace in prod)
-- [x] Response Content-Type is always `application/json`
-- [x] PHPStan level 9 passes
-- [x] Psalm passes
-
-**Recommended Tests:**
-```php
-// tests/Response/ApiResponseTest.php
-class ApiResponseTest extends TestCase
-{
-    public function testSuccessEnvelope(): void
-    {
-        $response = ApiResponse::success(['id' => 1]);
-        $body = json_decode($response->getContent(), true);
-        $this->assertSame(['id' => 1], $body['data']);
-        $this->assertNull($body['error']);
-    }
-
-    public function testErrorEnvelope(): void
-    {
-        $response = ApiResponse::error(404, 'Not found');
-        $this->assertSame(404, $response->getStatusCode());
-        $body = json_decode($response->getContent(), true);
-        $this->assertNull($body['data']);
-        $this->assertSame(404, $body['error']['code']);
-        $this->assertSame('Not found', $body['error']['message']);
-    }
-
-    public function testPaginatedEnvelope(): void
-    {
-        $response = ApiResponse::paginated([['id' => 1]], 50, 1, 20);
-        $body = json_decode($response->getContent(), true);
-        $this->assertCount(1, $body['data']);
-        $this->assertSame(50, $body['meta']['total']);
-        $this->assertSame(1, $body['meta']['page']);
-        $this->assertSame(20, $body['meta']['limit']);
-    }
-}
-
-// tests/EventSubscriber/ExceptionSubscriberTest.php
-class ExceptionSubscriberTest extends WebTestCase
-{
-    public function testNotFoundReturns404Envelope(): void
-    {
-        $client = static::createClient();
-        $client->request('GET', '/api/v2/nonexistent');
-        $this->assertResponseStatusCodeSame(404);
-        $body = json_decode($client->getResponse()->getContent(), true);
-        $this->assertArrayHasKey('error', $body);
-        $this->assertSame(404, $body['error']['code']);
-    }
-}
-```
+- [ ] Route `/tasks` with sidebar link
+- [ ] Task list with columns: title, due date, priority, completion %, status
+- [ ] Filter by status: All, Pending, Completed
+- [ ] Click task to view/edit details
+- [ ] Checkbox to mark task complete (sets percent_complete to 100)
+- [ ] Create task button + dialog
+- [ ] Vitest tests pass
 
 ---
 
-### E3-S4: CORS Configuration
+### P2-E4-S3: Tasks on Calendar
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Configure CORS to allow the React SPA (running on a different port in development) to call the API. Use `nelmio/cors-bundle`.
+Show tasks as events on the calendar (on their due date).
 
-**Preconditions:** E3-S1
+**Preconditions:** P2-E4-S1
 
 **Acceptance Criteria:**
-- [x] `config/packages/nelmio_cors.yaml` configured:
-  - Allow origin: `http://localhost:47173` (Vite dev), configurable via `CORS_ALLOW_ORIGIN` env var
-  - Allow headers: `Authorization`, `Content-Type`, `Accept`
-  - Allow methods: `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS`
-  - Allow credentials: true
-  - Max age: 3600
-- [x] Preflight `OPTIONS` requests return correct CORS headers
-- [x] Non-CORS requests (same-origin) work without CORS headers
-- [x] PHPStan level 9 passes
-
-**Recommended Tests:**
-```php
-// tests/Middleware/CorsTest.php
-class CorsTest extends WebTestCase
-{
-    public function testPreflightReturnsCorrectHeaders(): void
-    {
-        $client = static::createClient();
-        $client->request('OPTIONS', '/api/v2/health', [], [], [
-            'HTTP_ORIGIN' => 'http://localhost:47173',
-            'HTTP_ACCESS_CONTROL_REQUEST_METHOD' => 'GET',
-        ]);
-        $this->assertResponseHeaderSame('Access-Control-Allow-Origin', 'http://localhost:47173');
-        $this->assertResponseHeaderContains('Access-Control-Allow-Methods', 'GET');
-    }
-}
-```
+- [ ] Tasks appear on calendar on their due date with a distinct style (e.g., dashed border, task icon)
+- [ ] Clicking a task on calendar opens task detail (not event detail)
+- [ ] Completed tasks shown with strikethrough or muted style
+- [ ] Vitest tests pass
 
 ---
 
-### E3-S5: Database Schema Initialization Command
+### P2-E4-S4: Tasks E2E Tests
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Create a Symfony console command that initializes the database schema using webcalendar-core's SQL schema files. Also creates a default admin user. This replaces a traditional migration system for the initial setup.
+Playwright E2E tests for task CRUD workflow.
 
-**Preconditions:** E3-S2
+**Preconditions:** P2-E4-S2
 
 **Acceptance Criteria:**
-- [x] `src/Command/InstallCommand.php` — `php bin/console webcalendar:install`
-- [x] Command detects database type from `DATABASE_URL` (mysql, pgsql, sqlite)
-- [x] Command loads the appropriate schema SQL from webcalendar-core (`mysql-schema.sql`, `postgresql-schema.sql`, or `sqlite-schema.sql`)
-- [x] Command executes schema SQL via PDO
-- [x] Command creates a default admin user (login: `admin`, prompted or env-var password)
-- [x] Command is idempotent — running twice does not error (checks if tables exist)
-- [x] `--force` flag required for non-interactive execution
-- [x] Outputs progress messages for each step
-- [x] PHPStan level 9 passes
-- [x] Psalm passes
-
-**Recommended Tests:**
-```php
-// tests/Command/InstallCommandTest.php (Integration — needs MySQL in Docker)
-class InstallCommandTest extends KernelTestCase
-{
-    public function testInstallCreatesSchema(): void
-    {
-        $kernel = self::bootKernel();
-        $app = new Application($kernel);
-        $command = $app->find('webcalendar:install');
-        $tester = new CommandTester($command);
-        $tester->execute(['--force' => true]);
-
-        $this->assertSame(0, $tester->getStatusCode());
-        $this->assertStringContainsString('Schema created', $tester->getDisplay());
-
-        // Verify tables exist
-        $pdo = self::getContainer()->get(\PDO::class);
-        $stmt = $pdo->query("SHOW TABLES LIKE 'webcal_%'");
-        $tables = $stmt->fetchAll(\PDO::FETCH_COLUMN);
-        $this->assertContains('webcal_entry', $tables);
-        $this->assertContains('webcal_user', $tables);
-    }
-
-    public function testInstallCreatesAdminUser(): void
-    {
-        // After install, admin user should exist
-        $userService = self::getContainer()->get(UserService::class);
-        $admin = $userService->getUserByLogin('admin');
-        $this->assertNotNull($admin);
-        $this->assertTrue($admin->isAdmin());
-    }
-
-    public function testInstallIsIdempotent(): void
-    {
-        $kernel = self::bootKernel();
-        $app = new Application($kernel);
-        $command = $app->find('webcalendar:install');
-        $tester = new CommandTester($command);
-
-        $tester->execute(['--force' => true]);
-        $this->assertSame(0, $tester->getStatusCode());
-
-        // Run again — should not error
-        $tester->execute(['--force' => true]);
-        $this->assertSame(0, $tester->getStatusCode());
-        $this->assertStringContainsString('already exists', $tester->getDisplay());
-    }
-}
-```
+- [ ] Create task via UI, verify it appears in list
+- [ ] Mark task complete, verify status changes
+- [ ] Edit task details
+- [ ] Delete task
+- [ ] All tests pass in under 30 seconds
 
 ---
 
-## Epic E4: Authentication
+## Epic P2-E5: Journals
 
-**Goal:** JWT-based authentication with login/logout/refresh endpoints.
+**Goal:** Journal/diary entries associated with dates.
 
-### E4-S1: JWT Token Service
+### P2-E5-S1: Journals API Endpoints
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Implement JWT token generation and validation using `lexik/jwt-authentication-bundle`. Tokens must contain user login, admin flag, and expiration. Configure key pair generation.
+CRUD endpoints for journal entries (VJOURNAL type).
 
-**Preconditions:** E3-S2
+**Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [x] JWT key pair generated and stored in `config/jwt/` (private.pem, public.pem)
-- [x] `config/packages/lexik_jwt_authentication.yaml` configured
-- [x] Token payload includes: `username` (login), `is_admin`, `iat`, `exp`
-- [x] Access token TTL: 1 hour (configurable via `JWT_TTL` env var)
-- [x] Refresh token TTL: 30 days (configurable)
-- [x] Tokens are signed with RS256
-- [x] PHPStan level 9 passes
-- [x] Psalm passes
-
-**Recommended Tests:**
-```php
-// tests/Security/JwtTokenTest.php
-class JwtTokenTest extends KernelTestCase
-{
-    public function testTokenContainsRequiredClaims(): void
-    {
-        $encoder = self::getContainer()->get(JWTEncoderInterface::class);
-        $token = $encoder->encode(['username' => 'testuser', 'is_admin' => false]);
-        $decoded = $encoder->decode($token);
-
-        $this->assertSame('testuser', $decoded['username']);
-        $this->assertFalse($decoded['is_admin']);
-        $this->assertArrayHasKey('iat', $decoded);
-        $this->assertArrayHasKey('exp', $decoded);
-    }
-
-    public function testExpiredTokenIsRejected(): void
-    {
-        $encoder = self::getContainer()->get(JWTEncoderInterface::class);
-        $this->expectException(JWTDecodeFailureException::class);
-        $encoder->decode('eyJ...<expired_token>');
-    }
-}
-```
+- [ ] `GET /api/v2/journals` — list journals with date range filter
+- [ ] `POST /api/v2/journals` — create journal (body: `{date, title, text}`)
+- [ ] `GET /api/v2/journals/{id}` — get journal entry
+- [ ] `PUT /api/v2/journals/{id}` — update journal
+- [ ] `DELETE /api/v2/journals/{id}` — delete journal
+- [ ] PHPStan level 9 passes
 
 ---
 
-### E4-S2: User Provider (webcalendar-core Bridge)
+### P2-E5-S2: Journals Page UI
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Implement a Symfony `UserProviderInterface` that loads users from webcalendar-core's `UserService`. This bridges Symfony Security with the core user model.
+Journal page with chronological list and rich text editing.
 
-**Preconditions:** E3-S2, E4-S1
+**Preconditions:** P2-E5-S1
 
 **Acceptance Criteria:**
-- [x] `src/Security/WebCalendarUserProvider.php` implements `UserProviderInterface`
-- [x] `loadUserByIdentifier(string $login)` calls `UserService::getUserByLogin()`
-- [x] Returns a Symfony `UserInterface` implementation wrapping the core User entity
-- [x] `src/Security/WebCalendarUser.php` implements `UserInterface` — wraps core `User`
-- [x] `getRoles()` returns `['ROLE_USER']` for regular users, `['ROLE_USER', 'ROLE_ADMIN']` for admins
-- [x] `getPassword()` returns the hashed password from core User
-- [x] `config/packages/security.yaml` configured with this provider
-- [x] PHPStan level 9 passes
-- [x] Psalm passes
-
-**Recommended Tests:**
-```php
-// tests/Security/WebCalendarUserProviderTest.php
-class WebCalendarUserProviderTest extends TestCase
-{
-    public function testLoadUserByIdentifier(): void
-    {
-        $coreUser = new \WebCalendar\Core\Domain\Entity\User(
-            login: 'testuser', firstname: 'Test', lastname: 'User',
-            email: 'test@example.com', isAdmin: false
-        );
-        $userService = $this->createMock(UserService::class);
-        $userService->method('getUserByLogin')->with('testuser')->willReturn($coreUser);
-
-        $provider = new WebCalendarUserProvider($userService);
-        $user = $provider->loadUserByIdentifier('testuser');
-
-        $this->assertSame('testuser', $user->getUserIdentifier());
-        $this->assertContains('ROLE_USER', $user->getRoles());
-        $this->assertNotContains('ROLE_ADMIN', $user->getRoles());
-    }
-
-    public function testLoadAdminUser(): void
-    {
-        $coreUser = new \WebCalendar\Core\Domain\Entity\User(
-            login: 'admin', firstname: 'Admin', lastname: 'User',
-            email: 'admin@example.com', isAdmin: true
-        );
-        $userService = $this->createMock(UserService::class);
-        $userService->method('getUserByLogin')->with('admin')->willReturn($coreUser);
-
-        $provider = new WebCalendarUserProvider($userService);
-        $user = $provider->loadUserByIdentifier('admin');
-
-        $this->assertContains('ROLE_ADMIN', $user->getRoles());
-    }
-
-    public function testLoadNonexistentUserThrows(): void
-    {
-        $userService = $this->createMock(UserService::class);
-        $userService->method('getUserByLogin')->willReturn(null);
-
-        $provider = new WebCalendarUserProvider($userService);
-        $this->expectException(UserNotFoundException::class);
-        $provider->loadUserByIdentifier('nobody');
-    }
-}
-```
+- [ ] Route `/journals` with sidebar link
+- [ ] Chronological list of journal entries (newest first)
+- [ ] Create journal button + dialog with date picker and text area
+- [ ] Click entry to view/edit
+- [ ] Delete entry with confirmation
+- [ ] Vitest tests pass
 
 ---
 
-### E4-S3: Login Endpoint
+### P2-E5-S3: Journals on Calendar
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Implement `POST /api/v2/auth/login` that authenticates a user against webcalendar-core and returns a JWT token. Uses the standard response envelope.
+Show journal entries on the calendar as small indicators on their date.
 
-**Preconditions:** E4-S1, E4-S2
+**Preconditions:** P2-E5-S1
 
 **Acceptance Criteria:**
-- [x] `src/Controller/Api/AuthController.php` with `login()` action
-- [x] Validates request body has `username` and `password` (returns 400 if missing)
-- [x] Authenticates via webcalendar-core's `DatabaseAuthService::authenticate()`
-- [x] On success: returns 200 with `{data: {token, user: {login, firstname, lastname, email, is_admin}, expires_at}}`
-- [x] On failure: returns 401 with error envelope `{error: {code: 401, message: "Invalid credentials"}}`
-- [x] Rate limited: via DatabaseAuthService's built-in PdoRateLimiter (max 5 attempts per 15min)
-- [x] Logs authentication attempts (success and failure) via DatabaseAuthService's logger
-- [x] PHPStan level 9 passes
-- [x] Psalm passes
-
-**Recommended Tests:**
-```php
-// tests/Controller/Api/AuthControllerTest.php
-class AuthControllerTest extends WebTestCase
-{
-    public function testLoginSuccess(): void
-    {
-        // Requires admin user from InstallCommand
-        $client = static::createClient();
-        $client->request('POST', '/api/v2/auth/login', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-        ], json_encode(['username' => 'admin', 'password' => 'admin']));
-
-        $this->assertResponseIsSuccessful();
-        $body = json_decode($client->getResponse()->getContent(), true);
-        $this->assertArrayHasKey('token', $body['data']);
-        $this->assertSame('admin', $body['data']['user']['login']);
-        $this->assertTrue($body['data']['user']['is_admin']);
-        $this->assertArrayHasKey('expires_at', $body['data']);
-    }
-
-    public function testLoginInvalidCredentials(): void
-    {
-        $client = static::createClient();
-        $client->request('POST', '/api/v2/auth/login', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-        ], json_encode(['username' => 'admin', 'password' => 'wrong']));
-
-        $this->assertResponseStatusCodeSame(401);
-        $body = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame(401, $body['error']['code']);
-    }
-
-    public function testLoginMissingFields(): void
-    {
-        $client = static::createClient();
-        $client->request('POST', '/api/v2/auth/login', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-        ], json_encode(['username' => 'admin']));
-
-        $this->assertResponseStatusCodeSame(400);
-    }
-
-    public function testLoginReturnsValidJwt(): void
-    {
-        $client = static::createClient();
-        $client->request('POST', '/api/v2/auth/login', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-        ], json_encode(['username' => 'admin', 'password' => 'admin']));
-
-        $body = json_decode($client->getResponse()->getContent(), true);
-        $token = $body['data']['token'];
-
-        // Use token to access protected endpoint
-        $client->request('GET', '/api/v2/health', [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-        $this->assertResponseIsSuccessful();
-    }
-}
-```
+- [ ] Journal entries appear as small icons/dots on their date in month view
+- [ ] Clicking the indicator opens the journal entry
+- [ ] Distinct visual style from events and tasks
+- [ ] Vitest tests pass
 
 ---
 
-### E4-S4: Logout and Token Refresh Endpoints
+## Epic P2-E6: Import/Export
 
-**Status:** DONE
+**Goal:** Import and export calendar data in iCalendar (ICS) format.
+
+### P2-E6-S1: Export API Endpoint
+
+**Status:** NOT STARTED
 
 **Description:**
-Implement `POST /api/v2/auth/logout` (token invalidation) and `POST /api/v2/auth/refresh` (issue new token from valid existing token).
+Export calendar events as an ICS file.
 
-**Preconditions:** E4-S3
+**Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [x] `POST /api/v2/auth/logout` — requires valid Bearer token, returns 204
-- [x] After logout, the old token is rejected (stateless JWT — client discards token; server-side blacklist can be added later)
-- [x] `POST /api/v2/auth/refresh` — requires valid Bearer token, returns new token with extended expiry
-- [x] Refresh fails if token is expired beyond a grace period
-- [x] Both endpoints return error envelope on 401/403
-- [x] PHPStan level 9 passes
-- [x] Psalm passes
-
-**Recommended Tests:**
-```php
-// tests/Controller/Api/AuthRefreshTest.php
-class AuthRefreshTest extends WebTestCase
-{
-    public function testRefreshReturnsNewToken(): void
-    {
-        $token = $this->loginAsAdmin();
-        $client = static::createClient();
-        $client->request('POST', '/api/v2/auth/refresh', [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-
-        $this->assertResponseIsSuccessful();
-        $body = json_decode($client->getResponse()->getContent(), true);
-        $this->assertArrayHasKey('token', $body['data']);
-        $this->assertNotSame($token, $body['data']['token']);
-    }
-
-    public function testLogoutInvalidatesToken(): void
-    {
-        $token = $this->loginAsAdmin();
-        $client = static::createClient();
-
-        $client->request('POST', '/api/v2/auth/logout', [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-        $this->assertResponseStatusCodeSame(204);
-    }
-
-    public function testRefreshWithoutTokenFails(): void
-    {
-        $client = static::createClient();
-        $client->request('POST', '/api/v2/auth/refresh');
-        $this->assertResponseStatusCodeSame(401);
-    }
-}
-```
+- [ ] `GET /api/v2/export?format=ics&start=YYYYMMDD&end=YYYYMMDD` — returns ICS file
+- [ ] Response Content-Type: `text/calendar`
+- [ ] Exported ICS passes RFC 5545 validation
+- [ ] Includes VEVENT, VTODO (tasks), VJOURNAL entries
+- [ ] Includes recurrence rules, categories, participants
+- [ ] PHPStan level 9 passes
 
 ---
 
-## Epic E5: Events API
+### P2-E6-S2: Import API Endpoint
 
-**Goal:** Full CRUD REST endpoints for events, delegating to webcalendar-core services.
-
-### E5-S1: List Events Endpoint
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Implement `GET /api/v2/events` with date range filtering, pagination, and the standard response envelope. Delegates to webcalendar-core's `EventService`.
+Import events from an uploaded ICS file.
 
-**Preconditions:** E3-S3, E4-S3
+**Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [x] `src/Controller/Api/EventController.php` with `list()` action
-- [x] Requires authentication (401 without valid JWT)
-- [x] Query params: `start` (YYYYMMDD), `end` (YYYYMMDD), `page` (default 1), `limit` (default 20, max 100)
-- [x] Calls `EventService::getEventsInDateRange()` with authenticated user
-- [x] Returns events in standard envelope with pagination meta
-- [x] Returns empty array (not error) when no events found
-- [x] Invalid date format returns 400 with error envelope
-- [x] PHPStan level 9 passes
-- [x] Psalm passes
-
-**Recommended Tests:**
-```php
-// tests/Controller/Api/EventControllerListTest.php
-class EventControllerListTest extends WebTestCase
-{
-    public function testListRequiresAuth(): void
-    {
-        $client = static::createClient();
-        $client->request('GET', '/api/v2/events');
-        $this->assertResponseStatusCodeSame(401);
-    }
-
-    public function testListReturnsEventsInEnvelope(): void
-    {
-        $token = $this->loginAndGetToken();
-        $this->createTestEvent($token);
-
-        $client = static::createClient();
-        $client->request('GET', '/api/v2/events?start=20260101&end=20261231', [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-
-        $this->assertResponseIsSuccessful();
-        $body = json_decode($client->getResponse()->getContent(), true);
-        $this->assertIsArray($body['data']);
-        $this->assertArrayHasKey('meta', $body);
-        $this->assertArrayHasKey('total', $body['meta']);
-    }
-
-    public function testListReturnsEmptyArrayWhenNoEvents(): void
-    {
-        $token = $this->loginAndGetToken();
-        $client = static::createClient();
-        $client->request('GET', '/api/v2/events?start=19000101&end=19001231', [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-
-        $this->assertResponseIsSuccessful();
-        $body = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame([], $body['data']);
-    }
-
-    public function testListPagination(): void
-    {
-        $token = $this->loginAndGetToken();
-        // Create 25 events...
-        $client = static::createClient();
-        $client->request('GET', '/api/v2/events?start=20260101&end=20261231&page=1&limit=10', [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-
-        $body = json_decode($client->getResponse()->getContent(), true);
-        $this->assertCount(10, $body['data']);
-        $this->assertSame(25, $body['meta']['total']);
-        $this->assertSame(1, $body['meta']['page']);
-    }
-
-    public function testListInvalidDateReturns400(): void
-    {
-        $token = $this->loginAndGetToken();
-        $client = static::createClient();
-        $client->request('GET', '/api/v2/events?start=notadate', [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-        $this->assertResponseStatusCodeSame(400);
-    }
-}
-```
+- [ ] `POST /api/v2/import` — accepts multipart/form-data with ICS file
+- [ ] Supports `dry_run` parameter (preview without saving)
+- [ ] Returns import result: events created, skipped, errors
+- [ ] Handles duplicate detection (by UID)
+- [ ] Validates ICS content before importing
+- [ ] PHPStan level 9 passes
 
 ---
 
-### E5-S2: Get Single Event Endpoint
+### P2-E6-S3: Import/Export UI
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Implement `GET /api/v2/events/{id}` to retrieve a single event by ID.
+UI for importing and exporting calendar data.
 
-**Preconditions:** E5-S1
+**Preconditions:** P2-E6-S1, P2-E6-S2
 
 **Acceptance Criteria:**
-- [x] Returns event in standard envelope with all fields
-- [x] Returns 404 with error envelope if event not found
-- [x] Respects access permissions (cannot view private events of other users)
-- [x] PHPStan level 9 passes
-
-**Recommended Tests:**
-```php
-class EventControllerGetTest extends WebTestCase
-{
-    public function testGetExistingEvent(): void
-    {
-        $token = $this->loginAndGetToken();
-        $eventId = $this->createTestEvent($token);
-
-        $client = static::createClient();
-        $client->request('GET', "/api/v2/events/{$eventId}", [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-
-        $this->assertResponseIsSuccessful();
-        $body = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame($eventId, $body['data']['id']);
-        $this->assertArrayHasKey('title', $body['data']);
-    }
-
-    public function testGetNonexistentEventReturns404(): void
-    {
-        $token = $this->loginAndGetToken();
-        $client = static::createClient();
-        $client->request('GET', '/api/v2/events/999999', [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-        $this->assertResponseStatusCodeSame(404);
-    }
-}
-```
+- [ ] Export button in calendar toolbar — downloads ICS for current view date range
+- [ ] Import page/dialog — file upload with drag-and-drop
+- [ ] Import preview showing events to be imported with dry_run
+- [ ] Confirm button to execute import
+- [ ] Success/error toast with import summary
+- [ ] Vitest tests pass
 
 ---
 
-### E5-S3: Create Event Endpoint
+## Epic P2-E7: Search
 
-**Status:** DONE
+**Goal:** Full-text search across events, tasks, and journals.
+
+### P2-E7-S1: Search API Endpoint
+
+**Status:** NOT STARTED
 
 **Description:**
-Implement `POST /api/v2/events` to create a new event.
+Global search endpoint using webcalendar-core's SearchService.
 
-**Preconditions:** E5-S1
+**Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [x] Accepts JSON body with event fields per OpenAPI spec
-- [x] Required field: `title`, `start_date`
-- [x] Returns 201 with created event in envelope (including generated `id`)
-- [x] Returns 400 with validation errors if required fields missing
-- [x] Sets `created_by` to authenticated user's login
-- [x] Supports all-day events (no `start_time`) and timed events
-- [x] PHPStan level 9 passes
-- [x] Psalm passes
-
-**Recommended Tests:**
-```php
-class EventControllerCreateTest extends WebTestCase
-{
-    public function testCreateMinimalEvent(): void
-    {
-        $token = $this->loginAndGetToken();
-        $client = static::createClient();
-        $client->request('POST', '/api/v2/events', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ], json_encode([
-            'title' => 'Test Event',
-            'start_date' => '20260315',
-        ]));
-
-        $this->assertResponseStatusCodeSame(201);
-        $body = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('Test Event', $body['data']['title']);
-        $this->assertArrayHasKey('id', $body['data']);
-    }
-
-    public function testCreateTimedEvent(): void
-    {
-        $token = $this->loginAndGetToken();
-        $client = static::createClient();
-        $client->request('POST', '/api/v2/events', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ], json_encode([
-            'title' => 'Meeting',
-            'start_date' => '20260315',
-            'start_time' => '100000',
-            'duration' => 60,
-            'location' => 'Room A',
-            'description' => 'Weekly sync',
-        ]));
-
-        $this->assertResponseStatusCodeSame(201);
-        $body = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('100000', $body['data']['start_time']);
-        $this->assertSame(60, $body['data']['duration']);
-    }
-
-    public function testCreateWithoutTitleReturns400(): void
-    {
-        $token = $this->loginAndGetToken();
-        $client = static::createClient();
-        $client->request('POST', '/api/v2/events', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ], json_encode(['start_date' => '20260315']));
-
-        $this->assertResponseStatusCodeSame(400);
-        $body = json_decode($client->getResponse()->getContent(), true);
-        $this->assertNotNull($body['error']);
-    }
-
-    public function testCreateWithoutAuthReturns401(): void
-    {
-        $client = static::createClient();
-        $client->request('POST', '/api/v2/events', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-        ], json_encode(['title' => 'Test', 'start_date' => '20260315']));
-
-        $this->assertResponseStatusCodeSame(401);
-    }
-}
-```
+- [ ] `GET /api/v2/search?q=keyword&start=YYYYMMDD&end=YYYYMMDD` — searches event titles and descriptions
+- [ ] Optional filters: `type` (E/T/J), `category`, `user`
+- [ ] Returns standard envelope with paginated results
+- [ ] Results include event type, date, and match context
+- [ ] PHPStan level 9 passes
 
 ---
 
-### E5-S4: Update Event Endpoint
+### P2-E7-S2: Search UI
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Implement `PUT /api/v2/events/{id}` to update an existing event.
+Search input in the app header with results dropdown.
 
-**Preconditions:** E5-S3
+**Preconditions:** P2-E7-S1
 
 **Acceptance Criteria:**
-- [x] Accepts partial update (only fields present in body are changed)
-- [x] Returns 200 with updated event in envelope
-- [x] Returns 404 if event not found
-- [x] Returns 403 if user does not own the event and is not admin
-- [x] Returns 400 for invalid field values
-- [x] PHPStan level 9 passes
-
-**Recommended Tests:**
-```php
-class EventControllerUpdateTest extends WebTestCase
-{
-    public function testUpdateTitle(): void
-    {
-        $token = $this->loginAndGetToken();
-        $eventId = $this->createTestEvent($token);
-
-        $client = static::createClient();
-        $client->request('PUT', "/api/v2/events/{$eventId}", [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ], json_encode(['title' => 'Updated Title']));
-
-        $this->assertResponseIsSuccessful();
-        $body = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('Updated Title', $body['data']['title']);
-    }
-
-    public function testUpdateNonexistentReturns404(): void
-    {
-        $token = $this->loginAndGetToken();
-        $client = static::createClient();
-        $client->request('PUT', '/api/v2/events/999999', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ], json_encode(['title' => 'X']));
-        $this->assertResponseStatusCodeSame(404);
-    }
-}
-```
+- [ ] Search input in the app header (always visible)
+- [ ] Debounced search (300ms) as user types
+- [ ] Results dropdown showing matching events/tasks/journals with type icon
+- [ ] Clicking a result navigates to the event's date on the calendar
+- [ ] Empty state message when no results
+- [ ] Keyboard navigation (arrow keys, Enter to select, Escape to close)
+- [ ] Vitest tests pass
 
 ---
 
-### E5-S5: Delete Event Endpoint
+## Epic P2-E8: Real-time Updates (Mercure)
 
-**Status:** DONE
+**Goal:** Live updates when other users create/modify/delete events.
+
+### P2-E8-S1: Mercure Hub Setup
+
+**Status:** NOT STARTED
 
 **Description:**
-Implement `DELETE /api/v2/events/{id}` to delete an event.
+Add Mercure hub to Docker Compose and configure Symfony to publish events.
 
-**Preconditions:** E5-S3
+**Preconditions:** P2-E1 (participants — so there are multi-user scenarios)
 
 **Acceptance Criteria:**
-- [x] Returns 204 on successful deletion
-- [x] Returns 404 if event not found
-- [x] Returns 403 if user does not own the event and is not admin
-- [x] Admin can delete any event
-- [x] PHPStan level 9 passes
-
-**Recommended Tests:**
-```php
-class EventControllerDeleteTest extends WebTestCase
-{
-    public function testDeleteEvent(): void
-    {
-        $token = $this->loginAndGetToken();
-        $eventId = $this->createTestEvent($token);
-
-        $client = static::createClient();
-        $client->request('DELETE', "/api/v2/events/{$eventId}", [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-        $this->assertResponseStatusCodeSame(204);
-
-        // Verify it's gone
-        $client->request('GET', "/api/v2/events/{$eventId}", [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-        $this->assertResponseStatusCodeSame(404);
-    }
-
-    public function testDeleteNonexistentReturns404(): void
-    {
-        $token = $this->loginAndGetToken();
-        $client = static::createClient();
-        $client->request('DELETE', '/api/v2/events/999999', [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-        $this->assertResponseStatusCodeSame(404);
-    }
-}
-```
+- [ ] Mercure hub added to `docker-compose.dev.yml` on port 47181
+- [ ] `config/packages/mercure.yaml` configured
+- [ ] `MercurePublisher` service publishes event changes to topics
+- [ ] Topics follow pattern: `/calendars/events/{eventId}`
+- [ ] JWT token for Mercure publisher configured
+- [ ] Health check for Mercure hub
 
 ---
 
-### E5-S6: Event Serialization and DTO Mapping
+### P2-E8-S2: Server-Side Event Publishing
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Implement request/response DTO classes that map between JSON request bodies and webcalendar-core domain entities, and between core entities and JSON responses. These are used by all event controller actions.
+Publish SSE notifications when events are created, updated, or deleted.
 
-**Preconditions:** E3-S3
+**Preconditions:** P2-E8-S1
 
 **Acceptance Criteria:**
-- [x] `src/DTO/EventRequestDTO.php` — creates webcalendar-core Event entity from JSON array
-  - Validates required fields, throws `\InvalidArgumentException` on missing `title`/`start_date`
-  - Maps `start_date` (string YYYYMMDD) + `start_time` (string HHMMSS) to DateTimeImmutable
-  - Maps `access` string to `AccessLevel` enum, `type` string to `EventType` enum
-  - Also provides `applyUpdate()` for partial updates on existing events
-- [x] `src/DTO/EventResponseDTO.php` — converts webcalendar-core Event entity to array
-  - Includes all event fields: `id`, `uid`, `title`, `description`, `start_date`, `start_time`, `end_date`, `end_time`, `duration`, `location`, `access`, `type`, `created_by`, `all_day`, `sequence`, `status`
-  - Formats dates as YYYYMMDD strings, times as HHMMSS strings (null for all-day)
-  - Also provides `fromCollection()` for batch conversion
-- [x] All DTO methods are stateless, static or pure
-- [x] PHPStan level 9 passes
-- [x] Psalm passes
-
-**Recommended Tests:**
-```php
-// tests/DTO/EventRequestDTOTest.php
-class EventRequestDTOTest extends TestCase
-{
-    public function testCreatesEventFromValidData(): void
-    {
-        $data = ['title' => 'Test', 'start_date' => '20260315', 'start_time' => '100000', 'duration' => 60];
-        $event = EventRequestDTO::toEntity($data, 'admin');
-        $this->assertSame('Test', $event->getTitle());
-        $this->assertSame(20260315, $event->getStartDate());
-        $this->assertSame(100000, $event->getStartTime());
-    }
-
-    public function testThrowsOnMissingTitle(): void
-    {
-        $this->expectException(\InvalidArgumentException::class);
-        EventRequestDTO::toEntity(['start_date' => '20260315'], 'admin');
-    }
-
-    public function testAllDayEventSetsTimeToNegativeOne(): void
-    {
-        $data = ['title' => 'All Day', 'start_date' => '20260315'];
-        $event = EventRequestDTO::toEntity($data, 'admin');
-        $this->assertSame(-1, $event->getStartTime());
-    }
-}
-
-// tests/DTO/EventResponseDTOTest.php
-class EventResponseDTOTest extends TestCase
-{
-    public function testConvertsEntityToArray(): void
-    {
-        $event = $this->createTestEventEntity();
-        $array = EventResponseDTO::fromEntity($event);
-        $this->assertSame('20260315', $array['start_date']);
-        $this->assertArrayHasKey('id', $array);
-        $this->assertArrayHasKey('title', $array);
-    }
-}
-```
+- [ ] Event create publishes `{type: "event.created", event: {...}}`
+- [ ] Event update publishes `{type: "event.updated", event: {...}}`
+- [ ] Event delete publishes `{type: "event.deleted", eventId: ...}`
+- [ ] Participant changes publish `{type: "participant.changed", ...}`
+- [ ] Only published to relevant users (event participants + owner)
+- [ ] PHPStan level 9 passes
 
 ---
 
-## Epic E6: Users API
+### P2-E8-S3: Client-Side SSE Subscription
 
-**Goal:** Basic user management endpoints for Phase 1.
-
-### E6-S1: List and Get Users Endpoints
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Implement `GET /api/v2/users` (list) and `GET /api/v2/users/{login}` (single). List is admin-only; users can view their own profile.
+React hook that subscribes to Mercure SSE and updates the calendar in real-time.
 
-**Preconditions:** E4-S3, E3-S3
+**Preconditions:** P2-E8-S2
 
 **Acceptance Criteria:**
-- [x] `src/Controller/Api/UserController.php`
-- [x] `GET /users` — requires admin role, returns paginated user list in envelope
-- [x] `GET /users/{login}` — admin can view any user, non-admin can only view self
-- [x] Non-admin accessing `/users` gets 403 (via AuthorizationException)
-- [x] Non-admin accessing other user's profile gets 403
-- [x] User response excludes password hash
-- [x] PHPStan level 9 passes
-
-**Recommended Tests:**
-```php
-class UserControllerTest extends WebTestCase
-{
-    public function testListUsersAsAdmin(): void
-    {
-        $token = $this->loginAsAdmin();
-        $client = static::createClient();
-        $client->request('GET', '/api/v2/users', [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-        $this->assertResponseIsSuccessful();
-        $body = json_decode($client->getResponse()->getContent(), true);
-        $this->assertIsArray($body['data']);
-    }
-
-    public function testListUsersAsNonAdminFails(): void
-    {
-        $token = $this->loginAsRegularUser();
-        $client = static::createClient();
-        $client->request('GET', '/api/v2/users', [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-        $this->assertResponseStatusCodeSame(403);
-    }
-
-    public function testGetOwnProfile(): void
-    {
-        $token = $this->loginAsRegularUser();
-        $client = static::createClient();
-        $client->request('GET', '/api/v2/users/regularuser', [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-        $this->assertResponseIsSuccessful();
-    }
-
-    public function testGetOtherProfileAsNonAdminFails(): void
-    {
-        $token = $this->loginAsRegularUser();
-        $client = static::createClient();
-        $client->request('GET', '/api/v2/users/admin', [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-        $this->assertResponseStatusCodeSame(403);
-    }
-
-    public function testUserResponseExcludesPassword(): void
-    {
-        $token = $this->loginAsAdmin();
-        $client = static::createClient();
-        $client->request('GET', '/api/v2/users/admin', [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-        $body = json_decode($client->getResponse()->getContent(), true);
-        $this->assertArrayNotHasKey('password', $body['data']);
-        $this->assertArrayNotHasKey('password_hash', $body['data']);
-    }
-}
-```
+- [ ] `src/hooks/useMercure.ts` — subscribes to event topics via EventSource
+- [ ] On `event.created` / `event.updated`: refetch events (invalidate React Query cache)
+- [ ] On `event.deleted`: remove event from calendar immediately
+- [ ] Reconnects automatically on connection loss
+- [ ] Toast notification: "Calendar updated by [user]"
+- [ ] Vitest tests pass
 
 ---
 
-### E6-S2: Create User Endpoint
+## Epic P2-E9: Permissions & Access Control
 
-**Status:** DONE
+**Goal:** Fine-grained permissions for viewing and editing other users' calendars.
+
+### P2-E9-S1: Access Control API
+
+**Status:** NOT STARTED
 
 **Description:**
-Implement `POST /api/v2/users` (admin-only) to create new users.
+Endpoints for managing user-to-user access permissions.
 
-**Preconditions:** E6-S1
+**Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [x] Admin-only (403 for non-admin via AuthorizationException)
-- [x] Required fields: `login`, `password`, `email`
-- [x] Returns 201 with created user in envelope (excludes password)
-- [x] Returns 409 if login already exists
-- [x] Returns 400 for invalid/missing fields
-- [x] Password is hashed via webcalendar-core's `UserService::hashPassword()`
-- [x] PHPStan level 9 passes
-
-**Recommended Tests:**
-```php
-class UserControllerCreateTest extends WebTestCase
-{
-    public function testCreateUser(): void
-    {
-        $token = $this->loginAsAdmin();
-        $client = static::createClient();
-        $client->request('POST', '/api/v2/users', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ], json_encode([
-            'login' => 'newuser',
-            'password' => 'SecurePass123!',
-            'email' => 'new@example.com',
-            'firstname' => 'New',
-            'lastname' => 'User',
-        ]));
-
-        $this->assertResponseStatusCodeSame(201);
-        $body = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('newuser', $body['data']['login']);
-        $this->assertArrayNotHasKey('password', $body['data']);
-    }
-
-    public function testCreateDuplicateLoginReturns409(): void
-    {
-        $token = $this->loginAsAdmin();
-        $client = static::createClient();
-        $client->request('POST', '/api/v2/users', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ], json_encode([
-            'login' => 'admin', // already exists
-            'password' => 'pass',
-            'email' => 'dup@example.com',
-        ]));
-        $this->assertResponseStatusCodeSame(409);
-    }
-
-    public function testCreateAsNonAdminFails(): void
-    {
-        $token = $this->loginAsRegularUser();
-        $client = static::createClient();
-        $client->request('POST', '/api/v2/users', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ], json_encode([
-            'login' => 'hacker',
-            'password' => 'pass',
-            'email' => 'h@example.com',
-        ]));
-        $this->assertResponseStatusCodeSame(403);
-    }
-}
-```
+- [ ] `GET /api/v2/access/users` — get user access permissions
+- [ ] `PUT /api/v2/access/users/{login}` — set permissions (body: `{can_view, can_edit}`)
+- [ ] Permissions enforced on `GET /events` when viewing other users' events
+- [ ] Private events hidden from users without permission
+- [ ] Confidential events show as "Busy" to users without full access
+- [ ] PHPStan level 9 passes
 
 ---
 
-### E6-S3: Update User and Change Password Endpoints
+### P2-E9-S2: Access Control Settings UI
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Implement `PUT /api/v2/users/{login}` (update profile) and `PUT /api/v2/users/{login}/password` (change password).
+User settings page for managing who can view/edit their calendar.
 
-**Preconditions:** E6-S1
+**Preconditions:** P2-E9-S1
 
 **Acceptance Criteria:**
-- [x] `PUT /users/{login}` — admin can update any user, non-admin can update self only
-- [x] Updatable fields: `firstname`, `lastname`, `email`, `enabled` (admin only), `is_admin` (admin only)
-- [x] Non-admin cannot change `enabled` or `is_admin` fields (silently ignored)
-- [x] `PUT /users/{login}/password` — requires `new_password` (non-admin also requires `current_password`)
-- [x] Admin can change any user's password without `current_password`
-- [x] Returns 400 if `current_password` is wrong
-- [x] PHPStan level 9 passes
-
-**Recommended Tests:**
-```php
-class UserControllerUpdateTest extends WebTestCase
-{
-    public function testUpdateOwnProfile(): void
-    {
-        $token = $this->loginAsRegularUser();
-        $client = static::createClient();
-        $client->request('PUT', '/api/v2/users/regularuser', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ], json_encode(['firstname' => 'Updated']));
-
-        $this->assertResponseIsSuccessful();
-        $body = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('Updated', $body['data']['firstname']);
-    }
-
-    public function testChangeOwnPassword(): void
-    {
-        $token = $this->loginAsRegularUser();
-        $client = static::createClient();
-        $client->request('PUT', '/api/v2/users/regularuser/password', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ], json_encode([
-            'current_password' => 'regularpass',
-            'new_password' => 'NewPass123!',
-        ]));
-        $this->assertResponseIsSuccessful();
-
-        // Verify new password works
-        $client->request('POST', '/api/v2/auth/login', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-        ], json_encode(['username' => 'regularuser', 'password' => 'NewPass123!']));
-        $this->assertResponseIsSuccessful();
-    }
-
-    public function testChangePasswordWrongCurrentPassword(): void
-    {
-        $token = $this->loginAsRegularUser();
-        $client = static::createClient();
-        $client->request('PUT', '/api/v2/users/regularuser/password', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ], json_encode([
-            'current_password' => 'wrongpassword',
-            'new_password' => 'NewPass123!',
-        ]));
-        $this->assertResponseStatusCodeSame(400);
-    }
-}
-```
+- [ ] Route `/settings/access` accessible to all users
+- [ ] List of users with checkboxes: Can View, Can Edit
+- [ ] Save button to persist changes
+- [ ] Toast on save success/failure
+- [ ] Vitest tests pass
 
 ---
 
-## Epic E7: Categories API
+### P2-E9-S3: Permission Enforcement in UI
 
-**Goal:** Category CRUD endpoints for event categorization.
-
-### E7-S1: List and Get Categories
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Implement `GET /api/v2/categories` and `GET /api/v2/categories/{id}`. Categories include both global and user-personal categories.
+Respect permissions when showing events from other users (via layers).
 
-**Preconditions:** E4-S3, E3-S3
+**Preconditions:** P2-E9-S1, P2-E3-S2
 
 **Acceptance Criteria:**
-- [x] `src/Controller/Api/CategoryController.php`
-- [x] `GET /categories` returns global categories + current user's personal categories
-- [x] `?include_global=false` returns only personal categories (via CategoryService)
-- [x] `GET /categories/{id}` returns single category
-- [x] Returns 404 for nonexistent category
-- [x] PHPStan level 9 passes
-
-**Recommended Tests:**
-```php
-class CategoryControllerTest extends WebTestCase
-{
-    public function testListCategoriesIncludesGlobal(): void
-    {
-        $token = $this->loginAndGetToken();
-        $this->createGlobalCategory($token, 'Work', '#FF0000');
-
-        $client = static::createClient();
-        $client->request('GET', '/api/v2/categories', [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-
-        $this->assertResponseIsSuccessful();
-        $body = json_decode($client->getResponse()->getContent(), true);
-        $this->assertIsArray($body['data']);
-        $names = array_column($body['data'], 'name');
-        $this->assertContains('Work', $names);
-    }
-
-    public function testGetNonexistentCategory(): void
-    {
-        $token = $this->loginAndGetToken();
-        $client = static::createClient();
-        $client->request('GET', '/api/v2/categories/999999', [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-        $this->assertResponseStatusCodeSame(404);
-    }
-}
-```
+- [ ] Private events from other users not shown in layers
+- [ ] Confidential events shown as "Busy" with no details
+- [ ] Edit/delete buttons hidden for events user doesn't have permission to modify
+- [ ] Vitest tests pass
 
 ---
 
-### E7-S2: Create, Update, Delete Categories
+## Epic P2-E10: UI Polish & UX
 
-**Status:** DONE
+**Goal:** Quality-of-life improvements and UI refinements.
+
+### P2-E10-S1: User Preferences
+
+**Status:** NOT STARTED
 
 **Description:**
-Implement `POST /api/v2/categories`, `PUT /api/v2/categories/{id}`, `DELETE /api/v2/categories/{id}`. Global categories require admin. Personal categories belong to the creating user.
+User preferences page for default view, timezone, language.
 
-**Preconditions:** E7-S1
+**Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [x] `POST /categories` — creates category, `is_global: true` requires admin
-- [x] Returns 201 with created category
-- [x] `PUT /categories/{id}` — owner or admin can update
-- [x] `DELETE /categories/{id}` — owner or admin can delete; returns 204
-- [x] Non-owner non-admin gets 403 on update/delete (via CategoryService authorization)
-- [x] PHPStan level 9 passes
-
-**Recommended Tests:**
-```php
-class CategoryControllerCrudTest extends WebTestCase
-{
-    public function testCreatePersonalCategory(): void
-    {
-        $token = $this->loginAndGetToken();
-        $client = static::createClient();
-        $client->request('POST', '/api/v2/categories', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ], json_encode(['name' => 'Personal', 'color' => '#00FF00']));
-
-        $this->assertResponseStatusCodeSame(201);
-        $body = json_decode($client->getResponse()->getContent(), true);
-        $this->assertSame('Personal', $body['data']['name']);
-        $this->assertFalse($body['data']['is_global']);
-    }
-
-    public function testCreateGlobalCategoryRequiresAdmin(): void
-    {
-        $token = $this->loginAsRegularUser();
-        $client = static::createClient();
-        $client->request('POST', '/api/v2/categories', [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ], json_encode(['name' => 'Global', 'is_global' => true]));
-
-        $this->assertResponseStatusCodeSame(403);
-    }
-
-    public function testDeleteCategory(): void
-    {
-        $token = $this->loginAndGetToken();
-        $catId = $this->createTestCategory($token);
-
-        $client = static::createClient();
-        $client->request('DELETE', "/api/v2/categories/{$catId}", [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-        $this->assertResponseStatusCodeSame(204);
-    }
-}
-```
+- [ ] Route `/settings/preferences`
+- [ ] Default calendar view selector (month/week/day)
+- [ ] Timezone selector
+- [ ] Work day start/end time settings
+- [ ] Preferences saved via `PUT /api/v2/users/{login}/preferences`
+- [ ] Calendar respects saved preferences on load
+- [ ] Vitest tests pass
 
 ---
 
-## Epic E8: React SPA Foundation
+### P2-E10-S2: Dark Mode
 
-**Goal:** Working React app with routing, auth context, API client, and basic layout.
-
-### E8-S1: API Client Setup (openapi-fetch)
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Configure the type-safe API client using `openapi-fetch` with generated types from webcalendar-openapi. Set up request/response interceptors for auth token injection and error handling.
+Toggle between light and dark themes using the existing Tailwind CSS variable system.
 
-**Preconditions:** E2-S1 (need generated types), E1-S3
+**Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [x] `src/api/client.ts` exports a configured `openapi-fetch` client
-- [x] Client reads base URL from `import.meta.env.VITE_API_URL`
-- [x] Auth interceptor automatically adds `Authorization: Bearer <token>` header from stored token
-- [x] 401 responses trigger automatic redirect to login page
-- [x] All API calls are fully typed (TypeScript compiler errors on wrong paths/params)
-- [x] `.env.development` sets `VITE_API_URL=http://localhost:47180/api/v2`
-- [x] Vitest passes
-
-**Recommended Tests:**
-```typescript
-// src/api/__tests__/client.test.ts
-import { describe, it, expect, vi } from 'vitest';
-
-describe('API Client', () => {
-  it('adds auth header when token is stored', () => {
-    // Mock localStorage with token
-    // Verify fetch is called with Authorization header
-  });
-
-  it('redirects to login on 401', () => {
-    // Mock a 401 response
-    // Verify navigation to /login
-  });
-
-  it('uses VITE_API_URL as base URL', () => {
-    // Verify client baseUrl matches env var
-  });
-});
-```
+- [ ] Dark mode toggle in header
+- [ ] Preference saved in localStorage
+- [ ] All components render correctly in dark mode (including FullCalendar)
+- [ ] System preference detection (prefers-color-scheme)
+- [ ] Vitest tests pass
 
 ---
 
-### E8-S2: Authentication Context and Login Page
+### P2-E10-S3: Mobile Responsive Improvements
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Implement React auth context (provider, hook, protected route wrapper) and a login page. Token is stored in localStorage and used by the API client.
+Improve mobile experience with swipe gestures, collapsible sidebar, and touch-friendly controls.
 
-**Preconditions:** E8-S1, E4-S3 (need working login endpoint)
+**Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [x] `src/auth/AuthProvider.tsx` — React context providing: `user`, `token`, `login()`, `logout()`, `isAuthenticated`
-- [x] `src/auth/useAuth.ts` — hook consuming the auth context (via `auth-context.ts`)
-- [x] `src/auth/ProtectedRoute.tsx` — wrapper that redirects to `/login` if not authenticated
-- [x] `src/auth/LoginPage.tsx` — login form with username/password fields
-  - Calls `POST /api/v2/auth/login`
-  - On success: stores token in localStorage, updates context, redirects to `/`
-  - On failure: shows error message (no alert, inline error)
-  - Submit button disabled while request in flight
-  - Accessible: labels, focus management, keyboard navigation
-- [x] Token persisted in `localStorage` under key `wctng_token`
-- [x] On app load, existing token is validated (checked for expiry)
-- [x] Vitest tests pass for AuthProvider and LoginPage
-
-**Recommended Tests:**
-```typescript
-// src/auth/__tests__/AuthProvider.test.tsx
-describe('AuthProvider', () => {
-  it('provides null user when not logged in', () => {});
-  it('provides user after successful login', () => {});
-  it('clears user on logout', () => {});
-  it('restores session from localStorage on mount', () => {});
-  it('clears expired token on mount', () => {});
-});
-
-// src/auth/__tests__/LoginPage.test.tsx
-describe('LoginPage', () => {
-  it('renders username and password fields', () => {});
-  it('shows error on invalid credentials', () => {});
-  it('redirects to / on successful login', () => {});
-  it('disables submit button during request', () => {});
-  it('is keyboard navigable', () => {});
-});
-```
+- [ ] Hamburger menu for mobile sidebar
+- [ ] Swipe left/right on calendar for prev/next navigation
+- [ ] Touch-friendly event creation (long-press on time slot)
+- [ ] Event dialogs full-screen on mobile
+- [ ] Bottom sheet for event details on mobile
+- [ ] Playwright mobile viewport tests
 
 ---
 
-### E8-S3: App Layout and Routing
+### P2-E10-S4: Keyboard Shortcuts Help
 
-**Status:** DONE
-
-**Description:**
-Implement the main app shell layout (header, sidebar, content area) and React Router configuration. Protected routes require authentication.
-
-**Preconditions:** E8-S2
-
-**Acceptance Criteria:**
-- [x] `src/App.tsx` sets up React Router with routes:
-  - `/login` → LoginPage (public)
-  - `/` → CalendarPage (protected, redirect from login)
-  - `/calendar` → CalendarPage (protected, redirects to /)
-  - `/admin/users` → UserManagement (protected, admin only)
-  - `*` → 404 Not Found page
-- [x] `src/components/layout/AppLayout.tsx` — wraps protected pages with:
-  - Header: app name, user display name, logout button
-  - Sidebar: navigation links (Calendar, Admin — admin-only items hidden for non-admins)
-  - Content area: renders child route
-- [x] Layout is responsive (sidebar hidden on mobile, mobile nav in header)
-- [x] Tailwind CSS + Shadcn/ui components used for all UI
-- [x] Vitest tests pass
-
-**Recommended Tests:**
-```typescript
-// src/components/layout/__tests__/AppLayout.test.tsx
-describe('AppLayout', () => {
-  it('renders header with app name', () => {});
-  it('renders sidebar with Calendar link', () => {});
-  it('hides admin links for non-admin users', () => {});
-  it('shows admin links for admin users', () => {});
-  it('logout button calls auth.logout()', () => {});
-});
-
-// src/App.test.tsx
-describe('App Routing', () => {
-  it('redirects unauthenticated users to /login', () => {});
-  it('renders CalendarPage at / when authenticated', () => {});
-  it('renders 404 for unknown routes', () => {});
-});
-```
-
----
-
-### E8-S4: Shadcn/ui Component Installation
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Install and configure the Shadcn/ui components needed for Phase 1. Copy components into the project (Shadcn/ui is copy/paste, not a dependency).
+Keyboard shortcut help dialog and additional shortcuts.
 
-**Preconditions:** E1-S3
-
-**Acceptance Criteria:**
-- [x] `src/components/ui/` contains core Shadcn/ui components:
-  - `button.tsx` (with variants: default, destructive, outline, secondary, ghost, link)
-  - `input.tsx`
-  - `label.tsx` (Radix UI Label primitive)
-  - `card.tsx` (Card, CardHeader, CardTitle, CardContent)
-  - `textarea.tsx`
-  - `badge.tsx` (with variants)
-  - `separator.tsx` (Radix UI Separator primitive)
-  - dialog/sheet/select deferred — custom modals used in E10 instead
-- [x] `src/lib/utils.ts` contains the `cn()` utility (clsx + tailwind-merge)
-- [x] `tailwind.config.ts` includes Shadcn/ui theme tokens (CSS variables)
-- [x] `src/index.css` includes Shadcn/ui base styles and CSS variables (light + dark)
-- [x] All components render without errors (12 tests)
-- [x] TypeScript compilation passes
-
-**Recommended Tests:**
-```typescript
-// src/components/ui/__tests__/components.test.tsx
-describe('Shadcn UI Components', () => {
-  it('Button renders with variants', () => {
-    render(<Button variant="default">Click</Button>);
-    expect(screen.getByRole('button')).toHaveTextContent('Click');
-  });
-
-  it('Dialog opens and closes', () => {
-    render(
-      <Dialog>
-        <DialogTrigger>Open</DialogTrigger>
-        <DialogContent>Content</DialogContent>
-      </Dialog>
-    );
-    fireEvent.click(screen.getByText('Open'));
-    expect(screen.getByText('Content')).toBeVisible();
-  });
-
-  it('Input accepts and displays value', () => {
-    render(<Input placeholder="Enter text" />);
-    const input = screen.getByPlaceholderText('Enter text');
-    fireEvent.change(input, { target: { value: 'hello' } });
-    expect(input).toHaveValue('hello');
-  });
-});
-```
-
----
-
-### E8-S5: React Query Setup and Error Handling
-
-**Status:** DONE
-
-**Description:**
-Configure TanStack React Query for data fetching, caching, and server state management. Set up global error handling for API errors.
-
-**Preconditions:** E8-S1
+**Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [x] `src/main.tsx` wraps app in `<QueryClientProvider>`
-- [x] `QueryClient` configured with:
-  - Default stale time: 60 seconds
-  - Default retry: 1 (don't hammer failing endpoints)
-  - Global error handler for 401 (via api client middleware)
-- [x] `src/hooks/useApi.ts` — custom hook pattern for API queries:
-  - `useApiQuery` wraps `useQuery` with openapi-fetch error handling
-  - Returns `{ data, isLoading, error }` with proper TypeScript types
-- [x] `src/hooks/useApi.ts` — also exports `useApiMutation` for API mutations:
-  - Wraps `useMutation` with openapi-fetch error handling
-  - Automatic cache invalidation on success via `invalidateKeys`
-- [x] Toast notifications deferred to E10 (component installation)
-- [x] Vitest tests pass
-
-**Recommended Tests:**
-```typescript
-// src/hooks/__tests__/useApi.test.tsx
-describe('useApi', () => {
-  it('returns loading state initially', () => {});
-  it('returns data on success', () => {});
-  it('returns error on failure', () => {});
-  it('triggers logout on 401', () => {});
-});
-```
-
----
-
-## Epic E9: Calendar Views
-
-**Goal:** Day, week, month calendar views using FullCalendar, with navigation and view switching.
-
-### E9-S1: FullCalendar Integration
-
-**Status:** DONE
-
-**Description:**
-Integrate FullCalendar React component with the API client. Events are fetched from `GET /api/v2/events` based on the visible date range.
-
-**Preconditions:** E8-S3, E5-S1
-
-**Acceptance Criteria:**
-- [x] `src/calendar/FullCalendarWrapper.tsx` — wraps `@fullcalendar/react`
-  - Plugins: `dayGridPlugin`, `timeGridPlugin`, `listPlugin`, `interactionPlugin`
-  - Views: `dayGridMonth`, `timeGridWeek`, `timeGridDay`, `listWeek`
-  - Fetches events via API when visible date range changes (`datesSet` callback)
-  - Maps API event format to FullCalendar event format via `eventMapper.ts`
-  - Loading indicator while events are being fetched
-- [x] Events display with correct times, titles, and colors
-- [x] All-day events render in the all-day section (mapped with `allDay: true`)
-- [x] Timed events render at the correct time slot (ISO datetime strings)
-- [x] Vitest tests pass
-
-**Recommended Tests:**
-```typescript
-// src/calendar/__tests__/FullCalendarWrapper.test.tsx
-describe('FullCalendarWrapper', () => {
-  it('renders FullCalendar component', () => {});
-  it('fetches events when date range changes', () => {});
-  it('maps API events to FullCalendar format', () => {});
-  it('shows loading indicator during fetch', () => {});
-  it('renders all-day events correctly', () => {});
-});
-```
-
----
-
-### E9-S2: Calendar Navigation and View Switcher
-
-**Status:** DONE
-
-**Description:**
-Implement the calendar toolbar with date navigation (prev/next/today) and view switching (month/week/day/list).
-
-**Preconditions:** E9-S1
-
-**Acceptance Criteria:**
-- [x] FullCalendar's built-in `headerToolbar` provides:
-  - Previous/Next buttons to navigate dates
-  - Today button to jump to current date
-  - View switcher: Month, Week, Day, List
-  - Current date range displayed as title
-- [x] `src/calendar/useCalendarUrlSync.ts` — URL query params for view/date state
-- [x] Browser back/forward navigates calendar state (via React Router searchParams)
-- [x] `src/calendar/useKeyboardShortcuts.ts` — `←`/`→` prev/next, `T` today, `M`/`W`/`D` views (ignores input fields)
-- [x] Vitest tests pass (12 new tests)
-
-**Recommended Tests:**
-```typescript
-// src/calendar/__tests__/CalendarToolbar.test.tsx
-describe('CalendarToolbar', () => {
-  it('renders prev/next/today buttons', () => {});
-  it('renders view switcher with all options', () => {});
-  it('calls onNavigate when prev clicked', () => {});
-  it('calls onViewChange when view button clicked', () => {});
-  it('displays current date range title', () => {});
-  it('highlights active view button', () => {});
-});
-```
-
----
-
-### E9-S3: Calendar Page Assembly
-
-**Status:** DONE
-
-**Description:**
-Assemble the main calendar page combining the toolbar, FullCalendar wrapper, and event data fetching into a complete view.
-
-**Preconditions:** E9-S1, E9-S2
-
-**Acceptance Criteria:**
-- [x] `src/calendar/CalendarPage.tsx` composes FullCalendarWrapper
-- [x] `src/calendar/useCalendarEvents.ts` — `fetchCalendarEvents()`:
-  - Fetches events from API for given date range
-  - Transforms API events to FullCalendar format via `eventMapper`
-  - Returns empty array on error (graceful degradation)
-  - Called by FullCalendarWrapper on `datesSet` (refetches on navigation)
-- [x] Page loads and displays current month view by default
-- [x] Switching views works and refetches events
-- [x] Empty state: FullCalendar shows empty calendar grid when no events
-- [x] Vitest tests pass (6 new tests)
-
-**Recommended Tests:**
-```typescript
-// src/calendar/__tests__/CalendarPage.test.tsx
-describe('CalendarPage', () => {
-  it('renders toolbar and calendar', () => {});
-  it('fetches events for current date range', () => {});
-  it('updates when navigating to different dates', () => {});
-  it('shows empty state message when no events', () => {});
-});
-
-// src/calendar/__tests__/useCalendarEvents.test.ts
-describe('useCalendarEvents', () => {
-  it('fetches events for given date range', () => {});
-  it('transforms API events to FullCalendar format', () => {});
-  it('handles all-day events', () => {});
-  it('handles timed events', () => {});
-});
-```
-
----
-
-### E9-S4: Category Color Coding
-
-**Status:** DONE
-
-**Description:**
-Fetch categories and apply their colors to calendar events. Events without a category use a default color.
-
-**Preconditions:** E9-S1, E7-S1
-
-**Acceptance Criteria:**
-- [x] Categories fetched on app load and cached (5 min staleTime)
-- [x] `src/calendar/useCategories.ts` — `useCategories()` hook + `getEventColor()` utility
-- [x] Events colored by their first category's color via `getEventColor()`
-- [x] Default color (`#3788d8`) used for uncategorized events
-- [x] Category legend deferred to future enhancement
-- [x] Vitest tests pass (6 new tests)
-
-**Recommended Tests:**
-```typescript
-describe('Category Color Coding', () => {
-  it('applies category color to event', () => {});
-  it('uses default color for uncategorized events', () => {});
-  it('fetches categories once and caches', () => {});
-});
-```
-
----
-
-## Epic E10: Event Management UI
-
-**Goal:** Create, view, edit, and delete events from the calendar UI.
-
-### E10-S1: Event Detail View
-
-**Status:** DONE
-
-**Description:**
-Clicking an event on the calendar opens a detail popover/dialog showing event information.
-
-**Preconditions:** E9-S1
-
-**Acceptance Criteria:**
-- [x] Clicking an event on the calendar opens `EventDetailDialog` (via FullCalendarWrapper `onEventClick`)
-- [x] Dialog shows: title, date/time, duration, location, description, access level
-- [x] Dialog has Edit and Delete action buttons
-- [x] Close button and click-outside-to-close behavior (backdrop click)
-- [x] Accessible: `role="dialog"`, `aria-modal`, `aria-labelledby`, close button with `aria-label`
-- [x] Vitest tests pass (9 new tests)
-
-**Recommended Tests:**
-```typescript
-describe('EventDetailDialog', () => {
-  it('renders event title and details', () => {});
-  it('shows Edit and Delete buttons', () => {});
-  it('closes on Escape key', () => {});
-  it('closes on outside click', () => {});
-  it('shows formatted date and time', () => {});
-  it('shows "All day" for all-day events', () => {});
-});
-```
-
----
-
-### E10-S2: Event Create Dialog
-
-**Status:** DONE
-
-**Description:**
-A dialog/modal for creating new events. Triggered by clicking an empty time slot on the calendar or a "New Event" button.
-
-**Preconditions:** E8-S4, E5-S3, E9-S1
-
-**Acceptance Criteria:**
-- [x] `src/calendar/EventDialog.tsx` — reusable for create and edit (via `mode` prop)
-- [x] Form fields: title (required), date, start time, duration, location, description, access level (select), all-day toggle
-- [x] Clicking empty time slot pre-fills date and time (via `initialDate`/`initialTime` props)
-- [x] Clicking empty day (month view) pre-fills date as all-day (via `initialAllDay` prop)
-- [x] Submitting calls `onSave` callback with `EventFormData`
-- [x] On success (`onSave` returns true): closes dialog
-- [x] On error: shows inline validation errors
-- [x] Cancel button closes without calling onSave
-- [x] Form validation: title required
-- [x] Vitest tests pass (10 new tests)
-
-**Recommended Tests:**
-```typescript
-describe('EventDialog - Create', () => {
-  it('renders all form fields', () => {});
-  it('pre-fills date/time from slot click', () => {});
-  it('validates title is required', () => {});
-  it('submits event to API', () => {});
-  it('closes and shows toast on success', () => {});
-  it('shows error on API failure', () => {});
-  it('cancel closes without API call', () => {});
-  it('disables submit while saving', () => {});
-  it('toggling all-day hides time fields', () => {});
-});
-```
-
----
-
-### E10-S3: Event Edit Dialog
-
-**Status:** DONE
-
-**Description:**
-Edit an existing event using the same dialog as create, pre-filled with current values.
-
-**Preconditions:** E10-S2, E5-S4
-
-**Acceptance Criteria:**
-- [x] Edit button in EventDetailDialog opens EventDialog in edit mode (via `onEdit` callback)
-- [x] All fields pre-filled via `apiEventToInitialValues()` helper
-- [x] Submitting calls `onSave` callback with updated `EventFormData`
-- [x] On success: closes dialog (via `onSave` returning true)
-- [x] Shows "Save Changes" button in edit mode
-- [x] Vitest tests pass (5 new tests)
-
-**Recommended Tests:**
-```typescript
-describe('EventDialog - Edit', () => {
-  it('pre-fills all fields from existing event', () => {});
-  it('submits only changed fields', () => {});
-  it('calls PUT endpoint with event ID', () => {});
-  it('shows success toast on save', () => {});
-});
-```
-
----
-
-### E10-S4: Event Delete Confirmation
-
-**Status:** DONE
-
-**Description:**
-Delete button triggers a confirmation dialog before calling the delete API.
-
-**Preconditions:** E10-S1, E5-S5
-
-**Acceptance Criteria:**
-- [x] Delete button in EventDetailDialog triggers `onDelete` → opens ConfirmDeleteDialog
-- [x] Confirmation shows event title in message
-- [x] Confirm button calls `onConfirm` callback (caller handles DELETE API call)
-- [x] Cancel returns to previous state via `onCancel` callback
-- [x] Disabled state while deleting (loading indicator)
-- [x] Vitest tests pass (7 new tests)
-
-**Recommended Tests:**
-```typescript
-describe('Event Delete', () => {
-  it('shows confirmation dialog with event title', () => {});
-  it('calls DELETE endpoint on confirm', () => {});
-  it('removes event from calendar on success', () => {});
-  it('cancel does not delete', () => {});
-  it('shows error toast on failure', () => {});
-});
-```
-
----
-
-## Epic E11: End-to-End Tests
-
-**Goal:** Playwright E2E tests covering critical user journeys through the full stack (React → API → Database).
-
-### E11-S1: Playwright Infrastructure
-
-**Status:** DONE
-
-**Description:**
-Configure Playwright to run against the Docker Compose stack. Create test fixtures for authentication, database seeding, and cleanup.
-
-**Preconditions:** E1-S1, E8-S2
-
-**Acceptance Criteria:**
-- [x] `playwright.config.ts` configured:
-  - Base URL: `http://localhost:47180`
-  - Global setup waits for stack health check
-  - Browsers: chromium
-  - Screenshots on failure, video on first retry, trace on first retry
-  - Retries: 1
-- [x] `tests/e2e/fixtures/auth.ts` — `loginAsAdmin()`, `loginAsUser()`, `loginViaApi()`
-- [x] `tests/e2e/fixtures/db.ts` — `createTestEvent()`, `getAdminToken()`
-- [x] `tests/e2e/global-setup.mjs` — waits for Docker stack health endpoint
-- [x] `tests/e2e/smoke.spec.ts` — 3 passing smoke tests
-- [x] `npx playwright test` runs successfully (3 passed)
-
-**Recommended Tests:**
-```typescript
-// tests/e2e/smoke.spec.ts
-import { test, expect } from '@playwright/test';
-
-test('app loads login page', async ({ page }) => {
-  await page.goto('/');
-  await expect(page).toHaveURL(/.*login/);
-  await expect(page.getByRole('heading')).toContainText(/login|sign in/i);
-});
-```
-
----
-
-### E11-S2: Authentication E2E Tests
-
-**Status:** DONE
-
-**Description:**
-End-to-end tests for the login/logout flow.
-
-**Preconditions:** E11-S1, E8-S2, E4-S3
-
-**Acceptance Criteria:**
-- [x] Tests cover:
-  - Successful login redirects to calendar (/)
-  - Failed login shows error message
-  - Logout returns to login page
-  - Protected routes redirect to login when not authenticated
-  - Session persists across page reload (localStorage token)
-- [x] All 5 tests pass against Docker stack
-- [x] Tests run in 6.4 seconds (well under 30s)
-
-**Recommended Tests:**
-```typescript
-// tests/e2e/auth.spec.ts
-import { test, expect } from '@playwright/test';
-
-test.describe('Authentication', () => {
-  test('login with valid credentials', async ({ page }) => {
-    await page.goto('/login');
-    await page.getByLabel('Username').fill('admin');
-    await page.getByLabel('Password').fill('admin');
-    await page.getByRole('button', { name: /login|sign in/i }).click();
-    await expect(page).toHaveURL('/');
-    await expect(page.getByText('admin')).toBeVisible(); // user displayed in header
-  });
-
-  test('login with invalid credentials shows error', async ({ page }) => {
-    await page.goto('/login');
-    await page.getByLabel('Username').fill('admin');
-    await page.getByLabel('Password').fill('wrongpassword');
-    await page.getByRole('button', { name: /login|sign in/i }).click();
-    await expect(page.getByText(/invalid|incorrect/i)).toBeVisible();
-    await expect(page).toHaveURL(/.*login/);
-  });
-
-  test('logout returns to login page', async ({ page }) => {
-    // Login first
-    await page.goto('/login');
-    await page.getByLabel('Username').fill('admin');
-    await page.getByLabel('Password').fill('admin');
-    await page.getByRole('button', { name: /login|sign in/i }).click();
-    await expect(page).toHaveURL('/');
-
-    // Logout
-    await page.getByRole('button', { name: /logout/i }).click();
-    await expect(page).toHaveURL(/.*login/);
-  });
-
-  test('protected route redirects to login', async ({ page }) => {
-    await page.goto('/calendar');
-    await expect(page).toHaveURL(/.*login/);
-  });
-
-  test('session persists across reload', async ({ page }) => {
-    await page.goto('/login');
-    await page.getByLabel('Username').fill('admin');
-    await page.getByLabel('Password').fill('admin');
-    await page.getByRole('button', { name: /login|sign in/i }).click();
-    await expect(page).toHaveURL('/');
-
-    await page.reload();
-    await expect(page).toHaveURL('/');  // still authenticated
-  });
-});
-```
-
----
-
-### E11-S3: Calendar and Event Management E2E Tests
-
-**Status:** DONE
-
-**Description:**
-End-to-end tests for the core calendar workflow: viewing the calendar, creating events, editing events, and deleting events.
-
-**Preconditions:** E11-S1, E9-S3, E10-S2, E10-S3, E10-S4
-
-**Acceptance Criteria:**
-- [x] Tests cover:
-  - Calendar displays in month view by default
-  - Switching between month/week/day/list views
-  - Navigating to previous/next period
-  - Today button returns to current date
-  - FullCalendar toolbar visible with navigation controls
-  - API-created event appears on calendar (day view)
-- [x] All 16 E2E tests pass (8 calendar + 5 auth + 3 smoke)
-- [x] Tests run in 13.3 seconds (well under 60s)
-
-**Recommended Tests:**
-```typescript
-// tests/e2e/calendar.spec.ts
-import { test, expect } from '@playwright/test';
-
-test.describe('Calendar', () => {
-  test.beforeEach(async ({ page }) => {
-    // Login as admin (use auth fixture)
-    await page.goto('/login');
-    await page.getByLabel('Username').fill('admin');
-    await page.getByLabel('Password').fill('admin');
-    await page.getByRole('button', { name: /login|sign in/i }).click();
-    await expect(page).toHaveURL('/');
-  });
-
-  test('displays month view by default', async ({ page }) => {
-    await expect(page.locator('.fc-dayGridMonth-view')).toBeVisible();
-  });
-
-  test('switch to week view', async ({ page }) => {
-    await page.getByRole('button', { name: /week/i }).click();
-    await expect(page.locator('.fc-timeGridWeek-view')).toBeVisible();
-  });
-
-  test('switch to day view', async ({ page }) => {
-    await page.getByRole('button', { name: /day/i }).click();
-    await expect(page.locator('.fc-timeGridDay-view')).toBeVisible();
-  });
-
-  test('create event via new event button', async ({ page }) => {
-    await page.getByRole('button', { name: /new event/i }).click();
-
-    // Fill in event form
-    await page.getByLabel('Title').fill('E2E Test Event');
-    await page.getByRole('button', { name: /save|create/i }).click();
-
-    // Verify event appears on calendar
-    await expect(page.getByText('E2E Test Event')).toBeVisible();
-  });
-
-  test('edit event', async ({ page }) => {
-    // Click on existing event
-    await page.getByText('E2E Test Event').click();
-    await page.getByRole('button', { name: /edit/i }).click();
-
-    // Update title
-    await page.getByLabel('Title').clear();
-    await page.getByLabel('Title').fill('Updated E2E Event');
-    await page.getByRole('button', { name: /save/i }).click();
-
-    // Verify updated title
-    await expect(page.getByText('Updated E2E Event')).toBeVisible();
-  });
-
-  test('delete event', async ({ page }) => {
-    await page.getByText('Updated E2E Event').click();
-    await page.getByRole('button', { name: /delete/i }).click();
-    await page.getByRole('button', { name: /confirm/i }).click();
-
-    // Verify event is gone
-    await expect(page.getByText('Updated E2E Event')).not.toBeVisible();
-  });
-});
-```
+- [ ] `?` key opens keyboard shortcuts help dialog
+- [ ] Lists all shortcuts: navigation, view switching, event creation
+- [ ] `N` key opens new event dialog
+- [ ] `Escape` closes any open dialog
+- [ ] Vitest tests pass
 
 ---
 
 ## Story Execution Checklist (for AI Agent)
 
-When implementing any story, follow this sequence:
+Same as Phase 1:
 
 ```
 1. READ the story description and acceptance criteria completely
@@ -2451,14 +723,20 @@ When implementing any story, follow this sequence:
 
 ---
 
-## Glossary
+## Phase 1 Summary
 
-| Term | Definition |
-|------|-----------|
-| **webcalendar-core** | PHP Composer library containing all business logic, at `../webcalendar-core` |
-| **Envelope** | Standard JSON response wrapper: `{data, meta, error}` |
-| **PHPStan Level 9** | Strictest PHP static analysis level — all types must be explicit, no mixed, no dynamic properties |
-| **Psalm errorLevel 1** | Strictest Psalm level — equivalent to PHPStan level 9 |
-| **YYYYMMDD** | Date format used by webcalendar-core internally (e.g., `20260315` = March 15, 2026) |
-| **HHMMSS** | Time format used by webcalendar-core internally (e.g., `100000` = 10:00:00, `-1` = all-day) |
-| **TDD** | Test-Driven Development — write failing test, write code to pass, refactor |
+Phase 1 completed 2026-03-16 with 45/45 stories + post-Phase-1 enhancements:
+
+**Backend:** 147 PHP tests, PHPStan level 9, Psalm errorLevel 1
+- Symfony 7.x REST API (auth, events, users, categories)
+- webcalendar-core integration (27 services, 19 repositories)
+- JWT authentication, CORS, standard JSON envelope
+
+**Frontend:** 118 Vitest tests + 16 Playwright E2E tests
+- React 18 + Vite + TypeScript + Tailwind CSS + Shadcn/ui
+- FullCalendar with themed CSS, category colors
+- Event CRUD with create/edit/delete dialogs + toast notifications
+- User management + category management admin pages
+- Login, routing, protected routes, keyboard shortcuts
+
+**Infrastructure:** Docker Compose (nginx, PHP-FPM, MySQL, Vite), GitHub Actions CI
