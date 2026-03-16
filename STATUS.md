@@ -14,7 +14,7 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| P3-E1 | Tenant Data Model | 3 | 0 | NOT STARTED |
+| P3-E1 | Tenant Data Model | 3 | 1 | IN PROGRESS |
 | P3-E2 | Tenant Resolver Middleware | 3 | 0 | NOT STARTED |
 | P3-E3 | Tenant Provisioning | 4 | 0 | NOT STARTED |
 | P3-E4 | Control Plane API | 4 | 0 | NOT STARTED |
@@ -22,7 +22,7 @@
 | P3-E6 | Tenant-Aware Auth | 3 | 0 | NOT STARTED |
 | P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **0** | |
+| **Total** | | **27** | **1** | |
 
 ---
 
@@ -59,7 +59,7 @@ Same as Phase 1 & 2:
 
 ### P3-E1-S1: Tenant Registry Schema & Entity
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Create the `tenants` table in the control database and a Symfony entity to represent a tenant. The control database is the default connection; tenant databases are separate.
@@ -67,12 +67,12 @@ Create the `tenants` table in the control database and a Symfony entity to repre
 **Preconditions:** Phase 2 complete
 
 **Acceptance Criteria:**
-- [ ] Doctrine migration creates `tenants` table with: `id`, `slug` (unique), `name`, `db_host`, `db_name`, `db_user`, `db_password` (encrypted), `plan`, `status` (active/suspended/pending), `created_at`, `updated_at`
-- [ ] `Tenant` entity with getters, validation (slug format: lowercase alphanumeric + hyphens, 3-50 chars)
-- [ ] `TenantRepository` with `findBySlug()`, `findAll()`, `save()`, `delete()`
-- [ ] Reserved slugs list (api, www, admin, app, mail, etc.) enforced on creation
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests for entity validation and repository
+- [x] Schema SQL creates `tenants` table with: `id`, `slug` (unique), `name`, `db_host`, `db_name`, `db_user`, `db_password` (encrypted), `plan`, `status` (active/suspended/pending), `created_at`, `updated_at`
+- [x] `Tenant` entity with getters, validation (slug format: lowercase alphanumeric + hyphens, 3-50 chars)
+- [x] `TenantRepository` with `findBySlug()`, `findAll()`, `save()`, `delete()`
+- [x] Reserved slugs list (api, www, admin, app, mail, etc.) enforced on creation
+- [x] PHPStan level 9 passes
+- [x] Unit tests for entity validation and repository
 
 ---
 
