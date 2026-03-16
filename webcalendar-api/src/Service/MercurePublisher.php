@@ -4,18 +4,23 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Tenant\TenantContext;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
 
 /**
  * Publishes calendar event changes to the Mercure hub.
  *
- * Topics follow the pattern: /calendars/events/{eventId}
+ * Topics are tenant-scoped in multi-tenant mode:
+ *   /tenants/{slug}/calendars/events/{eventId}
+ * In standalone mode:
+ *   /calendars/events/{eventId}
  */
 final class MercurePublisher
 {
     public function __construct(
         private readonly HubInterface $hub,
+        private readonly TenantContext $tenantContext,
     ) {
     }
 
@@ -66,14 +71,26 @@ final class MercurePublisher
      */
     private function publish(int $eventId, array $payload): void
     {
-        $topic = "/calendars/events/{$eventId}";
+        $prefix = $this->getTopicPrefix();
+        $topic = "{$prefix}/calendars/events/{$eventId}";
+        $globalTopic = "{$prefix}/calendars/events";
         $json = json_encode($payload, JSON_THROW_ON_ERROR);
 
         $update = new Update(
-            topics: [$topic, '/calendars/events'],
+            topics: [$topic, $globalTopic],
             data: $json,
         );
 
         $this->hub->publish($update);
+    }
+
+    private function getTopicPrefix(): string
+    {
+        $tenant = $this->tenantContext->getTenant();
+        if ($tenant !== null) {
+            return '/tenants/' . $tenant->slug();
+        }
+
+        return '';
     }
 }

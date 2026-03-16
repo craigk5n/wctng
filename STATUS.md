@@ -20,9 +20,9 @@
 | P3-E4 | Control Plane API | 4 | 4 | DONE |
 | P3-E5 | Tenant Admin Dashboard | 4 | 4 | DONE |
 | P3-E6 | Tenant-Aware Auth | 3 | 3 | DONE |
-| P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
+| P3-E7 | Tenant Isolation & Security | 3 | 1 | IN PROGRESS |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **21** | |
+| **Total** | | **27** | **22** | |
 
 ---
 
@@ -486,7 +486,7 @@ React app detects tenant from subdomain and stores tenant context for API calls.
 
 ### P3-E7-S1: Cross-Tenant Access Prevention
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Security middleware that prevents any cross-tenant data access at the API level.
@@ -494,13 +494,13 @@ Security middleware that prevents any cross-tenant data access at the API level.
 **Preconditions:** P3-E2-S1
 
 **Acceptance Criteria:**
-- [ ] All API controllers use tenant-scoped PDO (never the control DB for tenant data)
-- [ ] Mercure topics are tenant-scoped: `/tenants/{slug}/calendars/events`
-- [ ] Layers can only reference users within the same tenant
-- [ ] Group membership is tenant-scoped
-- [ ] Search is tenant-scoped
-- [ ] PHPStan level 9 passes
-- [ ] Security test: authenticate as tenant A, attempt to access tenant B's events → 403
+- [x] All API controllers use tenant-scoped PDO (never the control DB for tenant data)
+- [x] Mercure topics are tenant-scoped: `/tenants/{slug}/calendars/events`
+- [x] Layers can only reference users within the same tenant
+- [x] Group membership is tenant-scoped
+- [x] Search is tenant-scoped
+- [x] PHPStan level 9 passes
+- [x] Security test: authenticate as tenant A, attempt to access tenant B's events → 403
 
 ---
 
