@@ -13,7 +13,7 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| P2-E1 | Event Participants | 4 | 0 | NOT STARTED |
+| P2-E1 | Event Participants | 4 | 1 | IN PROGRESS |
 | P2-E2 | Groups | 3 | 0 | NOT STARTED |
 | P2-E3 | Calendar Layers | 3 | 0 | NOT STARTED |
 | P2-E4 | Tasks | 4 | 0 | NOT STARTED |
@@ -23,7 +23,7 @@
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 0 | NOT STARTED |
-| **Total** | | **32** | **0** | |
+| **Total** | | **32** | **1** | |
 
 ---
 
@@ -61,7 +61,7 @@ Same as Phase 1:
 
 ### P2-E1-S1: Participants API Endpoints
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Implement REST endpoints for managing event participants. Delegates to webcalendar-core's `EventService::addParticipant()`, `removeParticipant()`, `setParticipantStatus()`.
@@ -69,15 +69,15 @@ Implement REST endpoints for managing event participants. Delegates to webcalend
 **Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [ ] `GET /api/v2/events/{id}/participants` — returns list of participants with status
-- [ ] `POST /api/v2/events/{id}/participants` — add participants (body: `{participants: ["user1", "user2"]}`)
-- [ ] `DELETE /api/v2/events/{id}/participants/{login}` — remove a participant
-- [ ] `PUT /api/v2/events/{id}/participants/{login}` — update participant status (body: `{status: "A"}`)
-- [ ] Only event owner or admin can add/remove participants
-- [ ] Participant can update their own status
-- [ ] Event response includes `participants` array with login + status
-- [ ] PHPStan level 9 passes
-- [ ] Psalm passes
+- [x] `GET /api/v2/events/{id}/participants` — returns list of participants with status
+- [x] `POST /api/v2/events/{id}/participants` — add participants (body: `{participants: ["user1", "user2"]}`)
+- [x] `DELETE /api/v2/events/{id}/participants/{login}` — remove a participant
+- [x] `PUT /api/v2/events/{id}/participants/{login}` — update participant status (body: `{status: "A"}`)
+- [x] Only event owner or admin can add/remove participants (via EventService authorization)
+- [x] Participant can update their own status
+- [x] Event GET response includes `participants` array with login + status
+- [x] PHPStan level 9 passes
+- [x] Psalm passes
 
 ---
 

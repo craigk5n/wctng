@@ -135,7 +135,17 @@ final class EventController
             return ApiResponse::error(404, 'Event not found');
         }
 
-        return ApiResponse::success(EventResponseDTO::fromEntity($event));
+        $response = EventResponseDTO::fromEntity($event);
+
+        // Include participants
+        /** @var array<string, string> $participants */
+        $participants = $this->coreServiceFactory->getEventRepository()->getParticipantsWithStatus(new EventId($id));
+        $response['participants'] = [];
+        foreach ($participants as $login => $status) {
+            $response['participants'][] = ['login' => $login, 'status' => $status];
+        }
+
+        return ApiResponse::success($response);
     }
 
     #[Route('/api/v2/events/{id}', name: 'api_events_update', methods: ['PUT'])]
@@ -250,7 +260,9 @@ final class EventController
         }
 
         $result = [];
-        foreach ($data['categories'] as $v) {
+        /** @var list<int|string> $catList */
+        $catList = $data['categories'];
+        foreach ($catList as $v) {
             if (is_numeric($v)) {
                 $id = (int) $v;
                 if ($id > 0) {
