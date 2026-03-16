@@ -1,12 +1,13 @@
-# WCTNG — Phase 3 Development Plan & Status
+# WCTNG — Phase 4 Development Plan & Status
 
 > **Last Updated:** 2026-03-16
-> **Phase:** 3 — Hosted / Multi-Tenant
-> **Goal:** Subdomain-based tenant isolation, provisioning, control plane API, admin dashboard
+> **Phase:** 4 — CalDAV & Extended Auth
+> **Goal:** CalDAV server integration for native calendar app support, plus OAuth2/OIDC and LDAP authentication
 > **Methodology:** TDD (write tests first, then implementation)
 > **Developed by:** AI Agent
 > **Phase 1 Archive:** See `STATUS-PHASE1-ARCHIVE.md`
 > **Phase 2 Archive:** See `STATUS-PHASE2-ARCHIVE.md`
+> **Phase 3 Archive:** See `STATUS-PHASE3-ARCHIVE.md`
 
 ---
 
@@ -14,38 +15,36 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| P3-E1 | Tenant Data Model | 3 | 3 | DONE |
-| P3-E2 | Tenant Resolver Middleware | 3 | 3 | DONE |
-| P3-E3 | Tenant Provisioning | 4 | 4 | DONE |
-| P3-E4 | Control Plane API | 4 | 4 | DONE |
-| P3-E5 | Tenant Admin Dashboard | 4 | 4 | DONE |
-| P3-E6 | Tenant-Aware Auth | 3 | 3 | DONE |
-| P3-E7 | Tenant Isolation & Security | 3 | 3 | DONE |
-| P3-E8 | Standalone ↔ Hosted Mode | 3 | 3 | DONE |
-| **Total** | | **27** | **27** | |
+| P4-E1 | CalDAV Server Core | 4 | 0 | NOT STARTED |
+| P4-E2 | CalDAV Calendar & Event Operations | 4 | 0 | NOT STARTED |
+| P4-E3 | CalDAV Tasks & Journals | 3 | 0 | NOT STARTED |
+| P4-E4 | CalDAV Integration Tests | 2 | 0 | NOT STARTED |
+| P4-E5 | OAuth2 / OIDC Authentication | 4 | 0 | NOT STARTED |
+| P4-E6 | LDAP Authentication | 3 | 0 | NOT STARTED |
+| P4-E7 | Per-Tenant Auth Configuration | 3 | 0 | NOT STARTED |
+| **Total** | | **23** | **0** | |
 
 ---
 
 ## Dependency Graph
 
 ```
-P3-E1 (Tenant Data Model) ──► P3-E2 (Resolver Middleware)
-P3-E1 ──► P3-E3 (Provisioning)
-P3-E2 ──► P3-E6 (Tenant-Aware Auth)
-P3-E2 ──► P3-E7 (Isolation & Security)
-P3-E3 ──► P3-E4 (Control Plane API)
-P3-E4 ──► P3-E5 (Admin Dashboard)
-P3-E1 ──► P3-E8 (Standalone ↔ Hosted)
+P4-E1 (CalDAV Core) ──► P4-E2 (Calendar & Events)
+P4-E1 ──► P4-E3 (Tasks & Journals)
+P4-E2 ──► P4-E4 (Integration Tests)
+P4-E3 ──► P4-E4
+P4-E5 (OAuth2/OIDC) ──► P4-E7 (Per-Tenant Auth Config)
+P4-E6 (LDAP) ──► P4-E7
 ```
 
-**Critical path:** P3-E1 → P3-E2 → P3-E3 → P3-E4 → P3-E5
-**Independent after E1:** P3-E8 can be done any time after E1
+**Critical path:** P4-E1 → P4-E2 → P4-E4 (CalDAV must work before integration tests)
+**Independent:** P4-E5, P4-E6 can be done in parallel, independent of CalDAV
 
 ---
 
 ## Global Standards
 
-Same as Phase 1 & 2:
+Same as Phase 1–3:
 - PHP 8.2+, PHPStan level 9, Psalm errorLevel 1, PHPUnit 10
 - React 18, TypeScript strict, ESLint, Vitest, Playwright
 - TDD: write tests first, then implementation
@@ -53,561 +52,476 @@ Same as Phase 1 & 2:
 
 ---
 
-## Epic P3-E1: Tenant Data Model
+## Epic P4-E1: CalDAV Server Core
 
-**Goal:** Define the tenant registry schema, entity, and repository for tracking tenants and their database connections.
+**Goal:** Integrate sabre/dav into the Symfony application and create the backend adapter that bridges CalDAV operations to webcalendar-core.
 
-### P3-E1-S1: Tenant Registry Schema & Entity
+### P4-E1-S1: sabre/dav Installation & Routing
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Create the `tenants` table in the control database and a Symfony entity to represent a tenant. The control database is the default connection; tenant databases are separate.
+Install sabre/dav via Composer, configure routing for `/dav/*` endpoints, and set up the basic CalDAV server with Symfony integration.
 
-**Preconditions:** Phase 2 complete
+**Preconditions:** Phase 3 complete
 
 **Acceptance Criteria:**
-- [x] Schema SQL creates `tenants` table with: `id`, `slug` (unique), `name`, `db_host`, `db_name`, `db_user`, `db_password` (encrypted), `plan`, `status` (active/suspended/pending), `created_at`, `updated_at`
-- [x] `Tenant` entity with getters, validation (slug format: lowercase alphanumeric + hyphens, 3-50 chars)
-- [x] `TenantRepository` with `findBySlug()`, `findAll()`, `save()`, `delete()`
-- [x] Reserved slugs list (api, www, admin, app, mail, etc.) enforced on creation
-- [x] PHPStan level 9 passes
-- [x] Unit tests for entity validation and repository
+- [ ] `sabre/dav` installed via Composer
+- [ ] `/dav/` route handled by a Symfony controller that bootstraps sabre/dav Server
+- [ ] OPTIONS and PROPFIND requests return valid WebDAV responses
+- [ ] Basic authentication bridge: CalDAV auth delegates to webcalendar-core AuthService
+- [ ] nginx config updated to pass `/dav/*` to PHP-FPM
+- [ ] PHPStan level 9 passes
+- [ ] Smoke test: PROPFIND / returns valid multistatus XML
 
 ---
 
-### P3-E1-S2: Tenant Database Configuration Service
+### P4-E1-S2: CalDAV Principal Backend
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Service that creates PDO connections to tenant databases dynamically based on tenant registry data.
+Implement the sabre/dav PrincipalBackend that maps webcalendar users to CalDAV principals.
 
-**Preconditions:** P3-E1-S1
+**Preconditions:** P4-E1-S1
 
 **Acceptance Criteria:**
-- [x] `TenantDatabaseManager` service creates PDO connections from tenant credentials
-- [x] Connection pooling / caching within a single request lifecycle
-- [x] Credentials decrypted at connection time (using APP_SECRET as encryption key)
-- [x] Graceful error handling when tenant DB is unreachable (503 response)
-- [x] PHPStan level 9 passes
-- [x] Unit tests with mock PDO
+- [ ] `CorePrincipalBackend` implements `Sabre\DAVACL\PrincipalBackend\BackendInterface`
+- [ ] `getPrincipalsByPrefix('principals')` returns all webcalendar users
+- [ ] `getPrincipalByPath('principals/username')` returns user details
+- [ ] Principal properties include display name, email, calendar-home-set
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests with mock UserService
 
 ---
 
-### P3-E1-S3: Tenant Context Service
+### P4-E1-S3: CalDAV Calendar Backend
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Request-scoped service that holds the current tenant context, making it available throughout the request lifecycle.
+Implement the sabre/dav CalendarBackend that maps webcalendar calendars and events to CalDAV resources.
 
-**Preconditions:** P3-E1-S1
+**Preconditions:** P4-E1-S2
 
 **Acceptance Criteria:**
-- [x] `TenantContext` service holds current `Tenant` entity (or null for standalone mode)
-- [x] `setTenant()` / `getTenant()` / `isMultiTenant()` methods
-- [x] Registered as a scoped service (reset per request)
-- [x] `CoreServiceFactory` uses tenant PDO when `TenantContext` has a tenant, default PDO otherwise
-- [x] PHPStan level 9 passes
-- [x] Unit tests
+- [ ] `CoreCalendarBackend` implements `Sabre\CalDAV\Backend\BackendInterface`
+- [ ] `getCalendarsForUser()` returns user's calendar(s)
+- [ ] `createCalendar()` / `deleteCalendar()` supported
+- [ ] Calendar properties: displayname, color, description, supported component set (VEVENT, VTODO, VJOURNAL)
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests
 
 ---
 
-## Epic P3-E2: Tenant Resolver Middleware
+### P4-E1-S4: CalDAV Authentication Bridge
 
-**Goal:** Automatically resolve the current tenant from the incoming request (subdomain, header, or JWT claim).
-
-### P3-E2-S1: Subdomain Resolver
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Symfony event listener that resolves the tenant from the request subdomain (e.g., `acme.webcalendar.com` → slug `acme`).
+Bridge sabre/dav's authentication to the existing webcalendar-core AuthService, supporting both HTTP Basic and Bearer token auth.
 
-**Preconditions:** P3-E1-S3
+**Preconditions:** P4-E1-S1
 
 **Acceptance Criteria:**
-- [x] `TenantResolverListener` runs on `kernel.request` with high priority
-- [x] Extracts subdomain from `Host` header: `{slug}.{base_domain}`
-- [x] Base domain configurable via `TENANT_BASE_DOMAIN` env var
-- [x] Looks up tenant by slug, sets `TenantContext`, configures tenant PDO
-- [x] Returns 404 JSON response for unknown tenant slugs
-- [x] Skips resolution for standalone mode (when `APP_MODE=standalone`)
-- [x] PHPStan level 9 passes
-- [x] Functional tests with mock subdomains
+- [ ] `CoreAuthBackend` implements `Sabre\DAV\Auth\Backend\BackendInterface`
+- [ ] HTTP Basic auth: validates username/password via AuthService
+- [ ] Bearer token auth: validates JWT tokens (same as REST API)
+- [ ] Tenant-aware: uses TenantContext for multi-tenant CalDAV access
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests
 
 ---
 
-### P3-E2-S2: Header & JWT Resolver
+## Epic P4-E2: CalDAV Calendar & Event Operations
 
-**Status:** DONE
+**Goal:** Full CRUD for calendar events via the CalDAV protocol (iCalendar format).
+
+### P4-E2-S1: Event CRUD via CalDAV
+
+**Status:** NOT STARTED
 
 **Description:**
-Alternative tenant resolution via `X-Tenant-Id` header or JWT `tenant` claim, for API clients that can't use subdomains.
+Implement PUT, GET, DELETE for calendar objects (VEVENT) in the CalDAV backend.
 
-**Preconditions:** P3-E2-S1
+**Preconditions:** P4-E1-S3
 
 **Acceptance Criteria:**
-- [x] `X-Tenant-Id` header resolution (fallback when subdomain is not present)
-- [x] JWT `tenant` claim resolution (extracted from authenticated token)
-- [x] Resolution priority: subdomain > header > JWT claim > standalone default
-- [x] Tenant mismatch between JWT claim and subdomain returns 403
-- [x] PHPStan level 9 passes
-- [x] Functional tests
+- [ ] `getCalendarObject()` returns event as iCalendar (VCALENDAR/VEVENT)
+- [ ] `createCalendarObject()` parses iCalendar and creates event via EventService
+- [ ] `updateCalendarObject()` parses iCalendar and updates event
+- [ ] `deleteCalendarObject()` deletes event
+- [ ] `getCalendarObjects()` returns all events for a calendar in date range
+- [ ] ETags and sync tokens for change detection
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests
 
 ---
 
-### P3-E2-S3: Tenant Resolver Integration Tests
+### P4-E2-S2: CalDAV Event Sync (ctag/sync-token)
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-End-to-end tests verifying the full tenant resolution chain across all resolution methods.
+Support efficient synchronization via calendar ctag and sync-token, allowing clients to fetch only changed events.
 
-**Preconditions:** P3-E2-S2
+**Preconditions:** P4-E2-S1
 
 **Acceptance Criteria:**
-- [x] Test: subdomain resolution creates correct PDO and returns tenant-specific data
-- [x] Test: header resolution works for API-only clients
-- [x] Test: standalone mode (no tenant) uses default database
-- [x] Test: invalid/suspended tenant returns appropriate error
-- [x] Test: cross-tenant data isolation (tenant A cannot see tenant B's data)
-- [x] All tests pass in under 30 seconds
+- [ ] `getChangesForCalendarId()` returns created/modified/deleted events since a sync token
+- [ ] Calendar ctag changes when any event in the calendar is modified
+- [ ] Sync reports return proper multistatus responses
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests
 
 ---
 
-## Epic P3-E3: Tenant Provisioning
+### P4-E2-S3: CalDAV Scheduling (Free/Busy)
 
-**Goal:** Automate creation of new tenant databases, schema setup, and initial admin user.
-
-### P3-E3-S1: Schema Deployment Service
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Service that creates a new database and deploys the webcalendar-core schema for a new tenant.
+Support CalDAV scheduling for free/busy queries and meeting invitations.
 
-**Preconditions:** P3-E1-S2
+**Preconditions:** P4-E2-S1
 
 **Acceptance Criteria:**
-- [x] `TenantProvisioner` service: `provision(slug, name, adminEmail)` → creates DB, runs schema, creates admin user
-- [x] Uses webcalendar-core's SQL schema file for table creation
-- [x] Creates initial admin user with generated password
-- [x] Returns provisioning result with credentials and connection details
-- [x] Handles DB creation errors gracefully (duplicate name, permissions, etc.)
-- [x] PHPStan level 9 passes
-- [x] Integration tests (creates real test DB, verifies schema, tears down)
+- [ ] `getFreeBusyForCalendar()` returns VFREEBUSY response
+- [ ] Scheduling inbox/outbox collections configured
+- [ ] Meeting invitations (VFREEBUSY REQUEST) supported
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests
 
 ---
 
-### P3-E3-S2: Tenant Provisioning CLI Command
+### P4-E2-S4: CalDAV Recurring Events
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Symfony console command for manually provisioning tenants (useful for ops and testing).
+Handle recurring events (RRULE) in CalDAV, expanding occurrences for time-range queries.
 
-**Preconditions:** P3-E3-S1
+**Preconditions:** P4-E2-S1
 
 **Acceptance Criteria:**
-- [x] `php bin/console tenant:create {slug} {name} --admin-email={email}` provisions a new tenant
-- [x] `php bin/console tenant:list` shows all tenants with status
-- [x] `php bin/console tenant:suspend {slug}` suspends a tenant (sets status, blocks access)
-- [x] `php bin/console tenant:delete {slug} --force` deletes tenant DB and registry entry
-- [x] Output shows provisioning details (URL, admin credentials)
-- [x] PHPStan level 9 passes
+- [ ] RRULE parsing from iCalendar objects
+- [ ] Recurring events expanded for REPORT time-range queries
+- [ ] EXDATE (exception dates) handled
+- [ ] Overridden instances (RECURRENCE-ID) supported
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests with various RRULE patterns
 
 ---
 
-### P3-E3-S3: Schema Migration Service
+## Epic P4-E3: CalDAV Tasks & Journals
 
-**Status:** DONE
+**Goal:** Support VTODO and VJOURNAL components via CalDAV.
+
+### P4-E3-S1: CalDAV Tasks (VTODO)
+
+**Status:** NOT STARTED
 
 **Description:**
-Service to run schema migrations across all tenant databases when webcalendar-core is updated.
+Map webcalendar tasks to CalDAV VTODO objects.
 
-**Preconditions:** P3-E3-S1
+**Preconditions:** P4-E1-S3
 
 **Acceptance Criteria:**
-- [x] `TenantMigrator` service iterates all active tenants and applies pending migrations
-- [x] `php bin/console tenant:migrate` runs migrations on all tenant DBs
-- [x] `php bin/console tenant:migrate --tenant={slug}` runs on a single tenant
-- [x] Reports success/failure per tenant with summary
-- [x] Handles connection failures gracefully (skips, reports, continues)
-- [x] PHPStan level 9 passes
+- [ ] Tasks exposed as VTODO objects in CalDAV
+- [ ] CRUD operations: create, read, update, delete tasks via PUT/GET/DELETE
+- [ ] Task properties mapped: summary, due date, priority, percent-complete, status
+- [ ] Supported in Apple Reminders, Thunderbird, GNOME To Do
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests
 
 ---
 
-### P3-E3-S4: Tenant Provisioning E2E Tests
+### P4-E3-S2: CalDAV Journals (VJOURNAL)
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Full lifecycle tests: create tenant, access via subdomain, verify data isolation, delete.
+Map webcalendar journals to CalDAV VJOURNAL objects.
 
-**Preconditions:** P3-E3-S2
+**Preconditions:** P4-E1-S3
 
 **Acceptance Criteria:**
-- [x] Test: provision tenant → login via subdomain → create event → verify event exists only in tenant DB
-- [x] Test: two tenants provisioned, each has isolated data
-- [x] Test: suspend tenant → API returns 403
-- [x] Test: delete tenant → DB removed, slug available for reuse
-- [x] All tests pass
+- [ ] Journals exposed as VJOURNAL objects in CalDAV
+- [ ] CRUD operations via PUT/GET/DELETE
+- [ ] Properties mapped: summary, description, date
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests
 
 ---
 
-## Epic P3-E4: Control Plane API
+### P4-E3-S3: CalDAV Multi-Component Calendar
 
-**Goal:** REST API for managing tenants programmatically (used by admin dashboard and ops tools).
-
-### P3-E4-S1: Control Plane Auth
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Separate authentication for the control plane (super-admin level, not per-tenant).
+Support calendars that contain mixed component types (VEVENT + VTODO + VJOURNAL).
 
-**Preconditions:** P3-E2-S1
+**Preconditions:** P4-E3-S1, P4-E3-S2
 
 **Acceptance Criteria:**
-- [x] Control plane routes under `/control/v1/*` with separate JWT auth
-- [x] Super-admin user stored in control database (not tenant DB)
-- [x] `POST /control/v1/auth/login` returns control plane JWT
-- [x] Control plane JWT includes `role: "super_admin"` claim
-- [x] Regular tenant JWTs cannot access control plane routes
-- [x] PHPStan level 9 passes
-- [x] Functional tests
+- [ ] Calendar advertises support for VEVENT, VTODO, VJOURNAL in supported-calendar-component-set
+- [ ] Filtering by component type in REPORT queries
+- [ ] Client compatibility tested with Apple Calendar, Thunderbird, DAVx5
+- [ ] PHPStan level 9 passes
+- [ ] Functional tests
 
 ---
 
-### P3-E4-S2: Tenant CRUD Endpoints
+## Epic P4-E4: CalDAV Integration Tests
 
-**Status:** DONE
+**Goal:** End-to-end tests verifying CalDAV compatibility with real calendar clients.
+
+### P4-E4-S1: CalDAV Protocol Compliance Tests
+
+**Status:** NOT STARTED
 
 **Description:**
-REST endpoints for creating, reading, updating, and deleting tenants.
+Automated tests that verify CalDAV RFC 4791 compliance using HTTP requests.
 
-**Preconditions:** P3-E4-S1, P3-E3-S1
+**Preconditions:** P4-E2-S1, P4-E3-S1
 
 **Acceptance Criteria:**
-- [x] `GET /control/v1/tenants` — list all tenants with status, plan, created_at
-- [x] `POST /control/v1/tenants` — provision new tenant (body: `{slug, name, admin_email, plan}`)
-- [x] `GET /control/v1/tenants/{slug}` — get tenant details including user count, event count
-- [x] `PUT /control/v1/tenants/{slug}` — update tenant (name, plan, status)
-- [x] `DELETE /control/v1/tenants/{slug}` — deprovision tenant (requires `?confirm=true`)
-- [x] Provisioning is async-safe (returns 202 if DB creation takes time)
-- [x] PHPStan level 9 passes
-- [x] Functional tests for all endpoints
+- [ ] Test: PROPFIND on principal URL returns calendar-home-set
+- [ ] Test: PROPFIND on calendar-home returns calendar list
+- [ ] Test: PUT VEVENT → GET returns same event
+- [ ] Test: DELETE event → GET returns 404
+- [ ] Test: REPORT calendar-query with time-range filter
+- [ ] Test: REPORT calendar-multiget with specific hrefs
+- [ ] Test: PUT VTODO → GET returns same task
+- [ ] All tests pass
 
 ---
 
-### P3-E4-S3: Tenant Statistics Endpoints
+### P4-E4-S2: CalDAV Client Compatibility Tests
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Endpoints for monitoring tenant health and usage metrics.
+Manual and automated tests with popular CalDAV clients.
 
-**Preconditions:** P3-E4-S2
+**Preconditions:** P4-E4-S1
 
 **Acceptance Criteria:**
-- [x] `GET /control/v1/tenants/{slug}/stats` — returns user count, event count, storage size, last activity
-- [x] `GET /control/v1/stats/summary` — aggregate stats across all tenants
-- [x] Stats queries run against tenant DBs efficiently (cached for 5 minutes)
-- [x] PHPStan level 9 passes
-- [x] Functional tests
+- [ ] Apple Calendar (macOS/iOS): add account, sync events, create/edit/delete
+- [ ] Thunderbird (Lightning): add account, sync events, tasks
+- [ ] DAVx5 (Android): add account, sync events
+- [ ] GNOME Calendar: add account, sync events
+- [ ] Documentation: client setup guides for each tested client
+- [ ] Known limitations documented
 
 ---
 
-### P3-E4-S4: Control Plane Webhook Notifications
+## Epic P4-E5: OAuth2 / OIDC Authentication
 
-**Status:** DONE
+**Goal:** Support OAuth2 and OpenID Connect for single sign-on.
+
+### P4-E5-S1: OAuth2 Provider Configuration
+
+**Status:** NOT STARTED
 
 **Description:**
-Webhook notifications for tenant lifecycle events (provisioned, suspended, deleted).
+Database-driven OAuth2 provider configuration (client ID, secret, endpoints).
 
-**Preconditions:** P3-E4-S2
+**Preconditions:** Phase 3 complete
 
 **Acceptance Criteria:**
-- [x] `CONTROL_WEBHOOK_URL` env var configures webhook endpoint
-- [x] `tenant.provisioned` webhook sent after successful provisioning
-- [x] `tenant.suspended` / `tenant.activated` webhooks for status changes
-- [x] `tenant.deleted` webhook sent after deprovisioning
-- [x] Webhook payload includes tenant slug, name, timestamp, event type
-- [x] Fire-and-forget (webhook failure doesn't block operations)
-- [x] PHPStan level 9 passes
+- [ ] `oauth_providers` table: id, name, type (oauth2/oidc), client_id, client_secret, auth_url, token_url, userinfo_url, scopes, enabled
+- [ ] CRUD API endpoints: `GET/POST/PUT/DELETE /api/v2/admin/auth-providers`
+- [ ] Provider configuration stored per-tenant (multi-tenant) or globally (standalone)
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests
 
 ---
 
-## Epic P3-E5: Tenant Admin Dashboard
+### P4-E5-S2: OAuth2 Authorization Flow
 
-**Goal:** Web UI for super-admins to manage tenants, view stats, and handle provisioning.
-
-### P3-E5-S1: Dashboard Layout & Auth
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Separate React app (or route group) for the control plane dashboard with super-admin authentication.
+Implement the OAuth2 authorization code flow with PKCE for browser-based login.
 
-**Preconditions:** P3-E4-S1
+**Preconditions:** P4-E5-S1
 
 **Acceptance Criteria:**
-- [x] Route group `/control/*` with separate login page
-- [x] Super-admin login via control plane auth API
-- [x] Dashboard layout with sidebar: Tenants, Stats, Settings
-- [x] Protected routes (redirects to control login if not authenticated)
-- [x] Vitest tests for auth flow
+- [ ] `GET /api/v2/auth/oauth/{provider}/redirect` — redirects to provider's auth URL
+- [ ] `GET /api/v2/auth/oauth/{provider}/callback` — handles callback, exchanges code for token
+- [ ] User auto-provisioned on first login (creates webcalendar user from OAuth profile)
+- [ ] JWT issued after successful OAuth flow (same as password login)
+- [ ] PKCE support for public clients
+- [ ] PHPStan level 9 passes
+- [ ] Functional tests with mock OAuth server
 
 ---
 
-### P3-E5-S2: Tenant List & Management Page
+### P4-E5-S3: OIDC Integration
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Page showing all tenants with status, actions, and search/filter.
+Extend OAuth2 support with OpenID Connect discovery and ID token validation.
 
-**Preconditions:** P3-E5-S1, P3-E4-S2
+**Preconditions:** P4-E5-S2
 
 **Acceptance Criteria:**
-- [x] Table of tenants: slug, name, plan, status, user count, created date
-- [x] Status badges (active=green, suspended=yellow, pending=gray)
-- [x] Search/filter by name or slug
-- [x] Quick actions: suspend/activate toggle, delete (with confirmation)
-- [x] Pagination for large tenant lists
-- [x] Vitest tests
+- [ ] Auto-discovery via `.well-known/openid-configuration` endpoint
+- [ ] ID token validation (signature, claims, expiry)
+- [ ] User profile populated from OIDC claims (name, email, groups)
+- [ ] Support for major providers: Google, Microsoft Entra ID, Keycloak, Auth0
+- [ ] PHPStan level 9 passes
+- [ ] Functional tests
 
 ---
 
-### P3-E5-S3: Tenant Provisioning Wizard
+### P4-E5-S4: OAuth2/OIDC Frontend Integration
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Multi-step form for provisioning a new tenant with validation and progress feedback.
+Login page shows OAuth/OIDC provider buttons for SSO.
 
-**Preconditions:** P3-E5-S2
+**Preconditions:** P4-E5-S2
 
 **Acceptance Criteria:**
-- [x] Step 1: Slug + name (validates slug format, checks availability in real-time)
-- [x] Step 2: Admin email + plan selection
-- [x] Step 3: Review & confirm
-- [x] Progress indicator during provisioning (polling for status)
-- [x] Success screen with tenant URL and admin credentials
-- [x] Error handling with retry option
-- [x] Vitest tests
+- [ ] Login page fetches available providers from API
+- [ ] Provider buttons displayed with name and icon
+- [ ] Clicking a provider redirects to OAuth flow
+- [ ] Callback page handles token exchange and stores JWT
+- [ ] Works in both standalone and multi-tenant modes
+- [ ] Vitest tests
 
 ---
 
-### P3-E5-S4: Tenant Detail & Stats Page
+## Epic P4-E6: LDAP Authentication
 
-**Status:** DONE
+**Goal:** Support LDAP/Active Directory authentication for enterprise environments.
+
+### P4-E6-S1: LDAP Connection & Configuration
+
+**Status:** NOT STARTED
 
 **Description:**
-Detail page for a single tenant showing configuration, stats, and management actions.
+LDAP server connection configuration and bind testing.
 
-**Preconditions:** P3-E5-S2, P3-E4-S3
+**Preconditions:** Phase 3 complete
 
 **Acceptance Criteria:**
-- [x] Shows tenant details: slug, name, plan, status, DB host, created date
-- [x] Usage stats: user count, event count, storage, last activity
-- [x] Actions: edit name/plan, suspend/activate, reset admin password, delete
-- [x] Audit log of tenant lifecycle events (provisioned, suspended, etc.)
-- [x] Vitest tests
+- [ ] LDAP configuration: host, port, base DN, bind DN, bind password, user filter, TLS/STARTTLS
+- [ ] Configuration stored in database (per-tenant or global)
+- [ ] `GET/PUT /api/v2/admin/ldap-config` endpoints
+- [ ] Connection test endpoint: `POST /api/v2/admin/ldap-config/test`
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests with mock LDAP
 
 ---
 
-## Epic P3-E6: Tenant-Aware Auth
+### P4-E6-S2: LDAP Authentication Flow
 
-**Goal:** Ensure authentication and JWT tokens are tenant-scoped.
-
-### P3-E6-S1: Tenant-Scoped JWT Tokens
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Include tenant slug in JWT tokens so the API can verify tenant context from the token.
+Authenticate users against LDAP directory and auto-provision webcalendar accounts.
 
-**Preconditions:** P3-E2-S1
+**Preconditions:** P4-E6-S1
 
 **Acceptance Criteria:**
-- [x] JWT tokens include `tenant` claim with the tenant slug
-- [x] `WebCalendarUserProvider` loads users from the tenant's database (not the control DB)
-- [x] Token validation checks that the `tenant` claim matches the resolved tenant context
-- [x] Mismatched tenant (token says "acme" but request goes to "globex") returns 403
-- [x] Standalone mode: no `tenant` claim in JWT, works as before
-- [x] PHPStan level 9 passes
-- [x] Functional tests
+- [ ] Login with LDAP credentials via `POST /api/v2/auth/login` (transparent fallback)
+- [ ] User search by sAMAccountName or uid attribute
+- [ ] LDAP bind to verify password
+- [ ] Auto-provision webcalendar user on first LDAP login (name, email from LDAP attributes)
+- [ ] Sync user attributes on subsequent logins (name, email updates)
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests with mock LDAP
 
 ---
 
-### P3-E6-S2: Tenant-Scoped Login
+### P4-E6-S3: LDAP Group Sync
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Login endpoint resolves the user from the correct tenant database.
+Sync LDAP groups to webcalendar groups for permission management.
 
-**Preconditions:** P3-E6-S1
+**Preconditions:** P4-E6-S2
 
 **Acceptance Criteria:**
-- [x] `POST /api/v2/auth/login` on tenant subdomain authenticates against tenant DB
-- [x] Same username can exist in different tenants (isolated user stores)
-- [x] Login response includes tenant slug for frontend context
-- [x] Failed login returns tenant-appropriate error (doesn't leak other tenant info)
-- [x] PHPStan level 9 passes
-- [x] Functional tests with two tenants, same username, different passwords
+- [ ] LDAP group membership query (memberOf attribute or group search)
+- [ ] Configurable group DN mapping to webcalendar groups
+- [ ] Groups synced on user login (create group if missing, add/remove membership)
+- [ ] Admin-only sync trigger: `POST /api/v2/admin/ldap-config/sync-groups`
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests
 
 ---
 
-### P3-E6-S3: Frontend Tenant Context
+## Epic P4-E7: Per-Tenant Auth Configuration
 
-**Status:** DONE
+**Goal:** Allow each tenant to configure their own authentication method(s).
+
+### P4-E7-S1: Auth Provider Registry
+
+**Status:** NOT STARTED
 
 **Description:**
-React app detects tenant from subdomain and stores tenant context for API calls.
+System for tenants to register and manage their authentication providers.
 
-**Preconditions:** P3-E6-S2
+**Preconditions:** P4-E5-S1, P4-E6-S1
 
 **Acceptance Criteria:**
-- [x] `useTenant()` hook extracts tenant slug from `window.location.hostname`
-- [x] Tenant slug displayed in header/sidebar for tenant branding
-- [x] Login page shows tenant name (fetched from `/api/v2/tenant/info` public endpoint)
-- [x] Standalone mode: no tenant context, works as before
-- [x] Vitest tests
+- [ ] Each tenant can configure: password (always available), OAuth2, OIDC, LDAP
+- [ ] Auth provider configuration stored per-tenant in tenant DB
+- [ ] Settings page: `/settings/authentication` with provider list and configuration forms
+- [ ] Provider priority/order configurable (try OAuth first, fallback to password)
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests
 
 ---
 
-## Epic P3-E7: Tenant Isolation & Security
+### P4-E7-S2: Chained Authentication
 
-**Goal:** Ensure complete data isolation between tenants and prevent cross-tenant access.
-
-### P3-E7-S1: Cross-Tenant Access Prevention
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Security middleware that prevents any cross-tenant data access at the API level.
+Authentication chain that tries multiple providers in configured order.
 
-**Preconditions:** P3-E2-S1
+**Preconditions:** P4-E7-S1
 
 **Acceptance Criteria:**
-- [x] All API controllers use tenant-scoped PDO (never the control DB for tenant data)
-- [x] Mercure topics are tenant-scoped: `/tenants/{slug}/calendars/events`
-- [x] Layers can only reference users within the same tenant
-- [x] Group membership is tenant-scoped
-- [x] Search is tenant-scoped
-- [x] PHPStan level 9 passes
-- [x] Security test: authenticate as tenant A, attempt to access tenant B's events → 403
+- [ ] `ChainedAuthenticator` tries providers in priority order
+- [ ] First successful auth wins (short-circuit)
+- [ ] Detailed error logging for auth failures (without exposing to user)
+- [ ] Login page adapts based on enabled providers (shows/hides password field, OAuth buttons)
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests with multiple mock providers
 
 ---
 
-### P3-E7-S2: Tenant Rate Limiting
+### P4-E7-S3: Auth Configuration UI
 
-**Status:** DONE
-
-**Description:**
-Per-tenant rate limiting to prevent a single tenant from consuming excessive resources.
-
-**Preconditions:** P3-E7-S1
-
-**Acceptance Criteria:**
-- [x] Rate limiter keyed by tenant slug (not just IP)
-- [x] Configurable limits per plan (e.g., free=100 req/min, pro=1000 req/min)
-- [x] Rate limit headers in response: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
-- [x] 429 Too Many Requests response when exceeded
-- [x] PHPStan level 9 passes
-- [x] Functional tests
-
----
-
-### P3-E7-S3: Tenant Data Export & Portability
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Allow tenants to export all their data for portability and compliance.
+Admin UI for configuring authentication providers per tenant.
 
-**Preconditions:** P3-E7-S1
-
-**Acceptance Criteria:**
-- [x] `GET /api/v2/tenant/export` — downloads full tenant data as ZIP (ICS + JSON)
-- [x] Export includes: all events, tasks, journals, users, categories, groups
-- [x] Export is rate-limited (max 1 per hour per tenant)
-- [x] Control plane can trigger export for any tenant: `POST /control/v1/tenants/{slug}/export`
-- [x] PHPStan level 9 passes
-- [x] Functional tests
-
----
-
-## Epic P3-E8: Standalone ↔ Hosted Mode
-
-**Goal:** Ensure the application works seamlessly in both standalone (single-tenant) and hosted (multi-tenant) modes with a single codebase.
-
-### P3-E8-S1: Mode Detection & Configuration
-
-**Status:** DONE
-
-**Description:**
-Configuration system that detects and switches between standalone and hosted modes.
-
-**Preconditions:** P3-E1-S3
+**Preconditions:** P4-E7-S1
 
 **Acceptance Criteria:**
-- [x] `APP_MODE` env var: `standalone` (default) or `hosted`
-- [x] Standalone mode: all tenant resolution skipped, uses `DATABASE_URL` directly
-- [x] Hosted mode: tenant resolution active, control plane enabled
-- [x] `GET /api/v2/health` includes `mode` field in response
-- [x] All existing Phase 1/2 functionality works unchanged in standalone mode
-- [x] PHPStan level 9 passes
-- [x] Functional tests for both modes
-
----
-
-### P3-E8-S2: Standalone Setup Wizard
-
-**Status:** DONE
-
-**Description:**
-Browser-based setup wizard for standalone installations (replaces CLI-only setup).
-
-**Preconditions:** P3-E8-S1
-
-**Acceptance Criteria:**
-- [x] `/setup` route shown when no admin user exists (first-run detection)
-- [x] Step 1: Database connection test (auto-detects from `DATABASE_URL`)
-- [x] Step 2: Create admin account (username, password, email)
-- [x] Step 3: Basic settings (timezone, site name)
-- [x] Runs schema installation via `InstallCommand` internally
-- [x] Redirects to login after completion
-- [x] Vitest tests
-
----
-
-### P3-E8-S3: Docker Compose Hosted Mode
-
-**Status:** DONE
-
-**Description:**
-Docker Compose configuration for running in hosted/multi-tenant mode with control plane.
-
-**Preconditions:** P3-E8-S1, P3-E4-S1
-
-**Acceptance Criteria:**
-- [x] `docker-compose.hosted.yml` extends base compose with hosted-mode settings
-- [x] Control database container (separate from tenant DBs)
-- [x] Wildcard subdomain support via nginx config (`*.webcalendar.local`)
-- [x] Control plane accessible at `admin.webcalendar.local`
-- [x] Documentation: local development setup with `/etc/hosts` entries
-- [x] Health checks for all services
+- [ ] Route `/settings/authentication` accessible to tenant admins
+- [ ] Toggle providers on/off
+- [ ] OAuth2/OIDC configuration form (client ID, secret, endpoints or auto-discovery URL)
+- [ ] LDAP configuration form (host, port, base DN, filters)
+- [ ] Connection test button for LDAP
+- [ ] Vitest tests
 
 ---
 
 ## Story Execution Checklist (for AI Agent)
 
-Same as Phase 1 & 2:
+Same as Phase 1–3:
 
 ```
 1. READ the story description and acceptance criteria completely
@@ -633,7 +547,7 @@ Same as Phase 1 & 2:
 
 ---
 
-## Phase 1 & 2 Summary
+## Phase 1–3 Summary
 
 **Phase 1** completed with 45/45 stories:
 - Symfony 7.x REST API + React 18 SPA + FullCalendar
@@ -643,4 +557,10 @@ Same as Phase 1 & 2:
 - Participants, groups, layers, tasks, journals, import/export
 - Search, real-time (Mercure), permissions, mobile responsive
 - 220 Vitest tests + 25 Playwright E2E tests
-- 210 PHP tests, PHPStan level 9, Psalm errorLevel 1
+
+**Phase 3** completed with 27/27 stories:
+- Tenant data model, resolver middleware, provisioning
+- Control plane API with auth, dashboard, stats
+- Tenant-scoped JWT, cross-tenant isolation, rate limiting
+- Data export, mode detection, setup wizard, hosted Docker config
+- 258 Vitest tests + 326 PHP tests
