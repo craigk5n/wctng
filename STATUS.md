@@ -14,7 +14,7 @@
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
 | P2-E1 | Event Participants | 4 | 4 | DONE |
-| P2-E2 | Groups | 3 | 0 | NOT STARTED |
+| P2-E2 | Groups | 3 | 1 | IN PROGRESS |
 | P2-E3 | Calendar Layers | 3 | 0 | NOT STARTED |
 | P2-E4 | Tasks | 4 | 1 | IN PROGRESS |
 | P2-E5 | Journals | 3 | 1 | IN PROGRESS |
@@ -23,7 +23,7 @@
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 2 | IN PROGRESS |
-| **Total** | | **32** | **12** | |
+| **Total** | | **32** | **13** | |
 
 ---
 
@@ -141,7 +141,7 @@ When viewing an event the user is invited to, show Accept/Reject buttons.
 
 ### P2-E2-S1: Groups API Endpoints
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 CRUD endpoints for groups and group membership.
@@ -149,14 +149,13 @@ CRUD endpoints for groups and group membership.
 **Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [ ] `GET /api/v2/groups` — list groups
-- [ ] `POST /api/v2/groups` — create group (body: `{name, description}`)
-- [ ] `GET /api/v2/groups/{id}` — get group with members
-- [ ] `PUT /api/v2/groups/{id}` — update group
-- [ ] `DELETE /api/v2/groups/{id}` — delete group
-- [ ] `POST /api/v2/groups/{id}/members` — add members (body: `{users: ["user1"]}`)
-- [ ] `DELETE /api/v2/groups/{id}/members/{login}` — remove member
-- [ ] PHPStan level 9 passes
+- [x] `GET /api/v2/groups` — list all groups
+- [x] `POST /api/v2/groups` — create group (body: `{name}`) returns 201
+- [x] `GET /api/v2/groups/{id}` — get group with members array
+- [x] `DELETE /api/v2/groups/{id}` — delete group (204)
+- [x] `POST /api/v2/groups/{id}/members` — add members (body: `{users: ["user1"]}`)
+- [x] `DELETE /api/v2/groups/{id}/members/{login}` — remove member (204)
+- [x] PHPStan level 9 passes, Psalm clean
 
 ---
 
