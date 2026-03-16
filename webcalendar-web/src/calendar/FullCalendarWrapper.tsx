@@ -15,14 +15,17 @@ export interface FullCalendarWrapperHandle {
   changeView: (view: string) => void;
 }
 
+import type { LayerVisibility } from './LayerPanel';
+
 interface FullCalendarWrapperProps {
   initialView?: string;
   onEventClick?: (eventId: number) => void;
   onDateSelect?: (start: Date, end: Date, allDay: boolean) => void;
+  activeLayers?: LayerVisibility[];
 }
 
 export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCalendarWrapperProps>(
-  function FullCalendarWrapper({ initialView = 'dayGridMonth', onEventClick, onDateSelect }, ref) {
+  function FullCalendarWrapper({ initialView = 'dayGridMonth', onEventClick, onDateSelect, activeLayers }, ref) {
   const [events, setEvents] = useState<EventInput[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const calendarRef = useRef<FullCalendar>(null);
@@ -63,16 +66,30 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
 
   const lastDatesSetRef = useRef<DatesSetArg | null>(null);
 
+  const hasVisibleLayers = (activeLayers ?? []).some((l) => l.visible);
+  const layerColorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const l of activeLayers ?? []) {
+      if (l.visible) map.set(l.source_user, l.color);
+    }
+    return map;
+  }, [activeLayers]);
+
   const fetchEventsWrapped = useCallback(async (arg: DatesSetArg) => {
     lastDatesSetRef.current = arg;
     setIsLoading(true);
     try {
       const startDate = formatDateParam(arg.start);
       const endDate = formatDateParam(arg.end);
-      const result = await fetchCalendarEvents(startDate, endDate);
+      const result = await fetchCalendarEvents(startDate, endDate, hasVisibleLayers);
 
-      // Apply category colors
+      // Apply category colors or layer colors
       const coloredEvents = result.map((event) => {
+        const createdBy = event.extendedProps?.created_by as string | undefined;
+        const layerColor = createdBy ? layerColorMap.get(createdBy) : undefined;
+        if (layerColor) {
+          return { ...event, backgroundColor: layerColor, borderColor: layerColor };
+        }
         const catIds = (event.extendedProps?.categories as number[]) ?? [];
         const color = getEventColor(catIds, categories);
         return { ...event, backgroundColor: color, borderColor: color };
@@ -82,7 +99,7 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
     } finally {
       setIsLoading(false);
     }
-  }, [categories]);
+  }, [categories, hasVisibleLayers, layerColorMap]);
 
   useImperativeHandle(ref, () => ({
     refetchEvents: () => {

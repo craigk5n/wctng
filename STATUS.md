@@ -15,7 +15,7 @@
 |------|-------|---------|------|--------|
 | P2-E1 | Event Participants | 4 | 4 | DONE |
 | P2-E2 | Groups | 3 | 3 | DONE |
-| P2-E3 | Calendar Layers | 3 | 1 | IN PROGRESS |
+| P2-E3 | Calendar Layers | 3 | 2 | IN PROGRESS |
 | P2-E4 | Tasks | 4 | 2 | IN PROGRESS |
 | P2-E5 | Journals | 3 | 2 | IN PROGRESS |
 | P2-E6 | Import/Export | 3 | 3 | DONE |
@@ -23,7 +23,7 @@
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 3 | IN PROGRESS |
-| **Total** | | **32** | **20** | |
+| **Total** | | **32** | **21** | |
 
 ---
 
@@ -220,7 +220,7 @@ CRUD endpoints for calendar layers (overlays).
 
 ### P2-E3-S2: Layer Management UI
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Sidebar panel for managing calendar layers.
@@ -228,12 +228,12 @@ Sidebar panel for managing calendar layers.
 **Preconditions:** P2-E3-S1
 
 **Acceptance Criteria:**
-- [ ] Sidebar section showing active layers with color + user name
-- [ ] Toggle visibility per layer (checkbox)
-- [ ] Add layer: user search dropdown + color picker
-- [ ] Remove layer button
-- [ ] Layer events shown on calendar with layer color
-- [ ] Vitest tests pass
+- [x] Sidebar section showing active layers with color + user name
+- [x] Toggle visibility per layer (checkbox)
+- [x] Add layer: user search dropdown + color picker
+- [x] Remove layer button
+- [x] Layer events shown on calendar with layer color
+- [x] Vitest tests pass
 
 ---
 

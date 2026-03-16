@@ -13,6 +13,7 @@ import { ShortcutsDialog } from '../components/shortcuts/ShortcutsDialog';
 import { useGlobalShortcuts } from '../components/shortcuts/useGlobalShortcuts';
 import { ExportButton } from './ExportButton';
 import { ImportDialog } from './ImportDialog';
+import { LayerPanel, type LayerVisibility } from './LayerPanel';
 
 type DialogState =
   | { type: 'none' }
@@ -29,6 +30,7 @@ export function CalendarPage() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [defaultView, setDefaultView] = useState('dayGridMonth');
+  const [activeLayers, setActiveLayers] = useState<LayerVisibility[]>([]);
   const { toast } = useToast();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -234,6 +236,19 @@ export function CalendarPage() {
 
   const closeDialog = useCallback(() => setDialog({ type: 'none' }), []);
 
+  const handleLayersChange = useCallback((layers: LayerVisibility[]) => {
+    setActiveLayers((prev) => {
+      // Only trigger refetch if visibility actually changed
+      const prevVisible = prev.filter((l) => l.visible).map((l) => l.id).sort().join(',');
+      const newVisible = layers.filter((l) => l.visible).map((l) => l.id).sort().join(',');
+      if (prevVisible !== newVisible) {
+        // Defer refetch to after state update
+        setTimeout(() => calendarRef.current?.refetchEvents(), 0);
+      }
+      return layers;
+    });
+  }, []);
+
   return (
     <div>
       {/* Toolbar */}
@@ -260,13 +275,21 @@ export function CalendarPage() {
         </button>
       </div>
 
-      {/* Calendar */}
-      <FullCalendarWrapper
-        ref={calendarRef}
-        initialView={defaultView}
-        onEventClick={handleEventClick}
-        onDateSelect={handleDateSelect}
-      />
+      {/* Calendar with Layer Panel */}
+      <div className="flex gap-4">
+        <div className="flex-1">
+          <FullCalendarWrapper
+            ref={calendarRef}
+            initialView={defaultView}
+            onEventClick={handleEventClick}
+            onDateSelect={handleDateSelect}
+            activeLayers={activeLayers}
+          />
+        </div>
+        <div className="hidden w-56 flex-shrink-0 rounded-lg border border-border bg-card md:block">
+          <LayerPanel onLayersChange={handleLayersChange} />
+        </div>
+      </div>
 
       {/* Event Detail Dialog */}
       {dialog.type === 'detail' && (
