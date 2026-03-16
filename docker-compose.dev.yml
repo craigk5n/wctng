@@ -36,6 +36,8 @@ services:
       MERCURE_URL: http://mercure/.well-known/mercure
       MERCURE_PUBLIC_URL: http://localhost:${PORT_MERCURE:-47181}/.well-known/mercure
       MERCURE_JWT_SECRET: "${MERCURE_JWT_SECRET:-wctng_mercure_dev_secret_key_32ch}"
+      APP_MODE: ${APP_MODE:-standalone}
+      TENANT_BASE_DOMAIN: ${TENANT_BASE_DOMAIN:-webcalendar.local}
     depends_on:
       mysql:
         condition: service_healthy

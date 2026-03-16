@@ -15,14 +15,14 @@
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
 | P3-E1 | Tenant Data Model | 3 | 3 | DONE |
-| P3-E2 | Tenant Resolver Middleware | 3 | 0 | NOT STARTED |
+| P3-E2 | Tenant Resolver Middleware | 3 | 1 | IN PROGRESS |
 | P3-E3 | Tenant Provisioning | 4 | 0 | NOT STARTED |
 | P3-E4 | Control Plane API | 4 | 0 | NOT STARTED |
 | P3-E5 | Tenant Admin Dashboard | 4 | 0 | NOT STARTED |
 | P3-E6 | Tenant-Aware Auth | 3 | 0 | NOT STARTED |
 | P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **3** | |
+| **Total** | | **27** | **4** | |
 
 ---
 
@@ -120,7 +120,7 @@ Request-scoped service that holds the current tenant context, making it availabl
 
 ### P3-E2-S1: Subdomain Resolver
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Symfony event listener that resolves the tenant from the request subdomain (e.g., `acme.webcalendar.com` → slug `acme`).
@@ -128,14 +128,14 @@ Symfony event listener that resolves the tenant from the request subdomain (e.g.
 **Preconditions:** P3-E1-S3
 
 **Acceptance Criteria:**
-- [ ] `TenantResolverListener` runs on `kernel.request` with high priority
-- [ ] Extracts subdomain from `Host` header: `{slug}.{base_domain}`
-- [ ] Base domain configurable via `TENANT_BASE_DOMAIN` env var
-- [ ] Looks up tenant by slug, sets `TenantContext`, configures tenant PDO
-- [ ] Returns 404 JSON response for unknown tenant slugs
-- [ ] Skips resolution for standalone mode (when `APP_MODE=standalone`)
-- [ ] PHPStan level 9 passes
-- [ ] Functional tests with mock subdomains
+- [x] `TenantResolverListener` runs on `kernel.request` with high priority
+- [x] Extracts subdomain from `Host` header: `{slug}.{base_domain}`
+- [x] Base domain configurable via `TENANT_BASE_DOMAIN` env var
+- [x] Looks up tenant by slug, sets `TenantContext`, configures tenant PDO
+- [x] Returns 404 JSON response for unknown tenant slugs
+- [x] Skips resolution for standalone mode (when `APP_MODE=standalone`)
+- [x] PHPStan level 9 passes
+- [x] Functional tests with mock subdomains
 
 ---
 

@@ -1,3 +1,6 @@
+parameters:
+    app_mode_default: 'standalone'
+
 services:
     _defaults:
         autowire: true
@@ -23,6 +26,15 @@ services:
             - '%env(DATABASE_URL)%'
 
     # Tenant services
+    App\Tenant\TenantRepository:
+        arguments:
+            $pdo: '@pdo.connection'
+
+    App\Tenant\TenantResolverListener:
+        arguments:
+            $baseDomain: '%env(TENANT_BASE_DOMAIN)%'
+            $appMode: '%env(APP_MODE)%'
+
     App\Tenant\TenantDatabaseManager:
         arguments:
             $appSecret: '%env(APP_SECRET)%'
