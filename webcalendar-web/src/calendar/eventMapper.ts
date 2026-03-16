@@ -21,6 +21,7 @@ export interface ApiEvent {
   sequence?: number;
   status?: string | null;
   categories?: number[];
+  participants?: Array<{ login: string; status: string }>;
 }
 
 /**

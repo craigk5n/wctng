@@ -75,12 +75,19 @@ export function CalendarPage() {
       body.start_time = data.start_time;
     }
 
-    const { error } = await apiFetch('/events', {
+    const { data: created, error } = await apiFetch<{ id: number }>('/events', {
       method: 'POST',
       body: JSON.stringify(body),
     });
 
-    if (!error) {
+    if (!error && created) {
+      // Add participants if specified
+      if (data.participants && data.participants.length > 0) {
+        await apiFetch(`/events/${created.id}/participants`, {
+          method: 'POST',
+          body: JSON.stringify({ participants: data.participants }),
+        });
+      }
       calendarRef.current?.refetchEvents();
       toast({ title: 'Event created', variant: 'success' });
       return true;
@@ -112,6 +119,27 @@ export function CalendarPage() {
         method: 'PUT',
         body: JSON.stringify(body),
       });
+
+      if (!error && data.participants) {
+        // Replace participants by setting the full list
+        // First get current, then add new / remove old
+        const currentLogins = (event.participants ?? []).map((p) => p.login);
+        const newLogins = data.participants;
+
+        for (const login of newLogins) {
+          if (!currentLogins.includes(login)) {
+            await apiFetch(`/events/${event.id}/participants`, {
+              method: 'POST',
+              body: JSON.stringify({ participants: [login] }),
+            });
+          }
+        }
+        for (const login of currentLogins) {
+          if (!newLogins.includes(login)) {
+            await apiFetch(`/events/${event.id}/participants/${login}`, { method: 'DELETE' });
+          }
+        }
+      }
 
       if (!error) {
         calendarRef.current?.refetchEvents();

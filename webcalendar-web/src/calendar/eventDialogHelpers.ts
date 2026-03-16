@@ -9,6 +9,7 @@ interface EventDialogValues {
   start_date_display: string; // YYYY-MM-DD
   start_time_display: string; // HH:MM or ''
   categories: number[];
+  participants: string[];
 }
 
 function formatDateDisplay(yyyymmdd: string): string {
@@ -33,5 +34,6 @@ export function apiEventToInitialValues(event: ApiEvent): EventDialogValues {
     start_date_display: formatDateDisplay(event.start_date),
     start_time_display: formatTimeDisplay(event.start_time),
     categories: event.categories ?? [],
+    participants: (event.participants ?? []).map((p) => p.login),
   };
 }

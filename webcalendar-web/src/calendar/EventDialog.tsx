@@ -11,6 +11,7 @@ export interface EventFormData {
   access: string;
   all_day: boolean;
   categories?: number[];
+  participants?: string[];
 }
 
 interface EventDialogProps {
@@ -51,6 +52,8 @@ export function EventDialog({
   const [access, setAccess] = useState(initialValues?.access ?? 'P');
   const [allDay, setAllDay] = useState(initialAllDay);
   const [selectedCategories, setSelectedCategories] = useState<number[]>(initialValues?.categories ?? []);
+  const [participantLogins, setParticipantLogins] = useState<string[]>(initialValues?.participants ?? []);
+  const [newParticipant, setNewParticipant] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { categories: availableCategories } = useCategories();
@@ -82,6 +85,7 @@ export function EventDialog({
         access,
         all_day: allDay,
         categories: selectedCategories,
+        participants: participantLogins,
       };
 
       if (!allDay && time) {
@@ -274,6 +278,63 @@ export function EventDialog({
               </div>
             </div>
           )}
+
+          {/* Participants */}
+          <div className="space-y-2">
+            <span className="text-sm font-medium">Participants</span>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newParticipant}
+                onChange={(e) => setNewParticipant(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const login = newParticipant.trim();
+                    if (login && !participantLogins.includes(login)) {
+                      setParticipantLogins((prev) => [...prev, login]);
+                      setNewParticipant('');
+                    }
+                  }
+                }}
+                placeholder="Type username and press Enter"
+                className="flex h-9 flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const login = newParticipant.trim();
+                  if (login && !participantLogins.includes(login)) {
+                    setParticipantLogins((prev) => [...prev, login]);
+                    setNewParticipant('');
+                  }
+                }}
+                className="inline-flex h-9 items-center rounded-md border border-input px-3 text-sm hover:bg-accent"
+              >
+                Add
+              </button>
+            </div>
+            {participantLogins.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {participantLogins.map((login) => (
+                  <span
+                    key={login}
+                    className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium"
+                  >
+                    {login}
+                    <button
+                      type="button"
+                      onClick={() => setParticipantLogins((prev) => prev.filter((l) => l !== login))}
+                      className="ml-0.5 text-muted-foreground hover:text-foreground"
+                      aria-label={`Remove ${login}`}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="flex justify-end gap-2 pt-2">
             <button

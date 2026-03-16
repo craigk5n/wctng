@@ -1,4 +1,5 @@
 import type { ApiEvent } from './eventMapper';
+import { ParticipantList } from './ParticipantList';
 
 const ACCESS_LABELS: Record<string, string> = {
   P: 'Public',
@@ -93,6 +94,15 @@ export function EventDetailDialog({ event, open, onClose, onEdit, onDelete }: Ev
             <span className="font-medium text-muted-foreground">Access:</span>
             <span>{ACCESS_LABELS[event.access] ?? event.access}</span>
           </div>
+
+          {event.participants && event.participants.length > 0 && (
+            <div>
+              <span className="font-medium text-muted-foreground">Participants:</span>
+              <div className="mt-1">
+                <ParticipantList participants={event.participants} />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Actions */}
