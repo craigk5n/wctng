@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { ApiEvent } from './eventMapper';
 import { ParticipantList } from './ParticipantList';
 import { ParticipantResponse } from './ParticipantResponse';
@@ -14,6 +15,8 @@ interface EventDetailDialogProps {
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onDuplicate?: () => void;
+  onExportIcs?: () => void;
   currentUserLogin?: string;
   onAccept?: () => void;
   onReject?: () => void;
@@ -29,9 +32,11 @@ function formatTime(timeStr: string): string {
 }
 
 export function EventDetailDialog({
-  event, open, onClose, onEdit, onDelete,
+  event, open, onClose, onEdit, onDelete, onDuplicate, onExportIcs,
   currentUserLogin, onAccept, onReject, isResponding,
 }: EventDetailDialogProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   if (!open) return null;
 
   const isAllDay = event.all_day || !event.start_time;
@@ -141,7 +146,7 @@ export function EventDetailDialog({
         )}
 
         {/* Actions */}
-        <div className="mt-6 flex gap-2">
+        <div className="mt-6 flex items-center gap-2">
           <button
             onClick={onEdit}
             className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
@@ -154,6 +159,38 @@ export function EventDetailDialog({
           >
             Delete
           </button>
+
+          {/* Overflow menu */}
+          <div className="relative ml-auto">
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="More actions"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-input text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            >
+              ⋮
+            </button>
+
+            {menuOpen && (
+              <div className="absolute bottom-full right-0 mb-1 w-44 rounded-md border border-border bg-card py-1 shadow-lg">
+                {onDuplicate && (
+                  <button
+                    onClick={() => { setMenuOpen(false); onDuplicate(); }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent"
+                  >
+                    <span>📋</span> Duplicate
+                  </button>
+                )}
+                {onExportIcs && (
+                  <button
+                    onClick={() => { setMenuOpen(false); onExportIcs(); }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent"
+                  >
+                    <span>📥</span> Export as ICS
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

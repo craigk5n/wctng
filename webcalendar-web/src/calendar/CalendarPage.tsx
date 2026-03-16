@@ -13,13 +13,14 @@ import { ShortcutsDialog } from '../components/shortcuts/ShortcutsDialog';
 import { useGlobalShortcuts } from '../components/shortcuts/useGlobalShortcuts';
 import { ExportButton } from './ExportButton';
 import { ImportDialog } from './ImportDialog';
+import { exportEventAsIcs } from './exportEventIcs';
 import { LayerPanel, type LayerVisibility } from './LayerPanel';
 import { useMercure, type MercureMessage } from '../hooks/useMercure';
 
 type DialogState =
   | { type: 'none' }
   | { type: 'detail'; event: ApiEvent }
-  | { type: 'create'; initialDate: string; initialTime: string; initialAllDay: boolean }
+  | { type: 'create'; initialDate: string; initialTime: string; initialAllDay: boolean; initialValues?: Record<string, unknown> }
   | { type: 'edit'; event: ApiEvent }
   | { type: 'confirmDelete'; event: ApiEvent };
 
@@ -339,6 +340,29 @@ export function CalendarPage() {
           onClose={closeDialog}
           onEdit={() => setDialog({ type: 'edit', event: dialog.event })}
           onDelete={() => setDialog({ type: 'confirmDelete', event: dialog.event })}
+          onDuplicate={() => {
+            const e = dialog.event;
+            const now = new Date();
+            const yyyy = String(now.getFullYear());
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            setDialog({
+              type: 'create',
+              initialDate: `${yyyy}-${mm}-${dd}`,
+              initialTime: e.start_time ? `${e.start_time.slice(0, 2)}:${e.start_time.slice(2, 4)}` : '',
+              initialAllDay: e.all_day,
+              initialValues: {
+                title: `${e.title} (copy)`,
+                description: e.description,
+                location: e.location,
+                access: e.access,
+                duration: e.duration,
+                categories: e.categories,
+                participants: (e.participants ?? []).map((p) => p.login),
+              },
+            });
+          }}
+          onExportIcs={() => exportEventAsIcs(dialog.event)}
           currentUserLogin={user?.login}
           isResponding={isResponding}
           onAccept={async () => {
@@ -379,6 +403,7 @@ export function CalendarPage() {
           initialDate={dialog.initialDate}
           initialTime={dialog.initialTime}
           initialAllDay={dialog.initialAllDay}
+          initialValues={dialog.initialValues}
         />
       )}
 
