@@ -55,9 +55,21 @@ final class EventController
         $allEvents = $collection->all();
         $total = \count($allEvents);
         $offset = ($page - 1) * $limit;
-        $pageItems = \array_slice($allEvents, $offset, $limit);
+        $pageItems = array_values(\array_slice($allEvents, $offset, $limit));
 
-        $items = EventResponseDTO::fromCollection(array_values($pageItems));
+        // Load category IDs for events in this page
+        $eventIds = array_map(static fn ($e) => $e->id(), $pageItems);
+        $categoryMap = [];
+        if (\count($eventIds) > 0) {
+            $categoryRepo = $this->coreServiceFactory->getCategoryRepository();
+            /** @var array<int, array{id: int, color: string|null}> $batchResult */
+            $batchResult = $categoryRepo->getForEventsBatch($eventIds, $user->getUserIdentifier());
+            foreach ($batchResult as $eventId => $catInfo) {
+                $categoryMap[$eventId] = [$catInfo['id']];
+            }
+        }
+
+        $items = EventResponseDTO::fromCollection($pageItems, $categoryMap);
 
         return ApiResponse::paginated($items, $total, $page, $limit);
     }

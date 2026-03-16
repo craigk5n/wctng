@@ -14,9 +14,11 @@ final class EventResponseDTO
     /**
      * Converts a single Event entity to a response array.
      *
+     * @param list<int> $categoryIds Optional category IDs for this event
+     *
      * @return array<string, mixed>
      */
-    public static function fromEntity(Event $event): array
+    public static function fromEntity(Event $event, array $categoryIds = []): array
     {
         $start = $event->start();
         $end = $event->end();
@@ -39,18 +41,26 @@ final class EventResponseDTO
             'all_day' => $allDay,
             'sequence' => $event->sequence(),
             'status' => $event->status(),
+            'categories' => $categoryIds,
         ];
     }
 
     /**
      * Converts a collection of Event entities to response arrays.
      *
-     * @param list<Event> $events
+     * @param list<Event>              $events
+     * @param array<int, list<int>>    $categoryMap Map of event ID → category IDs
      *
      * @return list<array<string, mixed>>
      */
-    public static function fromCollection(array $events): array
+    public static function fromCollection(array $events, array $categoryMap = []): array
     {
-        return array_map(self::fromEntity(...), $events);
+        return array_map(
+            static fn (Event $event): array => self::fromEntity(
+                $event,
+                $categoryMap[$event->id()->value()] ?? [],
+            ),
+            $events,
+        );
     }
 }

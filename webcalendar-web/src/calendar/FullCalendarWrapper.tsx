@@ -7,6 +7,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import type { DatesSetArg, EventClickArg, DateSelectArg, EventInput } from '@fullcalendar/core';
 import { fetchCalendarEvents } from './useCalendarEvents';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
+import { useCategories, getEventColor } from './useCategories';
 
 export interface FullCalendarWrapperHandle {
   refetchEvents: () => void;
@@ -23,6 +24,7 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
   const [events, setEvents] = useState<EventInput[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const calendarRef = useRef<FullCalendar>(null);
+  const { categories } = useCategories();
 
   // fetchEvents is defined below as fetchEventsWrapped (with ref tracking)
 
@@ -66,11 +68,19 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
       const startDate = formatDateParam(arg.start);
       const endDate = formatDateParam(arg.end);
       const result = await fetchCalendarEvents(startDate, endDate);
-      setEvents(result);
+
+      // Apply category colors
+      const coloredEvents = result.map((event) => {
+        const catIds = (event.extendedProps?.categories as number[]) ?? [];
+        const color = getEventColor(catIds, categories);
+        return { ...event, backgroundColor: color, borderColor: color };
+      });
+
+      setEvents(coloredEvents);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [categories]);
 
   useImperativeHandle(ref, () => ({
     refetchEvents: () => {

@@ -20,6 +20,7 @@ export interface ApiEvent {
   uid?: string;
   sequence?: number;
   status?: string | null;
+  categories?: number[];
 }
 
 /**
@@ -67,6 +68,7 @@ export function mapApiEventToFullCalendar(event: ApiEvent): EventInput {
       access: event.access,
       type: event.type,
       created_by: event.created_by,
+      categories: event.categories ?? [],
       apiEvent: event,
     },
   };
