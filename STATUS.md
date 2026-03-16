@@ -22,7 +22,7 @@
 | P3-E6 | Tenant-Aware Auth | 3 | 0 | NOT STARTED |
 | P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **1** | |
+| **Total** | | **27** | **2** | |
 
 ---
 
@@ -78,7 +78,7 @@ Create the `tenants` table in the control database and a Symfony entity to repre
 
 ### P3-E1-S2: Tenant Database Configuration Service
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Service that creates PDO connections to tenant databases dynamically based on tenant registry data.
@@ -86,12 +86,12 @@ Service that creates PDO connections to tenant databases dynamically based on te
 **Preconditions:** P3-E1-S1
 
 **Acceptance Criteria:**
-- [ ] `TenantDatabaseManager` service creates PDO connections from tenant credentials
-- [ ] Connection pooling / caching within a single request lifecycle
-- [ ] Credentials decrypted at connection time (using APP_SECRET as encryption key)
-- [ ] Graceful error handling when tenant DB is unreachable (503 response)
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests with mock PDO
+- [x] `TenantDatabaseManager` service creates PDO connections from tenant credentials
+- [x] Connection pooling / caching within a single request lifecycle
+- [x] Credentials decrypted at connection time (using APP_SECRET as encryption key)
+- [x] Graceful error handling when tenant DB is unreachable (503 response)
+- [x] PHPStan level 9 passes
+- [x] Unit tests with mock PDO
 
 ---
 
