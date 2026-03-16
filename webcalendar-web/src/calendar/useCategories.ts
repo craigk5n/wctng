@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { TOKEN_STORAGE_KEY } from '../api/client';
+import { apiFetch } from '../api/client';
 
 export const DEFAULT_EVENT_COLOR = '#3788d8';
 
@@ -18,19 +18,8 @@ export function useCategories() {
   const { data, isLoading } = useQuery({
     queryKey: ['categories'],
     queryFn: async (): Promise<ApiCategory[]> => {
-      const baseUrl = import.meta.env.VITE_API_URL ?? '/api/v2';
-      const token = localStorage.getItem(TOKEN_STORAGE_KEY);
-      const headers: Record<string, string> = {};
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-
-      try {
-        const res = await fetch(`${baseUrl}/categories`, { headers });
-        if (!res.ok) return [];
-        const body = await res.json();
-        return (body?.data as ApiCategory[]) ?? [];
-      } catch {
-        return [];
-      }
+      const { data } = await apiFetch<ApiCategory[]>('/categories');
+      return data ?? [];
     },
     staleTime: 5 * 60 * 1000,
   });

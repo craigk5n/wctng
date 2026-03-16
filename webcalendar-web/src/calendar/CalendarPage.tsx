@@ -5,7 +5,7 @@ import { EventDialog, type EventFormData } from './EventDialog';
 import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
 import { apiEventToInitialValues } from './eventDialogHelpers';
 import type { ApiEvent } from './eventMapper';
-import { TOKEN_STORAGE_KEY } from '../api/client';
+import { apiFetch } from '../api/client';
 
 type DialogState =
   | { type: 'none' }
@@ -19,30 +19,13 @@ export function CalendarPage() {
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' });
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const baseUrl = import.meta.env.VITE_API_URL ?? '/api/v2';
-
-  const getAuthHeaders = useCallback((): Record<string, string> => {
-    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    return headers;
-  }, []);
-
   // --- Event click: fetch full event and show detail ---
-  const handleEventClick = useCallback(
-    async (eventId: number) => {
-      try {
-        const res = await fetch(`${baseUrl}/events/${eventId}`, { headers: getAuthHeaders() });
-        const body = await res.json();
-        if (body?.data) {
-          setDialog({ type: 'detail', event: body.data as ApiEvent });
-        }
-      } catch {
-        // silently fail
-      }
-    },
-    [baseUrl, getAuthHeaders],
-  );
+  const handleEventClick = useCallback(async (eventId: number) => {
+    const { data } = await apiFetch<ApiEvent>(`/events/${eventId}`);
+    if (data) {
+      setDialog({ type: 'detail', event: data });
+    }
+  }, []);
 
   // --- Date select: open create dialog pre-filled ---
   const handleDateSelect = useCallback((start: Date, _end: Date, allDay: boolean) => {
@@ -76,38 +59,30 @@ export function CalendarPage() {
   }, []);
 
   // --- Create event ---
-  const handleCreate = useCallback(
-    async (data: EventFormData): Promise<boolean> => {
-      try {
-        const body: Record<string, unknown> = {
-          title: data.title,
-          start_date: data.start_date,
-          duration: data.duration,
-          location: data.location,
-          description: data.description,
-          access: data.access,
-        };
-        if (!data.all_day && data.start_time) {
-          body.start_time = data.start_time;
-        }
+  const handleCreate = useCallback(async (data: EventFormData): Promise<boolean> => {
+    const body: Record<string, unknown> = {
+      title: data.title,
+      start_date: data.start_date,
+      duration: data.duration,
+      location: data.location,
+      description: data.description,
+      access: data.access,
+    };
+    if (!data.all_day && data.start_time) {
+      body.start_time = data.start_time;
+    }
 
-        const res = await fetch(`${baseUrl}/events`, {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify(body),
-        });
+    const { error } = await apiFetch('/events', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
 
-        if (res.ok) {
-          calendarRef.current?.refetchEvents();
-          return true;
-        }
-        return false;
-      } catch {
-        return false;
-      }
-    },
-    [baseUrl, getAuthHeaders],
-  );
+    if (!error) {
+      calendarRef.current?.refetchEvents();
+      return true;
+    }
+    return false;
+  }, []);
 
   // --- Update event ---
   const handleUpdate = useCallback(
@@ -115,35 +90,30 @@ export function CalendarPage() {
       if (dialog.type !== 'edit') return false;
       const event = dialog.event;
 
-      try {
-        const body: Record<string, unknown> = {
-          title: data.title,
-          start_date: data.start_date,
-          duration: data.duration,
-          location: data.location,
-          description: data.description,
-          access: data.access,
-        };
-        if (!data.all_day && data.start_time) {
-          body.start_time = data.start_time;
-        }
-
-        const res = await fetch(`${baseUrl}/events/${event.id}`, {
-          method: 'PUT',
-          headers: getAuthHeaders(),
-          body: JSON.stringify(body),
-        });
-
-        if (res.ok) {
-          calendarRef.current?.refetchEvents();
-          return true;
-        }
-        return false;
-      } catch {
-        return false;
+      const body: Record<string, unknown> = {
+        title: data.title,
+        start_date: data.start_date,
+        duration: data.duration,
+        location: data.location,
+        description: data.description,
+        access: data.access,
+      };
+      if (!data.all_day && data.start_time) {
+        body.start_time = data.start_time;
       }
+
+      const { error } = await apiFetch(`/events/${event.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      });
+
+      if (!error) {
+        calendarRef.current?.refetchEvents();
+        return true;
+      }
+      return false;
     },
-    [baseUrl, getAuthHeaders, dialog],
+    [dialog],
   );
 
   // --- Delete event ---
@@ -152,22 +122,14 @@ export function CalendarPage() {
     const event = dialog.event;
     setIsDeleting(true);
 
-    try {
-      const res = await fetch(`${baseUrl}/events/${event.id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
+    const { error } = await apiFetch(`/events/${event.id}`, { method: 'DELETE' });
 
-      if (res.ok || res.status === 204) {
-        calendarRef.current?.refetchEvents();
-        setDialog({ type: 'none' });
-      }
-    } catch {
-      // silently fail
-    } finally {
-      setIsDeleting(false);
+    if (!error) {
+      calendarRef.current?.refetchEvents();
+      setDialog({ type: 'none' });
     }
-  }, [baseUrl, getAuthHeaders, dialog]);
+    setIsDeleting(false);
+  }, [dialog]);
 
   const closeDialog = useCallback(() => setDialog({ type: 'none' }), []);
 

@@ -64,6 +64,178 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List events in a date range
+         * @description Returns events for the authenticated user within the specified date range, with pagination.
+         */
+        get: operations["listEvents"];
+        put?: never;
+        /**
+         * Create a new event
+         * @description Creates a calendar event. The authenticated user becomes the event creator.
+         */
+        post: operations["createEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/events/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a single event
+         * @description Returns the full details of a single event by ID.
+         */
+        get: operations["getEvent"];
+        /**
+         * Update an event
+         * @description Partially updates an existing event. Only provided fields are changed.
+         */
+        put: operations["updateEvent"];
+        post?: never;
+        /**
+         * Delete an event
+         * @description Deletes a calendar event. Only the owner or admin can delete.
+         */
+        delete: operations["deleteEvent"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List all users (admin only)
+         * @description Returns all users. Requires admin privileges.
+         */
+        get: operations["listUsers"];
+        put?: never;
+        /**
+         * Create a new user (admin only)
+         * @description Creates a new user account. Requires admin privileges.
+         */
+        post: operations["createUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{login}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get user profile
+         * @description Returns a user profile. Admin can view any user; non-admin can only view self.
+         */
+        get: operations["getUser"];
+        /**
+         * Update user profile
+         * @description Updates a user profile. Admin can update any user; non-admin can update self only.
+         */
+        put: operations["updateUser"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{login}/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change user password
+         * @description Changes a user's password. Non-admin must provide current_password; admin can skip it.
+         */
+        put: operations["changePassword"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List categories
+         * @description Returns global categories plus the authenticated user's personal categories.
+         */
+        get: operations["listCategories"];
+        put?: never;
+        /**
+         * Create a category
+         * @description Creates a new category. Global categories require admin privileges.
+         */
+        post: operations["createCategory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a category
+         * @description Returns a single category by ID.
+         */
+        get: operations["getCategory"];
+        /**
+         * Update a category
+         * @description Updates a category. Owner or admin can update.
+         */
+        put: operations["updateCategory"];
+        post?: never;
+        /**
+         * Delete a category
+         * @description Deletes a category. Owner or admin can delete.
+         */
+        delete: operations["deleteCategory"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -161,6 +333,254 @@ export interface components {
              * @example 2026-03-16T12:00:00+00:00
              */
             expires_at: string;
+        };
+        /** @description A calendar event. */
+        Event: {
+            /**
+             * @description Unique event identifier
+             * @example 42
+             */
+            id: number;
+            /** @description RFC 5545 UID */
+            uid?: string;
+            /**
+             * @description Event title
+             * @example Team Meeting
+             */
+            title: string;
+            /**
+             * @description Event description
+             * @example Weekly sync
+             */
+            description?: string;
+            /**
+             * @description Start date (YYYYMMDD)
+             * @example 20260315
+             */
+            start_date: string;
+            /**
+             * @description Start time (HHMMSS), null for all-day
+             * @example 100000
+             */
+            start_time?: string | null;
+            /**
+             * @description End date (YYYYMMDD)
+             * @example 20260315
+             */
+            end_date?: string;
+            /**
+             * @description End time (HHMMSS), null for all-day
+             * @example 110000
+             */
+            end_time?: string | null;
+            /**
+             * @description Duration in minutes
+             * @example 60
+             */
+            duration: number;
+            /**
+             * @description Event location
+             * @example Room A
+             */
+            location?: string;
+            /**
+             * @description Access level: P=Public, C=Confidential, R=Private
+             * @example P
+             * @enum {string}
+             */
+            access: "P" | "C" | "R";
+            /**
+             * @description Event type: E=Event, M=Repeating, T=Task, J=Journal, N=RepTask, O=RepJournal
+             * @example E
+             * @enum {string}
+             */
+            type: "E" | "M" | "T" | "J" | "N" | "O";
+            /**
+             * @description Login of the user who created the event
+             * @example admin
+             */
+            created_by: string;
+            /**
+             * @description Whether this is an all-day event
+             * @example false
+             */
+            all_day: boolean;
+            /** @description Change sequence number */
+            sequence?: number;
+            /** @description Event status */
+            status?: string | null;
+        };
+        /** @description Request body for creating a new event. */
+        EventCreateRequest: {
+            /**
+             * @description Event title
+             * @example Team Meeting
+             */
+            title: string;
+            /** @description Event description */
+            description?: string;
+            /**
+             * @description Start date (YYYYMMDD)
+             * @example 20260315
+             */
+            start_date: string;
+            /**
+             * @description Start time (HHMMSS), omit for all-day
+             * @example 100000
+             */
+            start_time?: string;
+            /**
+             * @description Duration in minutes
+             * @default 0
+             * @example 60
+             */
+            duration: number;
+            /** @description Event location */
+            location?: string;
+            /**
+             * @description Access level
+             * @default P
+             * @enum {string}
+             */
+            access: "P" | "C" | "R";
+            /**
+             * @description Event type
+             * @default E
+             * @enum {string}
+             */
+            type: "E" | "M" | "T" | "J" | "N" | "O";
+        };
+        /** @description Request body for updating an event. All fields optional. */
+        EventUpdateRequest: {
+            title?: string;
+            description?: string;
+            start_date?: string;
+            start_time?: string;
+            duration?: number;
+            location?: string;
+            /** @enum {string} */
+            access?: "P" | "C" | "R";
+            /** @enum {string} */
+            type?: "E" | "M" | "T" | "J" | "N" | "O";
+        };
+        /** @description User account profile. */
+        User: {
+            /**
+             * @description Unique login identifier
+             * @example john_doe
+             */
+            login: string;
+            /**
+             * @description First name
+             * @example John
+             */
+            firstname: string;
+            /**
+             * @description Last name
+             * @example Doe
+             */
+            lastname: string;
+            /**
+             * Format: email
+             * @description Email address
+             * @example john@example.com
+             */
+            email: string;
+            /**
+             * @description Admin privileges
+             * @example false
+             */
+            is_admin: boolean;
+            /**
+             * @description Account enabled
+             * @example true
+             */
+            enabled: boolean;
+        };
+        /** @description Request body for creating a user (admin only). */
+        UserCreateRequest: {
+            /** @example newuser */
+            login: string;
+            /** Format: password */
+            password: string;
+            /** Format: email */
+            email: string;
+            firstname?: string;
+            lastname?: string;
+            /** @default false */
+            is_admin: boolean;
+        };
+        /** @description Request body for updating a user profile. All fields optional. */
+        UserUpdateRequest: {
+            firstname?: string;
+            lastname?: string;
+            /** Format: email */
+            email?: string;
+            /** @description Admin only */
+            is_admin?: boolean;
+            /** @description Admin only */
+            enabled?: boolean;
+        };
+        /** @description Request body for changing a password. */
+        PasswordChangeRequest: {
+            /**
+             * Format: password
+             * @description Required for non-admin users
+             */
+            current_password?: string;
+            /** Format: password */
+            new_password: string;
+        };
+        /** @description An event category (global or personal). */
+        Category: {
+            /**
+             * @description Category ID
+             * @example 1
+             */
+            id: number;
+            /**
+             * @description Category name
+             * @example Work
+             */
+            name: string;
+            /**
+             * @description Hex color code
+             * @example #FF0000
+             */
+            color?: string | null;
+            /**
+             * @description Whether this is a global category
+             * @example true
+             */
+            is_global: boolean;
+            /**
+             * @description Login of the owner (null for global)
+             * @example null
+             */
+            owner?: string | null;
+        };
+        /** @description Request body for creating a category. */
+        CategoryCreateRequest: {
+            /**
+             * @description Category name
+             * @example Work
+             */
+            name: string;
+            /**
+             * @description Hex color code
+             * @example #FF0000
+             */
+            color?: string;
+            /**
+             * @description Create as global (admin only)
+             * @default false
+             */
+            is_global: boolean;
+        };
+        /** @description Request body for updating a category. All fields optional. */
+        CategoryUpdateRequest: {
+            name?: string;
+            color?: string;
         };
     };
     responses: {
@@ -342,6 +762,483 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    listEvents: {
+        parameters: {
+            query: {
+                /**
+                 * @description Start date (YYYYMMDD)
+                 * @example 20260301
+                 */
+                start: string;
+                /**
+                 * @description End date (YYYYMMDD)
+                 * @example 20260331
+                 */
+                end: string;
+                /** @description Page number */
+                page?: number;
+                /** @description Items per page */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Event"][];
+                        meta?: components["schemas"]["PaginationMeta"];
+                        error?: null;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    createEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Event created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Event"];
+                        meta?: null;
+                        error?: null;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    getEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Event ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Event details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Event"];
+                        meta?: null;
+                        error?: null;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Event ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Event updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Event"];
+                        meta?: null;
+                        error?: null;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteEvent: {
+        parameters: {
+            query?: {
+                /** @description Delete mode for repeating events */
+                mode?: "single" | "future" | "all";
+            };
+            header?: never;
+            path: {
+                /** @description Event ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Event deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listUsers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of users */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["User"][];
+                        meta?: components["schemas"]["PaginationMeta"];
+                        error?: null;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description User created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["User"];
+                        meta?: null;
+                        error?: null;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Login already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: null;
+                        meta?: null;
+                        error?: components["schemas"]["ErrorResponse"];
+                    };
+                };
+            };
+        };
+    };
+    getUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User login identifier */
+                login: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description User profile */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["User"];
+                        meta?: null;
+                        error?: null;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User login identifier */
+                login: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description User updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["User"];
+                        meta?: null;
+                        error?: null;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    changePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User login identifier */
+                login: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description Password changed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: {
+                            message?: string;
+                        };
+                        meta?: null;
+                        error?: null;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listCategories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of categories */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Category"][];
+                        meta?: null;
+                        error?: null;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    createCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Category created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Category"];
+                        meta?: null;
+                        error?: null;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    getCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Category ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Category details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Category"];
+                        meta?: null;
+                        error?: null;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Category ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Category updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["Category"];
+                        meta?: null;
+                        error?: null;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Category ID */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Category deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
 }
