@@ -20,10 +20,10 @@
 | P2-E5 | Journals | 3 | 3 | DONE |
 | P2-E6 | Import/Export | 3 | 3 | DONE |
 | P2-E7 | Search | 2 | 2 | DONE |
-| P2-E8 | Real-time (Mercure) | 3 | 1 | IN PROGRESS |
+| P2-E8 | Real-time (Mercure) | 3 | 2 | IN PROGRESS |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 3 | IN PROGRESS |
-| **Total** | | **32** | **26** | |
+| **Total** | | **32** | **27** | |
 
 ---
 
@@ -521,7 +521,7 @@ Add Mercure hub to Docker Compose and configure Symfony to publish events.
 
 ### P2-E8-S2: Server-Side Event Publishing
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Publish SSE notifications when events are created, updated, or deleted.
@@ -529,12 +529,12 @@ Publish SSE notifications when events are created, updated, or deleted.
 **Preconditions:** P2-E8-S1
 
 **Acceptance Criteria:**
-- [ ] Event create publishes `{type: "event.created", event: {...}}`
-- [ ] Event update publishes `{type: "event.updated", event: {...}}`
-- [ ] Event delete publishes `{type: "event.deleted", eventId: ...}`
-- [ ] Participant changes publish `{type: "participant.changed", ...}`
-- [ ] Only published to relevant users (event participants + owner)
-- [ ] PHPStan level 9 passes
+- [x] Event create publishes `{type: "event.created", event: {...}}`
+- [x] Event update publishes `{type: "event.updated", event: {...}}`
+- [x] Event delete publishes `{type: "event.deleted", eventId: ...}`
+- [x] Participant changes publish `{type: "participant.changed", ...}`
+- [x] Only published to relevant users (event participants + owner)
+- [x] PHPStan level 9 passes
 
 ---
 

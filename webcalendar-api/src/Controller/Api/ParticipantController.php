@@ -7,6 +7,7 @@ namespace App\Controller\Api;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Service\CoreServiceFactory;
+use App\Service\MercurePublisher;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,6 +20,7 @@ final class ParticipantController
 {
     public function __construct(
         private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly MercurePublisher $mercure,
     ) {
     }
 
@@ -80,6 +82,11 @@ final class ParticipantController
             }
         }
 
+        try {
+            $this->mercure->publishParticipantChanged($eventId, ['action' => 'added', 'participants' => $participantList]);
+        } catch (\Throwable) {
+        }
+
         return ApiResponse::success(['message' => 'Participants added']);
     }
 
@@ -97,6 +104,11 @@ final class ParticipantController
 
         $coreUser = $user->getCoreUser();
         $this->coreServiceFactory->getEventService()->removeParticipant(new EventId($eventId), $login, $coreUser);
+
+        try {
+            $this->mercure->publishParticipantChanged($eventId, ['action' => 'removed', 'login' => $login]);
+        } catch (\Throwable) {
+        }
 
         return ApiResponse::noContent();
     }
@@ -161,6 +173,11 @@ final class ParticipantController
             $coreUser,
         );
 
+        try {
+            $this->mercure->publishParticipantChanged($eventId, ['action' => 'approved', 'login' => $coreUser->login()]);
+        } catch (\Throwable) {
+        }
+
         return ApiResponse::success(['login' => $coreUser->login(), 'status' => 'A']);
     }
 
@@ -182,6 +199,11 @@ final class ParticipantController
             $coreUser->login(),
             $coreUser,
         );
+
+        try {
+            $this->mercure->publishParticipantChanged($eventId, ['action' => 'rejected', 'login' => $coreUser->login()]);
+        } catch (\Throwable) {
+        }
 
         return ApiResponse::success(['login' => $coreUser->login(), 'status' => 'R']);
     }

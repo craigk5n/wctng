@@ -9,6 +9,7 @@ use App\DTO\EventResponseDTO;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Service\CoreServiceFactory;
+use App\Service\MercurePublisher;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,6 +22,7 @@ final class EventController
 {
     public function __construct(
         private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly MercurePublisher $mercure,
     ) {
     }
 
@@ -135,7 +137,15 @@ final class EventController
             );
         }
 
-        return ApiResponse::success(EventResponseDTO::fromEntity($created, $categoryIds), null, Response::HTTP_CREATED);
+        $responseData = EventResponseDTO::fromEntity($created, $categoryIds);
+
+        try {
+            $this->mercure->publishEventCreated($created->id()->value(), $responseData);
+        } catch (\Throwable) {
+            // Mercure publish failure should not break the API response
+        }
+
+        return ApiResponse::success($responseData, null, Response::HTTP_CREATED);
     }
 
     #[Route('/api/v2/events/{id}', name: 'api_events_get', methods: ['GET'])]
@@ -219,7 +229,15 @@ final class EventController
             return ApiResponse::error(500, 'Event updated but could not be retrieved');
         }
 
-        return ApiResponse::success(EventResponseDTO::fromEntity($saved, $categoryIds));
+        $responseData = EventResponseDTO::fromEntity($saved, $categoryIds);
+
+        try {
+            $this->mercure->publishEventUpdated($id, $responseData);
+        } catch (\Throwable) {
+            // Mercure publish failure should not break the API response
+        }
+
+        return ApiResponse::success($responseData);
     }
 
     #[Route('/api/v2/events/{id}', name: 'api_events_delete', methods: ['DELETE'])]
@@ -242,6 +260,12 @@ final class EventController
         }
 
         $this->coreServiceFactory->getEventService()->deleteEvent(new EventId($id), $coreUser);
+
+        try {
+            $this->mercure->publishEventDeleted($id);
+        } catch (\Throwable) {
+            // Mercure publish failure should not break the API response
+        }
 
         return ApiResponse::noContent();
     }
