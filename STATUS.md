@@ -21,8 +21,8 @@
 | P3-E5 | Tenant Admin Dashboard | 4 | 4 | DONE |
 | P3-E6 | Tenant-Aware Auth | 3 | 3 | DONE |
 | P3-E7 | Tenant Isolation & Security | 3 | 3 | DONE |
-| P3-E8 | Standalone ↔ Hosted Mode | 3 | 1 | IN PROGRESS |
-| **Total** | | **27** | **25** | |
+| P3-E8 | Standalone ↔ Hosted Mode | 3 | 2 | IN PROGRESS |
+| **Total** | | **27** | **26** | |
 
 ---
 
@@ -568,7 +568,7 @@ Configuration system that detects and switches between standalone and hosted mod
 
 ### P3-E8-S2: Standalone Setup Wizard
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Browser-based setup wizard for standalone installations (replaces CLI-only setup).
@@ -576,13 +576,13 @@ Browser-based setup wizard for standalone installations (replaces CLI-only setup
 **Preconditions:** P3-E8-S1
 
 **Acceptance Criteria:**
-- [ ] `/setup` route shown when no admin user exists (first-run detection)
-- [ ] Step 1: Database connection test (auto-detects from `DATABASE_URL`)
-- [ ] Step 2: Create admin account (username, password, email)
-- [ ] Step 3: Basic settings (timezone, site name)
-- [ ] Runs schema installation via `InstallCommand` internally
-- [ ] Redirects to login after completion
-- [ ] Vitest tests
+- [x] `/setup` route shown when no admin user exists (first-run detection)
+- [x] Step 1: Database connection test (auto-detects from `DATABASE_URL`)
+- [x] Step 2: Create admin account (username, password, email)
+- [x] Step 3: Basic settings (timezone, site name)
+- [x] Runs schema installation via `InstallCommand` internally
+- [x] Redirects to login after completion
+- [x] Vitest tests
 
 ---
 

@@ -18,11 +18,13 @@ import { ControlLayout } from './control/ControlLayout';
 import { TenantsPage } from './control/TenantsPage';
 import { StatsPage } from './control/StatsPage';
 import { TenantDetailPage } from './control/TenantDetailPage';
+import { SetupWizard } from './setup/SetupWizard';
 
 export default function App() {
   return (
     <AuthProvider>
       <Routes>
+        <Route path="/setup" element={<SetupWizard />} />
         <Route path="/login" element={<LoginPage />} />
         <Route
           path="/"

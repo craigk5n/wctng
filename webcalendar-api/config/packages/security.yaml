@@ -22,6 +22,11 @@ security:
             stateless: true
             security: false
 
+        setup:
+            pattern: ^/api/v2/setup/
+            stateless: true
+            security: false
+
         # Control plane — handled by ControlPlaneGuard listener
         control:
             pattern: ^/control/
@@ -38,4 +43,5 @@ security:
     access_control:
         - { path: ^/api/v2/auth/login$, roles: PUBLIC_ACCESS }
         - { path: ^/api/v2/health$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/v2/setup/, roles: PUBLIC_ACCESS }
         - { path: ^/api/, roles: IS_AUTHENTICATED_FULLY }
