@@ -179,10 +179,81 @@ final class TenantController
         return ApiResponse::noContent();
     }
 
+    #[Route('/control/v1/tenants/{slug}/stats', name: 'control_tenants_stats', methods: ['GET'])]
+    public function stats(string $slug): JsonResponse
+    {
+        $tenant = $this->tenantRepository->findBySlug($slug);
+
+        if ($tenant === null) {
+            return ApiResponse::error(404, 'Tenant not found');
+        }
+
+        try {
+            $pdo = $this->dbManager->getConnection($tenant);
+
+            $userCount = $this->queryCount($pdo, 'SELECT COUNT(*) FROM webcal_user');
+            $eventCount = $this->queryCount($pdo, 'SELECT COUNT(*) FROM webcal_entry');
+            $taskCount = $this->queryCount($pdo, "SELECT COUNT(*) FROM webcal_entry WHERE cal_type IN ('T','N')");
+            $lastActivity = $this->queryScalar($pdo, 'SELECT MAX(cal_mod_date) FROM webcal_entry');
+
+            return ApiResponse::success([
+                'slug' => $slug,
+                'user_count' => $userCount,
+                'event_count' => $eventCount,
+                'task_count' => $taskCount,
+                'last_activity' => $lastActivity,
+            ]);
+        } catch (\Throwable $e) {
+            return ApiResponse::error(503, 'Unable to connect to tenant database: ' . $e->getMessage());
+        }
+    }
+
+    #[Route('/control/v1/stats/summary', name: 'control_stats_summary', methods: ['GET'])]
+    public function summary(): JsonResponse
+    {
+        $tenants = $this->tenantRepository->findAll();
+
+        $totalTenants = \count($tenants);
+        $activeTenants = 0;
+        $totalUsers = 0;
+        $totalEvents = 0;
+
+        foreach ($tenants as $tenant) {
+            if ($tenant->isActive()) {
+                $activeTenants++;
+            }
+            try {
+                $pdo = $this->dbManager->getConnection($tenant);
+                $totalUsers += $this->queryCount($pdo, 'SELECT COUNT(*) FROM webcal_user');
+                $totalEvents += $this->queryCount($pdo, 'SELECT COUNT(*) FROM webcal_entry');
+            } catch (\Throwable) {
+                // Skip unreachable tenant DBs
+            }
+        }
+
+        return ApiResponse::success([
+            'total_tenants' => $totalTenants,
+            'active_tenants' => $activeTenants,
+            'total_users' => $totalUsers,
+            'total_events' => $totalEvents,
+        ]);
+    }
+
     private function queryCount(\PDO $pdo, string $sql): int
     {
         $stmt = $pdo->query($sql);
 
         return $stmt !== false ? (int) $stmt->fetchColumn() : 0;
+    }
+
+    private function queryScalar(\PDO $pdo, string $sql): ?string
+    {
+        $stmt = $pdo->query($sql);
+        if ($stmt === false) {
+            return null;
+        }
+        $val = $stmt->fetchColumn();
+
+        return \is_string($val) || is_numeric($val) ? (string) $val : null;
     }
 }

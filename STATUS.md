@@ -17,12 +17,12 @@
 | P3-E1 | Tenant Data Model | 3 | 3 | DONE |
 | P3-E2 | Tenant Resolver Middleware | 3 | 3 | DONE |
 | P3-E3 | Tenant Provisioning | 4 | 4 | DONE |
-| P3-E4 | Control Plane API | 4 | 2 | IN PROGRESS |
+| P3-E4 | Control Plane API | 4 | 3 | IN PROGRESS |
 | P3-E5 | Tenant Admin Dashboard | 4 | 0 | NOT STARTED |
 | P3-E6 | Tenant-Aware Auth | 3 | 0 | NOT STARTED |
 | P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **12** | |
+| **Total** | | **27** | **13** | |
 
 ---
 
@@ -304,7 +304,7 @@ REST endpoints for creating, reading, updating, and deleting tenants.
 
 ### P3-E4-S3: Tenant Statistics Endpoints
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Endpoints for monitoring tenant health and usage metrics.
@@ -312,11 +312,11 @@ Endpoints for monitoring tenant health and usage metrics.
 **Preconditions:** P3-E4-S2
 
 **Acceptance Criteria:**
-- [ ] `GET /control/v1/tenants/{slug}/stats` — returns user count, event count, storage size, last activity
-- [ ] `GET /control/v1/stats/summary` — aggregate stats across all tenants
-- [ ] Stats queries run against tenant DBs efficiently (cached for 5 minutes)
-- [ ] PHPStan level 9 passes
-- [ ] Functional tests
+- [x] `GET /control/v1/tenants/{slug}/stats` — returns user count, event count, storage size, last activity
+- [x] `GET /control/v1/stats/summary` — aggregate stats across all tenants
+- [x] Stats queries run against tenant DBs efficiently (cached for 5 minutes)
+- [x] PHPStan level 9 passes
+- [x] Functional tests
 
 ---
 
