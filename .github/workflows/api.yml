@@ -1,0 +1,102 @@
+name: API CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "webcalendar-api/**"
+      - ".github/workflows/api.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "webcalendar-api/**"
+      - ".github/workflows/api.yml"
+
+defaults:
+  run:
+    working-directory: webcalendar-api
+
+jobs:
+  ci:
+    name: PHP CI (PHPStan, Psalm, PHPUnit, CS)
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: webcalendar_test
+          MYSQL_USER: webcalendar
+          MYSQL_PASSWORD: webcalendar_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: intl, pdo_mysql, zip, mbstring
+          coverage: xdebug
+          tools: composer:v2
+
+      - name: Load MySQL schema
+        run: mysql -h 127.0.0.1 -u webcalendar -pwebcalendar_test webcalendar_test < ../webcalendar-core/src/Infrastructure/Persistence/mysql-schema.sql
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('webcalendar-api/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Generate JWT keys
+        run: |
+          mkdir -p config/jwt
+          openssl genrsa -out config/jwt/private.pem -passout pass:ci_passphrase 4096
+          openssl rsa -in config/jwt/private.pem -passin pass:ci_passphrase -pubout -out config/jwt/public.pem
+
+      - name: Check code style
+        run: make cs-check
+
+      - name: Run PHPStan (level 9)
+        run: make phpstan
+
+      - name: Run Psalm
+        run: make psalm
+
+      - name: Run PHPUnit
+        env:
+          APP_ENV: test
+          APP_SECRET: ci_secret
+          DATABASE_URL: "mysql://webcalendar:webcalendar_test@127.0.0.1:3306/webcalendar_test"
+          JWT_SECRET_KEY: "%kernel.project_dir%/config/jwt/private.pem"
+          JWT_PUBLIC_KEY: "%kernel.project_dir%/config/jwt/public.pem"
+          JWT_PASSPHRASE: ci_passphrase
+          JWT_TTL: 3600
+          CORS_ALLOW_ORIGIN: "http://localhost"
+        run: make coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-coverage
+          path: webcalendar-api/var/coverage/
+          retention-days: 7

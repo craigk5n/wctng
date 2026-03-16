@@ -1,0 +1,56 @@
+name: Web CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "webcalendar-web/**"
+      - ".github/workflows/web.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "webcalendar-web/**"
+      - ".github/workflows/web.yml"
+
+defaults:
+  run:
+    working-directory: webcalendar-web
+
+jobs:
+  ci:
+    name: TypeScript CI (tsc, ESLint, Vitest, Build)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: webcalendar-web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint src/ --max-warnings 0
+
+      - name: Run Vitest
+        run: npx vitest run --coverage
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-coverage
+          path: webcalendar-web/coverage/
+          retention-days: 7

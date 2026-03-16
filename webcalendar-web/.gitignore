@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment
+.env.local
+.env.*.local
+
+# Test
+coverage/
+test-results/
+playwright-report/
+
+# Cache
+.vite/
+.eslintcache
+
+# IDE
+.idea/
+.vscode/
+*.swp

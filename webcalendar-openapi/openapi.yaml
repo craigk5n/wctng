@@ -1,0 +1,1158 @@
+openapi: 3.1.0
+info:
+  title: WebCalendar API
+  description: REST API for WebCalendar Next Generation (WCTNG)
+  version: 2.0.0
+  license:
+    name: MIT
+    identifier: MIT
+
+servers:
+  - url: http://localhost:47180/api/v2
+    description: Local development
+  - url: https://api.example.com/api/v2
+    description: Production (placeholder)
+
+tags:
+  - name: Authentication
+    description: Login, logout, and token refresh
+  - name: Events
+    description: Calendar event CRUD and listing
+  - name: Users
+    description: User management and profiles
+  - name: Categories
+    description: Event category management
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/login:
+    post:
+      operationId: authLogin
+      summary: Authenticate and obtain a JWT token
+      description: Validates username and password, returns a JWT token and user profile on success.
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthLoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/AuthLoginResponse"
+                  meta:
+                    type: "null"
+                  error:
+                    type: "null"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/logout:
+    post:
+      operationId: authLogout
+      summary: Log out and invalidate the current session
+      description: Invalidates the current JWT token. Client should discard the token.
+      tags:
+        - Authentication
+      responses:
+        "204":
+          description: Logout successful (no content)
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/refresh:
+    post:
+      operationId: authRefresh
+      summary: Refresh an expiring JWT token
+      description: Issues a new JWT token with an extended expiry. Requires a valid (non-expired) token.
+      tags:
+        - Authentication
+      responses:
+        "200":
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/AuthLoginResponse"
+                  meta:
+                    type: "null"
+                  error:
+                    type: "null"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /events:
+    get:
+      operationId: listEvents
+      summary: List events in a date range
+      description: Returns events for the authenticated user within the specified date range, with pagination.
+      tags:
+        - Events
+      parameters:
+        - name: start
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{8}$'
+          description: Start date (YYYYMMDD)
+          example: "20260301"
+        - name: end
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{8}$'
+          description: End date (YYYYMMDD)
+          example: "20260331"
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+          description: Items per page
+      responses:
+        "200":
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Event"
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+                  error:
+                    type: "null"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    post:
+      operationId: createEvent
+      summary: Create a new event
+      description: Creates a calendar event. The authenticated user becomes the event creator.
+      tags:
+        - Events
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventCreateRequest"
+      responses:
+        "201":
+          description: Event created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Event"
+                  meta:
+                    type: "null"
+                  error:
+                    type: "null"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /events/{id}:
+    get:
+      operationId: getEvent
+      summary: Get a single event
+      description: Returns the full details of a single event by ID.
+      tags:
+        - Events
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Event ID
+      responses:
+        "200":
+          description: Event details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Event"
+                  meta:
+                    type: "null"
+                  error:
+                    type: "null"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    put:
+      operationId: updateEvent
+      summary: Update an event
+      description: Partially updates an existing event. Only provided fields are changed.
+      tags:
+        - Events
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Event ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventUpdateRequest"
+      responses:
+        "200":
+          description: Event updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Event"
+                  meta:
+                    type: "null"
+                  error:
+                    type: "null"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      operationId: deleteEvent
+      summary: Delete an event
+      description: Deletes a calendar event. Only the owner or admin can delete.
+      tags:
+        - Events
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Event ID
+        - name: mode
+          in: query
+          schema:
+            type: string
+            enum: [single, future, all]
+            default: all
+          description: Delete mode for repeating events
+      responses:
+        "204":
+          description: Event deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /users:
+    get:
+      operationId: listUsers
+      summary: List all users (admin only)
+      description: Returns all users. Requires admin privileges.
+      tags:
+        - Users
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+                  error:
+                    type: "null"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+    post:
+      operationId: createUser
+      summary: Create a new user (admin only)
+      description: Creates a new user account. Requires admin privileges.
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreateRequest"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/User"
+                  meta:
+                    type: "null"
+                  error:
+                    type: "null"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: Login already exists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: "null"
+                  meta:
+                    type: "null"
+                  error:
+                    $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{login}:
+    get:
+      operationId: getUser
+      summary: Get user profile
+      description: Returns a user profile. Admin can view any user; non-admin can only view self.
+      tags:
+        - Users
+      parameters:
+        - name: login
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User login identifier
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/User"
+                  meta:
+                    type: "null"
+                  error:
+                    type: "null"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    put:
+      operationId: updateUser
+      summary: Update user profile
+      description: Updates a user profile. Admin can update any user; non-admin can update self only.
+      tags:
+        - Users
+      parameters:
+        - name: login
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User login identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdateRequest"
+      responses:
+        "200":
+          description: User updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/User"
+                  meta:
+                    type: "null"
+                  error:
+                    type: "null"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /users/{login}/password:
+    put:
+      operationId: changePassword
+      summary: Change user password
+      description: Changes a user's password. Non-admin must provide current_password; admin can skip it.
+      tags:
+        - Users
+      parameters:
+        - name: login
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User login identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordChangeRequest"
+      responses:
+        "200":
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                  meta:
+                    type: "null"
+                  error:
+                    type: "null"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /categories:
+    get:
+      operationId: listCategories
+      summary: List categories
+      description: Returns global categories plus the authenticated user's personal categories.
+      tags:
+        - Categories
+      responses:
+        "200":
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Category"
+                  meta:
+                    type: "null"
+                  error:
+                    type: "null"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    post:
+      operationId: createCategory
+      summary: Create a category
+      description: Creates a new category. Global categories require admin privileges.
+      tags:
+        - Categories
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryCreateRequest"
+      responses:
+        "201":
+          description: Category created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Category"
+                  meta:
+                    type: "null"
+                  error:
+                    type: "null"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /categories/{id}:
+    get:
+      operationId: getCategory
+      summary: Get a category
+      description: Returns a single category by ID.
+      tags:
+        - Categories
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Category ID
+      responses:
+        "200":
+          description: Category details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Category"
+                  meta:
+                    type: "null"
+                  error:
+                    type: "null"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    put:
+      operationId: updateCategory
+      summary: Update a category
+      description: Updates a category. Owner or admin can update.
+      tags:
+        - Categories
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Category ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryUpdateRequest"
+      responses:
+        "200":
+          description: Category updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Category"
+                  meta:
+                    type: "null"
+                  error:
+                    type: "null"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      operationId: deleteCategory
+      summary: Delete a category
+      description: Deletes a category. Owner or admin can delete.
+      tags:
+        - Categories
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Category ID
+      responses:
+        "204":
+          description: Category deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from POST /auth/login
+
+  schemas:
+    ErrorResponse:
+      type: object
+      description: Standard error object returned in the envelope when a request fails.
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          description: HTTP status code
+          example: 404
+        message:
+          type: string
+          description: Human-readable error message
+          example: Event not found
+        details:
+          type: array
+          items:
+            type: string
+          description: Optional list of detailed error messages (e.g. validation errors)
+          default: []
+
+    PaginationMeta:
+      type: object
+      description: Pagination metadata included in list responses.
+      required:
+        - total
+        - page
+        - limit
+      properties:
+        total:
+          type: integer
+          description: Total number of items matching the query
+          example: 100
+        page:
+          type: integer
+          description: Current page number (1-based)
+          example: 1
+        limit:
+          type: integer
+          description: Maximum items per page
+          example: 20
+
+    UserSummary:
+      type: object
+      description: Basic user profile returned in auth responses and user listings.
+      required:
+        - login
+        - firstname
+        - lastname
+        - email
+        - is_admin
+      properties:
+        login:
+          type: string
+          description: Unique user login identifier
+          example: john_doe
+        firstname:
+          type: string
+          description: User's first name
+          example: John
+        lastname:
+          type: string
+          description: User's last name
+          example: Doe
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: john@example.com
+        is_admin:
+          type: boolean
+          description: Whether the user has admin privileges
+          example: false
+
+    AuthLoginRequest:
+      type: object
+      description: Credentials for authentication.
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          description: User login identifier
+          example: john_doe
+        password:
+          type: string
+          format: password
+          description: User password
+          example: secret123
+
+    AuthLoginResponse:
+      type: object
+      description: Successful authentication response with JWT token and user profile.
+      required:
+        - token
+        - user
+        - expires_at
+      properties:
+        token:
+          type: string
+          description: JWT access token (Bearer token for Authorization header)
+          example: eyJhbGciOiJSUzI1NiIs...
+        user:
+          $ref: "#/components/schemas/UserSummary"
+        expires_at:
+          type: string
+          format: date-time
+          description: Token expiration timestamp (ISO 8601)
+          example: "2026-03-16T12:00:00+00:00"
+
+    Event:
+      type: object
+      description: A calendar event.
+      required:
+        - id
+        - title
+        - start_date
+        - duration
+        - access
+        - type
+        - created_by
+        - all_day
+      properties:
+        id:
+          type: integer
+          description: Unique event identifier
+          example: 42
+        uid:
+          type: string
+          description: RFC 5545 UID
+        title:
+          type: string
+          description: Event title
+          example: Team Meeting
+        description:
+          type: string
+          description: Event description
+          example: Weekly sync
+        start_date:
+          type: string
+          pattern: '^\d{8}$'
+          description: Start date (YYYYMMDD)
+          example: "20260315"
+        start_time:
+          type: string
+          pattern: '^\d{6}$'
+          nullable: true
+          description: Start time (HHMMSS), null for all-day
+          example: "100000"
+        end_date:
+          type: string
+          pattern: '^\d{8}$'
+          description: End date (YYYYMMDD)
+          example: "20260315"
+        end_time:
+          type: string
+          pattern: '^\d{6}$'
+          nullable: true
+          description: End time (HHMMSS), null for all-day
+          example: "110000"
+        duration:
+          type: integer
+          description: Duration in minutes
+          example: 60
+        location:
+          type: string
+          description: Event location
+          example: Room A
+        access:
+          type: string
+          enum: [P, C, R]
+          description: "Access level: P=Public, C=Confidential, R=Private"
+          example: P
+        type:
+          type: string
+          enum: [E, M, T, J, N, O]
+          description: "Event type: E=Event, M=Repeating, T=Task, J=Journal, N=RepTask, O=RepJournal"
+          example: E
+        created_by:
+          type: string
+          description: Login of the user who created the event
+          example: admin
+        all_day:
+          type: boolean
+          description: Whether this is an all-day event
+          example: false
+        sequence:
+          type: integer
+          description: Change sequence number
+        status:
+          type: string
+          nullable: true
+          description: Event status
+
+    EventCreateRequest:
+      type: object
+      description: Request body for creating a new event.
+      required:
+        - title
+        - start_date
+      properties:
+        title:
+          type: string
+          description: Event title
+          example: Team Meeting
+        description:
+          type: string
+          description: Event description
+        start_date:
+          type: string
+          pattern: '^\d{8}$'
+          description: Start date (YYYYMMDD)
+          example: "20260315"
+        start_time:
+          type: string
+          pattern: '^\d{6}$'
+          description: Start time (HHMMSS), omit for all-day
+          example: "100000"
+        duration:
+          type: integer
+          description: Duration in minutes
+          default: 0
+          example: 60
+        location:
+          type: string
+          description: Event location
+        access:
+          type: string
+          enum: [P, C, R]
+          default: P
+          description: Access level
+        type:
+          type: string
+          enum: [E, M, T, J, N, O]
+          default: E
+          description: Event type
+
+    EventUpdateRequest:
+      type: object
+      description: Request body for updating an event. All fields optional.
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        start_date:
+          type: string
+          pattern: '^\d{8}$'
+        start_time:
+          type: string
+          pattern: '^\d{6}$'
+        duration:
+          type: integer
+        location:
+          type: string
+        access:
+          type: string
+          enum: [P, C, R]
+        type:
+          type: string
+          enum: [E, M, T, J, N, O]
+
+    User:
+      type: object
+      description: User account profile.
+      required:
+        - login
+        - firstname
+        - lastname
+        - email
+        - is_admin
+        - enabled
+      properties:
+        login:
+          type: string
+          description: Unique login identifier
+          example: john_doe
+        firstname:
+          type: string
+          description: First name
+          example: John
+        lastname:
+          type: string
+          description: Last name
+          example: Doe
+        email:
+          type: string
+          format: email
+          description: Email address
+          example: john@example.com
+        is_admin:
+          type: boolean
+          description: Admin privileges
+          example: false
+        enabled:
+          type: boolean
+          description: Account enabled
+          example: true
+
+    UserCreateRequest:
+      type: object
+      description: Request body for creating a user (admin only).
+      required:
+        - login
+        - password
+        - email
+      properties:
+        login:
+          type: string
+          example: newuser
+        password:
+          type: string
+          format: password
+        email:
+          type: string
+          format: email
+        firstname:
+          type: string
+        lastname:
+          type: string
+        is_admin:
+          type: boolean
+          default: false
+
+    UserUpdateRequest:
+      type: object
+      description: Request body for updating a user profile. All fields optional.
+      properties:
+        firstname:
+          type: string
+        lastname:
+          type: string
+        email:
+          type: string
+          format: email
+        is_admin:
+          type: boolean
+          description: Admin only
+        enabled:
+          type: boolean
+          description: Admin only
+
+    PasswordChangeRequest:
+      type: object
+      description: Request body for changing a password.
+      required:
+        - new_password
+      properties:
+        current_password:
+          type: string
+          format: password
+          description: Required for non-admin users
+        new_password:
+          type: string
+          format: password
+
+    Category:
+      type: object
+      description: An event category (global or personal).
+      required:
+        - id
+        - name
+        - is_global
+      properties:
+        id:
+          type: integer
+          description: Category ID
+          example: 1
+        name:
+          type: string
+          description: Category name
+          example: Work
+        color:
+          type: string
+          nullable: true
+          description: Hex color code
+          example: "#FF0000"
+        is_global:
+          type: boolean
+          description: Whether this is a global category
+          example: true
+        owner:
+          type: string
+          nullable: true
+          description: Login of the owner (null for global)
+          example: null
+
+    CategoryCreateRequest:
+      type: object
+      description: Request body for creating a category.
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Category name
+          example: Work
+        color:
+          type: string
+          description: Hex color code
+          example: "#FF0000"
+        is_global:
+          type: boolean
+          default: false
+          description: Create as global (admin only)
+
+    CategoryUpdateRequest:
+      type: object
+      description: Request body for updating a category. All fields optional.
+      properties:
+        name:
+          type: string
+        color:
+          type: string
+
+  responses:
+    Unauthorized:
+      description: Authentication required or token invalid
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: "null"
+              meta:
+                type: "null"
+              error:
+                $ref: "#/components/schemas/ErrorResponse"
+          example:
+            data: null
+            meta: null
+            error:
+              code: 401
+              message: Invalid or expired token
+              details: []
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: "null"
+              meta:
+                type: "null"
+              error:
+                $ref: "#/components/schemas/ErrorResponse"
+          example:
+            data: null
+            meta: null
+            error:
+              code: 404
+              message: Resource not found
+              details: []
+
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: "null"
+              meta:
+                type: "null"
+              error:
+                $ref: "#/components/schemas/ErrorResponse"
+          example:
+            data: null
+            meta: null
+            error:
+              code: 403
+              message: Forbidden
+              details: []
+
+    BadRequest:
+      description: Invalid request parameters or body
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: "null"
+              meta:
+                type: "null"
+              error:
+                $ref: "#/components/schemas/ErrorResponse"
+          example:
+            data: null
+            meta: null
+            error:
+              code: 400
+              message: Validation failed
+              details:
+                - "title is required"

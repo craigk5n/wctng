@@ -1,0 +1,49 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+            - '../src/Security/WebCalendarUser.php'
+
+    App\Controller\:
+        resource: '../src/Controller/'
+        tags: ['controller.service_arguments']
+
+    # PDO connection from DATABASE_URL
+    pdo.connection:
+        class: PDO
+        factory: ['App\Service\PdoFactory', 'createFromUrl']
+        arguments:
+            - '%env(DATABASE_URL)%'
+
+    # webcalendar-core service factory
+    App\Service\CoreServiceFactory:
+        public: true
+        arguments:
+            $pdo: '@pdo.connection'
+            $appSecret: '%env(APP_SECRET)%'
+
+    # Auth controller needs JWT TTL
+    App\Controller\Api\AuthController:
+        arguments:
+            $jwtTtl: '%env(int:JWT_TTL)%'
+
+    # User provider for Symfony Security
+    App\Security\WebCalendarUserProvider:
+        public: true
+
+    # Install command needs DATABASE_URL for schema detection
+    App\Command\InstallCommand:
+        arguments:
+            $databaseUrl: '%env(DATABASE_URL)%'
+
+    # Exception subscriber needs kernel environment
+    App\EventSubscriber\ExceptionSubscriber:
+        arguments:
+            $environment: '%kernel.environment%'
