@@ -21,9 +21,9 @@
 | P2-E6 | Import/Export | 3 | 3 | DONE |
 | P2-E7 | Search | 2 | 2 | DONE |
 | P2-E8 | Real-time (Mercure) | 3 | 3 | DONE |
-| P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
+| P2-E9 | Permissions & Access Control | 3 | 1 | IN PROGRESS |
 | P2-E10 | UI Polish & UX | 4 | 3 | IN PROGRESS |
-| **Total** | | **32** | **28** | |
+| **Total** | | **32** | **29** | |
 
 ---
 
@@ -563,7 +563,7 @@ React hook that subscribes to Mercure SSE and updates the calendar in real-time.
 
 ### P2-E9-S1: Access Control API
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Endpoints for managing user-to-user access permissions.
@@ -571,12 +571,12 @@ Endpoints for managing user-to-user access permissions.
 **Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [ ] `GET /api/v2/access/users` — get user access permissions
-- [ ] `PUT /api/v2/access/users/{login}` — set permissions (body: `{can_view, can_edit}`)
-- [ ] Permissions enforced on `GET /events` when viewing other users' events
-- [ ] Private events hidden from users without permission
-- [ ] Confidential events show as "Busy" to users without full access
-- [ ] PHPStan level 9 passes
+- [x] `GET /api/v2/access/users` — get user access permissions
+- [x] `PUT /api/v2/access/users/{login}` — set permissions (body: `{can_view, can_edit}`)
+- [x] Permissions enforced on `GET /events` when viewing other users' events
+- [x] Private events hidden from users without permission
+- [x] Confidential events show as "Busy" to users without full access
+- [x] PHPStan level 9 passes
 
 ---
 

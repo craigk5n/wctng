@@ -23,6 +23,7 @@ final class EventController
     public function __construct(
         private readonly CoreServiceFactory $coreServiceFactory,
         private readonly MercurePublisher $mercure,
+        private readonly \PDO $pdo,
     ) {
     }
 
@@ -61,13 +62,25 @@ final class EventController
             $layers = $this->coreServiceFactory->getLayerService()->getLayersForUser($user->getUserIdentifier());
             $layerUsers = array_map(static fn ($l) => $l->layerUser(), $layers);
             if (\count($layerUsers) > 0) {
+                // Load access permissions for layered users
+                $accessMap = $this->getAccessPermissions($user->getUserIdentifier(), array_values($layerUsers));
+
                 $layerCollection = $this->coreServiceFactory->getEventService()->getEventsInDateRange($dateRange, null, null, $layerUsers);
-                // Merge, avoiding duplicates by event ID
+                // Merge, avoiding duplicates by event ID, filtering by access
                 $existingIds = array_map(static fn ($e) => $e->id(), $allEvents);
                 foreach ($layerCollection->all() as $layerEvent) {
-                    if (!\in_array($layerEvent->id(), $existingIds, true)) {
-                        $allEvents[] = $layerEvent;
+                    if (\in_array($layerEvent->id(), $existingIds, true)) {
+                        continue;
                     }
+                    $eventOwner = $layerEvent->createdBy();
+                    $access = $accessMap[$eventOwner] ?? null;
+
+                    // Skip private events from users without view permission
+                    if ($layerEvent->access()->value === 'R' && ($access === null || !$access['can_view'])) {
+                        continue;
+                    }
+
+                    $allEvents[] = $layerEvent;
                 }
             }
         }
@@ -88,6 +101,25 @@ final class EventController
         }
 
         $items = EventResponseDTO::fromCollection($pageItems, $categoryMap);
+
+        // Mask confidential events from other users with see_time_only access
+        if (isset($accessMap)) {
+            $currentLogin = $user->getUserIdentifier();
+            $items = array_map(static function (array $item) use ($accessMap, $currentLogin): array {
+                /** @var string $createdBy */
+                $createdBy = $item['created_by'] ?? '';
+                if ($createdBy !== $currentLogin && $createdBy !== '') {
+                    $access = $accessMap[$createdBy] ?? null;
+                    $eventAccess = $item['access'] ?? 'P';
+                    if ($eventAccess === 'C' && ($access === null || $access['see_time_only'])) {
+                        $item['title'] = 'Busy';
+                        $item['description'] = '';
+                        $item['location'] = '';
+                    }
+                }
+                return $item;
+            }, $items);
+        }
 
         return ApiResponse::paginated($items, $total, $page, $limit);
     }
@@ -268,6 +300,56 @@ final class EventController
         }
 
         return ApiResponse::noContent();
+    }
+
+    /**
+     * Load access permissions the current user has been granted by other users.
+     *
+     * @param list<string> $otherUsers
+     *
+     * @return array<string, array{can_view: bool, can_edit: bool, see_time_only: bool}>
+     */
+    private function getAccessPermissions(string $currentUser, array $otherUsers): array
+    {
+        if ($otherUsers === []) {
+            return [];
+        }
+
+        // Query: where other users have granted access to the current user
+        $placeholders = [];
+        $params = ['viewer' => $currentUser];
+        foreach ($otherUsers as $i => $login) {
+            $key = 'u' . $i;
+            $placeholders[] = ':' . $key;
+            $params[$key] = $login;
+        }
+
+        $sql = 'SELECT cal_login, cal_can_view, cal_can_edit, cal_see_time_only
+                FROM webcal_access_user
+                WHERE cal_login IN (' . implode(', ', $placeholders) . ')
+                AND cal_other_user = :viewer';
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+
+        $result = [];
+        while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+            if (\is_array($row)) {
+                /** @var string $owner */
+                $owner = $row['cal_login'];
+                /** @var int|string $canView */
+                $canView = $row['cal_can_view'] ?? 0;
+                /** @var int|string $canEdit */
+                $canEdit = $row['cal_can_edit'] ?? 0;
+                $result[$owner] = [
+                    'can_view' => (int) $canView > 0,
+                    'can_edit' => (int) $canEdit > 0,
+                    'see_time_only' => ($row['cal_see_time_only'] ?? 'N') === 'Y',
+                ];
+            }
+        }
+
+        return $result;
     }
 
     private function parseDateParam(string $dateStr): ?\DateTimeImmutable
