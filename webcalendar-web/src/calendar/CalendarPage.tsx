@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { FullCalendarWrapper, type FullCalendarWrapperHandle } from './FullCalendarWrapper';
 import { EventDetailDialog } from './EventDetailDialog';
 import { EventDialog, type EventFormData } from './EventDialog';
@@ -8,6 +8,8 @@ import type { ApiEvent } from './eventMapper';
 import { apiFetch } from '../api/client';
 import { useToast } from '../components/toast/ToastProvider';
 import { useAuth } from '../auth/auth-context';
+import { ShortcutsDialog } from '../components/shortcuts/ShortcutsDialog';
+import { useGlobalShortcuts } from '../components/shortcuts/useGlobalShortcuts';
 
 type DialogState =
   | { type: 'none' }
@@ -21,8 +23,25 @@ export function CalendarPage() {
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' });
   const [isDeleting, setIsDeleting] = useState(false);
   const [isResponding, setIsResponding] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // --- Global keyboard shortcuts ---
+  const shortcutHandlers = useMemo(() => ({
+    onHelp: () => setShowShortcuts(true),
+    onNewEvent: () => {
+      const now = new Date();
+      setDialog({
+        type: 'create',
+        initialDate: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
+        initialTime: '09:00',
+        initialAllDay: false,
+      });
+    },
+  }), []);
+
+  useGlobalShortcuts(shortcutHandlers);
 
   // --- Event click: fetch full event and show detail ---
   const handleEventClick = useCallback(async (eventId: number) => {
@@ -177,8 +196,15 @@ export function CalendarPage() {
 
   return (
     <div>
-      {/* New Event button */}
-      <div className="mb-4 flex justify-end">
+      {/* Toolbar */}
+      <div className="mb-4 flex justify-end gap-2">
+        <button
+          onClick={() => setShowShortcuts(true)}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-input text-sm text-muted-foreground hover:bg-accent"
+          title="Keyboard shortcuts (?)"
+        >
+          ?
+        </button>
         <button
           onClick={handleNewEvent}
           className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
@@ -269,6 +295,9 @@ export function CalendarPage() {
           isDeleting={isDeleting}
         />
       )}
+
+      {/* Keyboard Shortcuts Help */}
+      <ShortcutsDialog open={showShortcuts} onClose={() => setShowShortcuts(false)} />
     </div>
   );
 }

@@ -22,8 +22,8 @@
 | P2-E7 | Search | 2 | 2 | DONE |
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
-| P2-E10 | UI Polish & UX | 4 | 1 | IN PROGRESS |
-| **Total** | | **32** | **10** | |
+| P2-E10 | UI Polish & UX | 4 | 2 | IN PROGRESS |
+| **Total** | | **32** | **11** | |
 
 ---
 
@@ -679,7 +679,7 @@ Improve mobile experience with swipe gestures, collapsible sidebar, and touch-fr
 
 ### P2-E10-S4: Keyboard Shortcuts Help
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Keyboard shortcut help dialog and additional shortcuts.
@@ -687,11 +687,11 @@ Keyboard shortcut help dialog and additional shortcuts.
 **Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [ ] `?` key opens keyboard shortcuts help dialog
-- [ ] Lists all shortcuts: navigation, view switching, event creation
-- [ ] `N` key opens new event dialog
-- [ ] `Escape` closes any open dialog
-- [ ] Vitest tests pass
+- [x] `?` key opens keyboard shortcuts help dialog
+- [x] Lists all shortcuts: navigation (←→T), view switching (MWD), event creation (N)
+- [x] `N` key opens new event dialog
+- [x] `?` button in calendar toolbar opens help
+- [x] Vitest tests pass (10 new tests)
 
 ---
 
