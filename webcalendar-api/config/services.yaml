@@ -74,6 +74,13 @@ services:
         arguments:
             $migrationsDir: '%kernel.project_dir%/migrations/tenant'
 
+    # Control plane
+    App\Controller\Control\ControlAuthController:
+        arguments:
+            $pdo: '@pdo.connection'
+            $jwtTtl: '%env(int:JWT_TTL)%'
+        tags: ['controller.service_arguments']
+
     # Tenant CLI commands
     App\Command\TenantCreateCommand:
         arguments:

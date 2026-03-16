@@ -22,6 +22,12 @@ security:
             stateless: true
             security: false
 
+        # Control plane — handled by ControlPlaneGuard listener
+        control:
+            pattern: ^/control/
+            stateless: true
+            security: false
+
         # Protected API endpoints — require JWT
         api:
             pattern: ^/api/

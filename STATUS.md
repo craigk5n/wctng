@@ -17,12 +17,12 @@
 | P3-E1 | Tenant Data Model | 3 | 3 | DONE |
 | P3-E2 | Tenant Resolver Middleware | 3 | 3 | DONE |
 | P3-E3 | Tenant Provisioning | 4 | 4 | DONE |
-| P3-E4 | Control Plane API | 4 | 0 | NOT STARTED |
+| P3-E4 | Control Plane API | 4 | 1 | IN PROGRESS |
 | P3-E5 | Tenant Admin Dashboard | 4 | 0 | NOT STARTED |
 | P3-E6 | Tenant-Aware Auth | 3 | 0 | NOT STARTED |
 | P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **10** | |
+| **Total** | | **27** | **11** | |
 
 ---
 
@@ -263,7 +263,7 @@ Full lifecycle tests: create tenant, access via subdomain, verify data isolation
 
 ### P3-E4-S1: Control Plane Auth
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Separate authentication for the control plane (super-admin level, not per-tenant).
@@ -271,13 +271,13 @@ Separate authentication for the control plane (super-admin level, not per-tenant
 **Preconditions:** P3-E2-S1
 
 **Acceptance Criteria:**
-- [ ] Control plane routes under `/control/v1/*` with separate JWT auth
-- [ ] Super-admin user stored in control database (not tenant DB)
-- [ ] `POST /control/v1/auth/login` returns control plane JWT
-- [ ] Control plane JWT includes `role: "super_admin"` claim
-- [ ] Regular tenant JWTs cannot access control plane routes
-- [ ] PHPStan level 9 passes
-- [ ] Functional tests
+- [x] Control plane routes under `/control/v1/*` with separate JWT auth
+- [x] Super-admin user stored in control database (not tenant DB)
+- [x] `POST /control/v1/auth/login` returns control plane JWT
+- [x] Control plane JWT includes `role: "super_admin"` claim
+- [x] Regular tenant JWTs cannot access control plane routes
+- [x] PHPStan level 9 passes
+- [x] Functional tests
 
 ---
 
