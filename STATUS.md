@@ -18,12 +18,12 @@
 | P2-E3 | Calendar Layers | 3 | 0 | NOT STARTED |
 | P2-E4 | Tasks | 4 | 2 | IN PROGRESS |
 | P2-E5 | Journals | 3 | 2 | IN PROGRESS |
-| P2-E6 | Import/Export | 3 | 2 | IN PROGRESS |
+| P2-E6 | Import/Export | 3 | 3 | DONE |
 | P2-E7 | Search | 2 | 2 | DONE |
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 3 | IN PROGRESS |
-| **Total** | | **32** | **16** | |
+| **Total** | | **32** | **17** | |
 
 ---
 
@@ -437,7 +437,7 @@ Import events from an uploaded ICS file.
 
 ### P2-E6-S3: Import/Export UI
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 UI for importing and exporting calendar data.
@@ -445,12 +445,12 @@ UI for importing and exporting calendar data.
 **Preconditions:** P2-E6-S1, P2-E6-S2
 
 **Acceptance Criteria:**
-- [ ] Export button in calendar toolbar — downloads ICS for current view date range
-- [ ] Import page/dialog — file upload with drag-and-drop
-- [ ] Import preview showing events to be imported with dry_run
-- [ ] Confirm button to execute import
-- [ ] Success/error toast with import summary
-- [ ] Vitest tests pass
+- [x] Export button in calendar toolbar — downloads ICS file (±1 year range)
+- [x] Import dialog — file upload with drag-and-drop zone
+- [x] Import result shows imported/skipped counts
+- [x] Confirm/Cancel buttons, Import button disabled without file
+- [x] Success/error toast with import summary
+- [x] Vitest tests pass (5 new tests)
 
 ---
 

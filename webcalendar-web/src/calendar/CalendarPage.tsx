@@ -10,6 +10,8 @@ import { useToast } from '../components/toast/ToastProvider';
 import { useAuth } from '../auth/auth-context';
 import { ShortcutsDialog } from '../components/shortcuts/ShortcutsDialog';
 import { useGlobalShortcuts } from '../components/shortcuts/useGlobalShortcuts';
+import { ExportButton } from './ExportButton';
+import { ImportDialog } from './ImportDialog';
 
 type DialogState =
   | { type: 'none' }
@@ -24,6 +26,7 @@ export function CalendarPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isResponding, setIsResponding] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [defaultView, setDefaultView] = useState('dayGridMonth');
   const { toast } = useToast();
   const { user } = useAuth();
@@ -211,6 +214,13 @@ export function CalendarPage() {
     <div>
       {/* Toolbar */}
       <div className="mb-4 flex justify-end gap-2">
+        <ExportButton />
+        <button
+          onClick={() => setShowImport(true)}
+          className="inline-flex h-10 items-center rounded-md border border-input px-3 text-sm font-medium hover:bg-accent"
+        >
+          Import
+        </button>
         <button
           onClick={() => setShowShortcuts(true)}
           className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-input text-sm text-muted-foreground hover:bg-accent"
@@ -312,6 +322,11 @@ export function CalendarPage() {
 
       {/* Keyboard Shortcuts Help */}
       <ShortcutsDialog open={showShortcuts} onClose={() => setShowShortcuts(false)} />
+      <ImportDialog
+        open={showImport}
+        onClose={() => setShowImport(false)}
+        onImported={() => calendarRef.current?.refetchEvents()}
+      />
     </div>
   );
 }
