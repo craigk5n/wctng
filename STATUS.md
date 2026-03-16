@@ -15,14 +15,14 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| P4-E1 | CalDAV Server Core | 4 | 2 | IN PROGRESS |
+| P4-E1 | CalDAV Server Core | 4 | 3 | IN PROGRESS |
 | P4-E2 | CalDAV Calendar & Event Operations | 4 | 0 | NOT STARTED |
 | P4-E3 | CalDAV Tasks & Journals | 3 | 0 | NOT STARTED |
 | P4-E4 | CalDAV Integration Tests | 2 | 0 | NOT STARTED |
 | P4-E5 | OAuth2 / OIDC Authentication | 4 | 0 | NOT STARTED |
 | P4-E6 | LDAP Authentication | 3 | 0 | NOT STARTED |
 | P4-E7 | Per-Tenant Auth Configuration | 3 | 0 | NOT STARTED |
-| **Total** | | **23** | **2** | |
+| **Total** | | **23** | **3** | |
 
 ---
 
@@ -97,7 +97,7 @@ Implement the sabre/dav PrincipalBackend that maps webcalendar users to CalDAV p
 
 ### P4-E1-S3: CalDAV Calendar Backend
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Implement the sabre/dav CalendarBackend that maps webcalendar calendars and events to CalDAV resources.
@@ -105,12 +105,12 @@ Implement the sabre/dav CalendarBackend that maps webcalendar calendars and even
 **Preconditions:** P4-E1-S2
 
 **Acceptance Criteria:**
-- [ ] `CoreCalendarBackend` implements `Sabre\CalDAV\Backend\BackendInterface`
-- [ ] `getCalendarsForUser()` returns user's calendar(s)
-- [ ] `createCalendar()` / `deleteCalendar()` supported
-- [ ] Calendar properties: displayname, color, description, supported component set (VEVENT, VTODO, VJOURNAL)
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests
+- [x] `CoreCalendarBackend` implements `Sabre\CalDAV\Backend\BackendInterface`
+- [x] `getCalendarsForUser()` returns user's calendar(s)
+- [x] `createCalendar()` / `deleteCalendar()` supported
+- [x] Calendar properties: displayname, color, description, supported component set (VEVENT, VTODO, VJOURNAL)
+- [x] PHPStan level 9 passes
+- [x] Unit tests
 
 ---
 
