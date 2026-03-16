@@ -70,6 +70,11 @@ services:
     App\Security\WebCalendarUserProvider:
         public: true
 
+    # Tenant CLI commands
+    App\Command\TenantCreateCommand:
+        arguments:
+            $baseDomain: '%env(TENANT_BASE_DOMAIN)%'
+
     # Install command needs DATABASE_URL for schema detection
     App\Command\InstallCommand:
         arguments:

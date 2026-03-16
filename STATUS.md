@@ -16,13 +16,13 @@
 |------|-------|---------|------|--------|
 | P3-E1 | Tenant Data Model | 3 | 3 | DONE |
 | P3-E2 | Tenant Resolver Middleware | 3 | 3 | DONE |
-| P3-E3 | Tenant Provisioning | 4 | 1 | IN PROGRESS |
+| P3-E3 | Tenant Provisioning | 4 | 2 | IN PROGRESS |
 | P3-E4 | Control Plane API | 4 | 0 | NOT STARTED |
 | P3-E5 | Tenant Admin Dashboard | 4 | 0 | NOT STARTED |
 | P3-E6 | Tenant-Aware Auth | 3 | 0 | NOT STARTED |
 | P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **7** | |
+| **Total** | | **27** | **8** | |
 
 ---
 
@@ -203,7 +203,7 @@ Service that creates a new database and deploys the webcalendar-core schema for 
 
 ### P3-E3-S2: Tenant Provisioning CLI Command
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Symfony console command for manually provisioning tenants (useful for ops and testing).
@@ -211,12 +211,12 @@ Symfony console command for manually provisioning tenants (useful for ops and te
 **Preconditions:** P3-E3-S1
 
 **Acceptance Criteria:**
-- [ ] `php bin/console tenant:create {slug} {name} --admin-email={email}` provisions a new tenant
-- [ ] `php bin/console tenant:list` shows all tenants with status
-- [ ] `php bin/console tenant:suspend {slug}` suspends a tenant (sets status, blocks access)
-- [ ] `php bin/console tenant:delete {slug} --force` deletes tenant DB and registry entry
-- [ ] Output shows provisioning details (URL, admin credentials)
-- [ ] PHPStan level 9 passes
+- [x] `php bin/console tenant:create {slug} {name} --admin-email={email}` provisions a new tenant
+- [x] `php bin/console tenant:list` shows all tenants with status
+- [x] `php bin/console tenant:suspend {slug}` suspends a tenant (sets status, blocks access)
+- [x] `php bin/console tenant:delete {slug} --force` deletes tenant DB and registry entry
+- [x] Output shows provisioning details (URL, admin credentials)
+- [x] PHPStan level 9 passes
 
 ---
 
