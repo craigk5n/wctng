@@ -15,14 +15,14 @@
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
 | P3-E1 | Tenant Data Model | 3 | 3 | DONE |
-| P3-E2 | Tenant Resolver Middleware | 3 | 2 | IN PROGRESS |
+| P3-E2 | Tenant Resolver Middleware | 3 | 3 | DONE |
 | P3-E3 | Tenant Provisioning | 4 | 0 | NOT STARTED |
 | P3-E4 | Control Plane API | 4 | 0 | NOT STARTED |
 | P3-E5 | Tenant Admin Dashboard | 4 | 0 | NOT STARTED |
 | P3-E6 | Tenant-Aware Auth | 3 | 0 | NOT STARTED |
 | P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **5** | |
+| **Total** | | **27** | **6** | |
 
 ---
 
@@ -160,7 +160,7 @@ Alternative tenant resolution via `X-Tenant-Id` header or JWT `tenant` claim, fo
 
 ### P3-E2-S3: Tenant Resolver Integration Tests
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 End-to-end tests verifying the full tenant resolution chain across all resolution methods.
@@ -168,12 +168,12 @@ End-to-end tests verifying the full tenant resolution chain across all resolutio
 **Preconditions:** P3-E2-S2
 
 **Acceptance Criteria:**
-- [ ] Test: subdomain resolution creates correct PDO and returns tenant-specific data
-- [ ] Test: header resolution works for API-only clients
-- [ ] Test: standalone mode (no tenant) uses default database
-- [ ] Test: invalid/suspended tenant returns appropriate error
-- [ ] Test: cross-tenant data isolation (tenant A cannot see tenant B's data)
-- [ ] All tests pass in under 30 seconds
+- [x] Test: subdomain resolution creates correct PDO and returns tenant-specific data
+- [x] Test: header resolution works for API-only clients
+- [x] Test: standalone mode (no tenant) uses default database
+- [x] Test: invalid/suspended tenant returns appropriate error
+- [x] Test: cross-tenant data isolation (tenant A cannot see tenant B's data)
+- [x] All tests pass in under 30 seconds
 
 ---
 
