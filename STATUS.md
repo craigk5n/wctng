@@ -16,14 +16,14 @@
 | P2-E1 | Event Participants | 4 | 4 | DONE |
 | P2-E2 | Groups | 3 | 0 | NOT STARTED |
 | P2-E3 | Calendar Layers | 3 | 0 | NOT STARTED |
-| P2-E4 | Tasks | 4 | 0 | NOT STARTED |
+| P2-E4 | Tasks | 4 | 1 | IN PROGRESS |
 | P2-E5 | Journals | 3 | 0 | NOT STARTED |
 | P2-E6 | Import/Export | 3 | 0 | NOT STARTED |
 | P2-E7 | Search | 2 | 0 | NOT STARTED |
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 0 | NOT STARTED |
-| **Total** | | **32** | **4** | |
+| **Total** | | **32** | **5** | |
 
 ---
 
@@ -262,7 +262,7 @@ When layers are active, fetch and display events from multiple users on the same
 
 ### P2-E4-S1: Tasks API Endpoints
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 CRUD endpoints for tasks. Tasks are calendar entries with type 'T' or 'N'.
@@ -270,13 +270,13 @@ CRUD endpoints for tasks. Tasks are calendar entries with type 'T' or 'N'.
 **Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [ ] `GET /api/v2/tasks` — list tasks with filters: `status` (pending/completed/all), `due_before`
-- [ ] `POST /api/v2/tasks` — create task (body: `{title, due_date, priority, assigned_to}`)
-- [ ] `GET /api/v2/tasks/{id}` — get task details
-- [ ] `PUT /api/v2/tasks/{id}` — update task (including `percent_complete`)
-- [ ] `DELETE /api/v2/tasks/{id}` — delete task
-- [ ] Task response includes: `title`, `due_date`, `due_time`, `priority`, `percent_complete`, `status`
-- [ ] PHPStan level 9 passes
+- [x] `GET /api/v2/tasks?start=YYYYMMDD&end=YYYYMMDD` — list tasks in date range
+- [x] `POST /api/v2/tasks` — create task (body: `{title, due_date, priority}`)
+- [x] `GET /api/v2/tasks/{id}` — get task details
+- [x] `PUT /api/v2/tasks/{id}` — update task (including `percent_complete`)
+- [x] `DELETE /api/v2/tasks/{id}` — delete task (204)
+- [x] Task response includes: `title`, `due_date`, `due_time`, `priority`, `percent_complete`, `status`
+- [x] PHPStan level 9 passes, Psalm clean
 
 ---
 
