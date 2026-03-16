@@ -8,9 +8,15 @@ import { UserManagement } from './admin/UserManagement';
 import { CategoryManagement } from './admin/CategoryManagement';
 import { GroupManagement } from './admin/GroupManagement';
 import { PreferencesPage } from './settings/PreferencesPage';
+import { AccessSettings } from './settings/AccessSettings';
 import { TasksPage } from './tasks/TasksPage';
 import { JournalsPage } from './journals/JournalsPage';
 import { NotFound } from './pages/NotFound';
+import { ControlLoginPage } from './control/ControlLoginPage';
+import { ControlProtectedRoute } from './control/ControlProtectedRoute';
+import { ControlLayout } from './control/ControlLayout';
+import { TenantsPage } from './control/TenantsPage';
+import { StatsPage } from './control/StatsPage';
 
 export default function App() {
   return (
@@ -72,6 +78,16 @@ export default function App() {
           }
         />
         <Route
+          path="/settings/access"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <AccessSettings />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/tasks"
           element={
             <ProtectedRoute>
@@ -91,6 +107,29 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        {/* Control Plane */}
+        <Route path="/control/login" element={<ControlLoginPage />} />
+        <Route
+          path="/control"
+          element={
+            <ControlProtectedRoute>
+              <ControlLayout>
+                <TenantsPage />
+              </ControlLayout>
+            </ControlProtectedRoute>
+          }
+        />
+        <Route
+          path="/control/stats"
+          element={
+            <ControlProtectedRoute>
+              <ControlLayout>
+                <StatsPage />
+              </ControlLayout>
+            </ControlProtectedRoute>
+          }
+        />
+
         <Route
           path="*"
           element={

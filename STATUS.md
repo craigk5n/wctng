@@ -18,11 +18,11 @@
 | P3-E2 | Tenant Resolver Middleware | 3 | 3 | DONE |
 | P3-E3 | Tenant Provisioning | 4 | 4 | DONE |
 | P3-E4 | Control Plane API | 4 | 4 | DONE |
-| P3-E5 | Tenant Admin Dashboard | 4 | 0 | NOT STARTED |
+| P3-E5 | Tenant Admin Dashboard | 4 | 1 | IN PROGRESS |
 | P3-E6 | Tenant-Aware Auth | 3 | 0 | NOT STARTED |
 | P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **14** | |
+| **Total** | | **27** | **15** | |
 
 ---
 
@@ -346,7 +346,7 @@ Webhook notifications for tenant lifecycle events (provisioned, suspended, delet
 
 ### P3-E5-S1: Dashboard Layout & Auth
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Separate React app (or route group) for the control plane dashboard with super-admin authentication.
@@ -354,11 +354,11 @@ Separate React app (or route group) for the control plane dashboard with super-a
 **Preconditions:** P3-E4-S1
 
 **Acceptance Criteria:**
-- [ ] Route group `/control/*` with separate login page
-- [ ] Super-admin login via control plane auth API
-- [ ] Dashboard layout with sidebar: Tenants, Stats, Settings
-- [ ] Protected routes (redirects to control login if not authenticated)
-- [ ] Vitest tests for auth flow
+- [x] Route group `/control/*` with separate login page
+- [x] Super-admin login via control plane auth API
+- [x] Dashboard layout with sidebar: Tenants, Stats, Settings
+- [x] Protected routes (redirects to control login if not authenticated)
+- [x] Vitest tests for auth flow
 
 ---
 
