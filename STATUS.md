@@ -17,13 +17,13 @@
 | P2-E2 | Groups | 3 | 0 | NOT STARTED |
 | P2-E3 | Calendar Layers | 3 | 0 | NOT STARTED |
 | P2-E4 | Tasks | 4 | 1 | IN PROGRESS |
-| P2-E5 | Journals | 3 | 0 | NOT STARTED |
+| P2-E5 | Journals | 3 | 1 | IN PROGRESS |
 | P2-E6 | Import/Export | 3 | 2 | IN PROGRESS |
 | P2-E7 | Search | 2 | 2 | DONE |
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 2 | IN PROGRESS |
-| **Total** | | **32** | **11** | |
+| **Total** | | **32** | **12** | |
 
 ---
 
@@ -341,7 +341,7 @@ Playwright E2E tests for task CRUD workflow.
 
 ### P2-E5-S1: Journals API Endpoints
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 CRUD endpoints for journal entries (VJOURNAL type).
@@ -349,12 +349,12 @@ CRUD endpoints for journal entries (VJOURNAL type).
 **Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [ ] `GET /api/v2/journals` — list journals with date range filter
-- [ ] `POST /api/v2/journals` — create journal (body: `{date, title, text}`)
-- [ ] `GET /api/v2/journals/{id}` — get journal entry
-- [ ] `PUT /api/v2/journals/{id}` — update journal
-- [ ] `DELETE /api/v2/journals/{id}` — delete journal
-- [ ] PHPStan level 9 passes
+- [x] `GET /api/v2/journals?start=YYYYMMDD&end=YYYYMMDD` — list journals in date range
+- [x] `POST /api/v2/journals` — create journal (body: `{date, title, text}`) returns 201
+- [x] `GET /api/v2/journals/{id}` — get journal entry
+- [x] `PUT /api/v2/journals/{id}` — update journal (title, text)
+- [x] `DELETE /api/v2/journals/{id}` — delete journal (204)
+- [x] PHPStan level 9 passes, Psalm clean
 
 ---
 
