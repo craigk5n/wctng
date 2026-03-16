@@ -18,11 +18,11 @@
 | P3-E2 | Tenant Resolver Middleware | 3 | 3 | DONE |
 | P3-E3 | Tenant Provisioning | 4 | 4 | DONE |
 | P3-E4 | Control Plane API | 4 | 4 | DONE |
-| P3-E5 | Tenant Admin Dashboard | 4 | 3 | IN PROGRESS |
+| P3-E5 | Tenant Admin Dashboard | 4 | 4 | DONE |
 | P3-E6 | Tenant-Aware Auth | 3 | 0 | NOT STARTED |
 | P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **17** | |
+| **Total** | | **27** | **18** | |
 
 ---
 
@@ -403,7 +403,7 @@ Multi-step form for provisioning a new tenant with validation and progress feedb
 
 ### P3-E5-S4: Tenant Detail & Stats Page
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Detail page for a single tenant showing configuration, stats, and management actions.
@@ -411,11 +411,11 @@ Detail page for a single tenant showing configuration, stats, and management act
 **Preconditions:** P3-E5-S2, P3-E4-S3
 
 **Acceptance Criteria:**
-- [ ] Shows tenant details: slug, name, plan, status, DB host, created date
-- [ ] Usage stats: user count, event count, storage, last activity
-- [ ] Actions: edit name/plan, suspend/activate, reset admin password, delete
-- [ ] Audit log of tenant lifecycle events (provisioned, suspended, etc.)
-- [ ] Vitest tests
+- [x] Shows tenant details: slug, name, plan, status, DB host, created date
+- [x] Usage stats: user count, event count, storage, last activity
+- [x] Actions: edit name/plan, suspend/activate, reset admin password, delete
+- [x] Audit log of tenant lifecycle events (provisioned, suspended, etc.)
+- [x] Vitest tests
 
 ---
 

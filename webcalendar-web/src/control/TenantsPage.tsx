@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { controlApiFetch } from './control-auth';
 import { ProvisionWizard } from './ProvisionWizard';
 
@@ -102,7 +103,9 @@ export function TenantsPage() {
             <tbody>
               {filtered.map((tenant) => (
                 <tr key={tenant.slug} className="border-b border-border hover:bg-muted/30">
-                  <td className="px-4 py-3 font-mono text-xs">{tenant.slug}</td>
+                  <td className="px-4 py-3 font-mono text-xs">
+                    <Link to={`/control/tenants/${tenant.slug}`} className="text-primary hover:underline">{tenant.slug}</Link>
+                  </td>
                   <td className="px-4 py-3">{tenant.name}</td>
                   <td className="px-4 py-3">{tenant.plan}</td>
                   <td className="px-4 py-3">

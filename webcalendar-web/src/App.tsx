@@ -17,6 +17,7 @@ import { ControlProtectedRoute } from './control/ControlProtectedRoute';
 import { ControlLayout } from './control/ControlLayout';
 import { TenantsPage } from './control/TenantsPage';
 import { StatsPage } from './control/StatsPage';
+import { TenantDetailPage } from './control/TenantDetailPage';
 
 export default function App() {
   return (
@@ -115,6 +116,16 @@ export default function App() {
             <ControlProtectedRoute>
               <ControlLayout>
                 <TenantsPage />
+              </ControlLayout>
+            </ControlProtectedRoute>
+          }
+        />
+        <Route
+          path="/control/tenants/:slug"
+          element={
+            <ControlProtectedRoute>
+              <ControlLayout>
+                <TenantDetailPage />
               </ControlLayout>
             </ControlProtectedRoute>
           }
