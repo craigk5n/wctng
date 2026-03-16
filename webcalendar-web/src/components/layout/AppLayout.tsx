@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/auth-context';
 import { cn } from '../../lib/utils';
+import { SearchBar } from '../search/SearchBar';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
@@ -67,7 +68,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             ))}
           </nav>
 
-          <div className="hidden md:block" />
+          <div className="hidden md:block">
+            <SearchBar />
+          </div>
 
           <div className="flex items-center gap-3">
             {user && (

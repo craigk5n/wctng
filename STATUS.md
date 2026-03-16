@@ -19,11 +19,11 @@
 | P2-E4 | Tasks | 4 | 1 | IN PROGRESS |
 | P2-E5 | Journals | 3 | 0 | NOT STARTED |
 | P2-E6 | Import/Export | 3 | 0 | NOT STARTED |
-| P2-E7 | Search | 2 | 1 | IN PROGRESS |
+| P2-E7 | Search | 2 | 2 | DONE |
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 0 | NOT STARTED |
-| **Total** | | **32** | **6** | |
+| **Total** | | **32** | **7** | |
 
 ---
 
@@ -479,7 +479,7 @@ Global search endpoint using webcalendar-core's SearchService.
 
 ### P2-E7-S2: Search UI
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Search input in the app header with results dropdown.
@@ -487,13 +487,13 @@ Search input in the app header with results dropdown.
 **Preconditions:** P2-E7-S1
 
 **Acceptance Criteria:**
-- [ ] Search input in the app header (always visible)
-- [ ] Debounced search (300ms) as user types
-- [ ] Results dropdown showing matching events/tasks/journals with type icon
-- [ ] Clicking a result navigates to the event's date on the calendar
-- [ ] Empty state message when no results
-- [ ] Keyboard navigation (arrow keys, Enter to select, Escape to close)
-- [ ] Vitest tests pass
+- [x] Search input in the app header (always visible on desktop)
+- [x] Debounced search (300ms) as user types (min 2 chars)
+- [x] Results dropdown showing matching events with type icon (📅/✅/📓)
+- [x] Clicking a result navigates to the event's date on the calendar (day view)
+- [x] Empty state message when no results
+- [x] Keyboard navigation (ArrowUp/Down, Enter to select, Escape to close)
+- [x] Vitest tests pass (5 new tests)
 
 ---
 
