@@ -18,11 +18,11 @@
 | P3-E2 | Tenant Resolver Middleware | 3 | 3 | DONE |
 | P3-E3 | Tenant Provisioning | 4 | 4 | DONE |
 | P3-E4 | Control Plane API | 4 | 4 | DONE |
-| P3-E5 | Tenant Admin Dashboard | 4 | 1 | IN PROGRESS |
+| P3-E5 | Tenant Admin Dashboard | 4 | 2 | IN PROGRESS |
 | P3-E6 | Tenant-Aware Auth | 3 | 0 | NOT STARTED |
 | P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **15** | |
+| **Total** | | **27** | **16** | |
 
 ---
 
@@ -364,7 +364,7 @@ Separate React app (or route group) for the control plane dashboard with super-a
 
 ### P3-E5-S2: Tenant List & Management Page
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Page showing all tenants with status, actions, and search/filter.
@@ -372,12 +372,12 @@ Page showing all tenants with status, actions, and search/filter.
 **Preconditions:** P3-E5-S1, P3-E4-S2
 
 **Acceptance Criteria:**
-- [ ] Table of tenants: slug, name, plan, status, user count, created date
-- [ ] Status badges (active=green, suspended=yellow, pending=gray)
-- [ ] Search/filter by name or slug
-- [ ] Quick actions: suspend/activate toggle, delete (with confirmation)
-- [ ] Pagination for large tenant lists
-- [ ] Vitest tests
+- [x] Table of tenants: slug, name, plan, status, user count, created date
+- [x] Status badges (active=green, suspended=yellow, pending=gray)
+- [x] Search/filter by name or slug
+- [x] Quick actions: suspend/activate toggle, delete (with confirmation)
+- [x] Pagination for large tenant lists
+- [x] Vitest tests
 
 ---
 
