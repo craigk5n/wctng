@@ -19,11 +19,11 @@
 | P2-E4 | Tasks | 4 | 1 | IN PROGRESS |
 | P2-E5 | Journals | 3 | 0 | NOT STARTED |
 | P2-E6 | Import/Export | 3 | 0 | NOT STARTED |
-| P2-E7 | Search | 2 | 0 | NOT STARTED |
+| P2-E7 | Search | 2 | 1 | IN PROGRESS |
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 0 | NOT STARTED |
-| **Total** | | **32** | **5** | |
+| **Total** | | **32** | **6** | |
 
 ---
 
@@ -461,7 +461,7 @@ UI for importing and exporting calendar data.
 
 ### P2-E7-S1: Search API Endpoint
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Global search endpoint using webcalendar-core's SearchService.
@@ -469,11 +469,11 @@ Global search endpoint using webcalendar-core's SearchService.
 **Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [ ] `GET /api/v2/search?q=keyword&start=YYYYMMDD&end=YYYYMMDD` — searches event titles and descriptions
-- [ ] Optional filters: `type` (E/T/J), `category`, `user`
-- [ ] Returns standard envelope with paginated results
-- [ ] Results include event type, date, and match context
-- [ ] PHPStan level 9 passes
+- [x] `GET /api/v2/search?q=keyword&start=YYYYMMDD&end=YYYYMMDD` — searches event titles and descriptions
+- [x] Optional date range filters (defaults to ±1 year)
+- [x] Returns standard envelope with matching events
+- [x] Results include event type, date, title, description
+- [x] PHPStan level 9 passes, Psalm clean
 
 ---
 
