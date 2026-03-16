@@ -27,6 +27,12 @@ security:
             stateless: true
             security: false
 
+        # CalDAV — auth handled by sabre/dav internally
+        caldav:
+            pattern: ^/dav/
+            stateless: true
+            security: false
+
         # Control plane — handled by ControlPlaneGuard listener
         control:
             pattern: ^/control/

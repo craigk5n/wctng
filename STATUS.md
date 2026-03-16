@@ -15,14 +15,14 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| P4-E1 | CalDAV Server Core | 4 | 0 | NOT STARTED |
+| P4-E1 | CalDAV Server Core | 4 | 1 | IN PROGRESS |
 | P4-E2 | CalDAV Calendar & Event Operations | 4 | 0 | NOT STARTED |
 | P4-E3 | CalDAV Tasks & Journals | 3 | 0 | NOT STARTED |
 | P4-E4 | CalDAV Integration Tests | 2 | 0 | NOT STARTED |
 | P4-E5 | OAuth2 / OIDC Authentication | 4 | 0 | NOT STARTED |
 | P4-E6 | LDAP Authentication | 3 | 0 | NOT STARTED |
 | P4-E7 | Per-Tenant Auth Configuration | 3 | 0 | NOT STARTED |
-| **Total** | | **23** | **0** | |
+| **Total** | | **23** | **1** | |
 
 ---
 
@@ -58,7 +58,7 @@ Same as Phase 1–3:
 
 ### P4-E1-S1: sabre/dav Installation & Routing
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Install sabre/dav via Composer, configure routing for `/dav/*` endpoints, and set up the basic CalDAV server with Symfony integration.
@@ -66,13 +66,13 @@ Install sabre/dav via Composer, configure routing for `/dav/*` endpoints, and se
 **Preconditions:** Phase 3 complete
 
 **Acceptance Criteria:**
-- [ ] `sabre/dav` installed via Composer
-- [ ] `/dav/` route handled by a Symfony controller that bootstraps sabre/dav Server
-- [ ] OPTIONS and PROPFIND requests return valid WebDAV responses
-- [ ] Basic authentication bridge: CalDAV auth delegates to webcalendar-core AuthService
-- [ ] nginx config updated to pass `/dav/*` to PHP-FPM
-- [ ] PHPStan level 9 passes
-- [ ] Smoke test: PROPFIND / returns valid multistatus XML
+- [x] `sabre/dav` installed via Composer
+- [x] `/dav/` route handled by a Symfony controller that bootstraps sabre/dav Server
+- [x] OPTIONS and PROPFIND requests return valid WebDAV responses
+- [x] Basic authentication bridge: CalDAV auth delegates to webcalendar-core AuthService
+- [x] nginx config updated to pass `/dav/*` to PHP-FPM
+- [x] PHPStan level 9 passes
+- [x] Smoke test: PROPFIND / returns valid multistatus XML
 
 ---
 

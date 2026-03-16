@@ -8,6 +8,7 @@
         "craigk5n/webcalendar-core": "dev-main",
         "lexik/jwt-authentication-bundle": "^3.1",
         "nelmio/cors-bundle": "^2.4",
+        "sabre/dav": "^4.7",
         "symfony/console": "^7.2",
         "symfony/dotenv": "^7.2",
         "symfony/flex": "^2.4",
