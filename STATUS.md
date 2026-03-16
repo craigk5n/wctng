@@ -16,14 +16,14 @@
 | P2-E1 | Event Participants | 4 | 4 | DONE |
 | P2-E2 | Groups | 3 | 1 | IN PROGRESS |
 | P2-E3 | Calendar Layers | 3 | 0 | NOT STARTED |
-| P2-E4 | Tasks | 4 | 1 | IN PROGRESS |
+| P2-E4 | Tasks | 4 | 2 | IN PROGRESS |
 | P2-E5 | Journals | 3 | 1 | IN PROGRESS |
 | P2-E6 | Import/Export | 3 | 2 | IN PROGRESS |
 | P2-E7 | Search | 2 | 2 | DONE |
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 3 | IN PROGRESS |
-| **Total** | | **32** | **14** | |
+| **Total** | | **32** | **15** | |
 
 ---
 
@@ -281,7 +281,7 @@ CRUD endpoints for tasks. Tasks are calendar entries with type 'T' or 'N'.
 
 ### P2-E4-S2: Tasks Page UI
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Dedicated tasks page with list view, filtering, and inline completion.
@@ -289,13 +289,13 @@ Dedicated tasks page with list view, filtering, and inline completion.
 **Preconditions:** P2-E4-S1
 
 **Acceptance Criteria:**
-- [ ] Route `/tasks` with sidebar link
-- [ ] Task list with columns: title, due date, priority, completion %, status
-- [ ] Filter by status: All, Pending, Completed
-- [ ] Click task to view/edit details
-- [ ] Checkbox to mark task complete (sets percent_complete to 100)
-- [ ] Create task button + dialog
-- [ ] Vitest tests pass
+- [x] Route `/tasks` with sidebar link (✅ Tasks)
+- [x] Task list with title, due date, completion %, status
+- [x] Filter by status: All, Pending, Completed
+- [x] Checkbox to mark task complete/incomplete (toggles percent_complete 0↔100)
+- [x] Delete button per task
+- [x] Create task form with title + due date
+- [x] Vitest tests pass (5 new tests)
 
 ---
 

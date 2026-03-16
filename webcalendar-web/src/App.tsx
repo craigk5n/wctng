@@ -7,6 +7,7 @@ import { CalendarPage } from './calendar/CalendarPage';
 import { UserManagement } from './admin/UserManagement';
 import { CategoryManagement } from './admin/CategoryManagement';
 import { PreferencesPage } from './settings/PreferencesPage';
+import { TasksPage } from './tasks/TasksPage';
 import { NotFound } from './pages/NotFound';
 
 export default function App() {
@@ -54,6 +55,16 @@ export default function App() {
             <ProtectedRoute>
               <AppLayout>
                 <PreferencesPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tasks"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <TasksPage />
               </AppLayout>
             </ProtectedRoute>
           }
