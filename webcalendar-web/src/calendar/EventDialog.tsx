@@ -70,6 +70,8 @@ export function EventDialog({
   const { categories: availableCategories } = useCategories();
   const [groups, setGroups] = useState<GroupSuggestion[]>([]);
   const [showGroupSuggestions, setShowGroupSuggestions] = useState(false);
+  const [categorySearch, setCategorySearch] = useState('');
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -283,34 +285,87 @@ export function EventDialog({
 
           {availableCategories.length > 0 && (
             <div className="space-y-2">
-              <span className="text-sm font-medium">Category</span>
-              <div className="flex flex-wrap gap-2">
-                {availableCategories.map((cat) => {
-                  const isSelected = selectedCategories.includes(cat.id);
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedCategories((prev) =>
-                          isSelected ? prev.filter((id) => id !== cat.id) : [...prev, cat.id],
-                        );
-                      }}
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                        isSelected
-                          ? 'border-transparent text-white'
-                          : 'border-border text-muted-foreground hover:border-foreground/30'
-                      }`}
-                      style={isSelected ? { backgroundColor: cat.color ?? '#3788d8' } : undefined}
-                    >
+              <span className="text-sm font-medium">Categories</span>
+              {/* Selected categories as chips */}
+              {selectedCategories.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedCategories.map((catId) => {
+                    const cat = availableCategories.find((c) => c.id === catId);
+                    if (!cat) return null;
+                    return (
                       <span
-                        className="h-2.5 w-2.5 rounded-full"
+                        key={cat.id}
+                        className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium text-white"
                         style={{ backgroundColor: cat.color ?? '#3788d8' }}
-                      />
-                      {cat.name}
-                    </button>
-                  );
-                })}
+                      >
+                        {cat.name}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCategories((prev) => prev.filter((id) => id !== cat.id))}
+                          className="ml-0.5 hover:opacity-70"
+                          aria-label={`Remove ${cat.name}`}
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+              {/* Search input */}
+              <div className="relative">
+                <input
+                  type="text"
+                  value={categorySearch}
+                  onChange={(e) => {
+                    setCategorySearch(e.target.value);
+                    setShowCategoryDropdown(true);
+                  }}
+                  onFocus={() => setShowCategoryDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowCategoryDropdown(false), 200)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') setShowCategoryDropdown(false);
+                  }}
+                  placeholder="Search categories..."
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                  aria-label="Search categories"
+                />
+                {showCategoryDropdown && (
+                  <div className="absolute left-0 top-10 z-10 max-h-40 w-full overflow-y-auto rounded-md border border-border bg-card shadow-lg">
+                    {availableCategories
+                      .filter((cat) =>
+                        cat.name.toLowerCase().includes(categorySearch.toLowerCase()) &&
+                        !selectedCategories.includes(cat.id),
+                      )
+                      .map((cat) => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedCategories((prev) => [...prev, cat.id]);
+                            setCategorySearch('');
+                            setShowCategoryDropdown(false);
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent"
+                        >
+                          <span
+                            className="h-3 w-3 rounded-full"
+                            style={{ backgroundColor: cat.color ?? '#3788d8' }}
+                          />
+                          {cat.name}
+                        </button>
+                      ))}
+                    {availableCategories.filter(
+                      (cat) =>
+                        cat.name.toLowerCase().includes(categorySearch.toLowerCase()) &&
+                        !selectedCategories.includes(cat.id),
+                    ).length === 0 && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">
+                        {categorySearch ? 'No matching categories' : 'All categories selected'}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
