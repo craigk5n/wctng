@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthContext, type AuthContextValue } from '../../auth/auth-context';
+import { ToastProvider } from '../../components/toast/ToastProvider';
 import { CalendarPage } from '../CalendarPage';
 
 // Mock FullCalendar
@@ -26,11 +27,13 @@ function renderCalendarPage() {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <AuthContext.Provider value={auth}>
-          <CalendarPage />
-        </AuthContext.Provider>
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter>
+          <AuthContext.Provider value={auth}>
+            <CalendarPage />
+          </AuthContext.Provider>
+        </MemoryRouter>
+      </ToastProvider>
     </QueryClientProvider>,
   );
 }

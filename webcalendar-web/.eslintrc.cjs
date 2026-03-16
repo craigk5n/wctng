@@ -26,7 +26,7 @@ module.exports = {
   overrides: [
     {
       // Shadcn/ui components export both components and variant helpers
-      files: ['src/components/ui/**/*.tsx'],
+      files: ['src/components/ui/**/*.tsx', 'src/components/toast/**/*.tsx'],
       rules: {
         'react-refresh/only-export-components': 'off',
       },

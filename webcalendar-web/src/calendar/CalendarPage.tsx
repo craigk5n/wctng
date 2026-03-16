@@ -6,6 +6,7 @@ import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
 import { apiEventToInitialValues } from './eventDialogHelpers';
 import type { ApiEvent } from './eventMapper';
 import { apiFetch } from '../api/client';
+import { useToast } from '../components/toast/ToastProvider';
 
 type DialogState =
   | { type: 'none' }
@@ -18,6 +19,7 @@ export function CalendarPage() {
   const calendarRef = useRef<FullCalendarWrapperHandle>(null);
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' });
   const [isDeleting, setIsDeleting] = useState(false);
+  const { toast } = useToast();
 
   // --- Event click: fetch full event and show detail ---
   const handleEventClick = useCallback(async (eventId: number) => {
@@ -79,10 +81,12 @@ export function CalendarPage() {
 
     if (!error) {
       calendarRef.current?.refetchEvents();
+      toast({ title: 'Event created', variant: 'success' });
       return true;
     }
+    toast({ title: 'Failed to create event', variant: 'error' });
     return false;
-  }, []);
+  }, [toast]);
 
   // --- Update event ---
   const handleUpdate = useCallback(
@@ -109,11 +113,13 @@ export function CalendarPage() {
 
       if (!error) {
         calendarRef.current?.refetchEvents();
+        toast({ title: 'Event updated', variant: 'success' });
         return true;
       }
+      toast({ title: 'Failed to update event', variant: 'error' });
       return false;
     },
-    [dialog],
+    [dialog, toast],
   );
 
   // --- Delete event ---
@@ -127,9 +133,12 @@ export function CalendarPage() {
     if (!error) {
       calendarRef.current?.refetchEvents();
       setDialog({ type: 'none' });
+      toast({ title: 'Event deleted', variant: 'success' });
+    } else {
+      toast({ title: 'Failed to delete event', variant: 'error' });
     }
     setIsDeleting(false);
-  }, [dialog]);
+  }, [dialog, toast]);
 
   const closeDialog = useCallback(() => setDialog({ type: 'none' }), []);
 

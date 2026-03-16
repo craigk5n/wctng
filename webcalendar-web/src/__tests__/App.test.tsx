@@ -1,8 +1,23 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TOKEN_STORAGE_KEY } from '../api/client';
+import { ToastProvider } from '../components/toast/ToastProvider';
 import App from '../App';
+
+function renderApp(initialRoute = '/') {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={qc}>
+      <ToastProvider>
+        <MemoryRouter initialEntries={[initialRoute]}>
+          <App />
+        </MemoryRouter>
+      </ToastProvider>
+    </QueryClientProvider>,
+  );
+}
 
 describe('App Routing', () => {
   beforeEach(() => {
@@ -10,11 +25,7 @@ describe('App Routing', () => {
   });
 
   it('redirects unauthenticated users to /login', () => {
-    render(
-      <MemoryRouter initialEntries={['/']}>
-        <App />
-      </MemoryRouter>,
-    );
+    renderApp('/');
 
     expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
   });
@@ -31,11 +42,7 @@ describe('App Routing', () => {
     );
     localStorage.setItem(TOKEN_STORAGE_KEY, `eyJhbGciOiJSUzI1NiJ9.${payload}.sig`);
 
-    render(
-      <MemoryRouter initialEntries={['/some-nonexistent-route']}>
-        <App />
-      </MemoryRouter>,
-    );
+    renderApp('/some-nonexistent-route');
 
     expect(screen.getByText('404')).toBeInTheDocument();
   });
@@ -51,11 +58,7 @@ describe('App Routing', () => {
     );
     localStorage.setItem(TOKEN_STORAGE_KEY, `eyJhbGciOiJSUzI1NiJ9.${payload}.sig`);
 
-    render(
-      <MemoryRouter initialEntries={['/']}>
-        <App />
-      </MemoryRouter>,
-    );
+    renderApp('/');
 
     // Should show the layout with calendar content
     const appNames = screen.getAllByText(/webcalendar/i);
@@ -63,11 +66,7 @@ describe('App Routing', () => {
   });
 
   it('shows login page at /login', () => {
-    render(
-      <MemoryRouter initialEntries={['/login']}>
-        <App />
-      </MemoryRouter>,
-    );
+    renderApp('/login');
 
     expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
