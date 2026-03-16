@@ -6,6 +6,7 @@ namespace App\CalDav;
 
 use App\Service\CoreServiceFactory;
 use Sabre\CalDAV\Backend\BackendInterface;
+use Sabre\CalDAV\Backend\SyncSupport;
 use Sabre\CalDAV\Plugin;
 use Sabre\CalDAV\Xml\Property\ScheduleCalendarTransp;
 use Sabre\CalDAV\Xml\Property\SupportedCalendarComponentSet;
@@ -23,7 +24,7 @@ use WebCalendar\Core\Domain\ValueObject\EventType;
  * Each user has one implicit "default" calendar. Calendar objects
  * (VEVENT) are mapped to/from webcalendar-core Event entities.
  */
-final class CoreCalendarBackend implements BackendInterface
+final class CoreCalendarBackend implements BackendInterface, SyncSupport
 {
     private const DEFAULT_COLOR = '#3788d8';
 
@@ -55,6 +56,8 @@ final class CoreCalendarBackend implements BackendInterface
                     new SupportedCalendarComponentSet(['VEVENT', 'VTODO', 'VJOURNAL']),
                 '{' . Plugin::NS_CALDAV . '}schedule-calendar-transp' =>
                     new ScheduleCalendarTransp('opaque'),
+                '{DAV:}sync-token' => $this->getSyncToken($username),
+                '{http://calendarserver.org/ns/}getctag' => $this->getSyncToken($username),
             ],
         ];
     }
@@ -316,6 +319,54 @@ final class CoreCalendarBackend implements BackendInterface
             return 'calendars/' . $username . '/default/' . $event->id()->value() . '.ics';
         } catch (\Throwable) {
             return null;
+        }
+    }
+
+    /**
+     * @return array{syncToken: string, added: list<string>, modified: list<string>, deleted: list<string>}
+     */
+    #[\Override]
+    public function getChangesForCalendar($calendarId, $syncToken, $syncLevel, $limit = null): array
+    {
+        // Since webcalendar-core doesn't have change tracking, return all objects
+        // as "added" when no sync token is provided, or empty changes when token matches.
+        /** @var string $currentToken */
+        $currentToken = $this->getSyncToken((string) $calendarId);
+
+        if ($syncToken === $currentToken) {
+            return [
+                'syncToken' => $currentToken,
+                'added' => [],
+                'modified' => [],
+                'deleted' => [],
+            ];
+        }
+
+        // Token mismatch or initial sync — return all objects as added
+        $objects = $this->getCalendarObjects($calendarId);
+        $added = array_map(static fn (array $o): string => \is_string($o['uri']) ? $o['uri'] : '', $objects);
+
+        return [
+            'syncToken' => $currentToken,
+            'added' => $added,
+            'modified' => [],
+            'deleted' => [],
+        ];
+    }
+
+    private function getSyncToken(string $username): string
+    {
+        try {
+            $pdo = $this->coreServiceFactory->getPdo();
+            $stmt = $pdo->prepare('SELECT MAX(cal_mod_date * 1000000 + COALESCE(cal_mod_time, 0)) AS max_mod FROM webcal_entry WHERE cal_create_by = :user');
+            $stmt->execute(['user' => $username]);
+            $val = $stmt->fetchColumn();
+
+            $token = \is_numeric($val) ? (string) $val : '0';
+
+            return 'sync-' . $token;
+        } catch (\Throwable) {
+            return 'sync-' . time();
         }
     }
 

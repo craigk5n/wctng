@@ -16,13 +16,13 @@
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
 | P4-E1 | CalDAV Server Core | 4 | 4 | DONE |
-| P4-E2 | CalDAV Calendar & Event Operations | 4 | 1 | IN PROGRESS |
+| P4-E2 | CalDAV Calendar & Event Operations | 4 | 2 | IN PROGRESS |
 | P4-E3 | CalDAV Tasks & Journals | 3 | 0 | NOT STARTED |
 | P4-E4 | CalDAV Integration Tests | 2 | 0 | NOT STARTED |
 | P4-E5 | OAuth2 / OIDC Authentication | 4 | 0 | NOT STARTED |
 | P4-E6 | LDAP Authentication | 3 | 0 | NOT STARTED |
 | P4-E7 | Per-Tenant Auth Configuration | 3 | 0 | NOT STARTED |
-| **Total** | | **23** | **5** | |
+| **Total** | | **23** | **6** | |
 
 ---
 
@@ -160,7 +160,7 @@ Implement PUT, GET, DELETE for calendar objects (VEVENT) in the CalDAV backend.
 
 ### P4-E2-S2: CalDAV Event Sync (ctag/sync-token)
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Support efficient synchronization via calendar ctag and sync-token, allowing clients to fetch only changed events.
@@ -168,11 +168,11 @@ Support efficient synchronization via calendar ctag and sync-token, allowing cli
 **Preconditions:** P4-E2-S1
 
 **Acceptance Criteria:**
-- [ ] `getChangesForCalendarId()` returns created/modified/deleted events since a sync token
-- [ ] Calendar ctag changes when any event in the calendar is modified
-- [ ] Sync reports return proper multistatus responses
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests
+- [x] `getChangesForCalendarId()` returns created/modified/deleted events since a sync token
+- [x] Calendar ctag changes when any event in the calendar is modified
+- [x] Sync reports return proper multistatus responses
+- [x] PHPStan level 9 passes
+- [x] Unit tests
 
 ---
 
