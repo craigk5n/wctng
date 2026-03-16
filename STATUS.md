@@ -16,13 +16,13 @@
 |------|-------|---------|------|--------|
 | P3-E1 | Tenant Data Model | 3 | 3 | DONE |
 | P3-E2 | Tenant Resolver Middleware | 3 | 3 | DONE |
-| P3-E3 | Tenant Provisioning | 4 | 2 | IN PROGRESS |
+| P3-E3 | Tenant Provisioning | 4 | 3 | IN PROGRESS |
 | P3-E4 | Control Plane API | 4 | 0 | NOT STARTED |
 | P3-E5 | Tenant Admin Dashboard | 4 | 0 | NOT STARTED |
 | P3-E6 | Tenant-Aware Auth | 3 | 0 | NOT STARTED |
 | P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **8** | |
+| **Total** | | **27** | **9** | |
 
 ---
 
@@ -222,7 +222,7 @@ Symfony console command for manually provisioning tenants (useful for ops and te
 
 ### P3-E3-S3: Schema Migration Service
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Service to run schema migrations across all tenant databases when webcalendar-core is updated.
@@ -230,12 +230,12 @@ Service to run schema migrations across all tenant databases when webcalendar-co
 **Preconditions:** P3-E3-S1
 
 **Acceptance Criteria:**
-- [ ] `TenantMigrator` service iterates all active tenants and applies pending migrations
-- [ ] `php bin/console tenant:migrate` runs migrations on all tenant DBs
-- [ ] `php bin/console tenant:migrate --tenant={slug}` runs on a single tenant
-- [ ] Reports success/failure per tenant with summary
-- [ ] Handles connection failures gracefully (skips, reports, continues)
-- [ ] PHPStan level 9 passes
+- [x] `TenantMigrator` service iterates all active tenants and applies pending migrations
+- [x] `php bin/console tenant:migrate` runs migrations on all tenant DBs
+- [x] `php bin/console tenant:migrate --tenant={slug}` runs on a single tenant
+- [x] Reports success/failure per tenant with summary
+- [x] Handles connection failures gracefully (skips, reports, continues)
+- [x] PHPStan level 9 passes
 
 ---
 

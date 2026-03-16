@@ -70,6 +70,10 @@ services:
     App\Security\WebCalendarUserProvider:
         public: true
 
+    App\Tenant\TenantMigrator:
+        arguments:
+            $migrationsDir: '%kernel.project_dir%/migrations/tenant'
+
     # Tenant CLI commands
     App\Command\TenantCreateCommand:
         arguments:
