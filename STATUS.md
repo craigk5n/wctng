@@ -15,14 +15,14 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| P4-E1 | CalDAV Server Core | 4 | 1 | IN PROGRESS |
+| P4-E1 | CalDAV Server Core | 4 | 2 | IN PROGRESS |
 | P4-E2 | CalDAV Calendar & Event Operations | 4 | 0 | NOT STARTED |
 | P4-E3 | CalDAV Tasks & Journals | 3 | 0 | NOT STARTED |
 | P4-E4 | CalDAV Integration Tests | 2 | 0 | NOT STARTED |
 | P4-E5 | OAuth2 / OIDC Authentication | 4 | 0 | NOT STARTED |
 | P4-E6 | LDAP Authentication | 3 | 0 | NOT STARTED |
 | P4-E7 | Per-Tenant Auth Configuration | 3 | 0 | NOT STARTED |
-| **Total** | | **23** | **1** | |
+| **Total** | | **23** | **2** | |
 
 ---
 
@@ -78,7 +78,7 @@ Install sabre/dav via Composer, configure routing for `/dav/*` endpoints, and se
 
 ### P4-E1-S2: CalDAV Principal Backend
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Implement the sabre/dav PrincipalBackend that maps webcalendar users to CalDAV principals.
@@ -86,12 +86,12 @@ Implement the sabre/dav PrincipalBackend that maps webcalendar users to CalDAV p
 **Preconditions:** P4-E1-S1
 
 **Acceptance Criteria:**
-- [ ] `CorePrincipalBackend` implements `Sabre\DAVACL\PrincipalBackend\BackendInterface`
-- [ ] `getPrincipalsByPrefix('principals')` returns all webcalendar users
-- [ ] `getPrincipalByPath('principals/username')` returns user details
-- [ ] Principal properties include display name, email, calendar-home-set
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests with mock UserService
+- [x] `CorePrincipalBackend` implements `Sabre\DAVACL\PrincipalBackend\BackendInterface`
+- [x] `getPrincipalsByPrefix('principals')` returns all webcalendar users
+- [x] `getPrincipalByPath('principals/username')` returns user details
+- [x] Principal properties include display name, email, calendar-home-set
+- [x] PHPStan level 9 passes
+- [x] Unit tests with mock UserService
 
 ---
 
