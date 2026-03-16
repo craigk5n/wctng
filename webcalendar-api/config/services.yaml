@@ -29,6 +29,11 @@ services:
             $pdo: '@pdo.connection'
             $appSecret: '%env(APP_SECRET)%'
 
+    # Layer controller needs direct PDO for ID workaround
+    App\Controller\Api\LayerController:
+        arguments:
+            $pdo: '@pdo.connection'
+
     # Auth controller needs JWT TTL
     App\Controller\Api\AuthController:
         arguments:

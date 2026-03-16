@@ -15,7 +15,7 @@
 |------|-------|---------|------|--------|
 | P2-E1 | Event Participants | 4 | 4 | DONE |
 | P2-E2 | Groups | 3 | 3 | DONE |
-| P2-E3 | Calendar Layers | 3 | 0 | NOT STARTED |
+| P2-E3 | Calendar Layers | 3 | 1 | IN PROGRESS |
 | P2-E4 | Tasks | 4 | 2 | IN PROGRESS |
 | P2-E5 | Journals | 3 | 2 | IN PROGRESS |
 | P2-E6 | Import/Export | 3 | 3 | DONE |
@@ -23,7 +23,7 @@
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 3 | IN PROGRESS |
-| **Total** | | **32** | **19** | |
+| **Total** | | **32** | **20** | |
 
 ---
 
@@ -201,7 +201,7 @@ Allow adding an entire group as participants to an event.
 
 ### P2-E3-S1: Layers API Endpoints
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 CRUD endpoints for calendar layers (overlays).
@@ -209,12 +209,12 @@ CRUD endpoints for calendar layers (overlays).
 **Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [ ] `GET /api/v2/layers` — list current user's layers
-- [ ] `POST /api/v2/layers` — add a layer (body: `{source_user, color, visible}`)
-- [ ] `PUT /api/v2/layers/{id}` — update layer settings
-- [ ] `DELETE /api/v2/layers/{id}` — remove a layer
-- [ ] Events from layered users included in `GET /events` when layers are active
-- [ ] PHPStan level 9 passes
+- [x] `GET /api/v2/layers` — list current user's layers
+- [x] `POST /api/v2/layers` — add a layer (body: `{source_user, color, visible}`)
+- [x] `PUT /api/v2/layers/{id}` — update layer settings
+- [x] `DELETE /api/v2/layers/{id}` — remove a layer
+- [x] Events from layered users included in `GET /events` when layers are active
+- [x] PHPStan level 9 passes
 
 ---
 

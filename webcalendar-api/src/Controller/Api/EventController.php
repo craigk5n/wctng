@@ -53,6 +53,22 @@ final class EventController
         $collection = $this->coreServiceFactory->getEventService()->getEventsInDateRange($dateRange, $coreUser);
 
         $allEvents = $collection->all();
+
+        // Include events from active layers when layers=1
+        if ($request->query->getString('layers', '') === '1') {
+            $layers = $this->coreServiceFactory->getLayerService()->getLayersForUser($user->getUserIdentifier());
+            $layerUsers = array_map(static fn ($l) => $l->layerUser(), $layers);
+            if (\count($layerUsers) > 0) {
+                $layerCollection = $this->coreServiceFactory->getEventService()->getEventsInDateRange($dateRange, null, null, $layerUsers);
+                // Merge, avoiding duplicates by event ID
+                $existingIds = array_map(static fn ($e) => $e->id(), $allEvents);
+                foreach ($layerCollection->all() as $layerEvent) {
+                    if (!\in_array($layerEvent->id(), $existingIds, true)) {
+                        $allEvents[] = $layerEvent;
+                    }
+                }
+            }
+        }
         $total = \count($allEvents);
         $offset = ($page - 1) * $limit;
         $pageItems = array_values(\array_slice($allEvents, $offset, $limit));
