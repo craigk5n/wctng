@@ -20,9 +20,9 @@
 | P3-E4 | Control Plane API | 4 | 4 | DONE |
 | P3-E5 | Tenant Admin Dashboard | 4 | 4 | DONE |
 | P3-E6 | Tenant-Aware Auth | 3 | 3 | DONE |
-| P3-E7 | Tenant Isolation & Security | 3 | 1 | IN PROGRESS |
+| P3-E7 | Tenant Isolation & Security | 3 | 2 | IN PROGRESS |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **22** | |
+| **Total** | | **27** | **23** | |
 
 ---
 
@@ -506,7 +506,7 @@ Security middleware that prevents any cross-tenant data access at the API level.
 
 ### P3-E7-S2: Tenant Rate Limiting
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Per-tenant rate limiting to prevent a single tenant from consuming excessive resources.
@@ -514,12 +514,12 @@ Per-tenant rate limiting to prevent a single tenant from consuming excessive res
 **Preconditions:** P3-E7-S1
 
 **Acceptance Criteria:**
-- [ ] Rate limiter keyed by tenant slug (not just IP)
-- [ ] Configurable limits per plan (e.g., free=100 req/min, pro=1000 req/min)
-- [ ] Rate limit headers in response: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
-- [ ] 429 Too Many Requests response when exceeded
-- [ ] PHPStan level 9 passes
-- [ ] Functional tests
+- [x] Rate limiter keyed by tenant slug (not just IP)
+- [x] Configurable limits per plan (e.g., free=100 req/min, pro=1000 req/min)
+- [x] Rate limit headers in response: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+- [x] 429 Too Many Requests response when exceeded
+- [x] PHPStan level 9 passes
+- [x] Functional tests
 
 ---
 

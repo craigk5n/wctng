@@ -28,6 +28,10 @@ services:
             - '%env(DATABASE_URL)%'
 
     # Tenant services
+    App\Tenant\TenantRateLimiter:
+        arguments:
+            $storageDir: '%kernel.cache_dir%'
+
     App\Tenant\TenantRepository:
         arguments:
             $pdo: '@pdo.connection'
