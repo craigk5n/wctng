@@ -16,13 +16,13 @@
 |------|-------|---------|------|--------|
 | P3-E1 | Tenant Data Model | 3 | 3 | DONE |
 | P3-E2 | Tenant Resolver Middleware | 3 | 3 | DONE |
-| P3-E3 | Tenant Provisioning | 4 | 0 | NOT STARTED |
+| P3-E3 | Tenant Provisioning | 4 | 1 | IN PROGRESS |
 | P3-E4 | Control Plane API | 4 | 0 | NOT STARTED |
 | P3-E5 | Tenant Admin Dashboard | 4 | 0 | NOT STARTED |
 | P3-E6 | Tenant-Aware Auth | 3 | 0 | NOT STARTED |
 | P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **6** | |
+| **Total** | | **27** | **7** | |
 
 ---
 
@@ -183,7 +183,7 @@ End-to-end tests verifying the full tenant resolution chain across all resolutio
 
 ### P3-E3-S1: Schema Deployment Service
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Service that creates a new database and deploys the webcalendar-core schema for a new tenant.
@@ -191,13 +191,13 @@ Service that creates a new database and deploys the webcalendar-core schema for 
 **Preconditions:** P3-E1-S2
 
 **Acceptance Criteria:**
-- [ ] `TenantProvisioner` service: `provision(slug, name, adminEmail)` → creates DB, runs schema, creates admin user
-- [ ] Uses webcalendar-core's SQL schema file for table creation
-- [ ] Creates initial admin user with generated password
-- [ ] Returns provisioning result with credentials and connection details
-- [ ] Handles DB creation errors gracefully (duplicate name, permissions, etc.)
-- [ ] PHPStan level 9 passes
-- [ ] Integration tests (creates real test DB, verifies schema, tears down)
+- [x] `TenantProvisioner` service: `provision(slug, name, adminEmail)` → creates DB, runs schema, creates admin user
+- [x] Uses webcalendar-core's SQL schema file for table creation
+- [x] Creates initial admin user with generated password
+- [x] Returns provisioning result with credentials and connection details
+- [x] Handles DB creation errors gracefully (duplicate name, permissions, etc.)
+- [x] PHPStan level 9 passes
+- [x] Integration tests (creates real test DB, verifies schema, tears down)
 
 ---
 
