@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { FullCalendarWrapper, type FullCalendarWrapperHandle } from './FullCalendarWrapper';
 import { EventDetailDialog } from './EventDetailDialog';
 import { EventDialog, type EventFormData } from './EventDialog';
@@ -30,6 +31,7 @@ export function CalendarPage() {
   const [defaultView, setDefaultView] = useState('dayGridMonth');
   const { toast } = useToast();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Load saved default view preference
   useEffect(() => {
@@ -42,6 +44,28 @@ export function CalendarPage() {
       }
     })();
   }, [user?.login]);
+
+  // Handle URL search params (from search bar navigation)
+  useEffect(() => {
+    const viewParam = searchParams.get('view');
+    const dateParam = searchParams.get('date');
+
+    if (!viewParam && !dateParam) return;
+
+    // Delay to let FullCalendar mount
+    const timer = setTimeout(() => {
+      if (viewParam) {
+        calendarRef.current?.changeView(viewParam);
+      }
+      if (dateParam) {
+        calendarRef.current?.gotoDate(dateParam);
+      }
+      // Clear params so they don't re-trigger
+      setSearchParams({}, { replace: true });
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [searchParams, setSearchParams]);
 
   // --- Global keyboard shortcuts ---
   const shortcutHandlers = useMemo(() => ({

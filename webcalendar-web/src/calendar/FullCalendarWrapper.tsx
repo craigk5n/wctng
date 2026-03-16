@@ -11,6 +11,8 @@ import { useCategories, getEventColor } from './useCategories';
 
 export interface FullCalendarWrapperHandle {
   refetchEvents: () => void;
+  gotoDate: (date: string) => void;
+  changeView: (view: string) => void;
 }
 
 interface FullCalendarWrapperProps {
@@ -87,6 +89,12 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
       if (lastDatesSetRef.current) {
         void fetchEventsWrapped(lastDatesSetRef.current);
       }
+    },
+    gotoDate: (date: string) => {
+      calendarRef.current?.getApi().gotoDate(date);
+    },
+    changeView: (view: string) => {
+      calendarRef.current?.getApi().changeView(view);
     },
   }), [fetchEventsWrapped]);
 

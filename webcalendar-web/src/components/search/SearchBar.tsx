@@ -99,9 +99,14 @@ export function SearchBar() {
         return;
       }
 
-      if (e.key === 'Enter' && selectedIndex >= 0 && selectedIndex < results.length) {
+      if (e.key === 'Enter') {
         e.preventDefault();
-        handleSelect(results[selectedIndex]);
+        if (selectedIndex >= 0 && selectedIndex < results.length) {
+          handleSelect(results[selectedIndex]);
+        } else if (results.length > 0) {
+          // Select first result when no arrow-key selection made
+          handleSelect(results[0]);
+        }
       }
     },
     [isOpen, results, selectedIndex, handleSelect],
