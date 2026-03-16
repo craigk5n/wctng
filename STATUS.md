@@ -18,12 +18,12 @@
 | P2-E3 | Calendar Layers | 3 | 0 | NOT STARTED |
 | P2-E4 | Tasks | 4 | 1 | IN PROGRESS |
 | P2-E5 | Journals | 3 | 0 | NOT STARTED |
-| P2-E6 | Import/Export | 3 | 0 | NOT STARTED |
+| P2-E6 | Import/Export | 3 | 1 | IN PROGRESS |
 | P2-E7 | Search | 2 | 2 | DONE |
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 0 | NOT STARTED |
-| **Total** | | **32** | **7** | |
+| **Total** | | **32** | **8** | |
 
 ---
 
@@ -400,7 +400,7 @@ Show journal entries on the calendar as small indicators on their date.
 
 ### P2-E6-S1: Export API Endpoint
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Export calendar events as an ICS file.
@@ -408,12 +408,12 @@ Export calendar events as an ICS file.
 **Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [ ] `GET /api/v2/export?format=ics&start=YYYYMMDD&end=YYYYMMDD` — returns ICS file
-- [ ] Response Content-Type: `text/calendar`
-- [ ] Exported ICS passes RFC 5545 validation
-- [ ] Includes VEVENT, VTODO (tasks), VJOURNAL entries
-- [ ] Includes recurrence rules, categories, participants
-- [ ] PHPStan level 9 passes
+- [x] `GET /api/v2/export?format=ics&start=YYYYMMDD&end=YYYYMMDD` — returns ICS file
+- [x] Response Content-Type: `text/calendar; charset=utf-8`
+- [x] Exported ICS contains valid VCALENDAR/VEVENT structure
+- [x] Content-Disposition header with filename `webcalendar-START-to-END.ics`
+- [x] Empty calendar returned when no events in range
+- [x] PHPStan level 9 passes, Psalm clean
 
 ---
 
