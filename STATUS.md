@@ -20,10 +20,10 @@
 | P2-E5 | Journals | 3 | 3 | DONE |
 | P2-E6 | Import/Export | 3 | 3 | DONE |
 | P2-E7 | Search | 2 | 2 | DONE |
-| P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
+| P2-E8 | Real-time (Mercure) | 3 | 1 | IN PROGRESS |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 3 | IN PROGRESS |
-| **Total** | | **32** | **25** | |
+| **Total** | | **32** | **26** | |
 
 ---
 
@@ -502,7 +502,7 @@ Search input in the app header with results dropdown.
 
 ### P2-E8-S1: Mercure Hub Setup
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Add Mercure hub to Docker Compose and configure Symfony to publish events.
@@ -510,12 +510,12 @@ Add Mercure hub to Docker Compose and configure Symfony to publish events.
 **Preconditions:** P2-E1 (participants — so there are multi-user scenarios)
 
 **Acceptance Criteria:**
-- [ ] Mercure hub added to `docker-compose.dev.yml` on port 47181
-- [ ] `config/packages/mercure.yaml` configured
-- [ ] `MercurePublisher` service publishes event changes to topics
-- [ ] Topics follow pattern: `/calendars/events/{eventId}`
-- [ ] JWT token for Mercure publisher configured
-- [ ] Health check for Mercure hub
+- [x] Mercure hub added to `docker-compose.dev.yml` on port 47181
+- [x] `config/packages/mercure.yaml` configured
+- [x] `MercurePublisher` service publishes event changes to topics
+- [x] Topics follow pattern: `/calendars/events/{eventId}`
+- [x] JWT token for Mercure publisher configured
+- [x] Health check for Mercure hub
 
 ---
 
