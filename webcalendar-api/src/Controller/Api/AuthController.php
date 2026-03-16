@@ -7,6 +7,7 @@ namespace App\Controller\Api;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Service\CoreServiceFactory;
+use App\Tenant\TenantContext;
 use Lexik\Bundle\JWTAuthenticationBundle\Encoder\JWTEncoderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -20,6 +21,7 @@ final class AuthController
         private readonly CoreServiceFactory $coreServiceFactory,
         private readonly JWTEncoderInterface $jwtEncoder,
         private readonly int $jwtTtl,
+        private readonly TenantContext $tenantContext,
     ) {
     }
 
@@ -86,10 +88,18 @@ final class AuthController
 
     private function createTokenResponse(string $login, bool $isAdmin, \WebCalendar\Core\Domain\Entity\User $coreUser): JsonResponse
     {
-        $token = $this->jwtEncoder->encode([
+        $claims = [
             'username' => $login,
             'is_admin' => $isAdmin,
-        ]);
+        ];
+
+        // Include tenant claim in multi-tenant mode
+        $tenant = $this->tenantContext->getTenant();
+        if ($tenant !== null) {
+            $claims['tenant'] = $tenant->slug();
+        }
+
+        $token = $this->jwtEncoder->encode($claims);
 
         $expiresAt = new \DateTimeImmutable('+' . $this->jwtTtl . ' seconds');
 

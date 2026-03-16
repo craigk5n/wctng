@@ -19,10 +19,10 @@
 | P3-E3 | Tenant Provisioning | 4 | 4 | DONE |
 | P3-E4 | Control Plane API | 4 | 4 | DONE |
 | P3-E5 | Tenant Admin Dashboard | 4 | 4 | DONE |
-| P3-E6 | Tenant-Aware Auth | 3 | 0 | NOT STARTED |
+| P3-E6 | Tenant-Aware Auth | 3 | 1 | IN PROGRESS |
 | P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **18** | |
+| **Total** | | **27** | **19** | |
 
 ---
 
@@ -425,7 +425,7 @@ Detail page for a single tenant showing configuration, stats, and management act
 
 ### P3-E6-S1: Tenant-Scoped JWT Tokens
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Include tenant slug in JWT tokens so the API can verify tenant context from the token.
@@ -433,13 +433,13 @@ Include tenant slug in JWT tokens so the API can verify tenant context from the 
 **Preconditions:** P3-E2-S1
 
 **Acceptance Criteria:**
-- [ ] JWT tokens include `tenant` claim with the tenant slug
-- [ ] `WebCalendarUserProvider` loads users from the tenant's database (not the control DB)
-- [ ] Token validation checks that the `tenant` claim matches the resolved tenant context
-- [ ] Mismatched tenant (token says "acme" but request goes to "globex") returns 403
-- [ ] Standalone mode: no `tenant` claim in JWT, works as before
-- [ ] PHPStan level 9 passes
-- [ ] Functional tests
+- [x] JWT tokens include `tenant` claim with the tenant slug
+- [x] `WebCalendarUserProvider` loads users from the tenant's database (not the control DB)
+- [x] Token validation checks that the `tenant` claim matches the resolved tenant context
+- [x] Mismatched tenant (token says "acme" but request goes to "globex") returns 403
+- [x] Standalone mode: no `tenant` claim in JWT, works as before
+- [x] PHPStan level 9 passes
+- [x] Functional tests
 
 ---
 
