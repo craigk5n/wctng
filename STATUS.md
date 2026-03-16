@@ -15,14 +15,14 @@
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
 | P3-E1 | Tenant Data Model | 3 | 3 | DONE |
-| P3-E2 | Tenant Resolver Middleware | 3 | 1 | IN PROGRESS |
+| P3-E2 | Tenant Resolver Middleware | 3 | 2 | IN PROGRESS |
 | P3-E3 | Tenant Provisioning | 4 | 0 | NOT STARTED |
 | P3-E4 | Control Plane API | 4 | 0 | NOT STARTED |
 | P3-E5 | Tenant Admin Dashboard | 4 | 0 | NOT STARTED |
 | P3-E6 | Tenant-Aware Auth | 3 | 0 | NOT STARTED |
 | P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **4** | |
+| **Total** | | **27** | **5** | |
 
 ---
 
@@ -141,7 +141,7 @@ Symfony event listener that resolves the tenant from the request subdomain (e.g.
 
 ### P3-E2-S2: Header & JWT Resolver
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Alternative tenant resolution via `X-Tenant-Id` header or JWT `tenant` claim, for API clients that can't use subdomains.
@@ -149,12 +149,12 @@ Alternative tenant resolution via `X-Tenant-Id` header or JWT `tenant` claim, fo
 **Preconditions:** P3-E2-S1
 
 **Acceptance Criteria:**
-- [ ] `X-Tenant-Id` header resolution (fallback when subdomain is not present)
-- [ ] JWT `tenant` claim resolution (extracted from authenticated token)
-- [ ] Resolution priority: subdomain > header > JWT claim > standalone default
-- [ ] Tenant mismatch between JWT claim and subdomain returns 403
-- [ ] PHPStan level 9 passes
-- [ ] Functional tests
+- [x] `X-Tenant-Id` header resolution (fallback when subdomain is not present)
+- [x] JWT `tenant` claim resolution (extracted from authenticated token)
+- [x] Resolution priority: subdomain > header > JWT claim > standalone default
+- [x] Tenant mismatch between JWT claim and subdomain returns 403
+- [x] PHPStan level 9 passes
+- [x] Functional tests
 
 ---
 

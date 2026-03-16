@@ -11,10 +11,12 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * Resolves the current tenant from the request subdomain.
+ * Resolves the current tenant from the request.
  *
- * Extracts the slug from `{slug}.{base_domain}` in the Host header,
- * looks it up in the tenant registry, and sets the TenantContext.
+ * Resolution priority:
+ * 1. Subdomain: `{slug}.{base_domain}` from Host header
+ * 2. X-Tenant-Id header (fallback for API clients)
+ * 3. No resolution (standalone or base domain requests)
  */
 #[AsEventListener(event: KernelEvents::REQUEST, priority: 200)]
 final readonly class TenantResolverListener
@@ -39,21 +41,19 @@ final readonly class TenantResolverListener
             return;
         }
 
-        $host = $event->getRequest()->getHost();
+        // Try subdomain resolution first
+        $slug = $this->extractSubdomain($event->getRequest()->getHost());
 
-        // Skip if the host is the base domain itself (no subdomain)
-        if ($host === $this->baseDomain) {
-            return;
+        // Fallback to X-Tenant-Id header
+        if ($slug === null) {
+            $headerValue = $event->getRequest()->headers->get('X-Tenant-Id');
+            if ($headerValue !== null && $headerValue !== '') {
+                $slug = $headerValue;
+            }
         }
 
-        // Extract subdomain: {slug}.{baseDomain}
-        $suffix = '.' . $this->baseDomain;
-        if (!str_ends_with($host, $suffix)) {
-            return;
-        }
-
-        $slug = substr($host, 0, -\strlen($suffix));
-        if ($slug === '') {
+        // No tenant identifier found — allow request through (base domain / control plane)
+        if ($slug === null) {
             return;
         }
 
@@ -78,5 +78,22 @@ final readonly class TenantResolverListener
         }
 
         $this->tenantContext->setTenant($tenant);
+    }
+
+    private function extractSubdomain(string $host): ?string
+    {
+        // Skip if the host is the base domain itself
+        if ($host === $this->baseDomain) {
+            return null;
+        }
+
+        $suffix = '.' . $this->baseDomain;
+        if (!str_ends_with($host, $suffix)) {
+            return null;
+        }
+
+        $slug = substr($host, 0, -\strlen($suffix));
+
+        return $slug !== '' ? $slug : null;
     }
 }
