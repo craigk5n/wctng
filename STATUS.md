@@ -16,13 +16,13 @@
 |------|-------|---------|------|--------|
 | P3-E1 | Tenant Data Model | 3 | 3 | DONE |
 | P3-E2 | Tenant Resolver Middleware | 3 | 3 | DONE |
-| P3-E3 | Tenant Provisioning | 4 | 3 | IN PROGRESS |
+| P3-E3 | Tenant Provisioning | 4 | 4 | DONE |
 | P3-E4 | Control Plane API | 4 | 0 | NOT STARTED |
 | P3-E5 | Tenant Admin Dashboard | 4 | 0 | NOT STARTED |
 | P3-E6 | Tenant-Aware Auth | 3 | 0 | NOT STARTED |
 | P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **9** | |
+| **Total** | | **27** | **10** | |
 
 ---
 
@@ -241,7 +241,7 @@ Service to run schema migrations across all tenant databases when webcalendar-co
 
 ### P3-E3-S4: Tenant Provisioning E2E Tests
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Full lifecycle tests: create tenant, access via subdomain, verify data isolation, delete.
@@ -249,11 +249,11 @@ Full lifecycle tests: create tenant, access via subdomain, verify data isolation
 **Preconditions:** P3-E3-S2
 
 **Acceptance Criteria:**
-- [ ] Test: provision tenant → login via subdomain → create event → verify event exists only in tenant DB
-- [ ] Test: two tenants provisioned, each has isolated data
-- [ ] Test: suspend tenant → API returns 403
-- [ ] Test: delete tenant → DB removed, slug available for reuse
-- [ ] All tests pass
+- [x] Test: provision tenant → login via subdomain → create event → verify event exists only in tenant DB
+- [x] Test: two tenants provisioned, each has isolated data
+- [x] Test: suspend tenant → API returns 403
+- [x] Test: delete tenant → DB removed, slug available for reuse
+- [x] All tests pass
 
 ---
 

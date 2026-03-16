@@ -42,6 +42,14 @@ final class TenantDatabaseManager
     }
 
     /**
+     * Removes a cached connection for a tenant slug.
+     */
+    public function clearConnection(string $slug): void
+    {
+        unset($this->connections[$slug]);
+    }
+
+    /**
      * Encrypts a database password for storage in the tenant registry.
      */
     public function encryptPassword(string $plaintext): string
