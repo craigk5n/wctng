@@ -1,11 +1,12 @@
-# WCTNG — Phase 2 Development Plan & Status
+# WCTNG — Phase 3 Development Plan & Status
 
 > **Last Updated:** 2026-03-16
-> **Phase:** 2 — Multi-User & Collaboration
-> **Goal:** Participants, groups, permissions, layers, tasks, journals, import/export, real-time updates
+> **Phase:** 3 — Hosted / Multi-Tenant
+> **Goal:** Subdomain-based tenant isolation, provisioning, control plane API, admin dashboard
 > **Methodology:** TDD (write tests first, then implementation)
 > **Developed by:** AI Agent
 > **Phase 1 Archive:** See `STATUS-PHASE1-ARCHIVE.md`
+> **Phase 2 Archive:** See `STATUS-PHASE2-ARCHIVE.md`
 
 ---
 
@@ -13,690 +14,600 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| P2-E1 | Event Participants | 4 | 4 | DONE |
-| P2-E2 | Groups | 3 | 3 | DONE |
-| P2-E3 | Calendar Layers | 3 | 3 | DONE |
-| P2-E4 | Tasks | 4 | 4 | DONE |
-| P2-E5 | Journals | 3 | 3 | DONE |
-| P2-E6 | Import/Export | 3 | 3 | DONE |
-| P2-E7 | Search | 2 | 2 | DONE |
-| P2-E8 | Real-time (Mercure) | 3 | 3 | DONE |
-| P2-E9 | Permissions & Access Control | 3 | 3 | DONE |
-| P2-E10 | UI Polish & UX | 4 | 4 | DONE |
-| **Total** | | **32** | **32** | |
+| P3-E1 | Tenant Data Model | 3 | 0 | NOT STARTED |
+| P3-E2 | Tenant Resolver Middleware | 3 | 0 | NOT STARTED |
+| P3-E3 | Tenant Provisioning | 4 | 0 | NOT STARTED |
+| P3-E4 | Control Plane API | 4 | 0 | NOT STARTED |
+| P3-E5 | Tenant Admin Dashboard | 4 | 0 | NOT STARTED |
+| P3-E6 | Tenant-Aware Auth | 3 | 0 | NOT STARTED |
+| P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
+| P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
+| **Total** | | **27** | **0** | |
 
 ---
 
 ## Dependency Graph
 
 ```
-P2-E1 (Participants) ──► P2-E8 (Real-time)
-P2-E2 (Groups) ──► P2-E9 (Permissions)
-P2-E3 (Layers) ──► P2-E10 (UI Polish)
-P2-E4 (Tasks)
-P2-E5 (Journals)
-P2-E6 (Import/Export) — depends on P2-E4 (tasks in iCal)
-P2-E7 (Search)
-P2-E9 (Permissions) ──► P2-E3 (Layers need permissions)
+P3-E1 (Tenant Data Model) ──► P3-E2 (Resolver Middleware)
+P3-E1 ──► P3-E3 (Provisioning)
+P3-E2 ──► P3-E6 (Tenant-Aware Auth)
+P3-E2 ──► P3-E7 (Isolation & Security)
+P3-E3 ──► P3-E4 (Control Plane API)
+P3-E4 ──► P3-E5 (Admin Dashboard)
+P3-E1 ──► P3-E8 (Standalone ↔ Hosted)
 ```
 
-**Critical path:** P2-E1 → P2-E8 (participants before real-time)
-**Independent:** P2-E4, P2-E5, P2-E7 can be done in parallel
+**Critical path:** P3-E1 → P3-E2 → P3-E3 → P3-E4 → P3-E5
+**Independent after E1:** P3-E8 can be done any time after E1
 
 ---
 
 ## Global Standards
 
-Same as Phase 1:
+Same as Phase 1 & 2:
 - PHP 8.2+, PHPStan level 9, Psalm errorLevel 1, PHPUnit 10
 - React 18, TypeScript strict, ESLint, Vitest, Playwright
 - TDD: write tests first, then implementation
-- Docker-based development on ports 47180/47106/47173
+- Docker-based development on ports 47180/47106/47173/47181
 
 ---
 
-## Epic P2-E1: Event Participants
+## Epic P3-E1: Tenant Data Model
 
-**Goal:** Allow events to have multiple participants with status tracking (accepted, rejected, tentative).
+**Goal:** Define the tenant registry schema, entity, and repository for tracking tenants and their database connections.
 
-### P2-E1-S1: Participants API Endpoints
+### P3-E1-S1: Tenant Registry Schema & Entity
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Implement REST endpoints for managing event participants. Delegates to webcalendar-core's `EventService::addParticipant()`, `removeParticipant()`, `setParticipantStatus()`.
+Create the `tenants` table in the control database and a Symfony entity to represent a tenant. The control database is the default connection; tenant databases are separate.
 
-**Preconditions:** Phase 1 complete
+**Preconditions:** Phase 2 complete
 
 **Acceptance Criteria:**
-- [x] `GET /api/v2/events/{id}/participants` — returns list of participants with status
-- [x] `POST /api/v2/events/{id}/participants` — add participants (body: `{participants: ["user1", "user2"]}`)
-- [x] `DELETE /api/v2/events/{id}/participants/{login}` — remove a participant
-- [x] `PUT /api/v2/events/{id}/participants/{login}` — update participant status (body: `{status: "A"}`)
-- [x] Only event owner or admin can add/remove participants (via EventService authorization)
-- [x] Participant can update their own status
-- [x] Event GET response includes `participants` array with login + status
-- [x] PHPStan level 9 passes
-- [x] Psalm passes
+- [ ] Doctrine migration creates `tenants` table with: `id`, `slug` (unique), `name`, `db_host`, `db_name`, `db_user`, `db_password` (encrypted), `plan`, `status` (active/suspended/pending), `created_at`, `updated_at`
+- [ ] `Tenant` entity with getters, validation (slug format: lowercase alphanumeric + hyphens, 3-50 chars)
+- [ ] `TenantRepository` with `findBySlug()`, `findAll()`, `save()`, `delete()`
+- [ ] Reserved slugs list (api, www, admin, app, mail, etc.) enforced on creation
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests for entity validation and repository
 
 ---
 
-### P2-E1-S2: Approve/Reject Event Endpoints
+### P3-E1-S2: Tenant Database Configuration Service
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Implement `POST /api/v2/events/{id}/approve` and `POST /api/v2/events/{id}/reject` for participants to respond to event invitations.
+Service that creates PDO connections to tenant databases dynamically based on tenant registry data.
 
-**Preconditions:** P2-E1-S1
+**Preconditions:** P3-E1-S1
 
 **Acceptance Criteria:**
-- [x] `POST /api/v2/events/{id}/approve` — sets current user's status to Accepted
-- [x] `POST /api/v2/events/{id}/reject` — sets current user's status to Rejected
-- [x] Only participants of the event can approve/reject (via EventService authorization)
-- [x] Returns 400 if user is not a participant, 404 if event not found
-- [x] PHPStan level 9 passes, Psalm clean
+- [ ] `TenantDatabaseManager` service creates PDO connections from tenant credentials
+- [ ] Connection pooling / caching within a single request lifecycle
+- [ ] Credentials decrypted at connection time (using APP_SECRET as encryption key)
+- [ ] Graceful error handling when tenant DB is unreachable (503 response)
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests with mock PDO
 
 ---
 
-### P2-E1-S3: Participants UI in Event Detail
+### P3-E1-S3: Tenant Context Service
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Show participants in EventDetailDialog and allow adding/removing participants in EventDialog.
+Request-scoped service that holds the current tenant context, making it available throughout the request lifecycle.
 
-**Preconditions:** P2-E1-S1
+**Preconditions:** P3-E1-S1
 
 **Acceptance Criteria:**
-- [x] EventDetailDialog shows participant list with name + status badge (Accepted/Rejected/Tentative)
-- [x] EventDialog (edit mode) has a participant input field — type username, press Enter to add
-- [x] Participants can be removed from the edit dialog (chip ✕ button)
-- [x] Status badges are color-coded (green=accepted, red=rejected, yellow=pending)
-- [x] Vitest tests pass (8 new tests)
+- [ ] `TenantContext` service holds current `Tenant` entity (or null for standalone mode)
+- [ ] `setTenant()` / `getTenant()` / `isMultiTenant()` methods
+- [ ] Registered as a scoped service (reset per request)
+- [ ] `CoreServiceFactory` uses tenant PDO when `TenantContext` has a tenant, default PDO otherwise
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests
 
 ---
 
-### P2-E1-S4: Participant Status Response UI
+## Epic P3-E2: Tenant Resolver Middleware
 
-**Status:** DONE
+**Goal:** Automatically resolve the current tenant from the incoming request (subdomain, header, or JWT claim).
+
+### P3-E2-S1: Subdomain Resolver
+
+**Status:** NOT STARTED
 
 **Description:**
-When viewing an event the user is invited to, show Accept/Reject buttons.
+Symfony event listener that resolves the tenant from the request subdomain (e.g., `acme.webcalendar.com` → slug `acme`).
 
-**Preconditions:** P2-E1-S2, P2-E1-S3
+**Preconditions:** P3-E1-S3
 
 **Acceptance Criteria:**
-- [x] Events where current user is a pending participant show Accept/Reject buttons in detail view
-- [x] Clicking Accept calls `POST /events/{id}/approve`, refreshes event detail
-- [x] Clicking Reject calls `POST /events/{id}/reject`, refreshes event detail
-- [x] Already-responded events show current status with option to change (Accept↔Decline)
-- [x] Vitest tests pass (6 new tests)
+- [ ] `TenantResolverListener` runs on `kernel.request` with high priority
+- [ ] Extracts subdomain from `Host` header: `{slug}.{base_domain}`
+- [ ] Base domain configurable via `TENANT_BASE_DOMAIN` env var
+- [ ] Looks up tenant by slug, sets `TenantContext`, configures tenant PDO
+- [ ] Returns 404 JSON response for unknown tenant slugs
+- [ ] Skips resolution for standalone mode (when `APP_MODE=standalone`)
+- [ ] PHPStan level 9 passes
+- [ ] Functional tests with mock subdomains
 
 ---
 
-## Epic P2-E2: Groups
+### P3-E2-S2: Header & JWT Resolver
 
-**Goal:** User groups for organizing participants and permissions.
-
-### P2-E2-S1: Groups API Endpoints
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-CRUD endpoints for groups and group membership.
+Alternative tenant resolution via `X-Tenant-Id` header or JWT `tenant` claim, for API clients that can't use subdomains.
 
-**Preconditions:** Phase 1 complete
+**Preconditions:** P3-E2-S1
 
 **Acceptance Criteria:**
-- [x] `GET /api/v2/groups` — list all groups
-- [x] `POST /api/v2/groups` — create group (body: `{name}`) returns 201
-- [x] `GET /api/v2/groups/{id}` — get group with members array
-- [x] `DELETE /api/v2/groups/{id}` — delete group (204)
-- [x] `POST /api/v2/groups/{id}/members` — add members (body: `{users: ["user1"]}`)
-- [x] `DELETE /api/v2/groups/{id}/members/{login}` — remove member (204)
-- [x] PHPStan level 9 passes, Psalm clean
+- [ ] `X-Tenant-Id` header resolution (fallback when subdomain is not present)
+- [ ] JWT `tenant` claim resolution (extracted from authenticated token)
+- [ ] Resolution priority: subdomain > header > JWT claim > standalone default
+- [ ] Tenant mismatch between JWT claim and subdomain returns 403
+- [ ] PHPStan level 9 passes
+- [ ] Functional tests
 
 ---
 
-### P2-E2-S2: Groups Management UI
+### P3-E2-S3: Tenant Resolver Integration Tests
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Admin page for managing groups and their members.
+End-to-end tests verifying the full tenant resolution chain across all resolution methods.
 
-**Preconditions:** P2-E2-S1
+**Preconditions:** P3-E2-S2
 
 **Acceptance Criteria:**
-- [x] Route `/admin/groups` with sidebar link (admin only)
-- [x] List all groups with member count
-- [x] Create group form with name field
-- [x] Click group to see/manage members
-- [x] Add/remove members from a group
-- [x] Vitest tests pass
+- [ ] Test: subdomain resolution creates correct PDO and returns tenant-specific data
+- [ ] Test: header resolution works for API-only clients
+- [ ] Test: standalone mode (no tenant) uses default database
+- [ ] Test: invalid/suspended tenant returns appropriate error
+- [ ] Test: cross-tenant data isolation (tenant A cannot see tenant B's data)
+- [ ] All tests pass in under 30 seconds
 
 ---
 
-### P2-E2-S3: Group Selection in Event Participants
+## Epic P3-E3: Tenant Provisioning
 
-**Status:** DONE
+**Goal:** Automate creation of new tenant databases, schema setup, and initial admin user.
+
+### P3-E3-S1: Schema Deployment Service
+
+**Status:** NOT STARTED
 
 **Description:**
-Allow adding an entire group as participants to an event.
+Service that creates a new database and deploys the webcalendar-core schema for a new tenant.
 
-**Preconditions:** P2-E2-S1, P2-E1-S3
+**Preconditions:** P3-E1-S2
 
 **Acceptance Criteria:**
-- [x] EventDialog participant input shows groups in addition to individual users
-- [x] Selecting a group expands to all group members as individual participants
-- [x] Groups shown with a distinct icon/badge
-- [x] Vitest tests pass
+- [ ] `TenantProvisioner` service: `provision(slug, name, adminEmail)` → creates DB, runs schema, creates admin user
+- [ ] Uses webcalendar-core's SQL schema file for table creation
+- [ ] Creates initial admin user with generated password
+- [ ] Returns provisioning result with credentials and connection details
+- [ ] Handles DB creation errors gracefully (duplicate name, permissions, etc.)
+- [ ] PHPStan level 9 passes
+- [ ] Integration tests (creates real test DB, verifies schema, tears down)
 
 ---
 
-## Epic P2-E3: Calendar Layers
+### P3-E3-S2: Tenant Provisioning CLI Command
 
-**Goal:** Overlay other users' calendars on your own view.
-
-### P2-E3-S1: Layers API Endpoints
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-CRUD endpoints for calendar layers (overlays).
+Symfony console command for manually provisioning tenants (useful for ops and testing).
 
-**Preconditions:** Phase 1 complete
+**Preconditions:** P3-E3-S1
 
 **Acceptance Criteria:**
-- [x] `GET /api/v2/layers` — list current user's layers
-- [x] `POST /api/v2/layers` — add a layer (body: `{source_user, color, visible}`)
-- [x] `PUT /api/v2/layers/{id}` — update layer settings
-- [x] `DELETE /api/v2/layers/{id}` — remove a layer
-- [x] Events from layered users included in `GET /events` when layers are active
-- [x] PHPStan level 9 passes
+- [ ] `php bin/console tenant:create {slug} {name} --admin-email={email}` provisions a new tenant
+- [ ] `php bin/console tenant:list` shows all tenants with status
+- [ ] `php bin/console tenant:suspend {slug}` suspends a tenant (sets status, blocks access)
+- [ ] `php bin/console tenant:delete {slug} --force` deletes tenant DB and registry entry
+- [ ] Output shows provisioning details (URL, admin credentials)
+- [ ] PHPStan level 9 passes
 
 ---
 
-### P2-E3-S2: Layer Management UI
+### P3-E3-S3: Schema Migration Service
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Sidebar panel for managing calendar layers.
+Service to run schema migrations across all tenant databases when webcalendar-core is updated.
 
-**Preconditions:** P2-E3-S1
+**Preconditions:** P3-E3-S1
 
 **Acceptance Criteria:**
-- [x] Sidebar section showing active layers with color + user name
-- [x] Toggle visibility per layer (checkbox)
-- [x] Add layer: user search dropdown + color picker
-- [x] Remove layer button
-- [x] Layer events shown on calendar with layer color
-- [x] Vitest tests pass
+- [ ] `TenantMigrator` service iterates all active tenants and applies pending migrations
+- [ ] `php bin/console tenant:migrate` runs migrations on all tenant DBs
+- [ ] `php bin/console tenant:migrate --tenant={slug}` runs on a single tenant
+- [ ] Reports success/failure per tenant with summary
+- [ ] Handles connection failures gracefully (skips, reports, continues)
+- [ ] PHPStan level 9 passes
 
 ---
 
-### P2-E3-S3: Multi-User Calendar View
+### P3-E3-S4: Tenant Provisioning E2E Tests
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-When layers are active, fetch and display events from multiple users on the same calendar with distinct colors.
+Full lifecycle tests: create tenant, access via subdomain, verify data isolation, delete.
 
-**Preconditions:** P2-E3-S2
+**Preconditions:** P3-E3-S2
 
 **Acceptance Criteria:**
-- [x] FullCalendarWrapper fetches events from all active layers + own events
-- [x] Events from different users have different colors (from layer settings)
-- [x] Event detail shows which user's calendar the event belongs to
-- [x] Layer toggle immediately adds/removes events without page reload
-- [x] Vitest tests pass
+- [ ] Test: provision tenant → login via subdomain → create event → verify event exists only in tenant DB
+- [ ] Test: two tenants provisioned, each has isolated data
+- [ ] Test: suspend tenant → API returns 403
+- [ ] Test: delete tenant → DB removed, slug available for reuse
+- [ ] All tests pass
 
 ---
 
-## Epic P2-E4: Tasks
+## Epic P3-E4: Control Plane API
 
-**Goal:** Task (to-do) management with due dates, priority, and completion tracking.
+**Goal:** REST API for managing tenants programmatically (used by admin dashboard and ops tools).
 
-### P2-E4-S1: Tasks API Endpoints
+### P3-E4-S1: Control Plane Auth
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-CRUD endpoints for tasks. Tasks are calendar entries with type 'T' or 'N'.
+Separate authentication for the control plane (super-admin level, not per-tenant).
 
-**Preconditions:** Phase 1 complete
+**Preconditions:** P3-E2-S1
 
 **Acceptance Criteria:**
-- [x] `GET /api/v2/tasks?start=YYYYMMDD&end=YYYYMMDD` — list tasks in date range
-- [x] `POST /api/v2/tasks` — create task (body: `{title, due_date, priority}`)
-- [x] `GET /api/v2/tasks/{id}` — get task details
-- [x] `PUT /api/v2/tasks/{id}` — update task (including `percent_complete`)
-- [x] `DELETE /api/v2/tasks/{id}` — delete task (204)
-- [x] Task response includes: `title`, `due_date`, `due_time`, `priority`, `percent_complete`, `status`
-- [x] PHPStan level 9 passes, Psalm clean
+- [ ] Control plane routes under `/control/v1/*` with separate JWT auth
+- [ ] Super-admin user stored in control database (not tenant DB)
+- [ ] `POST /control/v1/auth/login` returns control plane JWT
+- [ ] Control plane JWT includes `role: "super_admin"` claim
+- [ ] Regular tenant JWTs cannot access control plane routes
+- [ ] PHPStan level 9 passes
+- [ ] Functional tests
 
 ---
 
-### P2-E4-S2: Tasks Page UI
+### P3-E4-S2: Tenant CRUD Endpoints
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Dedicated tasks page with list view, filtering, and inline completion.
+REST endpoints for creating, reading, updating, and deleting tenants.
 
-**Preconditions:** P2-E4-S1
+**Preconditions:** P3-E4-S1, P3-E3-S1
 
 **Acceptance Criteria:**
-- [x] Route `/tasks` with sidebar link (✅ Tasks)
-- [x] Task list with title, due date, completion %, status
-- [x] Filter by status: All, Pending, Completed
-- [x] Checkbox to mark task complete/incomplete (toggles percent_complete 0↔100)
-- [x] Delete button per task
-- [x] Create task form with title + due date
-- [x] Vitest tests pass (5 new tests)
+- [ ] `GET /control/v1/tenants` — list all tenants with status, plan, created_at
+- [ ] `POST /control/v1/tenants` — provision new tenant (body: `{slug, name, admin_email, plan}`)
+- [ ] `GET /control/v1/tenants/{slug}` — get tenant details including user count, event count
+- [ ] `PUT /control/v1/tenants/{slug}` — update tenant (name, plan, status)
+- [ ] `DELETE /control/v1/tenants/{slug}` — deprovision tenant (requires `?confirm=true`)
+- [ ] Provisioning is async-safe (returns 202 if DB creation takes time)
+- [ ] PHPStan level 9 passes
+- [ ] Functional tests for all endpoints
 
 ---
 
-### P2-E4-S3: Tasks on Calendar
+### P3-E4-S3: Tenant Statistics Endpoints
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Show tasks as events on the calendar (on their due date).
+Endpoints for monitoring tenant health and usage metrics.
 
-**Preconditions:** P2-E4-S1
+**Preconditions:** P3-E4-S2
 
 **Acceptance Criteria:**
-- [x] Tasks appear on calendar on their due date with a distinct style (e.g., dashed border, task icon)
-- [x] Clicking a task on calendar opens task detail (not event detail)
-- [x] Completed tasks shown with strikethrough or muted style
-- [x] Vitest tests pass
+- [ ] `GET /control/v1/tenants/{slug}/stats` — returns user count, event count, storage size, last activity
+- [ ] `GET /control/v1/stats/summary` — aggregate stats across all tenants
+- [ ] Stats queries run against tenant DBs efficiently (cached for 5 minutes)
+- [ ] PHPStan level 9 passes
+- [ ] Functional tests
 
 ---
 
-### P2-E4-S4: Tasks E2E Tests
+### P3-E4-S4: Control Plane Webhook Notifications
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Playwright E2E tests for task CRUD workflow.
+Webhook notifications for tenant lifecycle events (provisioned, suspended, deleted).
 
-**Preconditions:** P2-E4-S2
+**Preconditions:** P3-E4-S2
 
 **Acceptance Criteria:**
-- [x] Create task via UI, verify it appears in list
-- [x] Mark task complete, verify status changes
-- [x] Edit task details
-- [x] Delete task
-- [x] All tests pass in under 30 seconds
+- [ ] `CONTROL_WEBHOOK_URL` env var configures webhook endpoint
+- [ ] `tenant.provisioned` webhook sent after successful provisioning
+- [ ] `tenant.suspended` / `tenant.activated` webhooks for status changes
+- [ ] `tenant.deleted` webhook sent after deprovisioning
+- [ ] Webhook payload includes tenant slug, name, timestamp, event type
+- [ ] Fire-and-forget (webhook failure doesn't block operations)
+- [ ] PHPStan level 9 passes
 
 ---
 
-## Epic P2-E5: Journals
+## Epic P3-E5: Tenant Admin Dashboard
 
-**Goal:** Journal/diary entries associated with dates.
+**Goal:** Web UI for super-admins to manage tenants, view stats, and handle provisioning.
 
-### P2-E5-S1: Journals API Endpoints
+### P3-E5-S1: Dashboard Layout & Auth
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-CRUD endpoints for journal entries (VJOURNAL type).
+Separate React app (or route group) for the control plane dashboard with super-admin authentication.
 
-**Preconditions:** Phase 1 complete
+**Preconditions:** P3-E4-S1
 
 **Acceptance Criteria:**
-- [x] `GET /api/v2/journals?start=YYYYMMDD&end=YYYYMMDD` — list journals in date range
-- [x] `POST /api/v2/journals` — create journal (body: `{date, title, text}`) returns 201
-- [x] `GET /api/v2/journals/{id}` — get journal entry
-- [x] `PUT /api/v2/journals/{id}` — update journal (title, text)
-- [x] `DELETE /api/v2/journals/{id}` — delete journal (204)
-- [x] PHPStan level 9 passes, Psalm clean
+- [ ] Route group `/control/*` with separate login page
+- [ ] Super-admin login via control plane auth API
+- [ ] Dashboard layout with sidebar: Tenants, Stats, Settings
+- [ ] Protected routes (redirects to control login if not authenticated)
+- [ ] Vitest tests for auth flow
 
 ---
 
-### P2-E5-S2: Journals Page UI
+### P3-E5-S2: Tenant List & Management Page
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Journal page with chronological list and editing.
+Page showing all tenants with status, actions, and search/filter.
 
-**Preconditions:** P2-E5-S1
+**Preconditions:** P3-E5-S1, P3-E4-S2
 
 **Acceptance Criteria:**
-- [x] Route `/journals` with sidebar link (📓 Journals)
-- [x] Chronological list of journal entries (newest first)
-- [x] Create journal form with title, date picker, text area
-- [x] Inline edit (title + text) with save/cancel
-- [x] Delete with toast notification
-- [x] Vitest tests pass (4 new tests)
+- [ ] Table of tenants: slug, name, plan, status, user count, created date
+- [ ] Status badges (active=green, suspended=yellow, pending=gray)
+- [ ] Search/filter by name or slug
+- [ ] Quick actions: suspend/activate toggle, delete (with confirmation)
+- [ ] Pagination for large tenant lists
+- [ ] Vitest tests
 
 ---
 
-### P2-E5-S3: Journals on Calendar
+### P3-E5-S3: Tenant Provisioning Wizard
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Show journal entries on the calendar as small indicators on their date.
+Multi-step form for provisioning a new tenant with validation and progress feedback.
 
-**Preconditions:** P2-E5-S1
+**Preconditions:** P3-E5-S2
 
 **Acceptance Criteria:**
-- [x] Journal entries appear as small icons/dots on their date in month view
-- [x] Clicking the indicator opens the journal entry
-- [x] Distinct visual style from events and tasks
-- [x] Vitest tests pass
+- [ ] Step 1: Slug + name (validates slug format, checks availability in real-time)
+- [ ] Step 2: Admin email + plan selection
+- [ ] Step 3: Review & confirm
+- [ ] Progress indicator during provisioning (polling for status)
+- [ ] Success screen with tenant URL and admin credentials
+- [ ] Error handling with retry option
+- [ ] Vitest tests
 
 ---
 
-## Epic P2-E6: Import/Export
+### P3-E5-S4: Tenant Detail & Stats Page
 
-**Goal:** Import and export calendar data in iCalendar (ICS) format.
-
-### P2-E6-S1: Export API Endpoint
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Export calendar events as an ICS file.
+Detail page for a single tenant showing configuration, stats, and management actions.
 
-**Preconditions:** Phase 1 complete
+**Preconditions:** P3-E5-S2, P3-E4-S3
 
 **Acceptance Criteria:**
-- [x] `GET /api/v2/export?format=ics&start=YYYYMMDD&end=YYYYMMDD` — returns ICS file
-- [x] Response Content-Type: `text/calendar; charset=utf-8`
-- [x] Exported ICS contains valid VCALENDAR/VEVENT structure
-- [x] Content-Disposition header with filename `webcalendar-START-to-END.ics`
-- [x] Empty calendar returned when no events in range
-- [x] PHPStan level 9 passes, Psalm clean
+- [ ] Shows tenant details: slug, name, plan, status, DB host, created date
+- [ ] Usage stats: user count, event count, storage, last activity
+- [ ] Actions: edit name/plan, suspend/activate, reset admin password, delete
+- [ ] Audit log of tenant lifecycle events (provisioned, suspended, etc.)
+- [ ] Vitest tests
 
 ---
 
-### P2-E6-S2: Import API Endpoint
+## Epic P3-E6: Tenant-Aware Auth
 
-**Status:** DONE
+**Goal:** Ensure authentication and JWT tokens are tenant-scoped.
+
+### P3-E6-S1: Tenant-Scoped JWT Tokens
+
+**Status:** NOT STARTED
 
 **Description:**
-Import events from an uploaded ICS file.
+Include tenant slug in JWT tokens so the API can verify tenant context from the token.
 
-**Preconditions:** Phase 1 complete
+**Preconditions:** P3-E2-S1
 
 **Acceptance Criteria:**
-- [x] `POST /api/v2/import` — accepts multipart/form-data with ICS file
-- [x] Returns import result: `{imported, skipped, warnings}`
-- [x] Handles duplicate detection (via ImportService UID handling)
-- [x] Validates ICS content before importing (checks for BEGIN:VCALENDAR)
-- [x] Invalid ICS returns 400 with error message
-- [x] PHPStan level 9 passes, Psalm clean
+- [ ] JWT tokens include `tenant` claim with the tenant slug
+- [ ] `WebCalendarUserProvider` loads users from the tenant's database (not the control DB)
+- [ ] Token validation checks that the `tenant` claim matches the resolved tenant context
+- [ ] Mismatched tenant (token says "acme" but request goes to "globex") returns 403
+- [ ] Standalone mode: no `tenant` claim in JWT, works as before
+- [ ] PHPStan level 9 passes
+- [ ] Functional tests
 
 ---
 
-### P2-E6-S3: Import/Export UI
+### P3-E6-S2: Tenant-Scoped Login
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-UI for importing and exporting calendar data.
+Login endpoint resolves the user from the correct tenant database.
 
-**Preconditions:** P2-E6-S1, P2-E6-S2
+**Preconditions:** P3-E6-S1
 
 **Acceptance Criteria:**
-- [x] Export button in calendar toolbar — downloads ICS file (±1 year range)
-- [x] Import dialog — file upload with drag-and-drop zone
-- [x] Import result shows imported/skipped counts
-- [x] Confirm/Cancel buttons, Import button disabled without file
-- [x] Success/error toast with import summary
-- [x] Vitest tests pass (5 new tests)
+- [ ] `POST /api/v2/auth/login` on tenant subdomain authenticates against tenant DB
+- [ ] Same username can exist in different tenants (isolated user stores)
+- [ ] Login response includes tenant slug for frontend context
+- [ ] Failed login returns tenant-appropriate error (doesn't leak other tenant info)
+- [ ] PHPStan level 9 passes
+- [ ] Functional tests with two tenants, same username, different passwords
 
 ---
 
-## Epic P2-E7: Search
+### P3-E6-S3: Frontend Tenant Context
 
-**Goal:** Full-text search across events, tasks, and journals.
-
-### P2-E7-S1: Search API Endpoint
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Global search endpoint using webcalendar-core's SearchService.
+React app detects tenant from subdomain and stores tenant context for API calls.
 
-**Preconditions:** Phase 1 complete
+**Preconditions:** P3-E6-S2
 
 **Acceptance Criteria:**
-- [x] `GET /api/v2/search?q=keyword&start=YYYYMMDD&end=YYYYMMDD` — searches event titles and descriptions
-- [x] Optional date range filters (defaults to ±1 year)
-- [x] Returns standard envelope with matching events
-- [x] Results include event type, date, title, description
-- [x] PHPStan level 9 passes, Psalm clean
+- [ ] `useTenant()` hook extracts tenant slug from `window.location.hostname`
+- [ ] Tenant slug displayed in header/sidebar for tenant branding
+- [ ] Login page shows tenant name (fetched from `/api/v2/tenant/info` public endpoint)
+- [ ] Standalone mode: no tenant context, works as before
+- [ ] Vitest tests
 
 ---
 
-### P2-E7-S2: Search UI
+## Epic P3-E7: Tenant Isolation & Security
 
-**Status:** DONE
+**Goal:** Ensure complete data isolation between tenants and prevent cross-tenant access.
+
+### P3-E7-S1: Cross-Tenant Access Prevention
+
+**Status:** NOT STARTED
 
 **Description:**
-Search input in the app header with results dropdown.
+Security middleware that prevents any cross-tenant data access at the API level.
 
-**Preconditions:** P2-E7-S1
+**Preconditions:** P3-E2-S1
 
 **Acceptance Criteria:**
-- [x] Search input in the app header (always visible on desktop)
-- [x] Debounced search (300ms) as user types (min 2 chars)
-- [x] Results dropdown showing matching events with type icon (📅/✅/📓)
-- [x] Clicking a result navigates to the event's date on the calendar (day view)
-- [x] Empty state message when no results
-- [x] Keyboard navigation (ArrowUp/Down, Enter to select, Escape to close)
-- [x] Vitest tests pass (5 new tests)
+- [ ] All API controllers use tenant-scoped PDO (never the control DB for tenant data)
+- [ ] Mercure topics are tenant-scoped: `/tenants/{slug}/calendars/events`
+- [ ] Layers can only reference users within the same tenant
+- [ ] Group membership is tenant-scoped
+- [ ] Search is tenant-scoped
+- [ ] PHPStan level 9 passes
+- [ ] Security test: authenticate as tenant A, attempt to access tenant B's events → 403
 
 ---
 
-## Epic P2-E8: Real-time Updates (Mercure)
+### P3-E7-S2: Tenant Rate Limiting
 
-**Goal:** Live updates when other users create/modify/delete events.
-
-### P2-E8-S1: Mercure Hub Setup
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Add Mercure hub to Docker Compose and configure Symfony to publish events.
+Per-tenant rate limiting to prevent a single tenant from consuming excessive resources.
 
-**Preconditions:** P2-E1 (participants — so there are multi-user scenarios)
+**Preconditions:** P3-E7-S1
 
 **Acceptance Criteria:**
-- [x] Mercure hub added to `docker-compose.dev.yml` on port 47181
-- [x] `config/packages/mercure.yaml` configured
-- [x] `MercurePublisher` service publishes event changes to topics
-- [x] Topics follow pattern: `/calendars/events/{eventId}`
-- [x] JWT token for Mercure publisher configured
-- [x] Health check for Mercure hub
+- [ ] Rate limiter keyed by tenant slug (not just IP)
+- [ ] Configurable limits per plan (e.g., free=100 req/min, pro=1000 req/min)
+- [ ] Rate limit headers in response: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+- [ ] 429 Too Many Requests response when exceeded
+- [ ] PHPStan level 9 passes
+- [ ] Functional tests
 
 ---
 
-### P2-E8-S2: Server-Side Event Publishing
+### P3-E7-S3: Tenant Data Export & Portability
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Publish SSE notifications when events are created, updated, or deleted.
+Allow tenants to export all their data for portability and compliance.
 
-**Preconditions:** P2-E8-S1
+**Preconditions:** P3-E7-S1
 
 **Acceptance Criteria:**
-- [x] Event create publishes `{type: "event.created", event: {...}}`
-- [x] Event update publishes `{type: "event.updated", event: {...}}`
-- [x] Event delete publishes `{type: "event.deleted", eventId: ...}`
-- [x] Participant changes publish `{type: "participant.changed", ...}`
-- [x] Only published to relevant users (event participants + owner)
-- [x] PHPStan level 9 passes
+- [ ] `GET /api/v2/tenant/export` — downloads full tenant data as ZIP (ICS + JSON)
+- [ ] Export includes: all events, tasks, journals, users, categories, groups
+- [ ] Export is rate-limited (max 1 per hour per tenant)
+- [ ] Control plane can trigger export for any tenant: `POST /control/v1/tenants/{slug}/export`
+- [ ] PHPStan level 9 passes
+- [ ] Functional tests
 
 ---
 
-### P2-E8-S3: Client-Side SSE Subscription
+## Epic P3-E8: Standalone ↔ Hosted Mode
 
-**Status:** DONE
+**Goal:** Ensure the application works seamlessly in both standalone (single-tenant) and hosted (multi-tenant) modes with a single codebase.
+
+### P3-E8-S1: Mode Detection & Configuration
+
+**Status:** NOT STARTED
 
 **Description:**
-React hook that subscribes to Mercure SSE and updates the calendar in real-time.
+Configuration system that detects and switches between standalone and hosted modes.
 
-**Preconditions:** P2-E8-S2
+**Preconditions:** P3-E1-S3
 
 **Acceptance Criteria:**
-- [x] `src/hooks/useMercure.ts` — subscribes to event topics via EventSource
-- [x] On `event.created` / `event.updated`: refetch events (invalidate React Query cache)
-- [x] On `event.deleted`: remove event from calendar immediately
-- [x] Reconnects automatically on connection loss
-- [x] Toast notification: "Calendar updated by [user]"
-- [x] Vitest tests pass
+- [ ] `APP_MODE` env var: `standalone` (default) or `hosted`
+- [ ] Standalone mode: all tenant resolution skipped, uses `DATABASE_URL` directly
+- [ ] Hosted mode: tenant resolution active, control plane enabled
+- [ ] `GET /api/v2/health` includes `mode` field in response
+- [ ] All existing Phase 1/2 functionality works unchanged in standalone mode
+- [ ] PHPStan level 9 passes
+- [ ] Functional tests for both modes
 
 ---
 
-## Epic P2-E9: Permissions & Access Control
+### P3-E8-S2: Standalone Setup Wizard
 
-**Goal:** Fine-grained permissions for viewing and editing other users' calendars.
-
-### P2-E9-S1: Access Control API
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Endpoints for managing user-to-user access permissions.
+Browser-based setup wizard for standalone installations (replaces CLI-only setup).
 
-**Preconditions:** Phase 1 complete
+**Preconditions:** P3-E8-S1
 
 **Acceptance Criteria:**
-- [x] `GET /api/v2/access/users` — get user access permissions
-- [x] `PUT /api/v2/access/users/{login}` — set permissions (body: `{can_view, can_edit}`)
-- [x] Permissions enforced on `GET /events` when viewing other users' events
-- [x] Private events hidden from users without permission
-- [x] Confidential events show as "Busy" to users without full access
-- [x] PHPStan level 9 passes
+- [ ] `/setup` route shown when no admin user exists (first-run detection)
+- [ ] Step 1: Database connection test (auto-detects from `DATABASE_URL`)
+- [ ] Step 2: Create admin account (username, password, email)
+- [ ] Step 3: Basic settings (timezone, site name)
+- [ ] Runs schema installation via `InstallCommand` internally
+- [ ] Redirects to login after completion
+- [ ] Vitest tests
 
 ---
 
-### P2-E9-S2: Access Control Settings UI
+### P3-E8-S3: Docker Compose Hosted Mode
 
-**Status:** DONE
-
-**Description:**
-User settings page for managing who can view/edit their calendar.
-
-**Preconditions:** P2-E9-S1
-
-**Acceptance Criteria:**
-- [x] Route `/settings/access` accessible to all users
-- [x] List of users with checkboxes: Can View, Can Edit
-- [x] Save button to persist changes
-- [x] Toast on save success/failure
-- [x] Vitest tests pass
-
----
-
-### P2-E9-S3: Permission Enforcement in UI
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Respect permissions when showing events from other users (via layers).
+Docker Compose configuration for running in hosted/multi-tenant mode with control plane.
 
-**Preconditions:** P2-E9-S1, P2-E3-S2
-
-**Acceptance Criteria:**
-- [x] Private events from other users not shown in layers
-- [x] Confidential events shown as "Busy" with no details
-- [x] Edit/delete buttons hidden for events user doesn't have permission to modify
-- [x] Vitest tests pass
-
----
-
-## Epic P2-E10: UI Polish & UX
-
-**Goal:** Quality-of-life improvements and UI refinements.
-
-### P2-E10-S1: User Preferences
-
-**Status:** DONE
-
-**Description:**
-User preferences page for default view, timezone, language.
-
-**Preconditions:** Phase 1 complete
+**Preconditions:** P3-E8-S1, P3-E4-S1
 
 **Acceptance Criteria:**
-- [x] Route `/settings/preferences` with sidebar link (⚙ Settings)
-- [x] Default calendar view selector (month/week/day/list)
-- [x] Timezone text input
-- [x] Work day start/end time settings
-- [x] Preferences saved via `PUT /api/v2/users/{login}/preferences`
-- [x] Calendar loads with saved STARTVIEW preference
-- [x] Vitest tests pass (3 new frontend + 3 backend tests)
-
----
-
-### P2-E10-S2: Dark Mode
-
-**Status:** DONE
-
-**Description:**
-Toggle between light and dark themes using the existing Tailwind CSS variable system.
-
-**Preconditions:** Phase 1 complete
-
-**Acceptance Criteria:**
-- [x] Dark mode toggle in header (🌙/☀️ button)
-- [x] Preference saved in localStorage (`wctng_theme`)
-- [x] All components render correctly in dark mode (including FullCalendar via CSS variables)
-- [x] System preference detection (`prefers-color-scheme` media query)
-- [x] Vitest tests pass (7 new tests)
-
----
-
-### P2-E10-S3: Mobile Responsive Improvements
-
-**Status:** DONE
-
-**Description:**
-Improve mobile experience with swipe gestures, collapsible sidebar, and touch-friendly controls.
-
-**Preconditions:** Phase 1 complete
-
-**Acceptance Criteria:**
-- [x] Hamburger menu for mobile sidebar
-- [x] Swipe left/right on calendar for prev/next navigation
-- [x] Touch-friendly event creation (long-press on time slot)
-- [x] Event dialogs full-screen on mobile
-- [x] Bottom sheet for event details on mobile
-- [x] Playwright mobile viewport tests
-
----
-
-### P2-E10-S4: Keyboard Shortcuts Help
-
-**Status:** DONE
-
-**Description:**
-Keyboard shortcut help dialog and additional shortcuts.
-
-**Preconditions:** Phase 1 complete
-
-**Acceptance Criteria:**
-- [x] `?` key opens keyboard shortcuts help dialog
-- [x] Lists all shortcuts: navigation (←→T), view switching (MWD), event creation (N)
-- [x] `N` key opens new event dialog
-- [x] `?` button in calendar toolbar opens help
-- [x] Vitest tests pass (10 new tests)
+- [ ] `docker-compose.hosted.yml` extends base compose with hosted-mode settings
+- [ ] Control database container (separate from tenant DBs)
+- [ ] Wildcard subdomain support via nginx config (`*.webcalendar.local`)
+- [ ] Control plane accessible at `admin.webcalendar.local`
+- [ ] Documentation: local development setup with `/etc/hosts` entries
+- [ ] Health checks for all services
 
 ---
 
 ## Story Execution Checklist (for AI Agent)
 
-Same as Phase 1:
+Same as Phase 1 & 2:
 
 ```
 1. READ the story description and acceptance criteria completely
@@ -722,20 +633,14 @@ Same as Phase 1:
 
 ---
 
-## Phase 1 Summary
+## Phase 1 & 2 Summary
 
-Phase 1 completed 2026-03-16 with 45/45 stories + post-Phase-1 enhancements:
+**Phase 1** completed with 45/45 stories:
+- Symfony 7.x REST API + React 18 SPA + FullCalendar
+- JWT auth, event CRUD, user/category admin, Docker Compose
 
-**Backend:** 147 PHP tests, PHPStan level 9, Psalm errorLevel 1
-- Symfony 7.x REST API (auth, events, users, categories)
-- webcalendar-core integration (27 services, 19 repositories)
-- JWT authentication, CORS, standard JSON envelope
-
-**Frontend:** 118 Vitest tests + 16 Playwright E2E tests
-- React 18 + Vite + TypeScript + Tailwind CSS + Shadcn/ui
-- FullCalendar with themed CSS, category colors
-- Event CRUD with create/edit/delete dialogs + toast notifications
-- User management + category management admin pages
-- Login, routing, protected routes, keyboard shortcuts
-
-**Infrastructure:** Docker Compose (nginx, PHP-FPM, MySQL, Vite), GitHub Actions CI
+**Phase 2** completed with 32/32 stories:
+- Participants, groups, layers, tasks, journals, import/export
+- Search, real-time (Mercure), permissions, mobile responsive
+- 220 Vitest tests + 25 Playwright E2E tests
+- 210 PHP tests, PHPStan level 9, Psalm errorLevel 1
