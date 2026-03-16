@@ -16,14 +16,14 @@
 | P2-E1 | Event Participants | 4 | 4 | DONE |
 | P2-E2 | Groups | 3 | 3 | DONE |
 | P2-E3 | Calendar Layers | 3 | 3 | DONE |
-| P2-E4 | Tasks | 4 | 3 | IN PROGRESS |
+| P2-E4 | Tasks | 4 | 4 | DONE |
 | P2-E5 | Journals | 3 | 2 | IN PROGRESS |
 | P2-E6 | Import/Export | 3 | 3 | DONE |
 | P2-E7 | Search | 2 | 2 | DONE |
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 3 | IN PROGRESS |
-| **Total** | | **32** | **23** | |
+| **Total** | | **32** | **24** | |
 
 ---
 
@@ -318,7 +318,7 @@ Show tasks as events on the calendar (on their due date).
 
 ### P2-E4-S4: Tasks E2E Tests
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Playwright E2E tests for task CRUD workflow.
@@ -326,11 +326,11 @@ Playwright E2E tests for task CRUD workflow.
 **Preconditions:** P2-E4-S2
 
 **Acceptance Criteria:**
-- [ ] Create task via UI, verify it appears in list
-- [ ] Mark task complete, verify status changes
-- [ ] Edit task details
-- [ ] Delete task
-- [ ] All tests pass in under 30 seconds
+- [x] Create task via UI, verify it appears in list
+- [x] Mark task complete, verify status changes
+- [x] Edit task details
+- [x] Delete task
+- [x] All tests pass in under 30 seconds
 
 ---
 

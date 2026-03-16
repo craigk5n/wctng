@@ -27,6 +27,8 @@ export function TasksPage() {
   const [newTitle, setNewTitle] = useState('');
   const [newDueDate, setNewDueDate] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editTitle, setEditTitle] = useState('');
   const { toast } = useToast();
 
   const fetchTasks = useCallback(async () => {
@@ -81,6 +83,26 @@ export function TasksPage() {
       void fetchTasks();
     } else {
       toast({ title: 'Failed to create task', variant: 'error' });
+    }
+  };
+
+  const startEditing = (task: Task) => {
+    setEditingId(task.id);
+    setEditTitle(task.title);
+  };
+
+  const handleSaveEdit = async () => {
+    if (editingId === null || !editTitle.trim()) return;
+    const { error } = await apiFetch(`/tasks/${editingId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ title: editTitle.trim() }),
+    });
+    if (!error) {
+      toast({ title: 'Task updated', variant: 'success' });
+      setEditingId(null);
+      void fetchTasks();
+    } else {
+      toast({ title: 'Failed to update task', variant: 'error' });
     }
   };
 
@@ -174,24 +196,60 @@ export function TasksPage() {
                     className="h-4 w-4 rounded border-input"
                     aria-label={`Mark "${task.title}" ${task.percent_complete >= 100 ? 'incomplete' : 'complete'}`}
                   />
-                  <div>
-                    <span className={`font-medium ${task.status === 'completed' ? 'line-through' : ''}`}>
-                      {task.title}
-                    </span>
-                    <div className="text-xs text-muted-foreground">
-                      Due: {formatDate(task.due_date)}
-                      {task.percent_complete > 0 && task.percent_complete < 100 && (
-                        <span className="ml-2">{task.percent_complete}%</span>
-                      )}
+                  {editingId === task.id ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                        autoFocus
+                        aria-label="Edit task title"
+                        onKeyDown={(e) => { if (e.key === 'Enter') void handleSaveEdit(); }}
+                      />
+                      <button
+                        onClick={() => void handleSaveEdit()}
+                        className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground hover:bg-primary/90"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent"
+                      >
+                        Cancel
+                      </button>
                     </div>
-                  </div>
+                  ) : (
+                    <div>
+                      <span className={`font-medium ${task.status === 'completed' ? 'line-through' : ''}`}>
+                        {task.title}
+                      </span>
+                      <div className="text-xs text-muted-foreground">
+                        Due: {formatDate(task.due_date)}
+                        {task.percent_complete > 0 && task.percent_complete < 100 && (
+                          <span className="ml-2">{task.percent_complete}%</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <button
-                  onClick={() => handleDelete(task)}
-                  className="rounded px-2 py-1 text-xs text-destructive hover:bg-destructive/10"
-                >
-                  Delete
-                </button>
+                {editingId !== task.id && (
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => startEditing(task)}
+                      className="rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(task)}
+                      className="rounded px-2 py-1 text-xs text-destructive hover:bg-destructive/10"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
