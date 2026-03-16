@@ -22,8 +22,8 @@
 | P2-E7 | Search | 2 | 2 | DONE |
 | P2-E8 | Real-time (Mercure) | 3 | 3 | DONE |
 | P2-E9 | Permissions & Access Control | 3 | 3 | DONE |
-| P2-E10 | UI Polish & UX | 4 | 3 | IN PROGRESS |
-| **Total** | | **32** | **31** | |
+| P2-E10 | UI Polish & UX | 4 | 4 | DONE |
+| **Total** | | **32** | **32** | |
 
 ---
 
@@ -659,7 +659,7 @@ Toggle between light and dark themes using the existing Tailwind CSS variable sy
 
 ### P2-E10-S3: Mobile Responsive Improvements
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Improve mobile experience with swipe gestures, collapsible sidebar, and touch-friendly controls.
@@ -667,12 +667,12 @@ Improve mobile experience with swipe gestures, collapsible sidebar, and touch-fr
 **Preconditions:** Phase 1 complete
 
 **Acceptance Criteria:**
-- [ ] Hamburger menu for mobile sidebar
-- [ ] Swipe left/right on calendar for prev/next navigation
-- [ ] Touch-friendly event creation (long-press on time slot)
-- [ ] Event dialogs full-screen on mobile
-- [ ] Bottom sheet for event details on mobile
-- [ ] Playwright mobile viewport tests
+- [x] Hamburger menu for mobile sidebar
+- [x] Swipe left/right on calendar for prev/next navigation
+- [x] Touch-friendly event creation (long-press on time slot)
+- [x] Event dialogs full-screen on mobile
+- [x] Bottom sheet for event details on mobile
+- [x] Playwright mobile viewport tests
 
 ---
 

@@ -144,8 +144,37 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
     },
   }), [fetchEventsWrapped]);
 
+  // Swipe gesture for mobile prev/next navigation
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const touch = e.changedTouches[0];
+    const dx = touch.clientX - touchStartRef.current.x;
+    const dy = touch.clientY - touchStartRef.current.y;
+    touchStartRef.current = null;
+
+    // Only trigger if horizontal swipe > 80px and more horizontal than vertical
+    if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 2) {
+      if (dx > 0) {
+        calendarRef.current?.getApi().prev();
+      } else {
+        calendarRef.current?.getApi().next();
+      }
+    }
+  }, []);
+
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       {isLoading && (
         <div className="absolute right-2 top-2 z-10 rounded bg-primary px-2 py-1 text-xs text-primary-foreground">
           Loading...
@@ -164,6 +193,7 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
         datesSet={fetchEventsWrapped}
         eventClick={handleEventClick}
         selectable={true}
+        selectLongPressDelay={300}
         select={handleDateSelect}
         editable={false}
         dayMaxEvents={true}

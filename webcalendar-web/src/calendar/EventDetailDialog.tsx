@@ -55,7 +55,7 @@ export function EventDetailDialog({
       aria-labelledby="event-detail-title"
     >
       <div
-        className="w-full max-w-md rounded-lg bg-card p-6 shadow-lg"
+        className="fixed inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto rounded-t-xl bg-card p-6 shadow-lg md:static md:inset-auto md:w-full md:max-w-md md:rounded-lg"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
