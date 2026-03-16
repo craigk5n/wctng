@@ -14,7 +14,7 @@
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
 | P2-E1 | Event Participants | 4 | 4 | DONE |
-| P2-E2 | Groups | 3 | 1 | IN PROGRESS |
+| P2-E2 | Groups | 3 | 3 | DONE |
 | P2-E3 | Calendar Layers | 3 | 0 | NOT STARTED |
 | P2-E4 | Tasks | 4 | 2 | IN PROGRESS |
 | P2-E5 | Journals | 3 | 2 | IN PROGRESS |
@@ -23,7 +23,7 @@
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 3 | IN PROGRESS |
-| **Total** | | **32** | **17** | |
+| **Total** | | **32** | **19** | |
 
 ---
 
@@ -161,7 +161,7 @@ CRUD endpoints for groups and group membership.
 
 ### P2-E2-S2: Groups Management UI
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Admin page for managing groups and their members.
@@ -169,18 +169,18 @@ Admin page for managing groups and their members.
 **Preconditions:** P2-E2-S1
 
 **Acceptance Criteria:**
-- [ ] Route `/admin/groups` with sidebar link (admin only)
-- [ ] List all groups with member count
-- [ ] Create group form with name field
-- [ ] Click group to see/manage members
-- [ ] Add/remove members from a group
-- [ ] Vitest tests pass
+- [x] Route `/admin/groups` with sidebar link (admin only)
+- [x] List all groups with member count
+- [x] Create group form with name field
+- [x] Click group to see/manage members
+- [x] Add/remove members from a group
+- [x] Vitest tests pass
 
 ---
 
 ### P2-E2-S3: Group Selection in Event Participants
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Allow adding an entire group as participants to an event.
@@ -188,10 +188,10 @@ Allow adding an entire group as participants to an event.
 **Preconditions:** P2-E2-S1, P2-E1-S3
 
 **Acceptance Criteria:**
-- [ ] EventDialog participant input shows groups in addition to individual users
-- [ ] Selecting a group expands to all group members as individual participants
-- [ ] Groups shown with a distinct icon/badge
-- [ ] Vitest tests pass
+- [x] EventDialog participant input shows groups in addition to individual users
+- [x] Selecting a group expands to all group members as individual participants
+- [x] Groups shown with a distinct icon/badge
+- [x] Vitest tests pass
 
 ---
 

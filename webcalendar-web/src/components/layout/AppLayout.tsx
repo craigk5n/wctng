@@ -18,6 +18,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   if (user?.is_admin) {
     navItems.push({ label: 'Users', href: '/admin/users', icon: '👤' });
     navItems.push({ label: 'Categories', href: '/admin/categories', icon: '🏷' });
+    navItems.push({ label: 'Groups', href: '/admin/groups', icon: '👥' });
   }
 
   return (

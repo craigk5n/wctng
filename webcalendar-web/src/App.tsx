@@ -6,6 +6,7 @@ import { AppLayout } from './components/layout/AppLayout';
 import { CalendarPage } from './calendar/CalendarPage';
 import { UserManagement } from './admin/UserManagement';
 import { CategoryManagement } from './admin/CategoryManagement';
+import { GroupManagement } from './admin/GroupManagement';
 import { PreferencesPage } from './settings/PreferencesPage';
 import { TasksPage } from './tasks/TasksPage';
 import { JournalsPage } from './journals/JournalsPage';
@@ -46,6 +47,16 @@ export default function App() {
             <ProtectedRoute>
               <AppLayout>
                 <CategoryManagement />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/groups"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <GroupManagement />
               </AppLayout>
             </ProtectedRoute>
           }

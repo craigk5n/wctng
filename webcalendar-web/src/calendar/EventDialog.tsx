@@ -1,5 +1,16 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useCategories } from './useCategories';
+import { apiFetch } from '../api/client';
+
+interface GroupSuggestion {
+  id: number;
+  name: string;
+  owner: string;
+}
+
+interface GroupDetail extends GroupSuggestion {
+  members: string[];
+}
 
 export interface EventFormData {
   title: string;
@@ -57,6 +68,31 @@ export function EventDialog({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { categories: availableCategories } = useCategories();
+  const [groups, setGroups] = useState<GroupSuggestion[]>([]);
+  const [showGroupSuggestions, setShowGroupSuggestions] = useState(false);
+
+  useEffect(() => {
+    void (async () => {
+      const { data } = await apiFetch<GroupSuggestion[]>('/groups');
+      setGroups(data ?? []);
+    })();
+  }, []);
+
+  const filteredGroups = newParticipant.trim().length > 0
+    ? groups.filter((g) => g.name.toLowerCase().includes(newParticipant.trim().toLowerCase()))
+    : [];
+
+  const handleSelectGroup = useCallback(async (group: GroupSuggestion) => {
+    const { data } = await apiFetch<GroupDetail>(`/groups/${group.id}`);
+    if (data?.members) {
+      setParticipantLogins((prev) => {
+        const newLogins = data.members.filter((m) => !prev.includes(m));
+        return [...prev, ...newLogins];
+      });
+    }
+    setNewParticipant('');
+    setShowGroupSuggestions(false);
+  }, []);
 
   if (!open) return null;
 
@@ -282,11 +318,14 @@ export function EventDialog({
           {/* Participants */}
           <div className="space-y-2">
             <span className="text-sm font-medium">Participants</span>
-            <div className="flex gap-2">
+            <div className="relative flex gap-2">
               <input
                 type="text"
                 value={newParticipant}
-                onChange={(e) => setNewParticipant(e.target.value)}
+                onChange={(e) => {
+                  setNewParticipant(e.target.value);
+                  setShowGroupSuggestions(e.target.value.trim().length > 0);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -294,8 +333,15 @@ export function EventDialog({
                     if (login && !participantLogins.includes(login)) {
                       setParticipantLogins((prev) => [...prev, login]);
                       setNewParticipant('');
+                      setShowGroupSuggestions(false);
                     }
                   }
+                  if (e.key === 'Escape') {
+                    setShowGroupSuggestions(false);
+                  }
+                }}
+                onFocus={() => {
+                  if (newParticipant.trim().length > 0) setShowGroupSuggestions(true);
                 }}
                 placeholder="Type username and press Enter"
                 className="flex h-9 flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm"
@@ -307,12 +353,31 @@ export function EventDialog({
                   if (login && !participantLogins.includes(login)) {
                     setParticipantLogins((prev) => [...prev, login]);
                     setNewParticipant('');
+                    setShowGroupSuggestions(false);
                   }
                 }}
                 className="inline-flex h-9 items-center rounded-md border border-input px-3 text-sm hover:bg-accent"
               >
                 Add
               </button>
+
+              {/* Group suggestions dropdown */}
+              {showGroupSuggestions && filteredGroups.length > 0 && (
+                <div className="absolute left-0 top-10 z-10 w-full rounded-md border border-border bg-card shadow-lg">
+                  {filteredGroups.map((group) => (
+                    <button
+                      key={group.id}
+                      type="button"
+                      onClick={() => void handleSelectGroup(group)}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent"
+                    >
+                      <span>👥</span>
+                      <span>{group.name}</span>
+                      <span className="text-xs text-muted-foreground">(group)</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             {participantLogins.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
