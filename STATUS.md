@@ -16,14 +16,14 @@
 | P2-E1 | Event Participants | 4 | 4 | DONE |
 | P2-E2 | Groups | 3 | 3 | DONE |
 | P2-E3 | Calendar Layers | 3 | 3 | DONE |
-| P2-E4 | Tasks | 4 | 2 | IN PROGRESS |
+| P2-E4 | Tasks | 4 | 3 | IN PROGRESS |
 | P2-E5 | Journals | 3 | 2 | IN PROGRESS |
 | P2-E6 | Import/Export | 3 | 3 | DONE |
 | P2-E7 | Search | 2 | 2 | DONE |
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 3 | IN PROGRESS |
-| **Total** | | **32** | **22** | |
+| **Total** | | **32** | **23** | |
 
 ---
 
@@ -301,7 +301,7 @@ Dedicated tasks page with list view, filtering, and inline completion.
 
 ### P2-E4-S3: Tasks on Calendar
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Show tasks as events on the calendar (on their due date).
@@ -309,10 +309,10 @@ Show tasks as events on the calendar (on their due date).
 **Preconditions:** P2-E4-S1
 
 **Acceptance Criteria:**
-- [ ] Tasks appear on calendar on their due date with a distinct style (e.g., dashed border, task icon)
-- [ ] Clicking a task on calendar opens task detail (not event detail)
-- [ ] Completed tasks shown with strikethrough or muted style
-- [ ] Vitest tests pass
+- [x] Tasks appear on calendar on their due date with a distinct style (e.g., dashed border, task icon)
+- [x] Clicking a task on calendar opens task detail (not event detail)
+- [x] Completed tasks shown with strikethrough or muted style
+- [x] Vitest tests pass
 
 ---
 

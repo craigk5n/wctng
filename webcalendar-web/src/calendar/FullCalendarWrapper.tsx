@@ -20,12 +20,13 @@ import type { LayerVisibility } from './LayerPanel';
 interface FullCalendarWrapperProps {
   initialView?: string;
   onEventClick?: (eventId: number) => void;
+  onTaskClick?: (taskId: number) => void;
   onDateSelect?: (start: Date, end: Date, allDay: boolean) => void;
   activeLayers?: LayerVisibility[];
 }
 
 export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCalendarWrapperProps>(
-  function FullCalendarWrapper({ initialView = 'dayGridMonth', onEventClick, onDateSelect, activeLayers }, ref) {
+  function FullCalendarWrapper({ initialView = 'dayGridMonth', onEventClick, onTaskClick, onDateSelect, activeLayers }, ref) {
   const [events, setEvents] = useState<EventInput[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const calendarRef = useRef<FullCalendar>(null);
@@ -35,12 +36,19 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
 
   const handleEventClick = useCallback(
     (arg: EventClickArg) => {
-      const eventId = parseInt(arg.event.id, 10);
+      const id = arg.event.id;
+      // Tasks have IDs like "task-42"
+      if (id.startsWith('task-') && onTaskClick) {
+        const taskId = parseInt(id.slice(5), 10);
+        if (!isNaN(taskId)) onTaskClick(taskId);
+        return;
+      }
+      const eventId = parseInt(id, 10);
       if (!isNaN(eventId) && onEventClick) {
         onEventClick(eventId);
       }
     },
-    [onEventClick],
+    [onEventClick, onTaskClick],
   );
 
   const handleDateSelect = useCallback(
@@ -83,8 +91,18 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
       const endDate = formatDateParam(arg.end);
       const result = await fetchCalendarEvents(startDate, endDate, hasVisibleLayers);
 
-      // Apply category colors or layer colors
+      // Apply colors: tasks get distinct styling, events get category/layer colors
       const coloredEvents = result.map((event) => {
+        // Tasks get a distinct color
+        if (event.extendedProps?.isTask) {
+          const isCompleted = (event.extendedProps.percent_complete as number) >= 100;
+          return {
+            ...event,
+            backgroundColor: isCompleted ? '#9ca3af' : '#0d9488',
+            borderColor: isCompleted ? '#9ca3af' : '#0d9488',
+            borderStyle: 'dashed',
+          };
+        }
         const createdBy = event.extendedProps?.created_by as string | undefined;
         const layerColor = createdBy ? layerColorMap.get(createdBy) : undefined;
         if (layerColor) {

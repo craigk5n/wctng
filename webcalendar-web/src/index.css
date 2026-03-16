@@ -164,3 +164,17 @@
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--border)) transparent;
 }
+
+/* Task styles on calendar */
+.fc .task-pending {
+  border-style: dashed;
+  border-width: 1px;
+}
+
+.fc .task-completed {
+  opacity: 0.5;
+}
+
+.fc .task-completed .fc-event-title {
+  text-decoration: line-through;
+}

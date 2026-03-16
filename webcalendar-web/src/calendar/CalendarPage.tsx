@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FullCalendarWrapper, type FullCalendarWrapperHandle } from './FullCalendarWrapper';
 import { EventDetailDialog } from './EventDetailDialog';
 import { EventDialog, type EventFormData } from './EventDialog';
@@ -34,6 +34,7 @@ export function CalendarPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   // Load saved default view preference
   useEffect(() => {
@@ -84,6 +85,11 @@ export function CalendarPage() {
   }), []);
 
   useGlobalShortcuts(shortcutHandlers);
+
+  // --- Task click: navigate to tasks page ---
+  const handleTaskClick = useCallback((_taskId: number) => {
+    navigate('/tasks');
+  }, [navigate]);
 
   // --- Event click: fetch full event and show detail ---
   const handleEventClick = useCallback(async (eventId: number) => {
@@ -282,6 +288,7 @@ export function CalendarPage() {
             ref={calendarRef}
             initialView={defaultView}
             onEventClick={handleEventClick}
+            onTaskClick={handleTaskClick}
             onDateSelect={handleDateSelect}
             activeLayers={activeLayers}
           />
