@@ -1,9 +1,22 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { EventDialog } from '../EventDialog';
 
-describe('EventDialog - Create', () => {
+const originalFetch = globalThis.fetch;
+
+function createWrapper() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return function Wrapper({ children }: { children: React.ReactNode }) {
+    return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+  };
+}
+
+function renderEventDialog(props: Record<string, unknown> = {}) {
+  globalThis.fetch = vi.fn().mockResolvedValue(
+    new Response(JSON.stringify({ data: [] }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+  );
   const defaultProps = {
     open: true,
     onClose: vi.fn(),
@@ -12,9 +25,17 @@ describe('EventDialog - Create', () => {
     initialTime: '10:00',
     initialAllDay: false,
   };
+  return render(<EventDialog {...defaultProps} {...props} />, { wrapper: createWrapper() });
+}
+
+describe('EventDialog - Create', () => {
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
 
   it('renders all form fields', () => {
-    render(<EventDialog {...defaultProps} />);
+    renderEventDialog();
 
     expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/date/i)).toBeInTheDocument();
@@ -26,14 +47,14 @@ describe('EventDialog - Create', () => {
   });
 
   it('pre-fills date and time from props', () => {
-    render(<EventDialog {...defaultProps} />);
+    renderEventDialog();
 
     expect(screen.getByLabelText(/date/i)).toHaveValue('2026-03-15');
     expect(screen.getByLabelText(/start time/i)).toHaveValue('10:00');
   });
 
   it('pre-fills as all-day when initialAllDay is true', () => {
-    render(<EventDialog {...defaultProps} initialAllDay={true} initialTime="" />);
+    renderEventDialog({ initialAllDay: true, initialTime: '' });
 
     const allDayCheckbox = screen.getByLabelText(/all.day/i);
     expect(allDayCheckbox).toBeChecked();
@@ -43,7 +64,7 @@ describe('EventDialog - Create', () => {
   it('validates title is required', async () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
-    render(<EventDialog {...defaultProps} onSave={onSave} />);
+    renderEventDialog({ onSave });
 
     // Clear title and submit
     await user.click(screen.getByRole('button', { name: /save|create/i }));
@@ -55,7 +76,7 @@ describe('EventDialog - Create', () => {
   it('calls onSave with event data on submit', async () => {
     const user = userEvent.setup();
     const onSave = vi.fn().mockResolvedValue(true);
-    render(<EventDialog {...defaultProps} onSave={onSave} />);
+    renderEventDialog({ onSave });
 
     await user.type(screen.getByLabelText(/title/i), 'New Meeting');
     await user.click(screen.getByRole('button', { name: /save|create/i }));
@@ -72,7 +93,7 @@ describe('EventDialog - Create', () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
     const onClose = vi.fn();
-    render(<EventDialog {...defaultProps} onSave={onSave} onClose={onClose} />);
+    renderEventDialog({ onSave, onClose });
 
     await user.click(screen.getByRole('button', { name: /cancel/i }));
 
@@ -82,7 +103,7 @@ describe('EventDialog - Create', () => {
 
   it('toggling all-day hides time fields', async () => {
     const user = userEvent.setup();
-    render(<EventDialog {...defaultProps} />);
+    renderEventDialog();
 
     expect(screen.getByLabelText(/start time/i)).toBeInTheDocument();
 
@@ -92,17 +113,17 @@ describe('EventDialog - Create', () => {
   });
 
   it('does not render when open is false', () => {
-    render(<EventDialog {...defaultProps} open={false} />);
+    renderEventDialog({ open: false });
     expect(screen.queryByLabelText(/title/i)).not.toBeInTheDocument();
   });
 
   it('shows dialog title for create mode', () => {
-    render(<EventDialog {...defaultProps} />);
+    renderEventDialog();
     expect(screen.getByRole('heading', { name: /new event/i })).toBeInTheDocument();
   });
 
   it('shows dialog title for edit mode', () => {
-    render(<EventDialog {...defaultProps} mode="edit" />);
+    renderEventDialog({ mode: 'edit' });
     expect(screen.getByText(/edit event/i)).toBeInTheDocument();
   });
 });

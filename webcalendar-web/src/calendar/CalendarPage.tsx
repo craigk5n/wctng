@@ -69,6 +69,7 @@ export function CalendarPage() {
       location: data.location,
       description: data.description,
       access: data.access,
+      categories: data.categories ?? [],
     };
     if (!data.all_day && data.start_time) {
       body.start_time = data.start_time;
@@ -101,6 +102,7 @@ export function CalendarPage() {
         location: data.location,
         description: data.description,
         access: data.access,
+        categories: data.categories ?? [],
       };
       if (!data.all_day && data.start_time) {
         body.start_time = data.start_time;

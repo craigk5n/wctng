@@ -108,7 +108,18 @@ final class EventController
             return ApiResponse::error(500, 'Event created but could not be retrieved');
         }
 
-        return ApiResponse::success(EventResponseDTO::fromEntity($created), null, Response::HTTP_CREATED);
+        // Assign categories if provided
+        $categoryIds = $this->parseCategoryIds($data);
+        if (\count($categoryIds) > 0) {
+            $this->coreServiceFactory->getCategoryService()->assignToEvent(
+                $created->id(),
+                $user->getUserIdentifier(),
+                $categoryIds,
+                $coreUser,
+            );
+        }
+
+        return ApiResponse::success(EventResponseDTO::fromEntity($created, $categoryIds), null, Response::HTTP_CREATED);
     }
 
     #[Route('/api/v2/events/{id}', name: 'api_events_get', methods: ['GET'])]
@@ -164,6 +175,17 @@ final class EventController
 
         $this->coreServiceFactory->getEventService()->updateEvent($updated, $coreUser);
 
+        // Update categories if provided
+        $categoryIds = $this->parseCategoryIds($data);
+        if (isset($data['categories'])) {
+            $this->coreServiceFactory->getCategoryService()->assignToEvent(
+                new EventId($id),
+                $user->getUserIdentifier(),
+                $categoryIds,
+                $coreUser,
+            );
+        }
+
         // Re-fetch to return the saved state
         $saved = $this->coreServiceFactory->getEventService()->getEventById(new EventId($id));
 
@@ -171,7 +193,7 @@ final class EventController
             return ApiResponse::error(500, 'Event updated but could not be retrieved');
         }
 
-        return ApiResponse::success(EventResponseDTO::fromEntity($saved));
+        return ApiResponse::success(EventResponseDTO::fromEntity($saved, $categoryIds));
     }
 
     #[Route('/api/v2/events/{id}', name: 'api_events_delete', methods: ['DELETE'])]
@@ -214,5 +236,29 @@ final class EventController
         $dt = \DateTimeImmutable::createFromFormat('Y-m-d', $formatted);
 
         return $dt === false ? null : $dt->setTime(0, 0);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     *
+     * @return list<int>
+     */
+    private function parseCategoryIds(array $data): array
+    {
+        if (!isset($data['categories']) || !\is_array($data['categories'])) {
+            return [];
+        }
+
+        $result = [];
+        foreach ($data['categories'] as $v) {
+            if (is_numeric($v)) {
+                $id = (int) $v;
+                if ($id > 0) {
+                    $result[] = $id;
+                }
+            }
+        }
+
+        return $result;
     }
 }

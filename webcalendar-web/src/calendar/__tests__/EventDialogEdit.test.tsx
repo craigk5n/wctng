@@ -1,8 +1,24 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { EventDialog } from '../EventDialog';
 import { apiEventToInitialValues } from '../eventDialogHelpers';
+
+const originalFetch = globalThis.fetch;
+
+function createWrapper() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return function Wrapper({ children }: { children: React.ReactNode }) {
+    return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+  };
+}
+
+function mockFetchCategories() {
+  globalThis.fetch = vi.fn().mockResolvedValue(
+    new Response(JSON.stringify({ data: [] }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+  );
+}
 import type { ApiEvent } from '../eventMapper';
 
 const existingEvent: ApiEvent = {
@@ -53,7 +69,10 @@ describe('apiEventToInitialValues', () => {
 });
 
 describe('EventDialog - Edit', () => {
+  afterEach(() => { globalThis.fetch = originalFetch; });
+
   it('pre-fills all fields from existing event', () => {
+    mockFetchCategories();
     const vals = apiEventToInitialValues(existingEvent);
 
     render(
@@ -67,6 +86,7 @@ describe('EventDialog - Edit', () => {
         initialAllDay={existingEvent.all_day}
         initialValues={vals}
       />,
+      { wrapper: createWrapper() },
     );
 
     expect(screen.getByLabelText(/title/i)).toHaveValue('Existing Meeting');
@@ -78,6 +98,7 @@ describe('EventDialog - Edit', () => {
   });
 
   it('shows Save Changes button in edit mode', () => {
+    mockFetchCategories();
     const vals = apiEventToInitialValues(existingEvent);
 
     render(
@@ -88,12 +109,14 @@ describe('EventDialog - Edit', () => {
         mode="edit"
         initialValues={vals}
       />,
+      { wrapper: createWrapper() },
     );
 
     expect(screen.getByRole('button', { name: /save changes/i })).toBeInTheDocument();
   });
 
   it('calls onSave with updated data', async () => {
+    mockFetchCategories();
     const user = userEvent.setup();
     const onSave = vi.fn().mockResolvedValue(true);
     const vals = apiEventToInitialValues(existingEvent);
@@ -109,6 +132,7 @@ describe('EventDialog - Edit', () => {
         initialAllDay={false}
         initialValues={vals}
       />,
+      { wrapper: createWrapper() },
     );
 
     const titleInput = screen.getByLabelText(/title/i);

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useCategories } from './useCategories';
 
 export interface EventFormData {
   title: string;
@@ -9,6 +10,7 @@ export interface EventFormData {
   description: string;
   access: string;
   all_day: boolean;
+  categories?: number[];
 }
 
 interface EventDialogProps {
@@ -48,8 +50,10 @@ export function EventDialog({
   const [description, setDescription] = useState(initialValues?.description ?? '');
   const [access, setAccess] = useState(initialValues?.access ?? 'P');
   const [allDay, setAllDay] = useState(initialAllDay);
+  const [selectedCategories, setSelectedCategories] = useState<number[]>(initialValues?.categories ?? []);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { categories: availableCategories } = useCategories();
 
   if (!open) return null;
 
@@ -77,6 +81,7 @@ export function EventDialog({
         description,
         access,
         all_day: allDay,
+        categories: selectedCategories,
       };
 
       if (!allDay && time) {
@@ -235,6 +240,40 @@ export function EventDialog({
               <option value="R">Private</option>
             </select>
           </div>
+
+          {availableCategories.length > 0 && (
+            <div className="space-y-2">
+              <span className="text-sm font-medium">Category</span>
+              <div className="flex flex-wrap gap-2">
+                {availableCategories.map((cat) => {
+                  const isSelected = selectedCategories.includes(cat.id);
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategories((prev) =>
+                          isSelected ? prev.filter((id) => id !== cat.id) : [...prev, cat.id],
+                        );
+                      }}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                        isSelected
+                          ? 'border-transparent text-white'
+                          : 'border-border text-muted-foreground hover:border-foreground/30'
+                      }`}
+                      style={isSelected ? { backgroundColor: cat.color ?? '#3788d8' } : undefined}
+                    >
+                      <span
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: cat.color ?? '#3788d8' }}
+                      />
+                      {cat.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-2">
             <button
