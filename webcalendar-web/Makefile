@@ -12,9 +12,9 @@ build:
 test:
 	npx vitest run
 
-## Run Playwright E2E tests
+## Run Playwright E2E tests (use node directly to avoid npx vitest conflict)
 test-e2e:
-	npx playwright test
+	node node_modules/.bin/playwright test
 
 ## Run ESLint
 lint:
