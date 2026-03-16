@@ -24,6 +24,25 @@ function formatDate(yyyymmdd: string): string {
   return `${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(6, 8)}`;
 }
 
+function relativeDate(yyyymmdd: string): string {
+  const date = new Date(
+    parseInt(yyyymmdd.slice(0, 4)),
+    parseInt(yyyymmdd.slice(4, 6)) - 1,
+    parseInt(yyyymmdd.slice(6, 8)),
+  );
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const diffMs = date.getTime() - now.getTime();
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Tomorrow';
+  if (diffDays === -1) return 'Yesterday';
+  if (diffDays > 1 && diffDays <= 7) return `In ${diffDays} days`;
+  if (diffDays < -1 && diffDays >= -7) return `${Math.abs(diffDays)} days ago`;
+  return formatDate(yyyymmdd);
+}
+
 export function SearchBar() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -121,7 +140,7 @@ export function SearchBar() {
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleKeyDown}
         onFocus={() => { if (results.length > 0) setIsOpen(true); }}
-        placeholder="Search events..."
+        placeholder="Search all events..."
         className="h-9 w-48 rounded-md border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:w-64 focus:outline-none focus:ring-2 focus:ring-ring transition-all md:w-56 md:focus:w-72"
       />
 
@@ -132,29 +151,36 @@ export function SearchBar() {
       {isOpen && (
         <div className="absolute left-0 top-10 z-50 w-80 rounded-md border border-border bg-card shadow-lg">
           {results.length === 0 ? (
-            <div className="px-4 py-3 text-sm text-muted-foreground">No results found</div>
+            <div className="px-4 py-3 text-sm text-muted-foreground">
+              No results found for &ldquo;{query}&rdquo;
+            </div>
           ) : (
-            <ul className="max-h-64 overflow-y-auto py-1">
-              {results.map((result, index) => (
-                <li key={result.id}>
-                  <button
-                    type="button"
-                    onClick={() => handleSelect(result)}
-                    className={`flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-accent ${
-                      index === selectedIndex ? 'bg-accent' : ''
-                    }`}
-                  >
-                    <span className="mt-0.5 text-base">{TYPE_ICONS[result.type] ?? '📅'}</span>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium">{result.title}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatDate(result.start_date)}
+            <>
+              <div className="border-b border-border px-3 py-1.5 text-xs text-muted-foreground">
+                {results.length} result{results.length !== 1 ? 's' : ''}
+              </div>
+              <ul className="max-h-64 overflow-y-auto py-1">
+                {results.map((result, index) => (
+                  <li key={result.id}>
+                    <button
+                      type="button"
+                      onClick={() => handleSelect(result)}
+                      className={`flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-accent ${
+                        index === selectedIndex ? 'bg-accent' : ''
+                      }`}
+                    >
+                      <span className="mt-0.5 text-base">{TYPE_ICONS[result.type] ?? '📅'}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium">{result.title}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {relativeDate(result.start_date)}
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                </li>
+                    </button>
+                  </li>
               ))}
             </ul>
+            </>
           )}
         </div>
       )}
