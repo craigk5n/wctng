@@ -6,6 +6,7 @@ namespace App\Controller\Control;
 
 use App\Response\ApiResponse;
 use App\Tenant\Tenant;
+use App\Tenant\ControlPlaneWebhook;
 use App\Tenant\TenantDatabaseManager;
 use App\Tenant\TenantProvisioner;
 use App\Tenant\TenantRepository;
@@ -24,6 +25,7 @@ final class TenantController
         private readonly TenantRepository $tenantRepository,
         private readonly TenantProvisioner $provisioner,
         private readonly TenantDatabaseManager $dbManager,
+        private readonly ControlPlaneWebhook $webhook,
     ) {
     }
 
@@ -71,6 +73,8 @@ final class TenantController
         if (!$result->success) {
             return ApiResponse::error(400, $result->error);
         }
+
+        $this->webhook->tenantProvisioned($slug, $name);
 
         return ApiResponse::success([
             'slug' => $result->slug,
@@ -152,6 +156,15 @@ final class TenantController
 
         $this->tenantRepository->save($updated);
 
+        // Send webhook if status changed
+        if ($status !== $tenant->status()) {
+            if ($status === 'suspended') {
+                $this->webhook->tenantSuspended($slug);
+            } elseif ($status === 'active') {
+                $this->webhook->tenantActivated($slug);
+            }
+        }
+
         return ApiResponse::success([
             'slug' => $updated->slug(),
             'name' => $updated->name(),
@@ -175,6 +188,8 @@ final class TenantController
 
         $this->dbManager->clearConnection($slug);
         $this->tenantRepository->delete($tenant->id());
+
+        $this->webhook->tenantDeleted($slug);
 
         return ApiResponse::noContent();
     }

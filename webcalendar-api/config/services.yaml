@@ -1,6 +1,7 @@
 parameters:
     app_mode_default: 'standalone'
     db_driver_default: 'mysql'
+    webhook_url_default: ''
 
 services:
     _defaults:
@@ -70,6 +71,10 @@ services:
     # User provider for Symfony Security
     App\Security\WebCalendarUserProvider:
         public: true
+
+    App\Tenant\ControlPlaneWebhook:
+        arguments:
+            $webhookUrl: '%env(default:webhook_url_default:CONTROL_WEBHOOK_URL)%'
 
     App\Tenant\TenantProvisioner:
         arguments:

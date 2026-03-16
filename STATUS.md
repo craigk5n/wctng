@@ -17,12 +17,12 @@
 | P3-E1 | Tenant Data Model | 3 | 3 | DONE |
 | P3-E2 | Tenant Resolver Middleware | 3 | 3 | DONE |
 | P3-E3 | Tenant Provisioning | 4 | 4 | DONE |
-| P3-E4 | Control Plane API | 4 | 3 | IN PROGRESS |
+| P3-E4 | Control Plane API | 4 | 4 | DONE |
 | P3-E5 | Tenant Admin Dashboard | 4 | 0 | NOT STARTED |
 | P3-E6 | Tenant-Aware Auth | 3 | 0 | NOT STARTED |
 | P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **13** | |
+| **Total** | | **27** | **14** | |
 
 ---
 
@@ -322,7 +322,7 @@ Endpoints for monitoring tenant health and usage metrics.
 
 ### P3-E4-S4: Control Plane Webhook Notifications
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Webhook notifications for tenant lifecycle events (provisioned, suspended, deleted).
@@ -330,13 +330,13 @@ Webhook notifications for tenant lifecycle events (provisioned, suspended, delet
 **Preconditions:** P3-E4-S2
 
 **Acceptance Criteria:**
-- [ ] `CONTROL_WEBHOOK_URL` env var configures webhook endpoint
-- [ ] `tenant.provisioned` webhook sent after successful provisioning
-- [ ] `tenant.suspended` / `tenant.activated` webhooks for status changes
-- [ ] `tenant.deleted` webhook sent after deprovisioning
-- [ ] Webhook payload includes tenant slug, name, timestamp, event type
-- [ ] Fire-and-forget (webhook failure doesn't block operations)
-- [ ] PHPStan level 9 passes
+- [x] `CONTROL_WEBHOOK_URL` env var configures webhook endpoint
+- [x] `tenant.provisioned` webhook sent after successful provisioning
+- [x] `tenant.suspended` / `tenant.activated` webhooks for status changes
+- [x] `tenant.deleted` webhook sent after deprovisioning
+- [x] Webhook payload includes tenant slug, name, timestamp, event type
+- [x] Fire-and-forget (webhook failure doesn't block operations)
+- [x] PHPStan level 9 passes
 
 ---
 
