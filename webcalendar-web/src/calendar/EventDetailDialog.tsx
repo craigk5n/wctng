@@ -103,6 +103,13 @@ export function EventDetailDialog({
             </div>
           )}
 
+          {currentUserLogin && event.created_by !== currentUserLogin && (
+            <div className="flex gap-2">
+              <span className="font-medium text-muted-foreground">Calendar:</span>
+              <span>{event.created_by}</span>
+            </div>
+          )}
+
           <div className="flex gap-2">
             <span className="font-medium text-muted-foreground">Access:</span>
             <span>{ACCESS_LABELS[event.access] ?? event.access}</span>

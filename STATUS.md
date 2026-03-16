@@ -15,7 +15,7 @@
 |------|-------|---------|------|--------|
 | P2-E1 | Event Participants | 4 | 4 | DONE |
 | P2-E2 | Groups | 3 | 3 | DONE |
-| P2-E3 | Calendar Layers | 3 | 2 | IN PROGRESS |
+| P2-E3 | Calendar Layers | 3 | 3 | DONE |
 | P2-E4 | Tasks | 4 | 2 | IN PROGRESS |
 | P2-E5 | Journals | 3 | 2 | IN PROGRESS |
 | P2-E6 | Import/Export | 3 | 3 | DONE |
@@ -23,7 +23,7 @@
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 3 | IN PROGRESS |
-| **Total** | | **32** | **21** | |
+| **Total** | | **32** | **22** | |
 
 ---
 
@@ -239,7 +239,7 @@ Sidebar panel for managing calendar layers.
 
 ### P2-E3-S3: Multi-User Calendar View
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 When layers are active, fetch and display events from multiple users on the same calendar with distinct colors.
@@ -247,11 +247,11 @@ When layers are active, fetch and display events from multiple users on the same
 **Preconditions:** P2-E3-S2
 
 **Acceptance Criteria:**
-- [ ] FullCalendarWrapper fetches events from all active layers + own events
-- [ ] Events from different users have different colors (from layer settings)
-- [ ] Event detail shows which user's calendar the event belongs to
-- [ ] Layer toggle immediately adds/removes events without page reload
-- [ ] Vitest tests pass
+- [x] FullCalendarWrapper fetches events from all active layers + own events
+- [x] Events from different users have different colors (from layer settings)
+- [x] Event detail shows which user's calendar the event belongs to
+- [x] Layer toggle immediately adds/removes events without page reload
+- [x] Vitest tests pass
 
 ---
 
