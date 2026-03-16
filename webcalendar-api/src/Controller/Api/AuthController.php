@@ -103,7 +103,7 @@ final class AuthController
 
         $expiresAt = new \DateTimeImmutable('+' . $this->jwtTtl . ' seconds');
 
-        return ApiResponse::success([
+        $response = [
             'token' => $token,
             'user' => [
                 'login' => $coreUser->login(),
@@ -113,6 +113,12 @@ final class AuthController
                 'is_admin' => $isAdmin,
             ],
             'expires_at' => $expiresAt->format('c'),
-        ]);
+        ];
+
+        if ($tenant !== null) {
+            $response['tenant'] = $tenant->slug();
+        }
+
+        return ApiResponse::success($response);
     }
 }

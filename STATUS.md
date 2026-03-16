@@ -19,10 +19,10 @@
 | P3-E3 | Tenant Provisioning | 4 | 4 | DONE |
 | P3-E4 | Control Plane API | 4 | 4 | DONE |
 | P3-E5 | Tenant Admin Dashboard | 4 | 4 | DONE |
-| P3-E6 | Tenant-Aware Auth | 3 | 1 | IN PROGRESS |
+| P3-E6 | Tenant-Aware Auth | 3 | 2 | IN PROGRESS |
 | P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **19** | |
+| **Total** | | **27** | **20** | |
 
 ---
 
@@ -445,7 +445,7 @@ Include tenant slug in JWT tokens so the API can verify tenant context from the 
 
 ### P3-E6-S2: Tenant-Scoped Login
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Login endpoint resolves the user from the correct tenant database.
@@ -453,12 +453,12 @@ Login endpoint resolves the user from the correct tenant database.
 **Preconditions:** P3-E6-S1
 
 **Acceptance Criteria:**
-- [ ] `POST /api/v2/auth/login` on tenant subdomain authenticates against tenant DB
-- [ ] Same username can exist in different tenants (isolated user stores)
-- [ ] Login response includes tenant slug for frontend context
-- [ ] Failed login returns tenant-appropriate error (doesn't leak other tenant info)
-- [ ] PHPStan level 9 passes
-- [ ] Functional tests with two tenants, same username, different passwords
+- [x] `POST /api/v2/auth/login` on tenant subdomain authenticates against tenant DB
+- [x] Same username can exist in different tenants (isolated user stores)
+- [x] Login response includes tenant slug for frontend context
+- [x] Failed login returns tenant-appropriate error (doesn't leak other tenant info)
+- [x] PHPStan level 9 passes
+- [x] Functional tests with two tenants, same username, different passwords
 
 ---
 
