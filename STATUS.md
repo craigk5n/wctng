@@ -21,8 +21,8 @@
 | P3-E5 | Tenant Admin Dashboard | 4 | 4 | DONE |
 | P3-E6 | Tenant-Aware Auth | 3 | 3 | DONE |
 | P3-E7 | Tenant Isolation & Security | 3 | 3 | DONE |
-| P3-E8 | Standalone ↔ Hosted Mode | 3 | 2 | IN PROGRESS |
-| **Total** | | **27** | **26** | |
+| P3-E8 | Standalone ↔ Hosted Mode | 3 | 3 | DONE |
+| **Total** | | **27** | **27** | |
 
 ---
 
@@ -588,7 +588,7 @@ Browser-based setup wizard for standalone installations (replaces CLI-only setup
 
 ### P3-E8-S3: Docker Compose Hosted Mode
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Docker Compose configuration for running in hosted/multi-tenant mode with control plane.
@@ -596,12 +596,12 @@ Docker Compose configuration for running in hosted/multi-tenant mode with contro
 **Preconditions:** P3-E8-S1, P3-E4-S1
 
 **Acceptance Criteria:**
-- [ ] `docker-compose.hosted.yml` extends base compose with hosted-mode settings
-- [ ] Control database container (separate from tenant DBs)
-- [ ] Wildcard subdomain support via nginx config (`*.webcalendar.local`)
-- [ ] Control plane accessible at `admin.webcalendar.local`
-- [ ] Documentation: local development setup with `/etc/hosts` entries
-- [ ] Health checks for all services
+- [x] `docker-compose.hosted.yml` extends base compose with hosted-mode settings
+- [x] Control database container (separate from tenant DBs)
+- [x] Wildcard subdomain support via nginx config (`*.webcalendar.local`)
+- [x] Control plane accessible at `admin.webcalendar.local`
+- [x] Documentation: local development setup with `/etc/hosts` entries
+- [x] Health checks for all services
 
 ---
 

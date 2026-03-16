@@ -1,0 +1,36 @@
+# Docker Compose override for hosted/multi-tenant mode.
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml -f docker-compose.hosted.yml up -d
+#
+# Prerequisites:
+#   Add to /etc/hosts:
+#     127.0.0.1 webcalendar.local
+#     127.0.0.1 admin.webcalendar.local
+#     127.0.0.1 acme.webcalendar.local
+#     (add more tenant subdomains as needed)
+#
+# Access:
+#   Control plane: http://admin.webcalendar.local:47180/control/login
+#   Tenant:        http://acme.webcalendar.local:47180/
+
+services:
+  nginx:
+    volumes:
+      - ./docker/nginx/hosted.conf:/etc/nginx/conf.d/default.conf:ro
+
+  php-fpm:
+    environment:
+      APP_MODE: hosted
+      TENANT_BASE_DOMAIN: webcalendar.local
+      CORS_ALLOW_ORIGIN: "http://webcalendar.local:47180,http://*.webcalendar.local:47180"
+
+  # Control database (uses the same MySQL instance, separate DB)
+  # The default 'webcalendar' database acts as the control database
+  # Tenant databases are created dynamically by TenantProvisioner
+
+  mercure:
+    environment:
+      MERCURE_EXTRA_DIRECTIVES: |
+        cors_origins http://webcalendar.local:47180 http://*.webcalendar.local:47180
+        anonymous
