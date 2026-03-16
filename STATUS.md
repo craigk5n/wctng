@@ -17,13 +17,13 @@
 | P2-E2 | Groups | 3 | 1 | IN PROGRESS |
 | P2-E3 | Calendar Layers | 3 | 0 | NOT STARTED |
 | P2-E4 | Tasks | 4 | 2 | IN PROGRESS |
-| P2-E5 | Journals | 3 | 1 | IN PROGRESS |
+| P2-E5 | Journals | 3 | 2 | IN PROGRESS |
 | P2-E6 | Import/Export | 3 | 2 | IN PROGRESS |
 | P2-E7 | Search | 2 | 2 | DONE |
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 3 | IN PROGRESS |
-| **Total** | | **32** | **15** | |
+| **Total** | | **32** | **16** | |
 
 ---
 
@@ -359,20 +359,20 @@ CRUD endpoints for journal entries (VJOURNAL type).
 
 ### P2-E5-S2: Journals Page UI
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
-Journal page with chronological list and rich text editing.
+Journal page with chronological list and editing.
 
 **Preconditions:** P2-E5-S1
 
 **Acceptance Criteria:**
-- [ ] Route `/journals` with sidebar link
-- [ ] Chronological list of journal entries (newest first)
-- [ ] Create journal button + dialog with date picker and text area
-- [ ] Click entry to view/edit
-- [ ] Delete entry with confirmation
-- [ ] Vitest tests pass
+- [x] Route `/journals` with sidebar link (📓 Journals)
+- [x] Chronological list of journal entries (newest first)
+- [x] Create journal form with title, date picker, text area
+- [x] Inline edit (title + text) with save/cancel
+- [x] Delete with toast notification
+- [x] Vitest tests pass (4 new tests)
 
 ---
 

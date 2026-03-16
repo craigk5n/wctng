@@ -11,6 +11,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { label: 'Calendar', href: '/', icon: '📅' },
     { label: 'Tasks', href: '/tasks', icon: '✅' },
+    { label: 'Journals', href: '/journals', icon: '📓' },
     { label: 'Settings', href: '/settings/preferences', icon: '⚙' },
   ];
 

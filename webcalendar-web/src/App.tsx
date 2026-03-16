@@ -8,6 +8,7 @@ import { UserManagement } from './admin/UserManagement';
 import { CategoryManagement } from './admin/CategoryManagement';
 import { PreferencesPage } from './settings/PreferencesPage';
 import { TasksPage } from './tasks/TasksPage';
+import { JournalsPage } from './journals/JournalsPage';
 import { NotFound } from './pages/NotFound';
 
 export default function App() {
@@ -65,6 +66,16 @@ export default function App() {
             <ProtectedRoute>
               <AppLayout>
                 <TasksPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/journals"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <JournalsPage />
               </AppLayout>
             </ProtectedRoute>
           }
