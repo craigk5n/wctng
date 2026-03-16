@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { type AuthUser, useAuth } from './auth-context';
 import { TOKEN_STORAGE_KEY } from '../api/client';
+import { useTenant } from '../hooks/useTenant';
 
 export function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { tenant } = useTenant();
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -50,7 +52,7 @@ export function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="w-full max-w-sm space-y-6 p-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold tracking-tight">WebCalendar</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{tenant ? tenant.name : 'WebCalendar'}</h1>
           <p className="mt-1 text-sm text-muted-foreground">Sign in to your account</p>
         </div>
 

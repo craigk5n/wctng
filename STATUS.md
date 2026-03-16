@@ -19,10 +19,10 @@
 | P3-E3 | Tenant Provisioning | 4 | 4 | DONE |
 | P3-E4 | Control Plane API | 4 | 4 | DONE |
 | P3-E5 | Tenant Admin Dashboard | 4 | 4 | DONE |
-| P3-E6 | Tenant-Aware Auth | 3 | 2 | IN PROGRESS |
+| P3-E6 | Tenant-Aware Auth | 3 | 3 | DONE |
 | P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **20** | |
+| **Total** | | **27** | **21** | |
 
 ---
 
@@ -464,7 +464,7 @@ Login endpoint resolves the user from the correct tenant database.
 
 ### P3-E6-S3: Frontend Tenant Context
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 React app detects tenant from subdomain and stores tenant context for API calls.
@@ -472,11 +472,11 @@ React app detects tenant from subdomain and stores tenant context for API calls.
 **Preconditions:** P3-E6-S2
 
 **Acceptance Criteria:**
-- [ ] `useTenant()` hook extracts tenant slug from `window.location.hostname`
-- [ ] Tenant slug displayed in header/sidebar for tenant branding
-- [ ] Login page shows tenant name (fetched from `/api/v2/tenant/info` public endpoint)
-- [ ] Standalone mode: no tenant context, works as before
-- [ ] Vitest tests
+- [x] `useTenant()` hook extracts tenant slug from `window.location.hostname`
+- [x] Tenant slug displayed in header/sidebar for tenant branding
+- [x] Login page shows tenant name (fetched from `/api/v2/tenant/info` public endpoint)
+- [x] Standalone mode: no tenant context, works as before
+- [x] Vitest tests
 
 ---
 

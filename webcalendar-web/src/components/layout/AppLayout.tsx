@@ -4,11 +4,13 @@ import { useAuth } from '../../auth/auth-context';
 import { cn } from '../../lib/utils';
 import { SearchBar } from '../search/SearchBar';
 import { ThemeToggle } from '../theme/ThemeToggle';
+import { useTenant } from '../../hooks/useTenant';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { tenant } = useTenant();
 
   const navItems = [
     { label: 'Calendar', href: '/', icon: '📅' },
@@ -29,7 +31,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Desktop Sidebar */}
       <aside className="hidden w-56 flex-shrink-0 border-r border-border bg-card md:block">
         <div className="flex h-14 items-center border-b border-border px-4">
-          <h1 className="text-lg font-semibold">WebCalendar</h1>
+          <h1 className="text-lg font-semibold">{tenant ? tenant.name : 'WebCalendar'}</h1>
         </div>
         <nav className="space-y-1 p-3">
           {navItems.map((item) => (
@@ -61,7 +63,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex h-14 items-center justify-between border-b border-border px-4">
-              <h1 className="text-lg font-semibold">WebCalendar</h1>
+              <h1 className="text-lg font-semibold">{tenant ? tenant.name : 'WebCalendar'}</h1>
               <button
                 onClick={() => setMobileMenuOpen(false)}
                 className="rounded-md p-1 text-muted-foreground hover:bg-accent"
@@ -114,7 +116,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <path d="M3 5h14M3 10h14M3 15h14" />
               </svg>
             </button>
-            <h1 className="text-lg font-semibold">WebCalendar</h1>
+            <h1 className="text-lg font-semibold">{tenant ? tenant.name : 'WebCalendar'}</h1>
           </div>
 
           <div className="hidden md:block">
