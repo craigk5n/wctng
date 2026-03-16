@@ -41,6 +41,10 @@ services:
             $baseDomain: '%env(TENANT_BASE_DOMAIN)%'
             $appMode: '%env(APP_MODE)%'
 
+    App\Tenant\ControlPlaneGuard:
+        arguments:
+            $appMode: '%env(default:app_mode_default:APP_MODE)%'
+
     App\Tenant\TenantDatabaseManager:
         arguments:
             $appSecret: '%env(APP_SECRET)%'
@@ -71,6 +75,11 @@ services:
     App\Controller\Api\AuthController:
         arguments:
             $jwtTtl: '%env(int:JWT_TTL)%'
+
+    # Health controller needs APP_MODE
+    App\Controller\Api\HealthController:
+        arguments:
+            $appMode: '%env(default:app_mode_default:APP_MODE)%'
 
     # User provider for Symfony Security
     App\Security\WebCalendarUserProvider:

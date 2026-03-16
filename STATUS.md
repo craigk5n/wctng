@@ -21,8 +21,8 @@
 | P3-E5 | Tenant Admin Dashboard | 4 | 4 | DONE |
 | P3-E6 | Tenant-Aware Auth | 3 | 3 | DONE |
 | P3-E7 | Tenant Isolation & Security | 3 | 3 | DONE |
-| P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **24** | |
+| P3-E8 | Standalone ↔ Hosted Mode | 3 | 1 | IN PROGRESS |
+| **Total** | | **27** | **25** | |
 
 ---
 
@@ -548,7 +548,7 @@ Allow tenants to export all their data for portability and compliance.
 
 ### P3-E8-S1: Mode Detection & Configuration
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Configuration system that detects and switches between standalone and hosted modes.
@@ -556,13 +556,13 @@ Configuration system that detects and switches between standalone and hosted mod
 **Preconditions:** P3-E1-S3
 
 **Acceptance Criteria:**
-- [ ] `APP_MODE` env var: `standalone` (default) or `hosted`
-- [ ] Standalone mode: all tenant resolution skipped, uses `DATABASE_URL` directly
-- [ ] Hosted mode: tenant resolution active, control plane enabled
-- [ ] `GET /api/v2/health` includes `mode` field in response
-- [ ] All existing Phase 1/2 functionality works unchanged in standalone mode
-- [ ] PHPStan level 9 passes
-- [ ] Functional tests for both modes
+- [x] `APP_MODE` env var: `standalone` (default) or `hosted`
+- [x] Standalone mode: all tenant resolution skipped, uses `DATABASE_URL` directly
+- [x] Hosted mode: tenant resolution active, control plane enabled
+- [x] `GET /api/v2/health` includes `mode` field in response
+- [x] All existing Phase 1/2 functionality works unchanged in standalone mode
+- [x] PHPStan level 9 passes
+- [x] Functional tests for both modes
 
 ---
 

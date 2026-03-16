@@ -16,12 +16,14 @@ use Symfony\Component\HttpKernel\KernelEvents;
  *
  * Runs at priority 100 (after tenant resolution at 200, before controllers).
  * Skips the login endpoint which is public.
+ * Blocks all control plane access in standalone mode.
  */
 #[AsEventListener(event: KernelEvents::REQUEST, priority: 100)]
 final readonly class ControlPlaneGuard
 {
     public function __construct(
         private JWTEncoderInterface $jwtEncoder,
+        private string $appMode,
     ) {
     }
 
@@ -35,6 +37,12 @@ final readonly class ControlPlaneGuard
 
         // Only guard /control/v1/* routes
         if (!str_starts_with($path, '/control/v1/')) {
+            return;
+        }
+
+        // Block control plane in standalone mode
+        if ($this->appMode === 'standalone') {
+            $event->setResponse(ApiResponse::error(404, 'Control plane is not available in standalone mode'));
             return;
         }
 
