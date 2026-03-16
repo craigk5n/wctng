@@ -7,6 +7,9 @@ parameters:
         - vendor
     symfony:
         containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml
+    ignoreErrors:
+        - '#Access to an undefined property Sabre\\VObject\\#'
+        - '#Call to an undefined method Sabre\\VObject\\#'
 
 includes:
     - vendor/phpstan/phpstan-symfony/extension.neon

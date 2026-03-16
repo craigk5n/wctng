@@ -16,13 +16,13 @@
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
 | P4-E1 | CalDAV Server Core | 4 | 4 | DONE |
-| P4-E2 | CalDAV Calendar & Event Operations | 4 | 0 | NOT STARTED |
+| P4-E2 | CalDAV Calendar & Event Operations | 4 | 1 | IN PROGRESS |
 | P4-E3 | CalDAV Tasks & Journals | 3 | 0 | NOT STARTED |
 | P4-E4 | CalDAV Integration Tests | 2 | 0 | NOT STARTED |
 | P4-E5 | OAuth2 / OIDC Authentication | 4 | 0 | NOT STARTED |
 | P4-E6 | LDAP Authentication | 3 | 0 | NOT STARTED |
 | P4-E7 | Per-Tenant Auth Configuration | 3 | 0 | NOT STARTED |
-| **Total** | | **23** | **4** | |
+| **Total** | | **23** | **5** | |
 
 ---
 
@@ -139,7 +139,7 @@ Bridge sabre/dav's authentication to the existing webcalendar-core AuthService, 
 
 ### P4-E2-S1: Event CRUD via CalDAV
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Implement PUT, GET, DELETE for calendar objects (VEVENT) in the CalDAV backend.
@@ -147,13 +147,13 @@ Implement PUT, GET, DELETE for calendar objects (VEVENT) in the CalDAV backend.
 **Preconditions:** P4-E1-S3
 
 **Acceptance Criteria:**
-- [ ] `getCalendarObject()` returns event as iCalendar (VCALENDAR/VEVENT)
-- [ ] `createCalendarObject()` parses iCalendar and creates event via EventService
-- [ ] `updateCalendarObject()` parses iCalendar and updates event
-- [ ] `deleteCalendarObject()` deletes event
-- [ ] `getCalendarObjects()` returns all events for a calendar in date range
-- [ ] ETags and sync tokens for change detection
-- [ ] PHPStan level 9 passes
+- [x] `getCalendarObject()` returns event as iCalendar (VCALENDAR/VEVENT)
+- [x] `createCalendarObject()` parses iCalendar and creates event via EventService
+- [x] `updateCalendarObject()` parses iCalendar and updates event
+- [x] `deleteCalendarObject()` deletes event
+- [x] `getCalendarObjects()` returns all events for a calendar in date range
+- [x] ETags and sync tokens for change detection
+- [x] PHPStan level 9 passes
 - [ ] Unit tests
 
 ---

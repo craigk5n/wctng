@@ -17,7 +17,9 @@ final class CoreCalendarBackendTest extends TestCase
     #[\Override]
     protected function setUp(): void
     {
-        $this->backend = new CoreCalendarBackend();
+        $pdo = new \PDO('sqlite::memory:');
+        $factory = new \App\Service\CoreServiceFactory($pdo, 'test');
+        $this->backend = new CoreCalendarBackend($factory);
     }
 
     public function testImplementsBackendInterface(): void

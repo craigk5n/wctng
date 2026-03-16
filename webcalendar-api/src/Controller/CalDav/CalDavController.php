@@ -50,7 +50,7 @@ final class CalDavController
         // Backends
         $authBackend = new CoreAuthBackend($this->coreServiceFactory, $this->jwtEncoder, $this->tenantContext);
         $principalBackend = new CorePrincipalBackend($this->coreServiceFactory);
-        $calendarBackend = new CoreCalendarBackend();
+        $calendarBackend = new CoreCalendarBackend($this->coreServiceFactory);
 
         // Build the DAV tree
         $tree = [
