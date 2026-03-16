@@ -1,0 +1,218 @@
+import { useCallback, useEffect, useState } from 'react';
+import { apiFetch } from '../api/client';
+import { useToast } from '../components/toast/ToastProvider';
+
+interface Category {
+  id: number;
+  name: string;
+  color: string | null;
+  is_global: boolean;
+  owner: string | null;
+}
+
+export function CategoryManagement() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newColor, setNewColor] = useState('#3788d8');
+  const [isCreating, setIsCreating] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editColor, setEditColor] = useState('');
+  const { toast } = useToast();
+
+  const fetchCategories = useCallback(async () => {
+    setIsLoading(true);
+    const { data } = await apiFetch<Category[]>('/categories');
+    setCategories(data ?? []);
+    setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    void fetchCategories();
+  }, [fetchCategories]);
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim()) return;
+    setIsCreating(true);
+
+    const { error } = await apiFetch('/categories', {
+      method: 'POST',
+      body: JSON.stringify({ name: newName.trim(), color: newColor }),
+    });
+
+    setIsCreating(false);
+
+    if (!error) {
+      toast({ title: `Category "${newName}" created`, variant: 'success' });
+      setNewName('');
+      setNewColor('#3788d8');
+      setShowCreateForm(false);
+      void fetchCategories();
+    } else {
+      toast({ title: error.message, variant: 'error' });
+    }
+  };
+
+  const handleDelete = async (cat: Category) => {
+    const { error } = await apiFetch(`/categories/${cat.id}`, { method: 'DELETE' });
+
+    if (!error) {
+      toast({ title: `Category "${cat.name}" deleted`, variant: 'success' });
+      void fetchCategories();
+    } else {
+      toast({ title: error.message, variant: 'error' });
+    }
+  };
+
+  const startEditing = (cat: Category) => {
+    setEditingId(cat.id);
+    setEditName(cat.name);
+    setEditColor(cat.color ?? '#3788d8');
+  };
+
+  const handleSaveEdit = async () => {
+    if (editingId === null || !editName.trim()) return;
+
+    const { error } = await apiFetch(`/categories/${editingId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name: editName.trim(), color: editColor }),
+    });
+
+    if (!error) {
+      toast({ title: 'Category updated', variant: 'success' });
+      setEditingId(null);
+      void fetchCategories();
+    } else {
+      toast({ title: error.message, variant: 'error' });
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Categories</h2>
+        <button
+          onClick={() => setShowCreateForm(!showCreateForm)}
+          className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          {showCreateForm ? 'Cancel' : '+ New Category'}
+        </button>
+      </div>
+
+      {/* Create Form */}
+      {showCreateForm && (
+        <form onSubmit={handleCreate} className="mt-4 flex items-end gap-3 rounded-lg border border-border p-4">
+          <div className="flex-1 space-y-1">
+            <label htmlFor="cat-name" className="text-sm font-medium">Name</label>
+            <input
+              id="cat-name"
+              type="text"
+              required
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              placeholder="Category name"
+            />
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="cat-color" className="text-sm font-medium">Color</label>
+            <input
+              id="cat-color"
+              type="color"
+              value={newColor}
+              onChange={(e) => setNewColor(e.target.value)}
+              className="h-10 w-16 cursor-pointer rounded-md border border-input"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={isCreating}
+            className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            {isCreating ? 'Creating...' : 'Create'}
+          </button>
+        </form>
+      )}
+
+      {/* Category List */}
+      <div className="mt-6 space-y-2">
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        ) : categories.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No categories yet. Create one to get started.</p>
+        ) : (
+          categories.map((cat) => (
+            <div
+              key={cat.id}
+              className="flex items-center justify-between rounded-lg border border-border px-4 py-3"
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  data-testid={`color-swatch-${cat.id}`}
+                  className="h-5 w-5 rounded-full border border-border"
+                  style={{ backgroundColor: cat.color ?? '#ccc' }}
+                />
+                {editingId === cat.id ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+                      autoFocus
+                    />
+                    <input
+                      type="color"
+                      value={editColor}
+                      onChange={(e) => setEditColor(e.target.value)}
+                      className="h-8 w-10 cursor-pointer rounded border border-input"
+                    />
+                    <button
+                      onClick={handleSaveEdit}
+                      className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground hover:bg-primary/90"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setEditingId(null)}
+                      className="rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <span className="font-medium">{cat.name}</span>
+                    {cat.is_global && (
+                      <span className="ml-2 text-xs text-muted-foreground">(Global)</span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {editingId !== cat.id && (
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => startEditing(cat)}
+                    className="rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(cat)}
+                    className="rounded px-2 py-1 text-xs text-destructive hover:bg-destructive/10"
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}

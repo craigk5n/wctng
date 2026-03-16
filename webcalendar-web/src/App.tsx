@@ -5,6 +5,7 @@ import { ProtectedRoute } from './auth/ProtectedRoute';
 import { AppLayout } from './components/layout/AppLayout';
 import { CalendarPage } from './calendar/CalendarPage';
 import { UserManagement } from './admin/UserManagement';
+import { CategoryManagement } from './admin/CategoryManagement';
 import { NotFound } from './pages/NotFound';
 
 export default function App() {
@@ -32,6 +33,16 @@ export default function App() {
             <ProtectedRoute>
               <AppLayout>
                 <UserManagement />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/categories"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <CategoryManagement />
               </AppLayout>
             </ProtectedRoute>
           }
