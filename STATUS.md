@@ -13,7 +13,7 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| P2-E1 | Event Participants | 4 | 1 | IN PROGRESS |
+| P2-E1 | Event Participants | 4 | 2 | IN PROGRESS |
 | P2-E2 | Groups | 3 | 0 | NOT STARTED |
 | P2-E3 | Calendar Layers | 3 | 0 | NOT STARTED |
 | P2-E4 | Tasks | 4 | 0 | NOT STARTED |
@@ -23,7 +23,7 @@
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 0 | NOT STARTED |
-| **Total** | | **32** | **1** | |
+| **Total** | | **32** | **2** | |
 
 ---
 
@@ -83,7 +83,7 @@ Implement REST endpoints for managing event participants. Delegates to webcalend
 
 ### P2-E1-S2: Approve/Reject Event Endpoints
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Implement `POST /api/v2/events/{id}/approve` and `POST /api/v2/events/{id}/reject` for participants to respond to event invitations.
@@ -91,11 +91,11 @@ Implement `POST /api/v2/events/{id}/approve` and `POST /api/v2/events/{id}/rejec
 **Preconditions:** P2-E1-S1
 
 **Acceptance Criteria:**
-- [ ] `POST /api/v2/events/{id}/approve` — sets current user's status to Accepted
-- [ ] `POST /api/v2/events/{id}/reject` — sets current user's status to Rejected
-- [ ] Only participants of the event can approve/reject
-- [ ] Returns 404 if user is not a participant
-- [ ] PHPStan level 9 passes
+- [x] `POST /api/v2/events/{id}/approve` — sets current user's status to Accepted
+- [x] `POST /api/v2/events/{id}/reject` — sets current user's status to Rejected
+- [x] Only participants of the event can approve/reject (via EventService authorization)
+- [x] Returns 400 if user is not a participant, 404 if event not found
+- [x] PHPStan level 9 passes, Psalm clean
 
 ---
 

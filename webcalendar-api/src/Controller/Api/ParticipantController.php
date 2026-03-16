@@ -141,4 +141,48 @@ final class ParticipantController
 
         return ApiResponse::success(['login' => $login, 'status' => $status->value]);
     }
+
+    #[Route('/api/v2/events/{eventId}/approve', name: 'api_events_approve', methods: ['POST'])]
+    public function approve(int $eventId, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
+    {
+        if ($user === null) {
+            return ApiResponse::error(401, 'Authentication required');
+        }
+
+        $event = $this->coreServiceFactory->getEventService()->getEventById(new EventId($eventId));
+        if ($event === null) {
+            return ApiResponse::error(404, 'Event not found');
+        }
+
+        $coreUser = $user->getCoreUser();
+        $this->coreServiceFactory->getEventService()->approveEvent(
+            new EventId($eventId),
+            $coreUser->login(),
+            $coreUser,
+        );
+
+        return ApiResponse::success(['login' => $coreUser->login(), 'status' => 'A']);
+    }
+
+    #[Route('/api/v2/events/{eventId}/reject', name: 'api_events_reject', methods: ['POST'])]
+    public function reject(int $eventId, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
+    {
+        if ($user === null) {
+            return ApiResponse::error(401, 'Authentication required');
+        }
+
+        $event = $this->coreServiceFactory->getEventService()->getEventById(new EventId($eventId));
+        if ($event === null) {
+            return ApiResponse::error(404, 'Event not found');
+        }
+
+        $coreUser = $user->getCoreUser();
+        $this->coreServiceFactory->getEventService()->rejectEvent(
+            new EventId($eventId),
+            $coreUser->login(),
+            $coreUser,
+        );
+
+        return ApiResponse::success(['login' => $coreUser->login(), 'status' => 'R']);
+    }
 }
