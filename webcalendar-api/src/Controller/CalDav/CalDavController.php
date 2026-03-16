@@ -5,8 +5,14 @@ declare(strict_types=1);
 namespace App\Controller\CalDav;
 
 use App\CalDav\CoreAuthBackend;
+use App\CalDav\CoreCalendarBackend;
+use App\CalDav\CorePrincipalBackend;
 use App\Service\CoreServiceFactory;
+use App\Tenant\TenantContext;
+use Lexik\Bundle\JWTAuthenticationBundle\Encoder\JWTEncoderInterface;
+use Sabre\CalDAV;
 use Sabre\DAV;
+use Sabre\DAVACL;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -20,6 +26,8 @@ final class CalDavController
 {
     public function __construct(
         private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly JWTEncoderInterface $jwtEncoder,
+        private readonly TenantContext $tenantContext,
     ) {
     }
 
@@ -39,37 +47,34 @@ final class CalDavController
             $request->getContent() ?: null,
         );
 
-        // Auth backend
-        $authBackend = new CoreAuthBackend($this->coreServiceFactory);
+        // Backends
+        $authBackend = new CoreAuthBackend($this->coreServiceFactory, $this->jwtEncoder, $this->tenantContext);
+        $principalBackend = new CorePrincipalBackend($this->coreServiceFactory);
+        $calendarBackend = new CoreCalendarBackend();
 
-        // Build a minimal DAV tree
+        // Build the DAV tree
         $tree = [
-            new DAV\SimpleCollection('principals'),
-            new DAV\SimpleCollection('calendars'),
+            new DAVACL\PrincipalCollection($principalBackend),
+            new CalDAV\CalendarRoot($principalBackend, $calendarBackend),
         ];
 
         // Create the sabre/dav server
         $server = new DAV\Server($tree);
         $server->setBaseUri('/dav/');
-
-        // Inject request
         $server->httpRequest = $sabreRequest;
 
-        // Add auth plugin
-        $authPlugin = new DAV\Auth\Plugin($authBackend);
-        $server->addPlugin($authPlugin);
-
-        // Add browser plugin for dev
+        // Plugins
+        $server->addPlugin(new DAV\Auth\Plugin($authBackend));
+        $server->addPlugin(new DAVACL\Plugin());
+        $server->addPlugin(new CalDAV\Plugin());
         $server->addPlugin(new DAV\Browser\Plugin());
 
-        // Create response sapi and run
+        // Run
         $sabreResponse = new \Sabre\HTTP\Response();
         $server->httpResponse = $sabreResponse;
-
-        // Use exec() which handles exceptions internally
         $server->exec();
 
-        // Convert sabre response to Symfony response
+        // Convert to Symfony response
         $body = $sabreResponse->getBodyAsString();
         $statusCode = $sabreResponse->getStatus();
 

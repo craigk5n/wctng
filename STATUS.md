@@ -15,14 +15,14 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| P4-E1 | CalDAV Server Core | 4 | 3 | IN PROGRESS |
+| P4-E1 | CalDAV Server Core | 4 | 4 | DONE |
 | P4-E2 | CalDAV Calendar & Event Operations | 4 | 0 | NOT STARTED |
 | P4-E3 | CalDAV Tasks & Journals | 3 | 0 | NOT STARTED |
 | P4-E4 | CalDAV Integration Tests | 2 | 0 | NOT STARTED |
 | P4-E5 | OAuth2 / OIDC Authentication | 4 | 0 | NOT STARTED |
 | P4-E6 | LDAP Authentication | 3 | 0 | NOT STARTED |
 | P4-E7 | Per-Tenant Auth Configuration | 3 | 0 | NOT STARTED |
-| **Total** | | **23** | **3** | |
+| **Total** | | **23** | **4** | |
 
 ---
 
@@ -116,7 +116,7 @@ Implement the sabre/dav CalendarBackend that maps webcalendar calendars and even
 
 ### P4-E1-S4: CalDAV Authentication Bridge
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Bridge sabre/dav's authentication to the existing webcalendar-core AuthService, supporting both HTTP Basic and Bearer token auth.
@@ -124,12 +124,12 @@ Bridge sabre/dav's authentication to the existing webcalendar-core AuthService, 
 **Preconditions:** P4-E1-S1
 
 **Acceptance Criteria:**
-- [ ] `CoreAuthBackend` implements `Sabre\DAV\Auth\Backend\BackendInterface`
-- [ ] HTTP Basic auth: validates username/password via AuthService
-- [ ] Bearer token auth: validates JWT tokens (same as REST API)
-- [ ] Tenant-aware: uses TenantContext for multi-tenant CalDAV access
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests
+- [x] `CoreAuthBackend` implements `Sabre\DAV\Auth\Backend\BackendInterface`
+- [x] HTTP Basic auth: validates username/password via AuthService
+- [x] Bearer token auth: validates JWT tokens (same as REST API)
+- [x] Tenant-aware: uses TenantContext for multi-tenant CalDAV access
+- [x] PHPStan level 9 passes
+- [x] Unit tests
 
 ---
 
