@@ -1,5 +1,6 @@
 import type { ApiEvent } from './eventMapper';
 import { ParticipantList } from './ParticipantList';
+import { ParticipantResponse } from './ParticipantResponse';
 
 const ACCESS_LABELS: Record<string, string> = {
   P: 'Public',
@@ -13,6 +14,10 @@ interface EventDetailDialogProps {
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  currentUserLogin?: string;
+  onAccept?: () => void;
+  onReject?: () => void;
+  isResponding?: boolean;
 }
 
 function formatDate(dateStr: string): string {
@@ -23,10 +28,18 @@ function formatTime(timeStr: string): string {
   return `${timeStr.slice(0, 2)}:${timeStr.slice(2, 4)}`;
 }
 
-export function EventDetailDialog({ event, open, onClose, onEdit, onDelete }: EventDetailDialogProps) {
+export function EventDetailDialog({
+  event, open, onClose, onEdit, onDelete,
+  currentUserLogin, onAccept, onReject, isResponding,
+}: EventDetailDialogProps) {
   if (!open) return null;
 
   const isAllDay = event.all_day || !event.start_time;
+
+  // Check if current user is a participant
+  const currentUserParticipant = currentUserLogin
+    ? event.participants?.find((p) => p.login === currentUserLogin)
+    : undefined;
 
   return (
     <div
@@ -104,6 +117,21 @@ export function EventDetailDialog({ event, open, onClose, onEdit, onDelete }: Ev
             </div>
           )}
         </div>
+
+        {/* Participant response (Accept/Reject) */}
+        {currentUserParticipant && onAccept && onReject && (
+          <div className="mt-4 rounded-md border border-border p-3">
+            <span className="text-sm font-medium text-muted-foreground">Your response:</span>
+            <div className="mt-1.5">
+              <ParticipantResponse
+                status={currentUserParticipant.status}
+                onAccept={onAccept}
+                onReject={onReject}
+                isLoading={isResponding}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="mt-6 flex gap-2">

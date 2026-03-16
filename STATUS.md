@@ -13,7 +13,7 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| P2-E1 | Event Participants | 4 | 2 | IN PROGRESS |
+| P2-E1 | Event Participants | 4 | 4 | DONE |
 | P2-E2 | Groups | 3 | 0 | NOT STARTED |
 | P2-E3 | Calendar Layers | 3 | 0 | NOT STARTED |
 | P2-E4 | Tasks | 4 | 0 | NOT STARTED |
@@ -23,7 +23,7 @@
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 0 | NOT STARTED |
-| **Total** | | **32** | **2** | |
+| **Total** | | **32** | **4** | |
 
 ---
 
@@ -101,7 +101,7 @@ Implement `POST /api/v2/events/{id}/approve` and `POST /api/v2/events/{id}/rejec
 
 ### P2-E1-S3: Participants UI in Event Detail
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Show participants in EventDetailDialog and allow adding/removing participants in EventDialog.
@@ -109,17 +109,17 @@ Show participants in EventDetailDialog and allow adding/removing participants in
 **Preconditions:** P2-E1-S1
 
 **Acceptance Criteria:**
-- [ ] EventDetailDialog shows participant list with name + status badge (Accepted/Rejected/Tentative)
-- [ ] EventDialog (edit mode) has a participant input field — type to search users, add by clicking
-- [ ] Participants can be removed from the edit dialog
-- [ ] Status badges are color-coded (green=accepted, red=rejected, yellow=tentative)
-- [ ] Vitest tests pass
+- [x] EventDetailDialog shows participant list with name + status badge (Accepted/Rejected/Tentative)
+- [x] EventDialog (edit mode) has a participant input field — type username, press Enter to add
+- [x] Participants can be removed from the edit dialog (chip ✕ button)
+- [x] Status badges are color-coded (green=accepted, red=rejected, yellow=pending)
+- [x] Vitest tests pass (8 new tests)
 
 ---
 
 ### P2-E1-S4: Participant Status Response UI
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 When viewing an event the user is invited to, show Accept/Reject buttons.
@@ -127,11 +127,11 @@ When viewing an event the user is invited to, show Accept/Reject buttons.
 **Preconditions:** P2-E1-S2, P2-E1-S3
 
 **Acceptance Criteria:**
-- [ ] Events where current user is a pending participant show Accept/Reject buttons in detail view
-- [ ] Clicking Accept calls `POST /events/{id}/approve`, updates UI
-- [ ] Clicking Reject calls `POST /events/{id}/reject`, updates UI
-- [ ] Already-responded events show current status with option to change
-- [ ] Vitest tests pass
+- [x] Events where current user is a pending participant show Accept/Reject buttons in detail view
+- [x] Clicking Accept calls `POST /events/{id}/approve`, refreshes event detail
+- [x] Clicking Reject calls `POST /events/{id}/reject`, refreshes event detail
+- [x] Already-responded events show current status with option to change (Accept↔Decline)
+- [x] Vitest tests pass (6 new tests)
 
 ---
 

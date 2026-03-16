@@ -7,6 +7,7 @@ import { apiEventToInitialValues } from './eventDialogHelpers';
 import type { ApiEvent } from './eventMapper';
 import { apiFetch } from '../api/client';
 import { useToast } from '../components/toast/ToastProvider';
+import { useAuth } from '../auth/auth-context';
 
 type DialogState =
   | { type: 'none' }
@@ -19,7 +20,9 @@ export function CalendarPage() {
   const calendarRef = useRef<FullCalendarWrapperHandle>(null);
   const [dialog, setDialog] = useState<DialogState>({ type: 'none' });
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isResponding, setIsResponding] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // --- Event click: fetch full event and show detail ---
   const handleEventClick = useCallback(async (eventId: number) => {
@@ -199,6 +202,33 @@ export function CalendarPage() {
           onClose={closeDialog}
           onEdit={() => setDialog({ type: 'edit', event: dialog.event })}
           onDelete={() => setDialog({ type: 'confirmDelete', event: dialog.event })}
+          currentUserLogin={user?.login}
+          isResponding={isResponding}
+          onAccept={async () => {
+            setIsResponding(true);
+            const { error } = await apiFetch(`/events/${dialog.event.id}/approve`, { method: 'POST' });
+            if (!error) {
+              toast({ title: 'Event accepted', variant: 'success' });
+              // Refresh event detail
+              const { data } = await apiFetch<ApiEvent>(`/events/${dialog.event.id}`);
+              if (data) setDialog({ type: 'detail', event: data });
+            } else {
+              toast({ title: 'Failed to respond', variant: 'error' });
+            }
+            setIsResponding(false);
+          }}
+          onReject={async () => {
+            setIsResponding(true);
+            const { error } = await apiFetch(`/events/${dialog.event.id}/reject`, { method: 'POST' });
+            if (!error) {
+              toast({ title: 'Event declined', variant: 'success' });
+              const { data } = await apiFetch<ApiEvent>(`/events/${dialog.event.id}`);
+              if (data) setDialog({ type: 'detail', event: data });
+            } else {
+              toast({ title: 'Failed to respond', variant: 'error' });
+            }
+            setIsResponding(false);
+          }}
         />
       )}
 
