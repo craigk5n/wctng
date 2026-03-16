@@ -1,27 +1,30 @@
 import type { EventInput } from '@fullcalendar/core';
-import { api } from '../api/client';
+import { TOKEN_STORAGE_KEY } from '../api/client';
 import { mapApiEventsToFullCalendar, type ApiEvent } from './eventMapper';
 
 /**
  * Fetches calendar events from the API for a date range
  * and transforms them to FullCalendar format.
- *
- * This is a standalone async function (not a hook) so it can be
- * used by FullCalendarWrapper's datesSet callback and also tested independently.
  */
 export async function fetchCalendarEvents(
   startDate: string,
   endDate: string,
 ): Promise<EventInput[]> {
   try {
-    const result = await api.GET('/events' as never, {
-      params: { query: { start: startDate, end: endDate } },
-    } as never);
+    const baseUrl = import.meta.env.VITE_API_URL ?? '/api/v2';
+    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const data = result.data as { data: ApiEvent[]; meta: unknown } | undefined;
+    const res = await fetch(`${baseUrl}/events?start=${startDate}&end=${endDate}`, { headers });
 
-    if (data?.data && Array.isArray(data.data)) {
-      return mapApiEventsToFullCalendar(data.data);
+    if (!res.ok) return [];
+
+    const body = await res.json();
+    const events = body?.data as ApiEvent[] | undefined;
+
+    if (events && Array.isArray(events)) {
+      return mapApiEventsToFullCalendar(events);
     }
 
     return [];

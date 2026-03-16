@@ -3,18 +3,6 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useCategories, DEFAULT_EVENT_COLOR, getEventColor, type ApiCategory } from '../useCategories';
 
-vi.mock('../../api/client', () => ({
-  api: {
-    GET: vi.fn(),
-  },
-  TOKEN_STORAGE_KEY: 'wctng_token',
-  createApiClient: vi.fn(),
-}));
-
-import { api } from '../../api/client';
-
-const mockGet = vi.mocked(api.GET);
-
 function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: 0 } },
@@ -25,8 +13,10 @@ function createWrapper() {
 }
 
 describe('useCategories', () => {
+  const originalFetch = globalThis.fetch;
+
   afterEach(() => {
-    vi.clearAllMocks();
+    globalThis.fetch = originalFetch;
   });
 
   it('fetches categories and returns them', async () => {
@@ -35,11 +25,12 @@ describe('useCategories', () => {
       { id: 2, name: 'Personal', color: '#00FF00', is_global: false, owner: 'admin' },
     ];
 
-    mockGet.mockResolvedValue({
-      data: { data: cats },
-      error: undefined,
-      response: new Response(),
-    } as never);
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ data: cats }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
 
     const { result } = renderHook(() => useCategories(), { wrapper: createWrapper() });
 
@@ -50,11 +41,9 @@ describe('useCategories', () => {
   });
 
   it('returns empty array on error', async () => {
-    mockGet.mockResolvedValue({
-      data: undefined,
-      error: { code: 500, message: 'Error' },
-      response: new Response(),
-    } as never);
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response('Error', { status: 500 }),
+    );
 
     const { result } = renderHook(() => useCategories(), { wrapper: createWrapper() });
 
@@ -71,22 +60,18 @@ describe('getEventColor', () => {
   ];
 
   it('returns category color when event has matching category', () => {
-    const color = getEventColor([1], categories);
-    expect(color).toBe('#FF0000');
+    expect(getEventColor([1], categories)).toBe('#FF0000');
   });
 
   it('returns default color for uncategorized events', () => {
-    const color = getEventColor([], categories);
-    expect(color).toBe(DEFAULT_EVENT_COLOR);
+    expect(getEventColor([], categories)).toBe(DEFAULT_EVENT_COLOR);
   });
 
   it('returns default color when category not found', () => {
-    const color = getEventColor([999], categories);
-    expect(color).toBe(DEFAULT_EVENT_COLOR);
+    expect(getEventColor([999], categories)).toBe(DEFAULT_EVENT_COLOR);
   });
 
   it('uses first category color when event has multiple categories', () => {
-    const color = getEventColor([2, 1], categories);
-    expect(color).toBe('#00FF00');
+    expect(getEventColor([2, 1], categories)).toBe('#00FF00');
   });
 });
