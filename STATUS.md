@@ -21,9 +21,9 @@
 | P2-E6 | Import/Export | 3 | 3 | DONE |
 | P2-E7 | Search | 2 | 2 | DONE |
 | P2-E8 | Real-time (Mercure) | 3 | 3 | DONE |
-| P2-E9 | Permissions & Access Control | 3 | 1 | IN PROGRESS |
+| P2-E9 | Permissions & Access Control | 3 | 3 | DONE |
 | P2-E10 | UI Polish & UX | 4 | 3 | IN PROGRESS |
-| **Total** | | **32** | **29** | |
+| **Total** | | **32** | **31** | |
 
 ---
 
@@ -582,7 +582,7 @@ Endpoints for managing user-to-user access permissions.
 
 ### P2-E9-S2: Access Control Settings UI
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 User settings page for managing who can view/edit their calendar.
@@ -590,17 +590,17 @@ User settings page for managing who can view/edit their calendar.
 **Preconditions:** P2-E9-S1
 
 **Acceptance Criteria:**
-- [ ] Route `/settings/access` accessible to all users
-- [ ] List of users with checkboxes: Can View, Can Edit
-- [ ] Save button to persist changes
-- [ ] Toast on save success/failure
-- [ ] Vitest tests pass
+- [x] Route `/settings/access` accessible to all users
+- [x] List of users with checkboxes: Can View, Can Edit
+- [x] Save button to persist changes
+- [x] Toast on save success/failure
+- [x] Vitest tests pass
 
 ---
 
 ### P2-E9-S3: Permission Enforcement in UI
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Respect permissions when showing events from other users (via layers).
@@ -608,10 +608,10 @@ Respect permissions when showing events from other users (via layers).
 **Preconditions:** P2-E9-S1, P2-E3-S2
 
 **Acceptance Criteria:**
-- [ ] Private events from other users not shown in layers
-- [ ] Confidential events shown as "Busy" with no details
-- [ ] Edit/delete buttons hidden for events user doesn't have permission to modify
-- [ ] Vitest tests pass
+- [x] Private events from other users not shown in layers
+- [x] Confidential events shown as "Busy" with no details
+- [x] Edit/delete buttons hidden for events user doesn't have permission to modify
+- [x] Vitest tests pass
 
 ---
 

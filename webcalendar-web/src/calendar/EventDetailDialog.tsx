@@ -147,18 +147,22 @@ export function EventDetailDialog({
 
         {/* Actions */}
         <div className="mt-6 flex items-center gap-2">
-          <button
-            onClick={onEdit}
-            className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            Edit
-          </button>
-          <button
-            onClick={onDelete}
-            className="inline-flex h-9 items-center rounded-md bg-destructive px-4 text-sm font-medium text-destructive-foreground hover:bg-destructive/90"
-          >
-            Delete
-          </button>
+          {(!currentUserLogin || event.created_by === currentUserLogin) && (
+            <>
+              <button
+                onClick={onEdit}
+                className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Edit
+              </button>
+              <button
+                onClick={onDelete}
+                className="inline-flex h-9 items-center rounded-md bg-destructive px-4 text-sm font-medium text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </button>
+            </>
+          )}
 
           {/* Overflow menu */}
           <div className="relative ml-auto">
