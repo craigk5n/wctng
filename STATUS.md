@@ -18,11 +18,11 @@
 | P3-E2 | Tenant Resolver Middleware | 3 | 3 | DONE |
 | P3-E3 | Tenant Provisioning | 4 | 4 | DONE |
 | P3-E4 | Control Plane API | 4 | 4 | DONE |
-| P3-E5 | Tenant Admin Dashboard | 4 | 2 | IN PROGRESS |
+| P3-E5 | Tenant Admin Dashboard | 4 | 3 | IN PROGRESS |
 | P3-E6 | Tenant-Aware Auth | 3 | 0 | NOT STARTED |
 | P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **16** | |
+| **Total** | | **27** | **17** | |
 
 ---
 
@@ -383,7 +383,7 @@ Page showing all tenants with status, actions, and search/filter.
 
 ### P3-E5-S3: Tenant Provisioning Wizard
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Multi-step form for provisioning a new tenant with validation and progress feedback.
@@ -391,13 +391,13 @@ Multi-step form for provisioning a new tenant with validation and progress feedb
 **Preconditions:** P3-E5-S2
 
 **Acceptance Criteria:**
-- [ ] Step 1: Slug + name (validates slug format, checks availability in real-time)
-- [ ] Step 2: Admin email + plan selection
-- [ ] Step 3: Review & confirm
-- [ ] Progress indicator during provisioning (polling for status)
-- [ ] Success screen with tenant URL and admin credentials
-- [ ] Error handling with retry option
-- [ ] Vitest tests
+- [x] Step 1: Slug + name (validates slug format, checks availability in real-time)
+- [x] Step 2: Admin email + plan selection
+- [x] Step 3: Review & confirm
+- [x] Progress indicator during provisioning (polling for status)
+- [x] Success screen with tenant URL and admin credentials
+- [x] Error handling with retry option
+- [x] Vitest tests
 
 ---
 

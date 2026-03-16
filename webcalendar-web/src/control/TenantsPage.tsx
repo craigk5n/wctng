@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { controlApiFetch } from './control-auth';
+import { ProvisionWizard } from './ProvisionWizard';
 
 interface TenantListItem {
   slug: string;
@@ -19,6 +20,7 @@ export function TenantsPage() {
   const [tenants, setTenants] = useState<TenantListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [showWizard, setShowWizard] = useState(false);
 
   const fetchTenants = useCallback(async () => {
     setIsLoading(true);
@@ -58,7 +60,12 @@ export function TenantsPage() {
     <div>
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Tenants</h2>
-        <span className="text-sm text-muted-foreground">{tenants.length} total</span>
+        <button
+          onClick={() => setShowWizard(true)}
+          className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          + New Tenant
+        </button>
       </div>
 
       {/* Search */}
@@ -128,6 +135,10 @@ export function TenantsPage() {
           </table>
         )}
       </div>
+
+      {showWizard && (
+        <ProvisionWizard onClose={() => { setShowWizard(false); void fetchTenants(); }} />
+      )}
     </div>
   );
 }
