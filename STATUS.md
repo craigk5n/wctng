@@ -17,12 +17,12 @@
 | P3-E1 | Tenant Data Model | 3 | 3 | DONE |
 | P3-E2 | Tenant Resolver Middleware | 3 | 3 | DONE |
 | P3-E3 | Tenant Provisioning | 4 | 4 | DONE |
-| P3-E4 | Control Plane API | 4 | 1 | IN PROGRESS |
+| P3-E4 | Control Plane API | 4 | 2 | IN PROGRESS |
 | P3-E5 | Tenant Admin Dashboard | 4 | 0 | NOT STARTED |
 | P3-E6 | Tenant-Aware Auth | 3 | 0 | NOT STARTED |
 | P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **11** | |
+| **Total** | | **27** | **12** | |
 
 ---
 
@@ -283,7 +283,7 @@ Separate authentication for the control plane (super-admin level, not per-tenant
 
 ### P3-E4-S2: Tenant CRUD Endpoints
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 REST endpoints for creating, reading, updating, and deleting tenants.
@@ -291,14 +291,14 @@ REST endpoints for creating, reading, updating, and deleting tenants.
 **Preconditions:** P3-E4-S1, P3-E3-S1
 
 **Acceptance Criteria:**
-- [ ] `GET /control/v1/tenants` — list all tenants with status, plan, created_at
-- [ ] `POST /control/v1/tenants` — provision new tenant (body: `{slug, name, admin_email, plan}`)
-- [ ] `GET /control/v1/tenants/{slug}` — get tenant details including user count, event count
-- [ ] `PUT /control/v1/tenants/{slug}` — update tenant (name, plan, status)
-- [ ] `DELETE /control/v1/tenants/{slug}` — deprovision tenant (requires `?confirm=true`)
-- [ ] Provisioning is async-safe (returns 202 if DB creation takes time)
-- [ ] PHPStan level 9 passes
-- [ ] Functional tests for all endpoints
+- [x] `GET /control/v1/tenants` — list all tenants with status, plan, created_at
+- [x] `POST /control/v1/tenants` — provision new tenant (body: `{slug, name, admin_email, plan}`)
+- [x] `GET /control/v1/tenants/{slug}` — get tenant details including user count, event count
+- [x] `PUT /control/v1/tenants/{slug}` — update tenant (name, plan, status)
+- [x] `DELETE /control/v1/tenants/{slug}` — deprovision tenant (requires `?confirm=true`)
+- [x] Provisioning is async-safe (returns 202 if DB creation takes time)
+- [x] PHPStan level 9 passes
+- [x] Functional tests for all endpoints
 
 ---
 

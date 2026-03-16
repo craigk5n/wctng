@@ -1,5 +1,6 @@
 parameters:
     app_mode_default: 'standalone'
+    db_driver_default: 'mysql'
 
 services:
     _defaults:
@@ -70,11 +71,18 @@ services:
     App\Security\WebCalendarUserProvider:
         public: true
 
+    App\Tenant\TenantProvisioner:
+        arguments:
+            $dbDriver: '%env(default:db_driver_default:TENANT_DB_DRIVER)%'
+
     App\Tenant\TenantMigrator:
         arguments:
             $migrationsDir: '%kernel.project_dir%/migrations/tenant'
 
     # Control plane
+    App\Controller\Control\TenantController:
+        tags: ['controller.service_arguments']
+
     App\Controller\Control\ControlAuthController:
         arguments:
             $pdo: '@pdo.connection'
