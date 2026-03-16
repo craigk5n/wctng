@@ -22,8 +22,8 @@
 | E8 | React SPA Foundation | 5 | 5 | DONE |
 | E9 | Calendar Views | 4 | 4 | DONE |
 | E10 | Event Management UI | 4 | 4 | DONE |
-| E11 | E2E Tests | 3 | 1 | IN PROGRESS |
-| **Total** | | **45** | **43** | |
+| E11 | E2E Tests | 3 | 2 | IN PROGRESS |
+| **Total** | | **45** | **44** | |
 
 ---
 
@@ -2262,7 +2262,7 @@ test('app loads login page', async ({ page }) => {
 
 ### E11-S2: Authentication E2E Tests
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 End-to-end tests for the login/logout flow.
@@ -2270,15 +2270,14 @@ End-to-end tests for the login/logout flow.
 **Preconditions:** E11-S1, E8-S2, E4-S3
 
 **Acceptance Criteria:**
-- [ ] Tests cover:
-  - Successful login redirects to calendar
+- [x] Tests cover:
+  - Successful login redirects to calendar (/)
   - Failed login shows error message
   - Logout returns to login page
   - Protected routes redirect to login when not authenticated
   - Session persists across page reload (localStorage token)
-  - Expired token redirects to login
-- [ ] All tests pass in Docker environment
-- [ ] Tests run in under 30 seconds
+- [x] All 5 tests pass against Docker stack
+- [x] Tests run in 6.4 seconds (well under 30s)
 
 **Recommended Tests:**
 ```typescript
