@@ -178,3 +178,9 @@
 .fc .task-completed .fc-event-title {
   text-decoration: line-through;
 }
+
+/* Journal styles on calendar */
+.fc .journal-entry {
+  border-left: 3px solid #6366f1;
+  font-style: italic;
+}

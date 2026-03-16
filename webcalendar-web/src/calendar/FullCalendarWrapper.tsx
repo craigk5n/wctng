@@ -21,12 +21,13 @@ interface FullCalendarWrapperProps {
   initialView?: string;
   onEventClick?: (eventId: number) => void;
   onTaskClick?: (taskId: number) => void;
+  onJournalClick?: (journalId: number) => void;
   onDateSelect?: (start: Date, end: Date, allDay: boolean) => void;
   activeLayers?: LayerVisibility[];
 }
 
 export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCalendarWrapperProps>(
-  function FullCalendarWrapper({ initialView = 'dayGridMonth', onEventClick, onTaskClick, onDateSelect, activeLayers }, ref) {
+  function FullCalendarWrapper({ initialView = 'dayGridMonth', onEventClick, onTaskClick, onJournalClick, onDateSelect, activeLayers }, ref) {
   const [events, setEvents] = useState<EventInput[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const calendarRef = useRef<FullCalendar>(null);
@@ -43,12 +44,18 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
         if (!isNaN(taskId)) onTaskClick(taskId);
         return;
       }
+      // Journals have IDs like "journal-10"
+      if (id.startsWith('journal-') && onJournalClick) {
+        const journalId = parseInt(id.slice(8), 10);
+        if (!isNaN(journalId)) onJournalClick(journalId);
+        return;
+      }
       const eventId = parseInt(id, 10);
       if (!isNaN(eventId) && onEventClick) {
         onEventClick(eventId);
       }
     },
-    [onEventClick, onTaskClick],
+    [onEventClick, onTaskClick, onJournalClick],
   );
 
   const handleDateSelect = useCallback(
@@ -93,6 +100,10 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
 
       // Apply colors: tasks get distinct styling, events get category/layer colors
       const coloredEvents = result.map((event) => {
+        // Journals get a distinct indigo color
+        if (event.extendedProps?.isJournal) {
+          return { ...event, backgroundColor: '#6366f1', borderColor: '#6366f1' };
+        }
         // Tasks get a distinct color
         if (event.extendedProps?.isTask) {
           const isCompleted = (event.extendedProps.percent_complete as number) >= 100;

@@ -2,9 +2,10 @@ import type { EventInput } from '@fullcalendar/core';
 import { apiFetch } from '../api/client';
 import { mapApiEventsToFullCalendar, type ApiEvent } from './eventMapper';
 import { mapTasksToFullCalendar, type ApiTask } from './taskMapper';
+import { mapJournalsToFullCalendar, type ApiJournal } from './journalMapper';
 
 /**
- * Fetches calendar events and tasks from the API for a date range
+ * Fetches calendar events, tasks, and journals from the API for a date range
  * and transforms them to FullCalendar format.
  */
 export async function fetchCalendarEvents(
@@ -14,10 +15,11 @@ export async function fetchCalendarEvents(
 ): Promise<EventInput[]> {
   const layerParam = includeLayers ? '&layers=1' : '';
 
-  // Fetch events and tasks in parallel
-  const [eventsResult, tasksResult] = await Promise.all([
+  // Fetch events, tasks, and journals in parallel
+  const [eventsResult, tasksResult, journalsResult] = await Promise.all([
     apiFetch<ApiEvent[]>(`/events?start=${startDate}&end=${endDate}${layerParam}`),
     apiFetch<ApiTask[]>(`/tasks?start=${startDate}&end=${endDate}`),
+    apiFetch<ApiJournal[]>(`/journals?start=${startDate}&end=${endDate}`),
   ]);
 
   const events = eventsResult.data && Array.isArray(eventsResult.data)
@@ -28,5 +30,9 @@ export async function fetchCalendarEvents(
     ? mapTasksToFullCalendar(tasksResult.data)
     : [];
 
-  return [...events, ...tasks];
+  const journals = journalsResult.data && Array.isArray(journalsResult.data)
+    ? mapJournalsToFullCalendar(journalsResult.data)
+    : [];
+
+  return [...events, ...tasks, ...journals];
 }

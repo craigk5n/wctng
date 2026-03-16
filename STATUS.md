@@ -17,13 +17,13 @@
 | P2-E2 | Groups | 3 | 3 | DONE |
 | P2-E3 | Calendar Layers | 3 | 3 | DONE |
 | P2-E4 | Tasks | 4 | 4 | DONE |
-| P2-E5 | Journals | 3 | 2 | IN PROGRESS |
+| P2-E5 | Journals | 3 | 3 | DONE |
 | P2-E6 | Import/Export | 3 | 3 | DONE |
 | P2-E7 | Search | 2 | 2 | DONE |
 | P2-E8 | Real-time (Mercure) | 3 | 0 | NOT STARTED |
 | P2-E9 | Permissions & Access Control | 3 | 0 | NOT STARTED |
 | P2-E10 | UI Polish & UX | 4 | 3 | IN PROGRESS |
-| **Total** | | **32** | **24** | |
+| **Total** | | **32** | **25** | |
 
 ---
 
@@ -378,7 +378,7 @@ Journal page with chronological list and editing.
 
 ### P2-E5-S3: Journals on Calendar
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Show journal entries on the calendar as small indicators on their date.
@@ -386,10 +386,10 @@ Show journal entries on the calendar as small indicators on their date.
 **Preconditions:** P2-E5-S1
 
 **Acceptance Criteria:**
-- [ ] Journal entries appear as small icons/dots on their date in month view
-- [ ] Clicking the indicator opens the journal entry
-- [ ] Distinct visual style from events and tasks
-- [ ] Vitest tests pass
+- [x] Journal entries appear as small icons/dots on their date in month view
+- [x] Clicking the indicator opens the journal entry
+- [x] Distinct visual style from events and tasks
+- [x] Vitest tests pass
 
 ---
 

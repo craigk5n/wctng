@@ -91,6 +91,11 @@ export function CalendarPage() {
     navigate('/tasks');
   }, [navigate]);
 
+  // --- Journal click: navigate to journals page ---
+  const handleJournalClick = useCallback((_journalId: number) => {
+    navigate('/journals');
+  }, [navigate]);
+
   // --- Event click: fetch full event and show detail ---
   const handleEventClick = useCallback(async (eventId: number) => {
     const { data } = await apiFetch<ApiEvent>(`/events/${eventId}`);
@@ -289,6 +294,7 @@ export function CalendarPage() {
             initialView={defaultView}
             onEventClick={handleEventClick}
             onTaskClick={handleTaskClick}
+            onJournalClick={handleJournalClick}
             onDateSelect={handleDateSelect}
             activeLayers={activeLayers}
           />
