@@ -8,6 +8,7 @@ use App\Response\ApiResponse;
 use App\Tenant\Tenant;
 use App\Tenant\ControlPlaneWebhook;
 use App\Tenant\TenantDatabaseManager;
+use App\Tenant\TenantExportService;
 use App\Tenant\TenantProvisioner;
 use App\Tenant\TenantRepository;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -26,6 +27,7 @@ final class TenantController
         private readonly TenantProvisioner $provisioner,
         private readonly TenantDatabaseManager $dbManager,
         private readonly ControlPlaneWebhook $webhook,
+        private readonly TenantExportService $exportService,
     ) {
     }
 
@@ -252,6 +254,28 @@ final class TenantController
             'total_users' => $totalUsers,
             'total_events' => $totalEvents,
         ]);
+    }
+
+    #[Route('/control/v1/tenants/{slug}/export', name: 'control_tenants_export', methods: ['POST'])]
+    public function exportTenant(string $slug): Response
+    {
+        $tenant = $this->tenantRepository->findBySlug($slug);
+
+        if ($tenant === null) {
+            return ApiResponse::error(404, 'Tenant not found');
+        }
+
+        try {
+            $zipContent = $this->exportService->export($tenant);
+
+            $response = new Response($zipContent);
+            $response->headers->set('Content-Type', 'application/zip');
+            $response->headers->set('Content-Disposition', "attachment; filename=\"{$slug}-export.zip\"");
+
+            return $response;
+        } catch (\Throwable $e) {
+            return ApiResponse::error(500, 'Export failed: ' . $e->getMessage());
+        }
     }
 
     private function queryCount(\PDO $pdo, string $sql): int

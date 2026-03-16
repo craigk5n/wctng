@@ -20,9 +20,9 @@
 | P3-E4 | Control Plane API | 4 | 4 | DONE |
 | P3-E5 | Tenant Admin Dashboard | 4 | 4 | DONE |
 | P3-E6 | Tenant-Aware Auth | 3 | 3 | DONE |
-| P3-E7 | Tenant Isolation & Security | 3 | 2 | IN PROGRESS |
+| P3-E7 | Tenant Isolation & Security | 3 | 3 | DONE |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **23** | |
+| **Total** | | **27** | **24** | |
 
 ---
 
@@ -525,7 +525,7 @@ Per-tenant rate limiting to prevent a single tenant from consuming excessive res
 
 ### P3-E7-S3: Tenant Data Export & Portability
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Allow tenants to export all their data for portability and compliance.
@@ -533,12 +533,12 @@ Allow tenants to export all their data for portability and compliance.
 **Preconditions:** P3-E7-S1
 
 **Acceptance Criteria:**
-- [ ] `GET /api/v2/tenant/export` — downloads full tenant data as ZIP (ICS + JSON)
-- [ ] Export includes: all events, tasks, journals, users, categories, groups
-- [ ] Export is rate-limited (max 1 per hour per tenant)
-- [ ] Control plane can trigger export for any tenant: `POST /control/v1/tenants/{slug}/export`
-- [ ] PHPStan level 9 passes
-- [ ] Functional tests
+- [x] `GET /api/v2/tenant/export` — downloads full tenant data as ZIP (ICS + JSON)
+- [x] Export includes: all events, tasks, journals, users, categories, groups
+- [x] Export is rate-limited (max 1 per hour per tenant)
+- [x] Control plane can trigger export for any tenant: `POST /control/v1/tenants/{slug}/export`
+- [x] PHPStan level 9 passes
+- [x] Functional tests
 
 ---
 
