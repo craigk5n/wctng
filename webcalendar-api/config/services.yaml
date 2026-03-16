@@ -22,6 +22,11 @@ services:
         arguments:
             - '%env(DATABASE_URL)%'
 
+    # Tenant services
+    App\Tenant\TenantDatabaseManager:
+        arguments:
+            $appSecret: '%env(APP_SECRET)%'
+
     # webcalendar-core service factory
     App\Service\CoreServiceFactory:
         public: true

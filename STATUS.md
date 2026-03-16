@@ -14,7 +14,7 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| P3-E1 | Tenant Data Model | 3 | 1 | IN PROGRESS |
+| P3-E1 | Tenant Data Model | 3 | 3 | DONE |
 | P3-E2 | Tenant Resolver Middleware | 3 | 0 | NOT STARTED |
 | P3-E3 | Tenant Provisioning | 4 | 0 | NOT STARTED |
 | P3-E4 | Control Plane API | 4 | 0 | NOT STARTED |
@@ -22,7 +22,7 @@
 | P3-E6 | Tenant-Aware Auth | 3 | 0 | NOT STARTED |
 | P3-E7 | Tenant Isolation & Security | 3 | 0 | NOT STARTED |
 | P3-E8 | Standalone ↔ Hosted Mode | 3 | 0 | NOT STARTED |
-| **Total** | | **27** | **2** | |
+| **Total** | | **27** | **3** | |
 
 ---
 
@@ -97,7 +97,7 @@ Service that creates PDO connections to tenant databases dynamically based on te
 
 ### P3-E1-S3: Tenant Context Service
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Request-scoped service that holds the current tenant context, making it available throughout the request lifecycle.
@@ -105,12 +105,12 @@ Request-scoped service that holds the current tenant context, making it availabl
 **Preconditions:** P3-E1-S1
 
 **Acceptance Criteria:**
-- [ ] `TenantContext` service holds current `Tenant` entity (or null for standalone mode)
-- [ ] `setTenant()` / `getTenant()` / `isMultiTenant()` methods
-- [ ] Registered as a scoped service (reset per request)
-- [ ] `CoreServiceFactory` uses tenant PDO when `TenantContext` has a tenant, default PDO otherwise
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests
+- [x] `TenantContext` service holds current `Tenant` entity (or null for standalone mode)
+- [x] `setTenant()` / `getTenant()` / `isMultiTenant()` methods
+- [x] Registered as a scoped service (reset per request)
+- [x] `CoreServiceFactory` uses tenant PDO when `TenantContext` has a tenant, default PDO otherwise
+- [x] PHPStan level 9 passes
+- [x] Unit tests
 
 ---
 

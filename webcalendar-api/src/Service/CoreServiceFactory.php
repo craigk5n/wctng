@@ -56,6 +56,8 @@ use WebCalendar\Core\Infrastructure\Persistence\PdoUserRepository;
 use WebCalendar\Core\Infrastructure\Persistence\PdoViewRepository;
 use WebCalendar\Core\Infrastructure\Security\DatabaseAuthService;
 use WebCalendar\Core\Infrastructure\Security\PdoRateLimiter;
+use App\Tenant\TenantContext;
+use App\Tenant\TenantDatabaseManager;
 use WebCalendar\Core\Infrastructure\Webhook\LogWebhookProvider;
 
 /**
@@ -115,104 +117,127 @@ final class CoreServiceFactory
     private ?NotificationService $notificationService = null;
     private ?DatabaseAuthService $authService = null;
 
+    private ?TenantContext $tenantContext = null;
+    private ?TenantDatabaseManager $tenantDbManager = null;
+
     public function __construct(
         private readonly \PDO $pdo,
         private readonly string $appSecret,
         ?LoggerInterface $logger = null,
+        ?TenantContext $tenantContext = null,
+        ?TenantDatabaseManager $tenantDbManager = null,
     ) {
         $this->logger = $logger ?? new NullLogger();
+        $this->tenantContext = $tenantContext;
+        $this->tenantDbManager = $tenantDbManager;
+    }
+
+    /**
+     * Returns the PDO connection for the current context.
+     * Uses tenant DB when a tenant is resolved, default DB otherwise.
+     */
+    public function getPdo(): \PDO
+    {
+        if ($this->tenantContext !== null && $this->tenantDbManager !== null) {
+            $tenant = $this->tenantContext->getTenant();
+            if ($tenant !== null) {
+                return $this->tenantDbManager->getConnection($tenant);
+            }
+        }
+
+        return $this->pdo;
     }
 
     // --- Repositories (lazily created) ---
 
     public function getEventRepository(): PdoEventRepository
     {
-        return $this->eventRepository ??= new PdoEventRepository($this->pdo);
+        return $this->eventRepository ??= new PdoEventRepository($this->getPdo());
     }
 
     public function getUserRepository(): PdoUserRepository
     {
-        return $this->userRepository ??= new PdoUserRepository($this->pdo);
+        return $this->userRepository ??= new PdoUserRepository($this->getPdo());
     }
 
     public function getCategoryRepository(): PdoCategoryRepository
     {
-        return $this->categoryRepository ??= new PdoCategoryRepository($this->pdo);
+        return $this->categoryRepository ??= new PdoCategoryRepository($this->getPdo());
     }
 
     public function getTokenRepository(): PdoTokenRepository
     {
-        return $this->tokenRepository ??= new PdoTokenRepository($this->pdo);
+        return $this->tokenRepository ??= new PdoTokenRepository($this->getPdo());
     }
 
     public function getActivityLogRepository(): PdoActivityLogRepository
     {
-        return $this->activityLogRepository ??= new PdoActivityLogRepository($this->pdo);
+        return $this->activityLogRepository ??= new PdoActivityLogRepository($this->getPdo());
     }
 
     public function getGroupRepository(): PdoGroupRepository
     {
-        return $this->groupRepository ??= new PdoGroupRepository($this->pdo);
+        return $this->groupRepository ??= new PdoGroupRepository($this->getPdo());
     }
 
     public function getLayerRepository(): PdoLayerRepository
     {
-        return $this->layerRepository ??= new PdoLayerRepository($this->pdo);
+        return $this->layerRepository ??= new PdoLayerRepository($this->getPdo());
     }
 
     public function getPermissionRepository(): PdoPermissionRepository
     {
-        return $this->permissionRepository ??= new PdoPermissionRepository($this->pdo);
+        return $this->permissionRepository ??= new PdoPermissionRepository($this->getPdo());
     }
 
     public function getConfigRepository(): PdoConfigRepository
     {
-        return $this->configRepository ??= new PdoConfigRepository($this->pdo);
+        return $this->configRepository ??= new PdoConfigRepository($this->getPdo());
     }
 
     public function getBlobRepository(): PdoBlobRepository
     {
-        return $this->blobRepository ??= new PdoBlobRepository($this->pdo);
+        return $this->blobRepository ??= new PdoBlobRepository($this->getPdo());
     }
 
     public function getResourceRepository(): PdoResourceRepository
     {
-        return $this->resourceRepository ??= new PdoResourceRepository($this->pdo);
+        return $this->resourceRepository ??= new PdoResourceRepository($this->getPdo());
     }
 
     public function getTemplateRepository(): PdoTemplateRepository
     {
-        return $this->templateRepository ??= new PdoTemplateRepository($this->pdo);
+        return $this->templateRepository ??= new PdoTemplateRepository($this->getPdo());
     }
 
     public function getViewRepository(): PdoViewRepository
     {
-        return $this->viewRepository ??= new PdoViewRepository($this->pdo);
+        return $this->viewRepository ??= new PdoViewRepository($this->getPdo());
     }
 
     public function getTaskRepository(): PdoTaskRepository
     {
-        return $this->taskRepository ??= new PdoTaskRepository($this->pdo);
+        return $this->taskRepository ??= new PdoTaskRepository($this->getPdo());
     }
 
     public function getJournalRepository(): PdoJournalRepository
     {
-        return $this->journalRepository ??= new PdoJournalRepository($this->pdo);
+        return $this->journalRepository ??= new PdoJournalRepository($this->getPdo());
     }
 
     public function getSiteExtraRepository(): PdoSiteExtraRepository
     {
-        return $this->siteExtraRepository ??= new PdoSiteExtraRepository($this->pdo);
+        return $this->siteExtraRepository ??= new PdoSiteExtraRepository($this->getPdo());
     }
 
     public function getReportRepository(): PdoReportRepository
     {
-        return $this->reportRepository ??= new PdoReportRepository($this->pdo);
+        return $this->reportRepository ??= new PdoReportRepository($this->getPdo());
     }
 
     public function getAssistantRepository(): PdoAssistantRepository
     {
-        return $this->assistantRepository ??= new PdoAssistantRepository($this->pdo);
+        return $this->assistantRepository ??= new PdoAssistantRepository($this->getPdo());
     }
 
     // --- Application Services (lazily created) ---
@@ -403,7 +428,7 @@ final class CoreServiceFactory
 
     public function getRateLimiter(): RateLimiterInterface
     {
-        return new PdoRateLimiter($this->pdo);
+        return new PdoRateLimiter($this->getPdo());
     }
 
     public function getEmailProvider(): EmailProviderInterface
