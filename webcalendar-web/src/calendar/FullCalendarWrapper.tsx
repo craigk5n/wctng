@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useImperativeHandle, useMemo, useRef, useState, forwardRef } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -8,32 +8,23 @@ import type { DatesSetArg, EventClickArg, DateSelectArg, EventInput } from '@ful
 import { fetchCalendarEvents } from './useCalendarEvents';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
 
+export interface FullCalendarWrapperHandle {
+  refetchEvents: () => void;
+}
+
 interface FullCalendarWrapperProps {
   initialView?: string;
   onEventClick?: (eventId: number) => void;
   onDateSelect?: (start: Date, end: Date, allDay: boolean) => void;
 }
 
-export function FullCalendarWrapper({
-  initialView = 'dayGridMonth',
-  onEventClick,
-  onDateSelect,
-}: FullCalendarWrapperProps) {
+export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCalendarWrapperProps>(
+  function FullCalendarWrapper({ initialView = 'dayGridMonth', onEventClick, onDateSelect }, ref) {
   const [events, setEvents] = useState<EventInput[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const calendarRef = useRef<FullCalendar>(null);
 
-  const fetchEvents = useCallback(async (arg: DatesSetArg) => {
-    setIsLoading(true);
-    try {
-      const startDate = formatDateParam(arg.start);
-      const endDate = formatDateParam(arg.end);
-      const result = await fetchCalendarEvents(startDate, endDate);
-      setEvents(result);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  // fetchEvents is defined below as fetchEventsWrapped (with ref tracking)
 
   const handleEventClick = useCallback(
     (arg: EventClickArg) => {
@@ -66,6 +57,29 @@ export function FullCalendarWrapper({
 
   useKeyboardShortcuts(keyboardHandlers);
 
+  const lastDatesSetRef = useRef<DatesSetArg | null>(null);
+
+  const fetchEventsWrapped = useCallback(async (arg: DatesSetArg) => {
+    lastDatesSetRef.current = arg;
+    setIsLoading(true);
+    try {
+      const startDate = formatDateParam(arg.start);
+      const endDate = formatDateParam(arg.end);
+      const result = await fetchCalendarEvents(startDate, endDate);
+      setEvents(result);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useImperativeHandle(ref, () => ({
+    refetchEvents: () => {
+      if (lastDatesSetRef.current) {
+        void fetchEventsWrapped(lastDatesSetRef.current);
+      }
+    },
+  }), [fetchEventsWrapped]);
+
   return (
     <div className="relative">
       {isLoading && (
@@ -83,7 +97,7 @@ export function FullCalendarWrapper({
           right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek',
         }}
         events={events}
-        datesSet={fetchEvents}
+        datesSet={fetchEventsWrapped}
         eventClick={handleEventClick}
         selectable={true}
         select={handleDateSelect}
@@ -95,7 +109,8 @@ export function FullCalendarWrapper({
       />
     </div>
   );
-}
+  },
+);
 
 function formatDateParam(date: Date): string {
   const y = date.getFullYear();
