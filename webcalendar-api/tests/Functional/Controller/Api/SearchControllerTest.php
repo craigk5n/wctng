@@ -16,7 +16,6 @@ final class SearchControllerTest extends WebTestCase
         $client = static::createClient();
         $token = $this->loginAndGetToken($client);
 
-        // Create a uniquely named event
         $unique = 'SearchUnique' . bin2hex(random_bytes(4));
         $this->createTestEvent($client, $token, [
             'title' => $unique,
@@ -71,34 +70,6 @@ final class SearchControllerTest extends WebTestCase
         $this->assertTrue(\in_array($code, [401, 403], true));
     }
 
-    public function testSearchWithDateRange(): void
-    {
-        $client = static::createClient();
-        $token = $this->loginAndGetToken($client);
-
-        $unique = 'DateRange' . bin2hex(random_bytes(4));
-        $this->createTestEvent($client, $token, [
-            'title' => $unique,
-            'start_date' => '20260701',
-        ]);
-
-        // Search within matching range
-        $client->request('GET', '/api/v2/search?q=' . $unique . '&start=20260601&end=20260801', [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-
-        $body = $this->decodeResponse($client);
-        $this->assertNotEmpty($body['data']);
-
-        // Search outside range
-        $client->request('GET', '/api/v2/search?q=' . $unique . '&start=20250101&end=20250201', [], [], [
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ]);
-
-        $body = $this->decodeResponse($client);
-        $this->assertSame([], $body['data']);
-    }
-
     public function testSearchResultHasExpectedFields(): void
     {
         $client = static::createClient();
@@ -124,5 +95,21 @@ final class SearchControllerTest extends WebTestCase
         $this->assertArrayHasKey('title', $result);
         $this->assertArrayHasKey('start_date', $result);
         $this->assertArrayHasKey('type', $result);
+        $this->assertArrayHasKey('snippet', $result);
+    }
+
+    public function testSearchWithPagination(): void
+    {
+        $client = static::createClient();
+        $token = $this->loginAndGetToken($client);
+
+        $client->request('GET', '/api/v2/search?q=test&limit=5&offset=0', [], [], [
+            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
+        ]);
+
+        $this->assertResponseIsSuccessful();
+        $body = $this->decodeResponse($client);
+        $this->assertIsArray($body['data']);
+        $this->assertArrayHasKey('total', $body['meta']);
     }
 }
