@@ -18,6 +18,9 @@ use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 use WebCalendar\Core\Domain\ValueObject\EventId;
 use WebCalendar\Core\Domain\ValueObject\EventType;
+use WebCalendar\Core\Domain\ValueObject\ExDate;
+use WebCalendar\Core\Domain\ValueObject\Recurrence;
+use WebCalendar\Core\Domain\ValueObject\RecurrenceRule;
 
 /**
  * CalDAV calendar backend bridging webcalendar-core events to sabre/dav.
@@ -411,6 +414,18 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             $vevent->add('LOCATION', $event->location());
         }
 
+        // Recurrence
+        $recurrence = $event->recurrence();
+        if ($recurrence->rule() !== null) {
+            $vevent->add('RRULE', $recurrence->rule()->toString());
+        }
+
+        if (!$recurrence->exDate()->isEmpty()) {
+            foreach ($recurrence->exDate()->dates() as $exDate) {
+                $vevent->add('EXDATE', $exDate->format('Ymd\THis\Z'));
+            }
+        }
+
         return $vcalendar->serialize();
     }
 
@@ -438,6 +453,32 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
 
         $startDt = $startDate instanceof \DateTimeImmutable ? $startDate : \DateTimeImmutable::createFromMutable($startDate);
 
+        // Parse recurrence
+        $rrule = null;
+        $exDates = [];
+
+        if (isset($vevent->RRULE)) {
+            try {
+                $rrule = new RecurrenceRule((string) $vevent->RRULE);
+            } catch (\InvalidArgumentException) {
+                // Skip invalid RRULE
+            }
+        }
+
+        if (isset($vevent->EXDATE)) {
+            foreach ($vevent->select('EXDATE') as $exDateProp) {
+                /** @var VObject\Property\ICalendar\DateTime $exDateProp */
+                $exDates[] = $exDateProp->getDateTime();
+            }
+        }
+
+        $recurrence = new Recurrence(
+            rule: $rrule,
+            exDate: new ExDate($exDates),
+        );
+
+        $eventType = $rrule !== null ? EventType::REPEATING_EVENT : EventType::EVENT;
+
         return new Event(
             id: $id !== null ? new EventId($id) : new EventId(0),
             uid: $uid,
@@ -447,8 +488,9 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             start: $startDt,
             duration: $duration,
             createdBy: $createdBy,
-            type: EventType::EVENT,
+            type: $eventType,
             access: AccessLevel::PUBLIC,
+            recurrence: $recurrence,
             allDay: $allDay,
         );
     }

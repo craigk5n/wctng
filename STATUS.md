@@ -16,13 +16,13 @@
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
 | P4-E1 | CalDAV Server Core | 4 | 4 | DONE |
-| P4-E2 | CalDAV Calendar & Event Operations | 4 | 3 | IN PROGRESS |
+| P4-E2 | CalDAV Calendar & Event Operations | 4 | 4 | DONE |
 | P4-E3 | CalDAV Tasks & Journals | 3 | 0 | NOT STARTED |
 | P4-E4 | CalDAV Integration Tests | 2 | 0 | NOT STARTED |
 | P4-E5 | OAuth2 / OIDC Authentication | 4 | 0 | NOT STARTED |
 | P4-E6 | LDAP Authentication | 3 | 0 | NOT STARTED |
 | P4-E7 | Per-Tenant Auth Configuration | 3 | 0 | NOT STARTED |
-| **Total** | | **23** | **7** | |
+| **Total** | | **23** | **8** | |
 
 ---
 
@@ -196,7 +196,7 @@ Support CalDAV scheduling for free/busy queries and meeting invitations.
 
 ### P4-E2-S4: CalDAV Recurring Events
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Handle recurring events (RRULE) in CalDAV, expanding occurrences for time-range queries.
@@ -204,12 +204,12 @@ Handle recurring events (RRULE) in CalDAV, expanding occurrences for time-range 
 **Preconditions:** P4-E2-S1
 
 **Acceptance Criteria:**
-- [ ] RRULE parsing from iCalendar objects
-- [ ] Recurring events expanded for REPORT time-range queries
-- [ ] EXDATE (exception dates) handled
-- [ ] Overridden instances (RECURRENCE-ID) supported
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests with various RRULE patterns
+- [x] RRULE parsing from iCalendar objects
+- [x] Recurring events expanded for REPORT time-range queries
+- [x] EXDATE (exception dates) handled
+- [x] Overridden instances (RECURRENCE-ID) supported
+- [x] PHPStan level 9 passes
+- [x] Unit tests with various RRULE patterns
 
 ---
 
