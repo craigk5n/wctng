@@ -37,6 +37,9 @@ export function handleCalendarKeydown(event: KeyboardEvent, handlers: KeyboardHa
     case 'd':
       handlers.onViewChange('timeGridDay');
       break;
+    case 'y':
+      handlers.onViewChange('multiMonthYear');
+      break;
   }
 }
 

@@ -4,6 +4,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
+import multiMonthPlugin from '@fullcalendar/multimonth';
 import type { DatesSetArg, EventClickArg, DateSelectArg, EventInput } from '@fullcalendar/core';
 import { fetchCalendarEvents } from './useCalendarEvents';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
@@ -200,12 +201,12 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
       )}
       <FullCalendar
         ref={calendarRef}
-        plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
+        plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin, multiMonthPlugin]}
         initialView={initialView}
         headerToolbar={{
           left: 'prev,next today',
           center: 'title',
-          right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek',
+          right: 'multiMonthYear,dayGridMonth,timeGridWeek,timeGridDay,listWeek',
         }}
         events={events}
         datesSet={fetchEventsWrapped}

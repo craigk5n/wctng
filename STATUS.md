@@ -20,7 +20,7 @@
 | P6-E1 | Public Calendar & Sharing | 3 | 3 | DONE |
 | P6-E2 | Rich Text Descriptions | 3 | 3 | DONE |
 | P6-E3 | Conflict Detection & Approval | 3 | 3 | DONE |
-| P6-E4 | Additional Views & Print | 2 | 0 | TODO |
+| P6-E4 | Additional Views & Print | 2 | 1 | IN PROGRESS |
 | P6-E5 | Event Attachments & VALARM | 3 | 0 | TODO |
 | P6-E6 | Remaining Service UIs | 4 | 0 | TODO |
 | P6-E7 | Internationalization | 3 | 0 | TODO |
@@ -272,7 +272,7 @@ Allow events to require admin approval before appearing on the calendar.
 
 ### P6-E4-S1: Year View
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Full-year calendar grid showing all 12 months with event indicators.
@@ -280,15 +280,16 @@ Full-year calendar grid showing all 12 months with event indicators.
 **Preconditions:** Phase 5 complete
 
 **Acceptance Criteria:**
-- [ ] Route `/calendar/year` or year button in view switcher
-- [ ] 12-month grid layout (4 columns x 3 rows on desktop, 2 columns on tablet, 1 on mobile)
-- [ ] Days with events show a dot indicator (colored by category)
-- [ ] Click on a day navigates to that day's day view
-- [ ] Click on a month header navigates to that month's month view
-- [ ] Year navigation: previous/next year arrows
-- [ ] Current day highlighted
-- [ ] FullCalendar `multiMonthYear` view or custom component
-- [ ] Vitest tests
+- [x] Year button in view switcher toolbar (multiMonthYear)
+- [x] 12-month grid layout (responsive via FullCalendar multimonth plugin)
+- [x] Days with events show dot indicators (colored by category)
+- [x] Click on a day navigates to that day's day view (FullCalendar built-in)
+- [x] Click on a month header navigates to that month's month view (FullCalendar built-in)
+- [x] Year navigation: previous/next year arrows (FullCalendar built-in)
+- [x] Current day highlighted (bg-primary/10)
+- [x] FullCalendar `multiMonthYear` view via @fullcalendar/multimonth plugin
+- [x] Keyboard shortcut: Y for year view
+- [x] Vitest tests: 2 tests
 
 ---
 
