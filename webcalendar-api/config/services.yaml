@@ -92,6 +92,11 @@ services:
             $pdo: '@pdo.connection'
             $appSecret: '%env(APP_SECRET)%'
 
+    # Custom field controller needs PDO for definitions table
+    App\Controller\Api\CustomFieldController:
+        arguments:
+            $pdo: '@pdo.connection'
+
     # Share controller needs PDO for share_tokens table
     App\Controller\Api\ShareController:
         arguments:

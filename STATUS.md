@@ -22,10 +22,11 @@
 | P6-E3 | Conflict Detection & Approval | 3 | 3 | DONE |
 | P6-E4 | Additional Views & Print | 2 | 2 | DONE |
 | P6-E5 | Event Attachments & VALARM | 3 | 3 | DONE |
-| P6-E6 | Remaining Service UIs | 4 | 1 | IN PROGRESS |
+| P6-E6 | Remaining Service UIs | 4 | 2 | IN PROGRESS |
 | P6-E7 | Internationalization | 3 | 0 | TODO |
 | P6-E8 | Admin Feature Configuration | 3 | 0 | TODO |
-| **Total** | | **24** | **5** | |
+| P6-E9 | Integration & E2E Testing | 3 | 0 | TODO |
+| **Total** | | **27** | **19** | |
 
 ---
 
@@ -40,10 +41,12 @@ P6-E5 (Attachments & VALARM) — independent
 P6-E6 (Service UIs) — independent
 P6-E7 (i18n) — after E1-E8 ideally (translate what exists)
 P6-E8 (Admin Config) — independent, but best after E2 (rich text toggle)
+P6-E9 (Testing) — after all features complete (E1-E8)
 ```
 
 **All epics E1-E6, E8 are independent** and can be done in any order.
-**E7 (i18n)** should come last so all UI strings exist before extracting translations.
+**E7 (i18n)** should come after feature work so all UI strings exist.
+**E9 (Testing)** should come last — validates the complete application.
 
 ---
 
@@ -412,7 +415,7 @@ Admin page to browse the activity/audit log.
 
 ### P6-E6-S2: Custom Event Fields Admin
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Admin page for defining custom event fields (site extras) that appear on event forms.
@@ -420,16 +423,16 @@ Admin page for defining custom event fields (site extras) that appear on event f
 **Preconditions:** Phase 5 complete
 
 **Acceptance Criteria:**
-- [ ] Route `/admin/custom-fields` accessible to admins
-- [ ] List of defined custom fields with name, type, required flag
-- [ ] Create/edit custom field: name, type (text, number, date, select, checkbox), required, sort order
-- [ ] Select type: define options list
-- [ ] Delete custom field (with confirmation — warns about data loss)
-- [ ] Custom fields appear dynamically on event create/edit dialog
-- [ ] Custom field values saved via SiteExtraService
-- [ ] Custom field values displayed in event detail dialog
-- [ ] PHPStan level 9 passes (API endpoint for CRUD)
-- [ ] Unit + Vitest tests
+- [x] Route `/admin/custom-fields` accessible to admins
+- [x] List of defined custom fields with name, type, required flag
+- [x] Create/edit custom field: name, type (text, number, date, select, checkbox), required, sort order
+- [x] Select type: define options list (comma-separated input)
+- [x] Delete custom field (with confirmation — warns about data loss)
+- [x] Custom fields appear dynamically on event create/edit dialog (CustomFieldsSection)
+- [x] Custom field values saved via SiteExtraService (PUT /events/{id}/custom-fields)
+- [x] Custom field values endpoint (GET /events/{id}/custom-fields)
+- [x] PHPStan level 9 passes
+- [x] Unit tests: 5 PHPUnit (repo CRUD, sort order) + 4 Vitest (heading, list, empty, create form)
 
 ---
 
@@ -607,6 +610,80 @@ Frontend reads feature flags from the API and conditionally shows/hides fields i
 - [ ] TasksPage and JournalsPage respect `ALLOW_HTML_DESCRIPTION` flag
 - [ ] Feature flags cached in React Query with 5-minute stale time
 - [ ] Vitest tests
+
+---
+
+## Epic P6-E9: Integration & E2E Testing
+
+**Goal:** Comprehensive test coverage with API integration tests and Playwright E2E tests that exercise the full stack.
+
+### P6-E9-S1: API Integration Tests
+
+**Status:** TODO
+
+**Description:**
+PHPUnit functional/integration tests that hit real API endpoints with a test database, verifying full request/response cycles.
+
+**Preconditions:** All feature epics complete
+
+**Acceptance Criteria:**
+- [ ] Test database seeded with fixture data (admin user, sample events, categories)
+- [ ] Integration test for auth flow: login → get token → access protected endpoint → 401 on expired token
+- [ ] Integration test for event CRUD: create → read → update → delete → verify gone
+- [ ] Integration test for public calendar: enable public → fetch public events → verify only public access events returned
+- [ ] Integration test for share tokens: create share → fetch shared events → revoke → verify 404
+- [ ] Integration test for conflict detection: create overlapping event → verify conflict in response
+- [ ] Integration test for approval workflow: enable approval → create event → verify needs_approval → approve → verify confirmed
+- [ ] Integration test for attachments: upload → list → download → delete
+- [ ] Integration test for CalDAV: PUT VEVENT → GET → verify round-trip (VALARM, STYLED-DESCRIPTION)
+- [ ] All tests run in CI via `make test-integration`
+- [ ] PHPStan level 9 passes
+
+---
+
+### P6-E9-S2: Playwright E2E Setup & Smoke Tests
+
+**Status:** TODO
+
+**Description:**
+Set up Playwright for browser-based E2E testing with Docker Compose, covering critical user flows.
+
+**Preconditions:** P6-E9-S1
+
+**Acceptance Criteria:**
+- [ ] Playwright installed and configured for the project
+- [ ] `playwright.config.ts` with baseURL pointing to Docker dev environment (port 47180)
+- [ ] Test helpers: login utility, API seeding functions
+- [ ] E2E: Login flow (admin/admin → calendar page)
+- [ ] E2E: Create event → verify on calendar → open detail → edit → verify changes
+- [ ] E2E: Delete event → verify removed from calendar
+- [ ] E2E: Navigate between month/week/day/year views
+- [ ] E2E: Print button opens print dialog (verify button exists)
+- [ ] Tests run via `npx playwright test` with `--headed` option for debugging
+- [ ] CI-compatible (headless Chrome)
+
+---
+
+### P6-E9-S3: Playwright Feature E2E Tests
+
+**Status:** TODO
+
+**Description:**
+E2E tests for Phase 6 features: rich text, sharing, conflict detection, custom fields, attachments.
+
+**Preconditions:** P6-E9-S2
+
+**Acceptance Criteria:**
+- [ ] E2E: Rich text editor — type formatted text → save → reopen → verify formatting preserved
+- [ ] E2E: Public calendar — enable public → visit /public/{username} → verify events visible
+- [ ] E2E: Share link — create share → visit embed URL → verify calendar loads
+- [ ] E2E: Conflict detection — create event → create overlapping event → verify warning shown
+- [ ] E2E: Custom fields — admin creates field → create event with custom field → verify in detail
+- [ ] E2E: Attachments — upload file → verify in detail → download → delete
+- [ ] E2E: Activity log — admin views log after creating events → verify entries
+- [ ] E2E: Settings — change preferences → reload → verify persisted
+- [ ] All tests idempotent (clean up after themselves)
+- [ ] Test report generated (HTML report)
 
 ---
 

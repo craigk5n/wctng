@@ -3,6 +3,7 @@ import { useCategories } from './useCategories';
 import { apiFetch } from '../api/client';
 import { RichTextEditor } from '../components/editor/RichTextEditor';
 import { ConflictWarning, type ConflictInfo } from './ConflictWarning';
+import { CustomFieldsSection } from './CustomFieldsSection';
 
 interface GroupSuggestion {
   id: number;
@@ -25,6 +26,7 @@ export interface EventFormData {
   all_day: boolean;
   categories?: number[];
   participants?: string[];
+  custom_fields?: Record<string, string>;
 }
 
 interface EventDialogProps {
@@ -74,6 +76,7 @@ export function EventDialog({
   const { categories: availableCategories } = useCategories();
   const [groups, setGroups] = useState<GroupSuggestion[]>([]);
   const [showGroupSuggestions, setShowGroupSuggestions] = useState(false);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [categorySearch, setCategorySearch] = useState('');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [conflicts, setConflicts] = useState<ConflictInfo[]>([]);
@@ -158,6 +161,7 @@ export function EventDialog({
         all_day: allDay,
         categories: selectedCategories,
         participants: participantLogins,
+        custom_fields: Object.keys(customFieldValues).length > 0 ? customFieldValues : undefined,
       };
 
       if (!allDay && time) {
@@ -322,6 +326,12 @@ export function EventDialog({
               <option value="R">Private</option>
             </select>
           </div>
+
+          {/* Custom Fields */}
+          <CustomFieldsSection
+            values={customFieldValues}
+            onChange={setCustomFieldValues}
+          />
 
           {availableCategories.length > 0 && (
             <div className="space-y-2">

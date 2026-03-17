@@ -192,6 +192,13 @@ export function CalendarPage() {
           body: JSON.stringify({ participants: data.participants }),
         });
       }
+      // Save custom field values
+      if (data.custom_fields && Object.keys(data.custom_fields).length > 0) {
+        await apiFetch(`/events/${created.id}/custom-fields`, {
+          method: 'PUT',
+          body: JSON.stringify(data.custom_fields),
+        });
+      }
       calendarRef.current?.refetchEvents();
       toast({ title: 'Event created', variant: 'success' });
       return true;
