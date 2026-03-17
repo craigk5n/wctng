@@ -17,12 +17,12 @@
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
 | P5-E1 | Email Notifications | 4 | 4 | DONE |
-| P5-E2 | Webhook Notifications | 3 | 2 | IN PROGRESS |
+| P5-E2 | Webhook Notifications | 3 | 3 | DONE |
 | P5-E3 | Full-Text Search | 3 | 0 | NOT STARTED |
 | P5-E4 | Reports & Analytics | 3 | 0 | NOT STARTED |
 | P5-E5 | Performance & Caching | 4 | 0 | NOT STARTED |
 | P5-E6 | Production Readiness | 4 | 0 | NOT STARTED |
-| **Total** | | **21** | **6** | |
+| **Total** | | **21** | **7** | |
 
 ---
 
@@ -178,7 +178,7 @@ Dispatches webhook payloads asynchronously when events occur.
 
 ### P5-E2-S3: Webhook Management UI
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Admin page for managing webhook subscriptions.

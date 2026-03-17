@@ -7,6 +7,7 @@ import { CalendarPage } from './calendar/CalendarPage';
 import { UserManagement } from './admin/UserManagement';
 import { CategoryManagement } from './admin/CategoryManagement';
 import { GroupManagement } from './admin/GroupManagement';
+import { WebhookManagement } from './admin/WebhookManagement';
 import { PreferencesPage } from './settings/PreferencesPage';
 import { AccessSettings } from './settings/AccessSettings';
 import { AuthSettings } from './settings/AuthSettings';
@@ -58,6 +59,16 @@ export default function App() {
             <ProtectedRoute>
               <AppLayout>
                 <CategoryManagement />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/webhooks"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <WebhookManagement />
               </AppLayout>
             </ProtectedRoute>
           }
