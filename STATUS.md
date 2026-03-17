@@ -20,9 +20,9 @@
 | P5-E2 | Webhook Notifications | 3 | 3 | DONE |
 | P5-E3 | Full-Text Search | 3 | 3 | DONE |
 | P5-E4 | Reports & Analytics | 3 | 3 | DONE |
-| P5-E5 | Performance & Caching | 4 | 1 | IN PROGRESS |
+| P5-E5 | Performance & Caching | 4 | 2 | IN PROGRESS |
 | P5-E6 | Production Readiness | 4 | 0 | NOT STARTED |
-| **Total** | | **21** | **14** | |
+| **Total** | | **21** | **15** | |
 
 ---
 
@@ -343,7 +343,7 @@ Cache frequently-accessed API responses with ETags and conditional requests.
 
 ### P5-E5-S2: Database Query Optimization
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Optimize slow queries with indexes, query analysis, and N+1 elimination.
