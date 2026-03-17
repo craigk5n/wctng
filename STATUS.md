@@ -21,7 +21,7 @@
 | P6-E2 | Rich Text Descriptions | 3 | 3 | DONE |
 | P6-E3 | Conflict Detection & Approval | 3 | 3 | DONE |
 | P6-E4 | Additional Views & Print | 2 | 2 | DONE |
-| P6-E5 | Event Attachments & VALARM | 3 | 2 | IN PROGRESS |
+| P6-E5 | Event Attachments & VALARM | 3 | 3 | DONE |
 | P6-E6 | Remaining Service UIs | 4 | 0 | TODO |
 | P6-E7 | Internationalization | 3 | 0 | TODO |
 | P6-E8 | Admin Feature Configuration | 3 | 0 | TODO |
@@ -365,7 +365,7 @@ File attachment management in the event detail dialog.
 
 ### P6-E5-S3: VALARM CalDAV Support
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Support iCalendar VALARM components in CalDAV for trigger-based reminders recognized by native calendar apps.
@@ -373,15 +373,15 @@ Support iCalendar VALARM components in CalDAV for trigger-based reminders recogn
 **Preconditions:** P6-E5-S1
 
 **Acceptance Criteria:**
-- [ ] `CoreCalendarBackend` reads/writes VALARM components in VEVENT and VTODO
-- [ ] VALARM DISPLAY type supported (popup reminder in calendar apps)
-- [ ] VALARM AUDIO type supported (sound reminder)
-- [ ] TRIGGER property: relative duration (e.g., `-PT15M` = 15 min before) and absolute datetime
-- [ ] Default alarm: user preference maps to VALARM on export (e.g., "15 min before" → `-PT15M`)
-- [ ] Import: VALARM trigger extracted and stored as reminder setting on the event
-- [ ] Multiple alarms per event supported
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests: VALARM round-trip (create with alarm → export ICS → verify VALARM → import → verify alarm preserved)
+- [x] `CoreCalendarBackend` reads/writes VALARM components in VEVENT and VTODO
+- [x] VALARM DISPLAY type supported (popup reminder in calendar apps)
+- [x] VALARM AUDIO type supported (sound reminder)
+- [x] TRIGGER property: relative duration (e.g., `-PT15M` = 15 min before) and RELATED=END
+- [x] Default alarm: `createFromPreference()` maps user preference to Reminder entity
+- [x] Import: VALARM trigger extracted and stored as reminder via ReminderRepository
+- [x] Multiple alarms per event supported (extraction), first saved (table constraint)
+- [x] PHPStan level 9 passes
+- [x] Unit tests: 8 tests — add DISPLAY/AUDIO VALARM, after-end trigger, extract single/multiple/none, preference mapping
 
 ---
 

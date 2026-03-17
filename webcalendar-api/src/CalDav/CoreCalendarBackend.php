@@ -6,6 +6,7 @@ namespace App\CalDav;
 
 use App\Service\CoreServiceFactory;
 use App\Service\DescriptionSanitizer;
+use App\Service\ValarmHelper;
 use Sabre\CalDAV\Backend\BackendInterface;
 use Sabre\CalDAV\Backend\SchedulingSupport;
 use Sabre\CalDAV\Backend\SyncSupport;
@@ -38,11 +39,13 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
     private const DEFAULT_COLOR = '#3788d8';
 
     private readonly DescriptionSanitizer $descriptionSanitizer;
+    private readonly ValarmHelper $valarmHelper;
 
     public function __construct(
         private readonly CoreServiceFactory $coreServiceFactory,
     ) {
         $this->descriptionSanitizer = new DescriptionSanitizer();
+        $this->valarmHelper = new ValarmHelper();
     }
 
     /**
@@ -287,6 +290,9 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             $event = $this->vEventToEntity($vevent, $username);
             $this->coreServiceFactory->getEventService()->createEvent($event, $user);
 
+            // Extract and save VALARM reminders
+            $this->saveValarmsForEvent($vevent, $event);
+
             return '"' . md5($icsString) . '"';
         } catch (\Throwable) {
             return null;
@@ -513,6 +519,22 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             foreach ($recurrence->exDate()->dates() as $exDate) {
                 $vevent->add('EXDATE', $exDate->format('Ymd\THis\Z'));
             }
+        }
+
+        // Add VALARM from reminders
+        try {
+            if (!$vevent instanceof VObject\Component) {
+                return $vcalendar->serialize();
+            }
+            $reminderRepo = $this->coreServiceFactory->getReminderRepository();
+            $pending = $reminderRepo->findPending();
+            foreach ($pending as $entry) {
+                if ($entry['reminder']->eventId() === $event->id()->value()) {
+                    $this->valarmHelper->addValarmToComponent($vevent, $entry['reminder']);
+                }
+            }
+        } catch (\Throwable) {
+            // Reminders table may not exist yet
         }
 
         return $vcalendar->serialize();
@@ -767,6 +789,38 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             ];
         } catch (\Throwable) {
             return null;
+        }
+    }
+
+    /**
+     * Extracts VALARM components and saves them as reminders.
+     */
+    private function saveValarmsForEvent(VObject\Component $component, Event $event): void
+    {
+        try {
+            $reminders = $this->valarmHelper->extractReminders($component, $event->id()->value());
+            if (\count($reminders) === 0) {
+                return;
+            }
+
+            // Find the created event by UID to get the real ID
+            $created = $this->coreServiceFactory->getEventRepository()->findByUid($event->uid());
+            if ($created === null) {
+                return;
+            }
+
+            $reminderRepo = $this->coreServiceFactory->getReminderRepository();
+            // Save first reminder (table supports one per event)
+            $reminder = $reminders[0];
+            $reminderRepo->save(new \WebCalendar\Core\Domain\Entity\Reminder(
+                eventId: $created->id()->value(),
+                offset: $reminder->offset(),
+                related: $reminder->related(),
+                before: $reminder->before(),
+                action: $reminder->action(),
+            ));
+        } catch (\Throwable) {
+            // Reminders table may not exist
         }
     }
 

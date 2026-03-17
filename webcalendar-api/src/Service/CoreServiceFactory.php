@@ -38,6 +38,7 @@ use WebCalendar\Core\Infrastructure\Email\LogEmailProvider;
 use WebCalendar\Core\Infrastructure\ICal\EventMapper;
 use WebCalendar\Core\Infrastructure\Persistence\PdoActivityLogRepository;
 use WebCalendar\Core\Infrastructure\Persistence\PdoAssistantRepository;
+use WebCalendar\Core\Infrastructure\Persistence\PdoReminderRepository;
 use WebCalendar\Core\Infrastructure\Persistence\PdoBlobRepository;
 use WebCalendar\Core\Infrastructure\Persistence\PdoCategoryRepository;
 use WebCalendar\Core\Infrastructure\Persistence\PdoConfigRepository;
@@ -89,6 +90,7 @@ final class CoreServiceFactory
     private ?PdoSiteExtraRepository $siteExtraRepository = null;
     private ?PdoReportRepository $reportRepository = null;
     private ?PdoAssistantRepository $assistantRepository = null;
+    private ?PdoReminderRepository $reminderRepository = null;
 
     // Cached service instances
     private ?EventService $eventService = null;
@@ -238,6 +240,11 @@ final class CoreServiceFactory
     public function getAssistantRepository(): PdoAssistantRepository
     {
         return $this->assistantRepository ??= new PdoAssistantRepository($this->getPdo());
+    }
+
+    public function getReminderRepository(): PdoReminderRepository
+    {
+        return $this->reminderRepository ??= new PdoReminderRepository($this->getPdo());
     }
 
     // --- Application Services (lazily created) ---
