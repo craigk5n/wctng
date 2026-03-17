@@ -32,7 +32,7 @@ final class PublicCalendarControllerTest extends TestCase
         $this->userRepo = $this->createMock(UserRepositoryInterface::class);
         $this->rateLimiter = $this->createMock(RateLimiterInterface::class);
 
-        $this->controller = new PublicCalendarController(
+        $this->controller = PublicCalendarController::createForTest(
             $this->eventRepo,
             $this->userRepo,
             $this->rateLimiter,

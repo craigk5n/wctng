@@ -28,24 +28,30 @@ final class PublicCalendarController
     private readonly UserRepositoryInterface $userRepo;
     private readonly RateLimiterInterface $rateLimiter;
 
+    public function __construct(CoreServiceFactory $factory)
+    {
+        $this->eventRepo = $factory->getEventRepository();
+        $this->userRepo = $factory->getUserRepository();
+        $this->rateLimiter = $factory->getRateLimiter();
+    }
+
     /**
-     * Accepts either CoreServiceFactory (production) or individual dependencies (testing).
+     * Test-only constructor that accepts individual dependencies.
      */
-    public function __construct(
-        EventRepositoryInterface|CoreServiceFactory $eventRepoOrFactory,
-        ?UserRepositoryInterface $userRepo = null,
-        ?RateLimiterInterface $rateLimiter = null,
-    ) {
-        if ($eventRepoOrFactory instanceof CoreServiceFactory) {
-            $this->eventRepo = $eventRepoOrFactory->getEventRepository();
-            $this->userRepo = $eventRepoOrFactory->getUserRepository();
-            $this->rateLimiter = $eventRepoOrFactory->getRateLimiter();
-        } else {
-            assert($userRepo !== null && $rateLimiter !== null);
-            $this->eventRepo = $eventRepoOrFactory;
-            $this->userRepo = $userRepo;
-            $this->rateLimiter = $rateLimiter;
-        }
+    public static function createForTest(
+        EventRepositoryInterface $eventRepo,
+        UserRepositoryInterface $userRepo,
+        RateLimiterInterface $rateLimiter,
+    ): self {
+        $instance = (new \ReflectionClass(self::class))->newInstanceWithoutConstructor();
+        $setProp = static function (string $name, mixed $value) use ($instance): void {
+            $ref = new \ReflectionProperty(self::class, $name);
+            $ref->setValue($instance, $value);
+        };
+        $setProp('eventRepo', $eventRepo);
+        $setProp('userRepo', $userRepo);
+        $setProp('rateLimiter', $rateLimiter);
+        return $instance;
     }
 
     #[Route('/api/v2/public/calendars', name: 'api_public_calendars_list', methods: ['GET'])]
