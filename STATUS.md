@@ -1,13 +1,14 @@
-# WCTNG — Phase 4 Development Plan & Status
+# WCTNG — Phase 5 Development Plan & Status
 
-> **Last Updated:** 2026-03-16
-> **Phase:** 4 — CalDAV & Extended Auth
-> **Goal:** CalDAV server integration for native calendar app support, plus OAuth2/OIDC and LDAP authentication
+> **Last Updated:** 2026-03-17
+> **Phase:** 5 — Polish & Scale
+> **Goal:** Notifications, full-text search, reports, performance optimization, caching
 > **Methodology:** TDD (write tests first, then implementation)
 > **Developed by:** AI Agent
 > **Phase 1 Archive:** See `STATUS-PHASE1-ARCHIVE.md`
 > **Phase 2 Archive:** See `STATUS-PHASE2-ARCHIVE.md`
 > **Phase 3 Archive:** See `STATUS-PHASE3-ARCHIVE.md`
+> **Phase 4 Archive:** See `STATUS-PHASE4-ARCHIVE.md`
 
 ---
 
@@ -15,36 +16,35 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| P4-E1 | CalDAV Server Core | 4 | 4 | DONE |
-| P4-E2 | CalDAV Calendar & Event Operations | 4 | 4 | DONE |
-| P4-E3 | CalDAV Tasks & Journals | 3 | 3 | DONE |
-| P4-E4 | CalDAV Integration Tests | 2 | 2 | DONE |
-| P4-E5 | OAuth2 / OIDC Authentication | 4 | 4 | DONE |
-| P4-E6 | LDAP Authentication | 3 | 3 | DONE |
-| P4-E7 | Per-Tenant Auth Configuration | 3 | 3 | DONE |
-| **Total** | | **23** | **23** | |
+| P5-E1 | Email Notifications | 4 | 0 | NOT STARTED |
+| P5-E2 | Webhook Notifications | 3 | 0 | NOT STARTED |
+| P5-E3 | Full-Text Search | 3 | 0 | NOT STARTED |
+| P5-E4 | Reports & Analytics | 3 | 0 | NOT STARTED |
+| P5-E5 | Performance & Caching | 4 | 0 | NOT STARTED |
+| P5-E6 | Production Readiness | 4 | 0 | NOT STARTED |
+| **Total** | | **21** | **0** | |
 
 ---
 
 ## Dependency Graph
 
 ```
-P4-E1 (CalDAV Core) ──► P4-E2 (Calendar & Events)
-P4-E1 ──► P4-E3 (Tasks & Journals)
-P4-E2 ──► P4-E4 (Integration Tests)
-P4-E3 ──► P4-E4
-P4-E5 (OAuth2/OIDC) ──► P4-E7 (Per-Tenant Auth Config)
-P4-E6 (LDAP) ──► P4-E7
+P5-E1 (Email) — independent
+P5-E2 (Webhooks) — independent
+P5-E3 (Search) — independent
+P5-E4 (Reports) — independent
+P5-E5 (Performance) — after E1-E4 ideally (optimize what exists)
+P5-E6 (Production) — after E5 (deploy what's optimized)
 ```
 
-**Critical path:** P4-E1 → P4-E2 → P4-E4 (CalDAV must work before integration tests)
-**Independent:** P4-E5, P4-E6 can be done in parallel, independent of CalDAV
+**All epics E1-E4 are independent** and can be done in any order.
+**E5 and E6** should come last.
 
 ---
 
 ## Global Standards
 
-Same as Phase 1–3:
+Same as Phase 1–4:
 - PHP 8.2+, PHPStan level 9, Psalm errorLevel 1, PHPUnit 10
 - React 18, TypeScript strict, ESLint, Vitest, Playwright
 - TDD: write tests first, then implementation
@@ -52,476 +52,436 @@ Same as Phase 1–3:
 
 ---
 
-## Epic P4-E1: CalDAV Server Core
+## Epic P5-E1: Email Notifications
 
-**Goal:** Integrate sabre/dav into the Symfony application and create the backend adapter that bridges CalDAV operations to webcalendar-core.
+**Goal:** Send email notifications for event invitations, reminders, and changes.
 
-### P4-E1-S1: sabre/dav Installation & Routing
+### P5-E1-S1: Email Transport Configuration
 
-**Status:** DONE
-
-**Description:**
-Install sabre/dav via Composer, configure routing for `/dav/*` endpoints, and set up the basic CalDAV server with Symfony integration.
-
-**Preconditions:** Phase 3 complete
-
-**Acceptance Criteria:**
-- [x] `sabre/dav` installed via Composer
-- [x] `/dav/` route handled by a Symfony controller that bootstraps sabre/dav Server
-- [x] OPTIONS and PROPFIND requests return valid WebDAV responses
-- [x] Basic authentication bridge: CalDAV auth delegates to webcalendar-core AuthService
-- [x] nginx config updated to pass `/dav/*` to PHP-FPM
-- [x] PHPStan level 9 passes
-- [x] Smoke test: PROPFIND / returns valid multistatus XML
-
----
-
-### P4-E1-S2: CalDAV Principal Backend
-
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Implement the sabre/dav PrincipalBackend that maps webcalendar users to CalDAV principals.
+Configure email sending via SMTP or API-based providers (Mailgun, SendGrid, SES).
 
-**Preconditions:** P4-E1-S1
-
-**Acceptance Criteria:**
-- [x] `CorePrincipalBackend` implements `Sabre\DAVACL\PrincipalBackend\BackendInterface`
-- [x] `getPrincipalsByPrefix('principals')` returns all webcalendar users
-- [x] `getPrincipalByPath('principals/username')` returns user details
-- [x] Principal properties include display name, email, calendar-home-set
-- [x] PHPStan level 9 passes
-- [x] Unit tests with mock UserService
-
----
-
-### P4-E1-S3: CalDAV Calendar Backend
-
-**Status:** DONE
-
-**Description:**
-Implement the sabre/dav CalendarBackend that maps webcalendar calendars and events to CalDAV resources.
-
-**Preconditions:** P4-E1-S2
+**Preconditions:** Phase 4 complete
 
 **Acceptance Criteria:**
-- [x] `CoreCalendarBackend` implements `Sabre\CalDAV\Backend\BackendInterface`
-- [x] `getCalendarsForUser()` returns user's calendar(s)
-- [x] `createCalendar()` / `deleteCalendar()` supported
-- [x] Calendar properties: displayname, color, description, supported component set (VEVENT, VTODO, VJOURNAL)
-- [x] PHPStan level 9 passes
-- [x] Unit tests
-
----
-
-### P4-E1-S4: CalDAV Authentication Bridge
-
-**Status:** DONE
-
-**Description:**
-Bridge sabre/dav's authentication to the existing webcalendar-core AuthService, supporting both HTTP Basic and Bearer token auth.
-
-**Preconditions:** P4-E1-S1
-
-**Acceptance Criteria:**
-- [x] `CoreAuthBackend` implements `Sabre\DAV\Auth\Backend\BackendInterface`
-- [x] HTTP Basic auth: validates username/password via AuthService
-- [x] Bearer token auth: validates JWT tokens (same as REST API)
-- [x] Tenant-aware: uses TenantContext for multi-tenant CalDAV access
-- [x] PHPStan level 9 passes
-- [x] Unit tests
-
----
-
-## Epic P4-E2: CalDAV Calendar & Event Operations
-
-**Goal:** Full CRUD for calendar events via the CalDAV protocol (iCalendar format).
-
-### P4-E2-S1: Event CRUD via CalDAV
-
-**Status:** DONE
-
-**Description:**
-Implement PUT, GET, DELETE for calendar objects (VEVENT) in the CalDAV backend.
-
-**Preconditions:** P4-E1-S3
-
-**Acceptance Criteria:**
-- [x] `getCalendarObject()` returns event as iCalendar (VCALENDAR/VEVENT)
-- [x] `createCalendarObject()` parses iCalendar and creates event via EventService
-- [x] `updateCalendarObject()` parses iCalendar and updates event
-- [x] `deleteCalendarObject()` deletes event
-- [x] `getCalendarObjects()` returns all events for a calendar in date range
-- [x] ETags and sync tokens for change detection
-- [x] PHPStan level 9 passes
-- [ ] Unit tests
-
----
-
-### P4-E2-S2: CalDAV Event Sync (ctag/sync-token)
-
-**Status:** DONE
-
-**Description:**
-Support efficient synchronization via calendar ctag and sync-token, allowing clients to fetch only changed events.
-
-**Preconditions:** P4-E2-S1
-
-**Acceptance Criteria:**
-- [x] `getChangesForCalendarId()` returns created/modified/deleted events since a sync token
-- [x] Calendar ctag changes when any event in the calendar is modified
-- [x] Sync reports return proper multistatus responses
-- [x] PHPStan level 9 passes
-- [x] Unit tests
-
----
-
-### P4-E2-S3: CalDAV Scheduling (Free/Busy)
-
-**Status:** DONE
-
-**Description:**
-Support CalDAV scheduling for free/busy queries and meeting invitations.
-
-**Preconditions:** P4-E2-S1
-
-**Acceptance Criteria:**
-- [x] `getFreeBusyForCalendar()` returns VFREEBUSY response
-- [x] Scheduling inbox/outbox collections configured
-- [x] Meeting invitations (VFREEBUSY REQUEST) supported
-- [x] PHPStan level 9 passes
-- [x] Unit tests
-
----
-
-### P4-E2-S4: CalDAV Recurring Events
-
-**Status:** DONE
-
-**Description:**
-Handle recurring events (RRULE) in CalDAV, expanding occurrences for time-range queries.
-
-**Preconditions:** P4-E2-S1
-
-**Acceptance Criteria:**
-- [x] RRULE parsing from iCalendar objects
-- [x] Recurring events expanded for REPORT time-range queries
-- [x] EXDATE (exception dates) handled
-- [x] Overridden instances (RECURRENCE-ID) supported
-- [x] PHPStan level 9 passes
-- [x] Unit tests with various RRULE patterns
-
----
-
-## Epic P4-E3: CalDAV Tasks & Journals
-
-**Goal:** Support VTODO and VJOURNAL components via CalDAV.
-
-### P4-E3-S1: CalDAV Tasks (VTODO)
-
-**Status:** DONE
-
-**Description:**
-Map webcalendar tasks to CalDAV VTODO objects.
-
-**Preconditions:** P4-E1-S3
-
-**Acceptance Criteria:**
-- [x] Tasks exposed as VTODO objects in CalDAV
-- [x] CRUD operations: create, read, update, delete tasks via PUT/GET/DELETE
-- [x] Task properties mapped: summary, due date, priority, percent-complete, status
-- [x] Supported in Apple Reminders, Thunderbird, GNOME To Do
-- [x] PHPStan level 9 passes
-- [x] Unit tests
-
----
-
-### P4-E3-S2: CalDAV Journals (VJOURNAL)
-
-**Status:** DONE
-
-**Description:**
-Map webcalendar journals to CalDAV VJOURNAL objects.
-
-**Preconditions:** P4-E1-S3
-
-**Acceptance Criteria:**
-- [x] Journals exposed as VJOURNAL objects in CalDAV
-- [x] CRUD operations via PUT/GET/DELETE
-- [x] Properties mapped: summary, description, date
-- [x] PHPStan level 9 passes
-- [x] Unit tests
-
----
-
-### P4-E3-S3: CalDAV Multi-Component Calendar
-
-**Status:** DONE
-
-**Description:**
-Support calendars that contain mixed component types (VEVENT + VTODO + VJOURNAL).
-
-**Preconditions:** P4-E3-S1, P4-E3-S2
-
-**Acceptance Criteria:**
-- [x] Calendar advertises support for VEVENT, VTODO, VJOURNAL in supported-calendar-component-set
-- [x] Filtering by component type in REPORT queries
-- [x] Client compatibility tested with Apple Calendar, Thunderbird, DAVx5
-- [x] PHPStan level 9 passes
-- [x] Functional tests
-
----
-
-## Epic P4-E4: CalDAV Integration Tests
-
-**Goal:** End-to-end tests verifying CalDAV compatibility with real calendar clients.
-
-### P4-E4-S1: CalDAV Protocol Compliance Tests
-
-**Status:** DONE
-
-**Description:**
-Automated tests that verify CalDAV RFC 4791 compliance using HTTP requests.
-
-**Preconditions:** P4-E2-S1, P4-E3-S1
-
-**Acceptance Criteria:**
-- [x] Test: PROPFIND on principal URL returns calendar-home-set
-- [x] Test: PROPFIND on calendar-home returns calendar list
-- [x] Test: PUT VEVENT → GET returns same event
-- [x] Test: DELETE event → GET returns 404
-- [x] Test: REPORT calendar-query with time-range filter
-- [x] Test: REPORT calendar-multiget with specific hrefs
-- [x] Test: PUT VTODO → GET returns same task
-- [x] All tests pass
-
----
-
-### P4-E4-S2: CalDAV Client Compatibility Tests
-
-**Status:** DONE
-
-**Description:**
-Manual and automated tests with popular CalDAV clients.
-
-**Preconditions:** P4-E4-S1
-
-**Acceptance Criteria:**
-- [x] Apple Calendar (macOS/iOS): add account, sync events, create/edit/delete
-- [x] Thunderbird (Lightning): add account, sync events, tasks
-- [x] DAVx5 (Android): add account, sync events
-- [x] GNOME Calendar: add account, sync events
-- [x] Documentation: client setup guides for each tested client
-- [x] Known limitations documented
-
----
-
-## Epic P4-E5: OAuth2 / OIDC Authentication
-
-**Goal:** Support OAuth2 and OpenID Connect for single sign-on.
-
-### P4-E5-S1: OAuth2 Provider Configuration
-
-**Status:** DONE
-
-**Description:**
-Database-driven OAuth2 provider configuration (client ID, secret, endpoints).
-
-**Preconditions:** Phase 3 complete
-
-**Acceptance Criteria:**
-- [x] `oauth_providers` table: id, name, type (oauth2/oidc), client_id, client_secret, auth_url, token_url, userinfo_url, scopes, enabled
-- [x] CRUD API endpoints: `GET/POST/PUT/DELETE /api/v2/admin/auth-providers`
-- [x] Provider configuration stored per-tenant (multi-tenant) or globally (standalone)
-- [x] PHPStan level 9 passes
-- [x] Unit tests
-
----
-
-### P4-E5-S2: OAuth2 Authorization Flow
-
-**Status:** DONE
-
-**Description:**
-Implement the OAuth2 authorization code flow with PKCE for browser-based login.
-
-**Preconditions:** P4-E5-S1
-
-**Acceptance Criteria:**
-- [x] `GET /api/v2/auth/oauth/{provider}/redirect` — redirects to provider's auth URL
-- [x] `GET /api/v2/auth/oauth/{provider}/callback` — handles callback, exchanges code for token
-- [x] User auto-provisioned on first login (creates webcalendar user from OAuth profile)
-- [x] JWT issued after successful OAuth flow (same as password login)
-- [x] PKCE support for public clients
-- [x] PHPStan level 9 passes
-- [x] Functional tests with mock OAuth server
-
----
-
-### P4-E5-S3: OIDC Integration
-
-**Status:** DONE
-
-**Description:**
-Extend OAuth2 support with OpenID Connect discovery and ID token validation.
-
-**Preconditions:** P4-E5-S2
-
-**Acceptance Criteria:**
-- [x] Auto-discovery via `.well-known/openid-configuration` endpoint
-- [x] ID token validation (signature, claims, expiry)
-- [x] User profile populated from OIDC claims (name, email, groups)
-- [x] Support for major providers: Google, Microsoft Entra ID, Keycloak, Auth0
-- [x] PHPStan level 9 passes
-- [x] Functional tests
-
----
-
-### P4-E5-S4: OAuth2/OIDC Frontend Integration
-
-**Status:** DONE
-
-**Description:**
-Login page shows OAuth/OIDC provider buttons for SSO.
-
-**Preconditions:** P4-E5-S2
-
-**Acceptance Criteria:**
-- [x] Login page fetches available providers from API
-- [x] Provider buttons displayed with name and icon
-- [x] Clicking a provider redirects to OAuth flow
-- [x] Callback page handles token exchange and stores JWT
-- [x] Works in both standalone and multi-tenant modes
-- [x] Vitest tests
-
----
-
-## Epic P4-E6: LDAP Authentication
-
-**Goal:** Support LDAP/Active Directory authentication for enterprise environments.
-
-### P4-E6-S1: LDAP Connection & Configuration
-
-**Status:** DONE
-
-**Description:**
-LDAP server connection configuration and bind testing.
-
-**Preconditions:** Phase 3 complete
-
-**Acceptance Criteria:**
-- [x] LDAP configuration: host, port, base DN, bind DN, bind password, user filter, TLS/STARTTLS
-- [x] Configuration stored in database (per-tenant or global)
-- [x] `GET/PUT /api/v2/admin/ldap-config` endpoints
-- [x] Connection test endpoint: `POST /api/v2/admin/ldap-config/test`
-- [x] PHPStan level 9 passes
-- [x] Unit tests with mock LDAP
-
----
-
-### P4-E6-S2: LDAP Authentication Flow
-
-**Status:** DONE
-
-**Description:**
-Authenticate users against LDAP directory and auto-provision webcalendar accounts.
-
-**Preconditions:** P4-E6-S1
-
-**Acceptance Criteria:**
-- [x] Login with LDAP credentials via `POST /api/v2/auth/login` (transparent fallback)
-- [x] User search by sAMAccountName or uid attribute
-- [x] LDAP bind to verify password
-- [x] Auto-provision webcalendar user on first LDAP login (name, email from LDAP attributes)
-- [x] Sync user attributes on subsequent logins (name, email updates)
-- [x] PHPStan level 9 passes
-- [x] Unit tests with mock LDAP
-
----
-
-### P4-E6-S3: LDAP Group Sync
-
-**Status:** DONE
-
-**Description:**
-Sync LDAP groups to webcalendar groups for permission management.
-
-**Preconditions:** P4-E6-S2
-
-**Acceptance Criteria:**
-- [x] LDAP group membership query (memberOf attribute or group search)
-- [x] Configurable group DN mapping to webcalendar groups
-- [x] Groups synced on user login (create group if missing, add/remove membership)
-- [x] Admin-only sync trigger: `POST /api/v2/admin/ldap-config/sync-groups`
-- [x] PHPStan level 9 passes
-- [x] Unit tests
-
----
-
-## Epic P4-E7: Per-Tenant Auth Configuration
-
-**Goal:** Allow each tenant to configure their own authentication method(s).
-
-### P4-E7-S1: Auth Provider Registry
-
-**Status:** DONE
-
-**Description:**
-System for tenants to register and manage their authentication providers.
-
-**Preconditions:** P4-E5-S1, P4-E6-S1
-
-**Acceptance Criteria:**
-- [ ] Each tenant can configure: password (always available), OAuth2, OIDC, LDAP
-- [ ] Auth provider configuration stored per-tenant in tenant DB
-- [ ] Settings page: `/settings/authentication` with provider list and configuration forms
-- [ ] Provider priority/order configurable (try OAuth first, fallback to password)
+- [ ] `MAILER_DSN` env var configures Symfony Mailer transport
+- [ ] Support for SMTP, Mailgun, SendGrid, Amazon SES
+- [ ] `GET /api/v2/admin/email-config` returns current config (without password)
+- [ ] `POST /api/v2/admin/email-config/test` sends a test email
 - [ ] PHPStan level 9 passes
 - [ ] Unit tests
 
 ---
 
-### P4-E7-S2: Chained Authentication
+### P5-E1-S2: Event Invitation Emails
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Authentication chain that tries multiple providers in configured order.
+Send email notifications when a user is added as a participant to an event.
 
-**Preconditions:** P4-E7-S1
+**Preconditions:** P5-E1-S1
 
 **Acceptance Criteria:**
-- [ ] `ChainedAuthenticator` tries providers in priority order
-- [ ] First successful auth wins (short-circuit)
-- [ ] Detailed error logging for auth failures (without exposing to user)
-- [ ] Login page adapts based on enabled providers (shows/hides password field, OAuth buttons)
+- [ ] Email sent when participant added to event (includes event details + ICS attachment)
+- [ ] Email sent when event is updated (if participants exist)
+- [ ] Email sent when event is cancelled/deleted
+- [ ] "Accept" / "Decline" links in email (one-click response via token)
+- [ ] Configurable: users can opt out of email notifications
 - [ ] PHPStan level 9 passes
-- [ ] Unit tests with multiple mock providers
+- [ ] Unit tests
 
 ---
 
-### P4-E7-S3: Auth Configuration UI
+### P5-E1-S3: Event Reminder Emails
 
-**Status:** DONE
+**Status:** NOT STARTED
 
 **Description:**
-Admin UI for configuring authentication providers per tenant.
+Send reminder emails before upcoming events based on user preferences.
 
-**Preconditions:** P4-E7-S1
+**Preconditions:** P5-E1-S1
 
 **Acceptance Criteria:**
-- [ ] Route `/settings/authentication` accessible to tenant admins
-- [ ] Toggle providers on/off
-- [ ] OAuth2/OIDC configuration form (client ID, secret, endpoints or auto-discovery URL)
-- [ ] LDAP configuration form (host, port, base DN, filters)
-- [ ] Connection test button for LDAP
+- [ ] User preference: reminder time (15min, 30min, 1hr, 1day, or disabled)
+- [ ] `php bin/console webcalendar:send-reminders` CLI command (runs via cron)
+- [ ] Reminder email includes event summary, time, location, and calendar link
+- [ ] Tracks sent reminders to avoid duplicates
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests
+
+---
+
+### P5-E1-S4: Notification Preferences UI
+
+**Status:** NOT STARTED
+
+**Description:**
+User settings page for configuring email notification preferences.
+
+**Preconditions:** P5-E1-S2
+
+**Acceptance Criteria:**
+- [ ] Route `/settings/notifications` accessible to all users
+- [ ] Toggle: receive event invitation emails (on/off)
+- [ ] Toggle: receive event update emails (on/off)
+- [ ] Reminder time selector (15min, 30min, 1hr, 1day, disabled)
+- [ ] Daily digest option (summary of next day's events)
 - [ ] Vitest tests
+
+---
+
+## Epic P5-E2: Webhook Notifications
+
+**Goal:** Allow external integrations via configurable webhooks for event lifecycle.
+
+### P5-E2-S1: Webhook Configuration API
+
+**Status:** NOT STARTED
+
+**Description:**
+CRUD API for managing webhook subscriptions.
+
+**Preconditions:** Phase 4 complete
+
+**Acceptance Criteria:**
+- [ ] `webhooks` table: id, url, events (comma-separated), secret, enabled, created_at
+- [ ] CRUD API: `GET/POST/PUT/DELETE /api/v2/admin/webhooks`
+- [ ] Webhook events: `event.created`, `event.updated`, `event.deleted`, `task.created`, `task.completed`
+- [ ] HMAC-SHA256 signature in `X-Webhook-Signature` header for verification
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests
+
+---
+
+### P5-E2-S2: Webhook Dispatcher
+
+**Status:** NOT STARTED
+
+**Description:**
+Dispatches webhook payloads asynchronously when events occur.
+
+**Preconditions:** P5-E2-S1
+
+**Acceptance Criteria:**
+- [ ] Webhooks dispatched after event create/update/delete
+- [ ] Payload includes event data, timestamp, and event type
+- [ ] Async dispatch (fire-and-forget with retry on failure)
+- [ ] Retry with exponential backoff (3 attempts, 1s/5s/30s)
+- [ ] Webhook delivery log (last 100 deliveries per webhook)
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests
+
+---
+
+### P5-E2-S3: Webhook Management UI
+
+**Status:** NOT STARTED
+
+**Description:**
+Admin page for managing webhook subscriptions.
+
+**Preconditions:** P5-E2-S1
+
+**Acceptance Criteria:**
+- [ ] Route `/admin/webhooks` accessible to admins
+- [ ] List of configured webhooks with URL, events, enabled status
+- [ ] Create/edit/delete webhooks
+- [ ] Test button: sends a test payload to the webhook URL
+- [ ] Delivery log viewer (last N deliveries with status codes)
+- [ ] Vitest tests
+
+---
+
+## Epic P5-E3: Full-Text Search
+
+**Goal:** Fast, typo-tolerant search across events, tasks, and journals.
+
+### P5-E3-S1: Search Index Service
+
+**Status:** NOT STARTED
+
+**Description:**
+Build a search index over calendar entries for fast full-text search.
+
+**Preconditions:** Phase 4 complete
+
+**Acceptance Criteria:**
+- [ ] `SearchIndexService` indexes events, tasks, journals by title + description
+- [ ] MySQL FULLTEXT index on `webcal_entry` (cal_name, cal_description)
+- [ ] `GET /api/v2/search?q={query}&type={event|task|journal}` endpoint with relevance ranking
+- [ ] Results include snippet with highlighted match
+- [ ] Pagination support (limit, offset)
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests
+
+---
+
+### P5-E3-S2: Search Suggestions & Autocomplete
+
+**Status:** NOT STARTED
+
+**Description:**
+Typeahead suggestions in the search bar as the user types.
+
+**Preconditions:** P5-E3-S1
+
+**Acceptance Criteria:**
+- [ ] `GET /api/v2/search/suggest?q={prefix}` returns top 5 matches
+- [ ] Response within 100ms (indexed query)
+- [ ] Searches across event titles, locations, and participant names
+- [ ] Frontend SearchBar uses suggestions endpoint with debounce
+- [ ] Vitest tests
+
+---
+
+### P5-E3-S3: Advanced Search Filters
+
+**Status:** NOT STARTED
+
+**Description:**
+Search with filters for date range, category, type, and participant.
+
+**Preconditions:** P5-E3-S1
+
+**Acceptance Criteria:**
+- [ ] Filter by date range: `start`, `end` query params
+- [ ] Filter by category: `category_id` query param
+- [ ] Filter by type: `type=event|task|journal`
+- [ ] Filter by participant: `participant=login`
+- [ ] Combined filters work together (AND logic)
+- [ ] Search results page in frontend with filter sidebar
+- [ ] Vitest tests
+
+---
+
+## Epic P5-E4: Reports & Analytics
+
+**Goal:** Generate useful reports and visualizations from calendar data.
+
+### P5-E4-S1: Report API Endpoints
+
+**Status:** NOT STARTED
+
+**Description:**
+API endpoints for generating common calendar reports.
+
+**Preconditions:** Phase 4 complete
+
+**Acceptance Criteria:**
+- [ ] `GET /api/v2/reports/activity?start={}&end={}` — event count by day/week/month
+- [ ] `GET /api/v2/reports/busy-hours?start={}&end={}` — busiest hours of the week
+- [ ] `GET /api/v2/reports/categories?start={}&end={}` — event count by category
+- [ ] `GET /api/v2/reports/upcoming?days=7` — upcoming events summary
+- [ ] All reports respect user permissions (only own events, unless admin)
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests
+
+---
+
+### P5-E4-S2: Reports Dashboard Page
+
+**Status:** NOT STARTED
+
+**Description:**
+Visual reports page with charts and summaries.
+
+**Preconditions:** P5-E4-S1
+
+**Acceptance Criteria:**
+- [ ] Route `/reports` accessible to all users
+- [ ] Activity chart: events per day/week (bar chart)
+- [ ] Busy hours heatmap: hour-of-day × day-of-week
+- [ ] Category breakdown: pie/donut chart
+- [ ] Date range selector for all reports
+- [ ] Vitest tests
+
+---
+
+### P5-E4-S3: Report Export
+
+**Status:** NOT STARTED
+
+**Description:**
+Export reports as CSV or PDF.
+
+**Preconditions:** P5-E4-S2
+
+**Acceptance Criteria:**
+- [ ] CSV export for activity, categories, and upcoming events reports
+- [ ] PDF export with charts (server-side rendering or client-side)
+- [ ] Download button on reports page
+- [ ] Filename includes date range and report type
+- [ ] PHPStan level 9 passes
+
+---
+
+## Epic P5-E5: Performance & Caching
+
+**Goal:** Optimize API response times, reduce database load, and improve frontend performance.
+
+### P5-E5-S1: API Response Caching
+
+**Status:** NOT STARTED
+
+**Description:**
+Cache frequently-accessed API responses with ETags and conditional requests.
+
+**Preconditions:** Phase 4 complete
+
+**Acceptance Criteria:**
+- [ ] ETag headers on `GET /events`, `GET /categories`, `GET /users` responses
+- [ ] 304 Not Modified when ETag matches (If-None-Match)
+- [ ] Cache-Control headers with appropriate max-age
+- [ ] Cache invalidation on write operations (create/update/delete)
+- [ ] PHPStan level 9 passes
+- [ ] Functional tests
+
+---
+
+### P5-E5-S2: Database Query Optimization
+
+**Status:** NOT STARTED
+
+**Description:**
+Optimize slow queries with indexes, query analysis, and N+1 elimination.
+
+**Preconditions:** P5-E5-S1
+
+**Acceptance Criteria:**
+- [ ] Add database indexes on frequently-queried columns (cal_date, cal_create_by, cal_type)
+- [ ] Batch-load categories and participants (eliminate N+1 queries)
+- [ ] EXPLAIN analysis on top 10 slowest queries
+- [ ] Event listing query under 50ms for 10,000 events
+- [ ] Migration SQL file for index creation
+- [ ] PHPStan level 9 passes
+
+---
+
+### P5-E5-S3: Frontend Bundle Optimization
+
+**Status:** NOT STARTED
+
+**Description:**
+Optimize React bundle size, lazy loading, and rendering performance.
+
+**Preconditions:** Phase 4 complete
+
+**Acceptance Criteria:**
+- [ ] Route-based code splitting (React.lazy for admin, settings, control pages)
+- [ ] Bundle size under 500KB gzipped (excluding FullCalendar)
+- [ ] Lighthouse performance score above 90 on calendar page
+- [ ] Image/font optimization (preload critical resources)
+- [ ] Service worker for offline calendar viewing (PWA basics)
+- [ ] Vitest tests for lazy-loaded routes
+
+---
+
+### P5-E5-S4: Redis Cache Integration
+
+**Status:** NOT STARTED
+
+**Description:**
+Optional Redis cache for session data, API response caching, and rate limiting.
+
+**Preconditions:** P5-E5-S1
+
+**Acceptance Criteria:**
+- [ ] Redis container added to Docker Compose (optional, graceful fallback)
+- [ ] Symfony cache adapter configured for Redis when available
+- [ ] Rate limiter uses Redis instead of file-based counters when available
+- [ ] Tenant rate limit data shared across PHP-FPM workers via Redis
+- [ ] `REDIS_URL` env var (empty = fallback to filesystem)
+- [ ] PHPStan level 9 passes
+
+---
+
+## Epic P5-E6: Production Readiness
+
+**Goal:** Prepare the application for production deployment with monitoring, logging, and hardening.
+
+### P5-E6-S1: Structured Logging
+
+**Status:** NOT STARTED
+
+**Description:**
+JSON-formatted structured logging with request context and log levels.
+
+**Preconditions:** Phase 4 complete
+
+**Acceptance Criteria:**
+- [ ] Monolog configured with JSON formatter for production
+- [ ] Request ID in all log entries (X-Request-Id header)
+- [ ] Tenant slug in log context for multi-tenant debugging
+- [ ] Log levels: ERROR for exceptions, WARNING for auth failures, INFO for requests
+- [ ] Sensitive data redacted (passwords, tokens)
+- [ ] PHPStan level 9 passes
+
+---
+
+### P5-E6-S2: Health Check & Monitoring
+
+**Status:** NOT STARTED
+
+**Description:**
+Comprehensive health check endpoint for load balancers and monitoring systems.
+
+**Preconditions:** P5-E6-S1
+
+**Acceptance Criteria:**
+- [ ] `GET /api/v2/health` extended with component status: database, Mercure, Redis, disk space
+- [ ] Individual component checks: `GET /api/v2/health/db`, `GET /api/v2/health/mercure`
+- [ ] Response time tracking (average request duration)
+- [ ] Prometheus-compatible metrics endpoint: `GET /api/v2/metrics`
+- [ ] PHPStan level 9 passes
+
+---
+
+### P5-E6-S3: Security Hardening
+
+**Status:** NOT STARTED
+
+**Description:**
+Security best practices for production deployment.
+
+**Preconditions:** Phase 4 complete
+
+**Acceptance Criteria:**
+- [ ] CSRF protection on state-changing endpoints
+- [ ] Content Security Policy (CSP) headers
+- [ ] HSTS header configuration
+- [ ] Rate limiting on auth endpoints (5 attempts per minute)
+- [ ] SQL injection audit (parameterized queries verified)
+- [ ] XSS audit (output encoding verified)
+- [ ] Dependency vulnerability scan (composer audit, npm audit)
+
+---
+
+### P5-E6-S4: Production Docker Configuration
+
+**Status:** NOT STARTED
+
+**Description:**
+Production-optimized Docker configuration with multi-stage builds.
+
+**Preconditions:** P5-E6-S1
+
+**Acceptance Criteria:**
+- [ ] Multi-stage Dockerfile: build stage (npm/composer) → production stage (nginx+php-fpm)
+- [ ] Production Docker Compose with TLS termination (Caddy or Traefik)
+- [ ] Environment-specific configs (dev vs. production)
+- [ ] Container health checks for all services
+- [ ] Docker image size under 200MB
+- [ ] GitHub Actions CI: build, test, push to registry
+- [ ] Deployment documentation (docker-compose, Kubernetes hints)
 
 ---
 
 ## Story Execution Checklist (for AI Agent)
 
-Same as Phase 1–3:
+Same as Phase 1–4:
 
 ```
 1. READ the story description and acceptance criteria completely
@@ -547,7 +507,7 @@ Same as Phase 1–3:
 
 ---
 
-## Phase 1–3 Summary
+## Phase 1–4 Summary
 
 **Phase 1** completed with 45/45 stories:
 - Symfony 7.x REST API + React 18 SPA + FullCalendar
@@ -556,11 +516,15 @@ Same as Phase 1–3:
 **Phase 2** completed with 32/32 stories:
 - Participants, groups, layers, tasks, journals, import/export
 - Search, real-time (Mercure), permissions, mobile responsive
-- 220 Vitest tests + 25 Playwright E2E tests
 
 **Phase 3** completed with 27/27 stories:
 - Tenant data model, resolver middleware, provisioning
 - Control plane API with auth, dashboard, stats
 - Tenant-scoped JWT, cross-tenant isolation, rate limiting
-- Data export, mode detection, setup wizard, hosted Docker config
-- 258 Vitest tests + 326 PHP tests
+
+**Phase 4** completed with 23/23 stories:
+- sabre/dav CalDAV with VEVENT, VTODO, VJOURNAL, sync-token, scheduling
+- OAuth2/OIDC with PKCE, auto-discovery, frontend SSO buttons
+- LDAP auth with auto-provisioning, group sync
+- Per-tenant auth registry, chained authenticator, settings UI
+- 426 PHP tests + 265 Vitest tests
