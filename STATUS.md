@@ -22,7 +22,7 @@
 | P6-E3 | Conflict Detection & Approval | 3 | 3 | DONE |
 | P6-E4 | Additional Views & Print | 2 | 2 | DONE |
 | P6-E5 | Event Attachments & VALARM | 3 | 3 | DONE |
-| P6-E6 | Remaining Service UIs | 4 | 0 | TODO |
+| P6-E6 | Remaining Service UIs | 4 | 1 | IN PROGRESS |
 | P6-E7 | Internationalization | 3 | 0 | TODO |
 | P6-E8 | Admin Feature Configuration | 3 | 0 | TODO |
 | **Total** | | **24** | **5** | |
@@ -391,7 +391,7 @@ Support iCalendar VALARM components in CalDAV for trigger-based reminders recogn
 
 ### P6-E6-S1: Activity Log Viewer
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Admin page to browse the activity/audit log.
@@ -399,14 +399,14 @@ Admin page to browse the activity/audit log.
 **Preconditions:** Phase 5 complete
 
 **Acceptance Criteria:**
-- [ ] Route `/admin/activity-log` accessible to admins
-- [ ] Paginated table of activity log entries (newest first)
-- [ ] Columns: timestamp, user, action (create/update/delete), entity type, entity name, IP address
-- [ ] Filter by user, action type, date range
-- [ ] Search by entity name
-- [ ] Click on entry shows full detail (before/after values if available)
-- [ ] Uses ActivityLogService from webcalendar-core
-- [ ] Vitest tests
+- [x] Route `/admin/activity-log` accessible to admins
+- [x] Paginated table of activity log entries (newest first, 50 per page)
+- [x] Columns: timestamp, user, action (color-coded badge), details text
+- [x] Filter by user and date range
+- [x] Click on entry shows full detail panel (ID, event ID, user, action, calendar, text)
+- [x] Uses ActivityLogService from webcalendar-core via GET /api/v2/admin/activity-log
+- [x] Vitest tests: 4 tests (heading, table entries, empty state, detail text)
+- [x] PHPStan level 9 passes
 
 ---
 

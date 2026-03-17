@@ -11,6 +11,7 @@ const UserManagement = lazy(() => import('./admin/UserManagement').then(m => ({ 
 const CategoryManagement = lazy(() => import('./admin/CategoryManagement').then(m => ({ default: m.CategoryManagement })));
 const GroupManagement = lazy(() => import('./admin/GroupManagement').then(m => ({ default: m.GroupManagement })));
 const WebhookManagement = lazy(() => import('./admin/WebhookManagement').then(m => ({ default: m.WebhookManagement })));
+const ActivityLogPage = lazy(() => import('./admin/ActivityLogPage').then(m => ({ default: m.ActivityLogPage })));
 const PreferencesPage = lazy(() => import('./settings/PreferencesPage').then(m => ({ default: m.PreferencesPage })));
 const AccessSettings = lazy(() => import('./settings/AccessSettings').then(m => ({ default: m.AccessSettings })));
 const AuthSettings = lazy(() => import('./settings/AuthSettings').then(m => ({ default: m.AuthSettings })));
@@ -94,6 +95,16 @@ export default function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <GroupManagement />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/activity-log"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ActivityLogPage />
                 </AppLayout>
               </ProtectedRoute>
             }
