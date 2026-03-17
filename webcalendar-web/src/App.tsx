@@ -31,6 +31,7 @@ const TenantDetailPage = lazy(() => import('./control/TenantDetailPage').then(m 
 const SetupWizard = lazy(() => import('./setup/SetupWizard').then(m => ({ default: m.SetupWizard })));
 const PublicCalendarPage = lazy(() => import('./public/PublicCalendarPage').then(m => ({ default: m.PublicCalendarPage })));
 const EmbedCalendarPage = lazy(() => import('./public/EmbedCalendarPage').then(m => ({ default: m.EmbedCalendarPage })));
+const BookingPage = lazy(() => import('./public/BookingPage').then(m => ({ default: m.BookingPage })));
 const ShareSettings = lazy(() => import('./settings/ShareSettings').then(m => ({ default: m.ShareSettings })));
 
 function LoadingFallback() {
@@ -47,6 +48,7 @@ export default function App() {
           {/* Public calendar — no auth required */}
           <Route path="/public/:username" element={<PublicCalendarPage />} />
           <Route path="/public/embed/:token" element={<EmbedCalendarPage />} />
+          <Route path="/book/:username" element={<BookingPage />} />
           <Route
             path="/"
             element={

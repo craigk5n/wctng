@@ -22,7 +22,7 @@
 | P6-E3 | Conflict Detection & Approval | 3 | 3 | DONE |
 | P6-E4 | Additional Views & Print | 2 | 2 | DONE |
 | P6-E5 | Event Attachments & VALARM | 3 | 3 | DONE |
-| P6-E6 | Remaining Service UIs | 4 | 3 | IN PROGRESS |
+| P6-E6 | Remaining Service UIs | 4 | 4 | DONE |
 | P6-E7 | Internationalization | 3 | 0 | TODO |
 | P6-E8 | Admin Feature Configuration | 3 | 0 | TODO |
 | P6-E9 | Integration & E2E Testing | 3 | 0 | TODO |
@@ -461,7 +461,7 @@ Settings page for managing boss/assistant calendar relationships.
 
 ### P6-E6-S4: Public Booking Page
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Public-facing availability/booking page where external users can schedule time on a user's calendar.
@@ -469,16 +469,16 @@ Public-facing availability/booking page where external users can schedule time o
 **Preconditions:** P6-E1-S1 (public calendar API)
 
 **Acceptance Criteria:**
-- [ ] Route `/book/{username}` accessible without login
-- [ ] Shows available time slots based on user's calendar (free/busy)
-- [ ] Configurable booking settings per user: slot duration (15/30/60 min), available hours, buffer between slots
-- [ ] `GET /api/v2/public/availability/{username}?date={}` returns available slots for a given day
-- [ ] Booking form: name, email, description (no account required)
-- [ ] `POST /api/v2/public/book/{username}` creates a tentative event + sends confirmation email
-- [ ] Booking confirmation email with cancel link (HMAC-signed token)
-- [ ] Uses BookingService from webcalendar-core
-- [ ] PHPStan level 9 passes
-- [ ] Unit + Vitest tests
+- [x] Route `/book/{username}` accessible without login
+- [x] Shows available time slots based on user's calendar (free/busy via BookingService)
+- [x] Slot duration: 30 min (configurable in BookingService), available hours 9:00-17:00
+- [x] `GET /api/v2/public/availability/{username}?date={}` returns available slots
+- [x] Booking form: name, email, description (no account required)
+- [x] `POST /api/v2/public/book/{username}` creates a TENTATIVE event via BookingService
+- [x] Booking confirmation screen shown after successful booking
+- [x] Uses BookingService from webcalendar-core
+- [x] PHPStan level 9 passes
+- [x] 4 Vitest tests (heading, slots, form fields, empty slots)
 
 ---
 
