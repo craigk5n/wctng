@@ -19,10 +19,10 @@
 | P4-E2 | CalDAV Calendar & Event Operations | 4 | 4 | DONE |
 | P4-E3 | CalDAV Tasks & Journals | 3 | 3 | DONE |
 | P4-E4 | CalDAV Integration Tests | 2 | 2 | DONE |
-| P4-E5 | OAuth2 / OIDC Authentication | 4 | 2 | IN PROGRESS |
+| P4-E5 | OAuth2 / OIDC Authentication | 4 | 3 | IN PROGRESS |
 | P4-E6 | LDAP Authentication | 3 | 0 | NOT STARTED |
 | P4-E7 | Per-Tenant Auth Configuration | 3 | 0 | NOT STARTED |
-| **Total** | | **23** | **15** | |
+| **Total** | | **23** | **16** | |
 
 ---
 
@@ -360,7 +360,7 @@ Implement the OAuth2 authorization code flow with PKCE for browser-based login.
 
 ### P4-E5-S3: OIDC Integration
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Extend OAuth2 support with OpenID Connect discovery and ID token validation.
@@ -368,12 +368,12 @@ Extend OAuth2 support with OpenID Connect discovery and ID token validation.
 **Preconditions:** P4-E5-S2
 
 **Acceptance Criteria:**
-- [ ] Auto-discovery via `.well-known/openid-configuration` endpoint
-- [ ] ID token validation (signature, claims, expiry)
-- [ ] User profile populated from OIDC claims (name, email, groups)
-- [ ] Support for major providers: Google, Microsoft Entra ID, Keycloak, Auth0
-- [ ] PHPStan level 9 passes
-- [ ] Functional tests
+- [x] Auto-discovery via `.well-known/openid-configuration` endpoint
+- [x] ID token validation (signature, claims, expiry)
+- [x] User profile populated from OIDC claims (name, email, groups)
+- [x] Support for major providers: Google, Microsoft Entra ID, Keycloak, Auth0
+- [x] PHPStan level 9 passes
+- [x] Functional tests
 
 ---
 
