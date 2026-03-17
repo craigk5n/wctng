@@ -21,8 +21,8 @@
 | P4-E4 | CalDAV Integration Tests | 2 | 2 | DONE |
 | P4-E5 | OAuth2 / OIDC Authentication | 4 | 4 | DONE |
 | P4-E6 | LDAP Authentication | 3 | 3 | DONE |
-| P4-E7 | Per-Tenant Auth Configuration | 3 | 1 | IN PROGRESS |
-| **Total** | | **23** | **21** | |
+| P4-E7 | Per-Tenant Auth Configuration | 3 | 3 | DONE |
+| **Total** | | **23** | **23** | |
 
 ---
 
@@ -483,7 +483,7 @@ System for tenants to register and manage their authentication providers.
 
 ### P4-E7-S2: Chained Authentication
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Authentication chain that tries multiple providers in configured order.
@@ -502,7 +502,7 @@ Authentication chain that tries multiple providers in configured order.
 
 ### P4-E7-S3: Auth Configuration UI
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Admin UI for configuring authentication providers per tenant.

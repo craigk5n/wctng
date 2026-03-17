@@ -9,6 +9,7 @@ import { CategoryManagement } from './admin/CategoryManagement';
 import { GroupManagement } from './admin/GroupManagement';
 import { PreferencesPage } from './settings/PreferencesPage';
 import { AccessSettings } from './settings/AccessSettings';
+import { AuthSettings } from './settings/AuthSettings';
 import { TasksPage } from './tasks/TasksPage';
 import { JournalsPage } from './journals/JournalsPage';
 import { NotFound } from './pages/NotFound';
@@ -76,6 +77,16 @@ export default function App() {
             <ProtectedRoute>
               <AppLayout>
                 <PreferencesPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/authentication"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <AuthSettings />
               </AppLayout>
             </ProtectedRoute>
           }
