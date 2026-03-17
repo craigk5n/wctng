@@ -3,6 +3,7 @@ import type { ApiEvent } from './eventMapper';
 import { ParticipantList } from './ParticipantList';
 import { ParticipantResponse } from './ParticipantResponse';
 import { RichTextDisplay } from '../components/editor/RichTextDisplay';
+import { AttachmentSection } from './AttachmentSection';
 
 const ACCESS_LABELS: Record<string, string> = {
   P: 'Public',
@@ -131,6 +132,15 @@ export function EventDetailDialog({
               </div>
             </div>
           )}
+        </div>
+
+        {/* Attachments */}
+        <div className="mt-4">
+          <AttachmentSection
+            eventId={event.id}
+            currentUserLogin={currentUserLogin}
+            eventOwner={event.created_by}
+          />
         </div>
 
         {/* Participant response (Accept/Reject) */}

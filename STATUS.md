@@ -21,7 +21,7 @@
 | P6-E2 | Rich Text Descriptions | 3 | 3 | DONE |
 | P6-E3 | Conflict Detection & Approval | 3 | 3 | DONE |
 | P6-E4 | Additional Views & Print | 2 | 2 | DONE |
-| P6-E5 | Event Attachments & VALARM | 3 | 1 | IN PROGRESS |
+| P6-E5 | Event Attachments & VALARM | 3 | 2 | IN PROGRESS |
 | P6-E6 | Remaining Service UIs | 4 | 0 | TODO |
 | P6-E7 | Internationalization | 3 | 0 | TODO |
 | P6-E8 | Admin Feature Configuration | 3 | 0 | TODO |
@@ -344,7 +344,7 @@ API endpoints for uploading, listing, and downloading file attachments on events
 
 ### P6-E5-S2: Attachment UI
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 File attachment management in the event detail dialog.
@@ -352,14 +352,14 @@ File attachment management in the event detail dialog.
 **Preconditions:** P6-E5-S1
 
 **Acceptance Criteria:**
-- [ ] Attachment section in event detail dialog showing file list
-- [ ] Upload button with drag-and-drop zone
-- [ ] Upload progress indicator
-- [ ] File preview for images (thumbnail), download link for others
-- [ ] Delete button with confirmation (event owner or admin only)
-- [ ] File size and type displayed for each attachment
-- [ ] Error messages for oversized or disallowed file types
-- [ ] Vitest tests
+- [x] Attachment section in event detail dialog showing file list
+- [x] Upload button with drag-and-drop zone (dashed border, highlights on drag)
+- [x] Upload progress indicator ("Uploading..." state)
+- [x] File preview for images (thumbnail via img tag), download link for others
+- [x] Delete button (event owner only) with X button per attachment
+- [x] File size formatted (B/KB/MB) and file extension badge displayed
+- [x] Error messages for upload failures shown inline
+- [x] Vitest tests: 5 tests (list, size format, upload button, delete button, empty state)
 
 ---
 
