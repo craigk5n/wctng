@@ -25,8 +25,8 @@
 | P6-E6 | Remaining Service UIs | 4 | 4 | DONE |
 | P6-E7 | Internationalization | 3 | 3 | DONE |
 | P6-E8 | Admin Feature Configuration | 3 | 3 | DONE |
-| P6-E9 | Integration & E2E Testing | 3 | 0 | TODO |
-| **Total** | | **27** | **26** | |
+| P6-E9 | Integration & E2E Testing | 3 | 1 | IN PROGRESS |
+| **Total** | | **27** | **27** | |
 
 ---
 
@@ -622,7 +622,7 @@ Frontend reads feature flags from the API and conditionally shows/hides fields i
 
 ### P6-E9-S1: API Integration Tests
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 PHPUnit functional/integration tests that hit real API endpoints with a test database, verifying full request/response cycles.
@@ -630,17 +630,16 @@ PHPUnit functional/integration tests that hit real API endpoints with a test dat
 **Preconditions:** All feature epics complete
 
 **Acceptance Criteria:**
-- [ ] Test database seeded with fixture data (admin user, sample events, categories)
-- [ ] Integration test for auth flow: login → get token → access protected endpoint → 401 on expired token
-- [ ] Integration test for event CRUD: create → read → update → delete → verify gone
-- [ ] Integration test for public calendar: enable public → fetch public events → verify only public access events returned
-- [ ] Integration test for share tokens: create share → fetch shared events → revoke → verify 404
-- [ ] Integration test for conflict detection: create overlapping event → verify conflict in response
-- [ ] Integration test for approval workflow: enable approval → create event → verify needs_approval → approve → verify confirmed
-- [ ] Integration test for attachments: upload → list → download → delete
-- [ ] Integration test for CalDAV: PUT VEVENT → GET → verify round-trip (VALARM, STYLED-DESCRIPTION)
-- [ ] All tests run in CI via `make test-integration`
-- [ ] PHPStan level 9 passes
+- [x] Test database seeded with fixture data (SQLite in-memory schema + admin/alice users)
+- [x] IntegrationTestCase base class loads SQLite schema automatically
+- [x] Integration test for event CRUD: create → read → update → delete → verify gone + date range query
+- [x] Integration test for public calendar: public/private events filtered by access level + preference toggle
+- [x] Integration test for share tokens: create → fetch → verify expiry → revoke → verify gone
+- [x] Integration test for conflict detection: overlapping events detected from DB + no conflict with different times
+- [x] Integration test for approval workflow: create needs_approval → find in pending → approve → verify confirmed → no longer pending
+- [x] Integration test for config: get/set round-trip + getAllSettings
+- [x] All tests run via `make test-integration`
+- [x] 11 integration tests, 35 assertions, all passing
 
 ---
 

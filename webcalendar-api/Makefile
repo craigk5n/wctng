@@ -1,8 +1,16 @@
-.PHONY: test phpstan psalm cs-fix cs-check coverage ci
+.PHONY: test test-unit test-integration phpstan psalm cs-fix cs-check coverage ci
 
 ## Run PHPUnit tests
 test:
 	./vendor/bin/phpunit
+
+## Run unit tests only
+test-unit:
+	./vendor/bin/phpunit tests/Unit/
+
+## Run integration tests only
+test-integration:
+	./vendor/bin/phpunit tests/Integration/
 
 ## Run PHPStan (level 9)
 phpstan:
