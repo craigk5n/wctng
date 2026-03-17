@@ -19,10 +19,10 @@
 | P4-E2 | CalDAV Calendar & Event Operations | 4 | 4 | DONE |
 | P4-E3 | CalDAV Tasks & Journals | 3 | 3 | DONE |
 | P4-E4 | CalDAV Integration Tests | 2 | 2 | DONE |
-| P4-E5 | OAuth2 / OIDC Authentication | 4 | 3 | IN PROGRESS |
+| P4-E5 | OAuth2 / OIDC Authentication | 4 | 4 | DONE |
 | P4-E6 | LDAP Authentication | 3 | 0 | NOT STARTED |
 | P4-E7 | Per-Tenant Auth Configuration | 3 | 0 | NOT STARTED |
-| **Total** | | **23** | **16** | |
+| **Total** | | **23** | **17** | |
 
 ---
 
@@ -379,7 +379,7 @@ Extend OAuth2 support with OpenID Connect discovery and ID token validation.
 
 ### P4-E5-S4: OAuth2/OIDC Frontend Integration
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Login page shows OAuth/OIDC provider buttons for SSO.
@@ -387,12 +387,12 @@ Login page shows OAuth/OIDC provider buttons for SSO.
 **Preconditions:** P4-E5-S2
 
 **Acceptance Criteria:**
-- [ ] Login page fetches available providers from API
-- [ ] Provider buttons displayed with name and icon
-- [ ] Clicking a provider redirects to OAuth flow
-- [ ] Callback page handles token exchange and stores JWT
-- [ ] Works in both standalone and multi-tenant modes
-- [ ] Vitest tests
+- [x] Login page fetches available providers from API
+- [x] Provider buttons displayed with name and icon
+- [x] Clicking a provider redirects to OAuth flow
+- [x] Callback page handles token exchange and stores JWT
+- [x] Works in both standalone and multi-tenant modes
+- [x] Vitest tests
 
 ---
 

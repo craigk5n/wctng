@@ -21,6 +21,23 @@ final class AuthProviderController
     ) {
     }
 
+    /**
+     * Public endpoint: returns enabled providers (name + id only, no secrets).
+     */
+    #[Route('/api/v2/auth/oauth/providers', name: 'api_auth_providers_public', methods: ['GET'])]
+    public function publicList(): JsonResponse
+    {
+        $providers = $this->repository->findAll();
+        $items = [];
+        foreach ($providers as $p) {
+            if ($p->isEnabled()) {
+                $items[] = ['id' => $p->id(), 'name' => $p->name(), 'type' => $p->type()];
+            }
+        }
+
+        return ApiResponse::success($items);
+    }
+
     #[Route('/api/v2/admin/auth-providers', name: 'api_auth_providers_list', methods: ['GET'])]
     public function list(#[CurrentUser] ?WebCalendarUser $user): JsonResponse
     {

@@ -1,17 +1,75 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { type AuthUser, useAuth } from './auth-context';
 import { TOKEN_STORAGE_KEY } from '../api/client';
 import { useTenant } from '../hooks/useTenant';
+
+interface OAuthProviderInfo {
+  id: number;
+  name: string;
+  type: string;
+}
 
 export function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [oauthProviders, setOauthProviders] = useState<OAuthProviderInfo[]>([]);
   const { tenant } = useTenant();
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const baseUrl = import.meta.env.VITE_API_URL ?? '/api/v2';
+
+  // Fetch available OAuth providers
+  useEffect(() => {
+    void fetch(`${baseUrl}/auth/oauth/providers`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body) => {
+        if (body?.data && Array.isArray(body.data)) {
+          setOauthProviders(body.data as OAuthProviderInfo[]);
+        }
+      })
+      .catch(() => {});
+  }, [baseUrl]);
+
+  // Handle OAuth callback (code in URL params)
+  useEffect(() => {
+    const code = searchParams.get('code');
+    const providerId = searchParams.get('provider');
+    const codeVerifier = sessionStorage.getItem('oauth_code_verifier');
+
+    if (code && providerId && codeVerifier) {
+      sessionStorage.removeItem('oauth_code_verifier');
+      sessionStorage.removeItem('oauth_state');
+
+      void (async () => {
+        setIsLoading(true);
+        try {
+          const res = await fetch(`${baseUrl}/auth/oauth/${providerId}/callback`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, code_verifier: codeVerifier }),
+          });
+
+          const body = await res.json();
+          if (res.ok && body.data?.token) {
+            localStorage.setItem(TOKEN_STORAGE_KEY, body.data.token);
+            login(body.data.token, body.data.user);
+            navigate('/', { replace: true });
+          } else {
+            setError(body.error?.message ?? 'OAuth login failed');
+          }
+        } catch {
+          setError('OAuth callback failed');
+        } finally {
+          setIsLoading(false);
+        }
+      })();
+    }
+  }, [searchParams, baseUrl, login, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,8 +77,6 @@ export function LoginPage() {
     setIsLoading(true);
 
     try {
-      // Use plain fetch to avoid openapi-fetch parsing issues
-      const baseUrl = import.meta.env.VITE_API_URL ?? '/api/v2';
       const response = await fetch(`${baseUrl}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -48,6 +104,26 @@ export function LoginPage() {
     }
   };
 
+  const handleOAuthLogin = async (provider: OAuthProviderInfo) => {
+    try {
+      const res = await fetch(`${baseUrl}/auth/oauth/${provider.id}/redirect`);
+      const body = await res.json();
+
+      if (res.ok && body.data?.auth_url) {
+        // Store PKCE verifier and state in sessionStorage
+        sessionStorage.setItem('oauth_code_verifier', body.data.code_verifier);
+        sessionStorage.setItem('oauth_state', body.data.state);
+
+        // Redirect to provider
+        window.location.href = body.data.auth_url;
+      } else {
+        setError('Failed to start OAuth flow');
+      }
+    } catch {
+      setError('Failed to connect to OAuth provider');
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="w-full max-w-sm space-y-6 p-8">
@@ -55,6 +131,26 @@ export function LoginPage() {
           <h1 className="text-2xl font-bold tracking-tight">{tenant ? tenant.name : 'WebCalendar'}</h1>
           <p className="mt-1 text-sm text-muted-foreground">Sign in to your account</p>
         </div>
+
+        {/* OAuth provider buttons */}
+        {oauthProviders.length > 0 && (
+          <div className="space-y-2">
+            {oauthProviders.map((provider) => (
+              <button
+                key={provider.id}
+                type="button"
+                onClick={() => void handleOAuthLogin(provider)}
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-input bg-background text-sm font-medium hover:bg-accent"
+              >
+                {provider.type === 'oidc' ? '🔐' : '🔑'} Sign in with {provider.name}
+              </button>
+            ))}
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+              <div className="relative flex justify-center text-xs"><span className="bg-background px-2 text-muted-foreground">or</span></div>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
@@ -64,9 +160,7 @@ export function LoginPage() {
           )}
 
           <div className="space-y-2">
-            <label htmlFor="username" className="text-sm font-medium">
-              Username
-            </label>
+            <label htmlFor="username" className="text-sm font-medium">Username</label>
             <input
               id="username"
               type="text"
@@ -81,9 +175,7 @@ export function LoginPage() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium">
-              Password
-            </label>
+            <label htmlFor="password" className="text-sm font-medium">Password</label>
             <input
               id="password"
               type="password"
