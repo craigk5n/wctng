@@ -44,3 +44,16 @@ export async function getAdminToken(request: APIRequestContext): Promise<string>
 
   return token as string;
 }
+
+/**
+ * Deletes a test event via the API.
+ */
+export async function deleteTestEvent(
+  request: APIRequestContext,
+  token: string,
+  eventId: number,
+) {
+  await request.delete(`${BASE_URL}/events/${eventId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
