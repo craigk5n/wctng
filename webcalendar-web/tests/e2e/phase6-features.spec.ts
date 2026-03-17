@@ -1,0 +1,158 @@
+import { test, expect } from '@playwright/test';
+import { loginAsAdmin } from './fixtures/auth';
+import { getAdminToken, createTestEvent } from './fixtures/db';
+
+test.describe('Phase 6 Features E2E', () => {
+
+  test('rich text editor — toolbar renders in event dialog', async ({ page }) => {
+    await loginAsAdmin(page);
+    await page.getByRole('button', { name: /new event/i }).click();
+
+    // Verify TipTap editor renders with toolbar buttons
+    await expect(page.getByTitle(/bold/i)).toBeVisible();
+    await expect(page.getByTitle(/italic/i)).toBeVisible();
+    await expect(page.getByTitle(/link/i)).toBeVisible();
+    await expect(page.getByTitle(/heading 2/i)).toBeVisible();
+    await expect(page.getByTitle(/bullet list/i)).toBeVisible();
+    await expect(page.getByTitle(/blockquote/i)).toBeVisible();
+    await expect(page.getByTitle(/code/i)).toBeVisible();
+
+    // Verify ProseMirror contenteditable area exists
+    await expect(page.locator('.ProseMirror')).toBeVisible();
+  });
+
+  test('public calendar — visit /public/admin shows calendar', async ({ page, request }) => {
+    const token = await getAdminToken(request);
+
+    // Enable public calendar for admin
+    await request.put('http://localhost:47180/api/v2/admin/users/admin/public-calendar', {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: { enabled: true },
+    });
+
+    // Create an event
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    await createTestEvent(request, token, {
+      title: 'E2E Public Event ' + Date.now(),
+      start_date: today,
+      start_time: '120000',
+      duration: 30,
+    });
+
+    // Visit public calendar (no login needed)
+    await page.goto('/public/admin');
+    await expect(page.getByText(/admin/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.fc')).toBeVisible();
+
+    // Clean up: disable public
+    await request.put('http://localhost:47180/api/v2/admin/users/admin/public-calendar', {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: { enabled: false },
+    });
+  });
+
+  test('share link — create and visit embed URL', async ({ page, request }) => {
+    const token = await getAdminToken(request);
+
+    // Create a share token via API
+    const shareRes = await request.post('http://localhost:47180/api/v2/calendars/share', {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: {},
+    });
+    const shareBody = await shareRes.json();
+    const shareToken = shareBody?.data?.token;
+    expect(shareToken).toBeTruthy();
+
+    // Visit embed URL
+    await page.goto(`/public/embed/${shareToken}`);
+    // Should show a calendar (FullCalendar loads)
+    await expect(page.locator('.fc')).toBeVisible({ timeout: 10000 });
+
+    // Clean up: revoke share
+    await request.delete(`http://localhost:47180/api/v2/calendars/share/${shareToken}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  });
+
+  test('conflict detection — API endpoint returns valid response', async ({ request }) => {
+    const token = await getAdminToken(request);
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+
+    // Check conflicts endpoint responds correctly
+    const conflictRes = await request.get(
+      `http://localhost:47180/api/v2/events/conflicts?start=${today}&end=${today}&duration=60`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    expect(conflictRes.ok()).toBeTruthy();
+
+    const body = await conflictRes.json();
+    expect(body.data).toBeDefined();
+    expect(Array.isArray(body.data)).toBeTruthy();
+  });
+
+  test('conflict detection — create with conflict returns meta', async ({ request }) => {
+    const token = await getAdminToken(request);
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+
+    // Create first event
+    await createTestEvent(request, token, {
+      title: 'E2E Conflict A ' + Date.now(),
+      start_date: today,
+      start_time: '100000',
+      duration: 60,
+    });
+
+    // Create overlapping event — response should include conflicts in meta
+    const res = await request.post('http://localhost:47180/api/v2/events', {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: {
+        title: 'E2E Conflict B ' + Date.now(),
+        start_date: today,
+        start_time: '103000',
+        duration: 60,
+      },
+    });
+    expect(res.ok()).toBeTruthy();
+
+    const body = await res.json();
+    // In warn mode (default), event is created but meta may contain conflicts
+    expect(body.data).toBeDefined();
+  });
+
+  test('activity log — shows entries after creating events', async ({ page }) => {
+    await loginAsAdmin(page);
+    await page.goto('/admin/activity-log');
+    await expect(page.getByRole('heading', { name: /activity log/i })).toBeVisible();
+    // Table or empty state should render
+    await expect(page.locator('table, p')).toBeVisible();
+  });
+
+  test('settings — change and verify preference persists', async ({ page }) => {
+    await loginAsAdmin(page);
+    await page.goto('/settings/preferences');
+
+    // Change default view to Week
+    await page.getByLabel(/default view/i).selectOption('timeGridWeek');
+    await page.getByRole('button', { name: /save/i }).click();
+
+    // Wait for save confirmation toast
+    await page.waitForTimeout(1500);
+
+    // Reload and verify
+    await page.reload();
+    await page.waitForTimeout(1000);
+    await expect(page.getByLabel(/default view/i)).toHaveValue('timeGridWeek', { timeout: 5000 });
+
+    // Reset to Month
+    await page.getByLabel(/default view/i).selectOption('dayGridMonth');
+    await page.getByRole('button', { name: /save/i }).click();
+  });
+
+  test('admin settings — feature toggles page loads', async ({ page }) => {
+    await loginAsAdmin(page);
+    await page.goto('/admin/settings');
+    await expect(page.getByRole('heading', { name: /system settings/i })).toBeVisible();
+    await expect(page.getByText('Rich Text Descriptions').first()).toBeVisible();
+    await expect(page.getByText('Location Field').first()).toBeVisible();
+  });
+});

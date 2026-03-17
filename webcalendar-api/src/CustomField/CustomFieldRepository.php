@@ -8,6 +8,17 @@ final readonly class CustomFieldRepository
 {
     public const SCHEMA_SQL = <<<'SQL'
         CREATE TABLE IF NOT EXISTS custom_field_definitions (
+            id INTEGER PRIMARY KEY AUTO_INCREMENT,
+            name VARCHAR(60) NOT NULL UNIQUE,
+            field_type VARCHAR(20) NOT NULL DEFAULT 'text',
+            required INTEGER NOT NULL DEFAULT 0,
+            sort_order INTEGER NOT NULL DEFAULT 0,
+            options TEXT DEFAULT ''
+        )
+    SQL;
+
+    public const SCHEMA_SQL_SQLITE = <<<'SQL'
+        CREATE TABLE IF NOT EXISTS custom_field_definitions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name VARCHAR(60) NOT NULL UNIQUE,
             field_type VARCHAR(20) NOT NULL DEFAULT 'text',
@@ -88,7 +99,9 @@ final readonly class CustomFieldRepository
 
     private function ensureTable(): void
     {
-        $this->pdo->exec(self::SCHEMA_SQL);
+        $driver = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        $sql = $driver === 'sqlite' ? self::SCHEMA_SQL_SQLITE : self::SCHEMA_SQL;
+        $this->pdo->exec($sql);
     }
 
     /** @param array<string, mixed> $row */

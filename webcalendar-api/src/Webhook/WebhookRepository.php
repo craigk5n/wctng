@@ -11,6 +11,17 @@ final readonly class WebhookRepository
 {
     public const SCHEMA_SQL = <<<'SQL'
         CREATE TABLE IF NOT EXISTS webhooks (
+            id INTEGER PRIMARY KEY AUTO_INCREMENT,
+            url VARCHAR(500) NOT NULL,
+            events VARCHAR(500) NOT NULL DEFAULT '*',
+            secret VARCHAR(255) NOT NULL DEFAULT '',
+            enabled INTEGER NOT NULL DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    SQL;
+
+    public const SCHEMA_SQL_SQLITE = <<<'SQL'
+        CREATE TABLE IF NOT EXISTS webhooks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             url VARCHAR(500) NOT NULL,
             events VARCHAR(500) NOT NULL DEFAULT '*',
@@ -108,7 +119,9 @@ final readonly class WebhookRepository
 
     private function ensureTable(): void
     {
-        $this->pdo->exec(self::SCHEMA_SQL);
+        $driver = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        $sql = $driver === 'sqlite' ? self::SCHEMA_SQL_SQLITE : self::SCHEMA_SQL;
+        $this->pdo->exec($sql);
     }
 
     /**
