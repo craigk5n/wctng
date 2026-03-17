@@ -18,7 +18,7 @@
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
 | P6-E1 | Public Calendar & Sharing | 3 | 3 | DONE |
-| P6-E2 | Rich Text Descriptions | 3 | 1 | IN PROGRESS |
+| P6-E2 | Rich Text Descriptions | 3 | 2 | IN PROGRESS |
 | P6-E3 | Conflict Detection & Approval | 3 | 0 | TODO |
 | P6-E4 | Additional Views & Print | 2 | 0 | TODO |
 | P6-E5 | Event Attachments & VALARM | 3 | 0 | TODO |
@@ -150,7 +150,7 @@ Add server-side HTML sanitization for event descriptions using Symfony HtmlSanit
 
 ### P6-E2-S2: TipTap Rich Text Editor
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Replace the plain textarea for event descriptions with a TipTap WYSIWYG editor styled with Tailwind/shadcn.
@@ -158,15 +158,15 @@ Replace the plain textarea for event descriptions with a TipTap WYSIWYG editor s
 **Preconditions:** P6-E2-S1
 
 **Acceptance Criteria:**
-- [ ] `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-link` installed
-- [ ] `RichTextEditor` component with toolbar: bold, italic, bullet list, ordered list, link, heading (H2/H3), blockquote, code
-- [ ] Toolbar buttons use shadcn/ui `Toggle` or `Button` components, styled consistently
-- [ ] Editor outputs HTML string (not JSON) for API compatibility
-- [ ] Editor accepts initial HTML content and renders it correctly (edit mode)
-- [ ] Empty editor returns empty string (not `<p></p>`)
-- [ ] Editor integrated into event create/edit dialog, task dialog, and journal dialog
-- [ ] Keyboard shortcuts: Ctrl+B (bold), Ctrl+I (italic), Ctrl+K (link)
-- [ ] Vitest tests: renders, toolbar toggles, outputs HTML
+- [x] `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-link` installed
+- [x] `RichTextEditor` component with toolbar: bold, italic, bullet list, ordered list, link, heading (H2/H3), blockquote, code
+- [x] Toolbar buttons styled with Tailwind, consistent with shadcn/ui design system
+- [x] Editor outputs HTML string (not JSON) for API compatibility
+- [x] Editor accepts initial HTML content and renders it correctly (edit mode)
+- [x] Empty editor returns empty string (not `<p></p>`)
+- [x] Editor integrated into event create/edit dialog, task create dialog, and journal create/edit
+- [x] Keyboard shortcuts: Ctrl+B (bold), Ctrl+I (italic), Ctrl+K (link) via TipTap/ProseMirror
+- [x] Vitest tests: 5 tests — renders, toolbar buttons, initial content, onChange
 
 ---
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../api/client';
 import { useToast } from '../components/toast/ToastProvider';
+import { RichTextEditor } from '../components/editor/RichTextEditor';
 
 interface Task {
   id: number;
@@ -25,6 +26,7 @@ export function TasksPage() {
   const [filter, setFilter] = useState<Filter>('all');
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState('');
+  const [newDescription, setNewDescription] = useState('');
   const [newDueDate, setNewDueDate] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -65,6 +67,9 @@ export function TasksPage() {
     setIsCreating(true);
 
     const body: Record<string, unknown> = { title: newTitle.trim() };
+    if (newDescription.trim()) {
+      body.description = newDescription.trim();
+    }
     if (newDueDate) {
       body.due_date = newDueDate.replace(/-/g, '');
     }
@@ -78,6 +83,7 @@ export function TasksPage() {
     if (!error) {
       toast({ title: 'Task created', variant: 'success' });
       setNewTitle('');
+      setNewDescription('');
       setNewDueDate('');
       setShowCreate(false);
       void fetchTasks();
@@ -133,27 +139,37 @@ export function TasksPage() {
 
       {/* Create form */}
       {showCreate && (
-        <form onSubmit={handleCreate} className="mt-4 flex items-end gap-3 rounded-lg border border-border p-4">
-          <div className="flex-1 space-y-1">
-            <label htmlFor="task-title" className="text-sm font-medium">Title</label>
-            <input
-              id="task-title"
-              type="text"
-              required
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              placeholder="Task title"
-            />
+        <form onSubmit={handleCreate} className="mt-4 space-y-3 rounded-lg border border-border p-4">
+          <div className="flex items-end gap-3">
+            <div className="flex-1 space-y-1">
+              <label htmlFor="task-title" className="text-sm font-medium">Title</label>
+              <input
+                id="task-title"
+                type="text"
+                required
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                placeholder="Task title"
+              />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="task-due" className="text-sm font-medium">Due Date</label>
+              <input
+                id="task-due"
+                type="date"
+                value={newDueDate}
+                onChange={(e) => setNewDueDate(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              />
+            </div>
           </div>
           <div className="space-y-1">
-            <label htmlFor="task-due" className="text-sm font-medium">Due Date</label>
-            <input
-              id="task-due"
-              type="date"
-              value={newDueDate}
-              onChange={(e) => setNewDueDate(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            <label className="text-sm font-medium">Description</label>
+            <RichTextEditor
+              content={newDescription}
+              onChange={setNewDescription}
+              placeholder="Optional description"
             />
           </div>
           <button

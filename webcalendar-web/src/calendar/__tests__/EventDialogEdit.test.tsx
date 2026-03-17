@@ -93,7 +93,8 @@ describe('EventDialog - Edit', () => {
     expect(screen.getByLabelText(/date/i)).toHaveValue('2026-04-15');
     expect(screen.getByLabelText(/start time/i)).toHaveValue('14:00');
     expect(screen.getByLabelText(/location/i)).toHaveValue('Room B');
-    expect(screen.getByLabelText(/description/i)).toHaveValue('Weekly sync');
+    // Description is now in a TipTap rich text editor (contenteditable)
+    expect(screen.getByText('Weekly sync')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /edit event/i })).toBeInTheDocument();
   });
 

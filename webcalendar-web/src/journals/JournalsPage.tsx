@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../api/client';
 import { useToast } from '../components/toast/ToastProvider';
+import { RichTextEditor } from '../components/editor/RichTextEditor';
 
 interface JournalEntry {
   id: number;
@@ -132,13 +133,10 @@ export function JournalsPage() {
             </div>
           </div>
           <div className="space-y-1">
-            <label htmlFor="j-text" className="text-sm font-medium">Content</label>
-            <textarea
-              id="j-text"
-              rows={4}
-              value={newText}
-              onChange={(e) => setNewText(e.target.value)}
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            <label className="text-sm font-medium">Content</label>
+            <RichTextEditor
+              content={newText}
+              onChange={setNewText}
               placeholder="Write your thoughts..."
             />
           </div>
@@ -169,11 +167,9 @@ export function JournalsPage() {
                     onChange={(e) => setEditTitle(e.target.value)}
                     className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                   />
-                  <textarea
-                    rows={3}
-                    value={editText}
-                    onChange={(e) => setEditText(e.target.value)}
-                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  <RichTextEditor
+                    content={editText}
+                    onChange={setEditText}
                   />
                   <div className="flex gap-2">
                     <button

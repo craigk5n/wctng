@@ -42,7 +42,7 @@ describe('EventDialog - Create', () => {
     expect(screen.getByLabelText(/start time/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/duration/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/location/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+    expect(screen.getByText(/description/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/all.day/i)).toBeInTheDocument();
   });
 

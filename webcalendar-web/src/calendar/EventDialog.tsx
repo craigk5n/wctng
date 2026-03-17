@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useCategories } from './useCategories';
 import { apiFetch } from '../api/client';
+import { RichTextEditor } from '../components/editor/RichTextEditor';
 
 interface GroupSuggestion {
   id: number;
@@ -254,15 +255,12 @@ export function EventDialog({
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="event-description" className="text-sm font-medium">
+            <label className="text-sm font-medium">
               Description
             </label>
-            <textarea
-              id="event-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            <RichTextEditor
+              content={description}
+              onChange={setDescription}
               placeholder="Optional description"
             />
           </div>
