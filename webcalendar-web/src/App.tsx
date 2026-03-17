@@ -14,6 +14,7 @@ import { AuthSettings } from './settings/AuthSettings';
 import { NotificationSettings } from './settings/NotificationSettings';
 import { TasksPage } from './tasks/TasksPage';
 import { JournalsPage } from './journals/JournalsPage';
+import { ReportsPage } from './reports/ReportsPage';
 import { NotFound } from './pages/NotFound';
 import { ControlLoginPage } from './control/ControlLoginPage';
 import { ControlProtectedRoute } from './control/ControlProtectedRoute';
@@ -129,6 +130,16 @@ export default function App() {
             <ProtectedRoute>
               <AppLayout>
                 <TasksPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <ReportsPage />
               </AppLayout>
             </ProtectedRoute>
           }

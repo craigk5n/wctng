@@ -16,6 +16,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { label: 'Calendar', href: '/', icon: '📅' },
     { label: 'Tasks', href: '/tasks', icon: '✅' },
     { label: 'Journals', href: '/journals', icon: '📓' },
+    { label: 'Reports', href: '/reports', icon: '📊' },
     { label: 'Settings', href: '/settings/preferences', icon: '⚙' },
     { label: 'Access', href: '/settings/access', icon: '🔒' },
   ];
