@@ -150,7 +150,7 @@ export function EventDialog({
       aria-modal="true"
     >
       <div
-        className="fixed inset-0 overflow-y-auto bg-card p-6 shadow-lg md:static md:inset-auto md:w-full md:max-w-lg md:rounded-lg md:overflow-visible"
+        className="fixed inset-0 overflow-y-auto bg-card p-6 shadow-lg md:static md:inset-auto md:w-full md:max-w-lg md:max-h-[85vh] md:overflow-y-auto md:rounded-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-semibold">

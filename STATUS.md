@@ -24,7 +24,8 @@
 | P6-E5 | Event Attachments & VALARM | 3 | 0 | TODO |
 | P6-E6 | Remaining Service UIs | 4 | 0 | TODO |
 | P6-E7 | Internationalization | 3 | 0 | TODO |
-| **Total** | | **21** | **0** | |
+| P6-E8 | Admin Feature Configuration | 3 | 0 | TODO |
+| **Total** | | **24** | **5** | |
 
 ---
 
@@ -37,10 +38,11 @@ P6-E3 (Conflict & Approval) — independent
 P6-E4 (Views & Print) — independent
 P6-E5 (Attachments & VALARM) — independent
 P6-E6 (Service UIs) — independent
-P6-E7 (i18n) — after E1-E6 ideally (translate what exists)
+P6-E7 (i18n) — after E1-E8 ideally (translate what exists)
+P6-E8 (Admin Config) — independent, but best after E2 (rich text toggle)
 ```
 
-**All epics E1-E6 are independent** and can be done in any order.
+**All epics E1-E6, E8 are independent** and can be done in any order.
 **E7 (i18n)** should come last so all UI strings exist before extracting translations.
 
 ---
@@ -541,6 +543,69 @@ Language selector in user settings and app header, plus RTL layout support.
 - [ ] Arabic (ar) and Hebrew (he) locale files added with RTL flag
 - [ ] Calendar grid, dialogs, and navigation properly mirrored in RTL
 - [ ] Vitest tests: RTL rendering, language switch
+
+---
+
+## Epic P6-E8: Admin Feature Configuration
+
+**Goal:** Allow admins to enable/disable features (rich text descriptions, location field, URL field, etc.) via system settings, matching legacy WebCalendar's ConfigService capabilities.
+
+### P6-E8-S1: Config API Endpoints
+
+**Status:** TODO
+
+**Description:**
+API endpoints for reading and updating system configuration settings using ConfigService from webcalendar-core.
+
+**Preconditions:** Phase 5 complete
+
+**Acceptance Criteria:**
+- [ ] `GET /api/v2/admin/config` returns all system settings as key-value pairs
+- [ ] `PUT /api/v2/admin/config` accepts partial updates (key-value map)
+- [ ] Settings stored via ConfigService in `webcal_config` table
+- [ ] Default settings defined: `ALLOW_HTML_DESCRIPTION` (Y/N), `DISABLE_LOCATION_FIELD` (Y/N), `DISABLE_URL_FIELD` (Y/N), `DISABLE_PRIORITY_FIELD` (Y/N), `DISABLE_PARTICIPANTS_FIELD` (Y/N)
+- [ ] `GET /api/v2/config/features` returns feature flags (public, no admin required) for frontend conditional rendering
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests
+
+---
+
+### P6-E8-S2: Admin Settings Page
+
+**Status:** TODO
+
+**Description:**
+Admin page for toggling feature flags with clear labels and descriptions.
+
+**Preconditions:** P6-E8-S1
+
+**Acceptance Criteria:**
+- [ ] Route `/admin/settings` accessible to admins
+- [ ] Toggle switches for each feature: rich text descriptions, location field, URL field, priority field, participants
+- [ ] Each toggle shows label, description, and current state
+- [ ] Changes saved immediately via API (optimistic UI)
+- [ ] Success toast on save
+- [ ] Vitest tests
+
+---
+
+### P6-E8-S3: Frontend Feature Flag Integration
+
+**Status:** TODO
+
+**Description:**
+Frontend reads feature flags from the API and conditionally shows/hides fields in event, task, and journal forms.
+
+**Preconditions:** P6-E8-S2
+
+**Acceptance Criteria:**
+- [ ] `useFeatureFlags()` hook fetches and caches feature flags from `/api/v2/config/features`
+- [ ] EventDialog hides location field when `DISABLE_LOCATION_FIELD=Y`
+- [ ] EventDialog shows plain textarea instead of RichTextEditor when `ALLOW_HTML_DESCRIPTION=N`
+- [ ] EventDialog hides participants section when `DISABLE_PARTICIPANTS_FIELD=Y`
+- [ ] TasksPage and JournalsPage respect `ALLOW_HTML_DESCRIPTION` flag
+- [ ] Feature flags cached in React Query with 5-minute stale time
+- [ ] Vitest tests
 
 ---
 
