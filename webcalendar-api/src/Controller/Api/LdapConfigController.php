@@ -6,6 +6,7 @@ namespace App\Controller\Api;
 
 use App\Auth\LdapConfig;
 use App\Auth\LdapConfigRepository;
+use App\Auth\LdapGroupSync;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -17,6 +18,7 @@ final class LdapConfigController
 {
     public function __construct(
         private readonly LdapConfigRepository $repository,
+        private readonly LdapGroupSync $groupSync,
     ) {
     }
 
@@ -109,5 +111,31 @@ final class LdapConfigController
         } catch (\Throwable $e) {
             return ApiResponse::error(500, 'LDAP connection error: ' . $e->getMessage());
         }
+    }
+
+    #[Route('/api/v2/admin/ldap-config/sync-groups', name: 'api_ldap_sync_groups', methods: ['POST'])]
+    public function syncGroups(Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
+    {
+        if ($user === null || !$user->getCoreUser()->isAdmin()) {
+            return ApiResponse::error(403, 'Admin access required');
+        }
+
+        $decoded = json_decode($request->getContent(), true);
+        /** @var array<string, mixed> $data */
+        $data = \is_array($decoded) ? $decoded : [];
+
+        $username = isset($data['username']) && \is_string($data['username']) ? $data['username'] : null;
+        $userDn = isset($data['user_dn']) && \is_string($data['user_dn']) ? $data['user_dn'] : null;
+
+        if ($username === null || $userDn === null) {
+            return ApiResponse::error(400, 'Missing required fields: username, user_dn');
+        }
+
+        $synced = $this->groupSync->syncUserGroups($username, $userDn);
+
+        return ApiResponse::success([
+            'synced_groups' => $synced,
+            'count' => \count($synced),
+        ]);
     }
 }

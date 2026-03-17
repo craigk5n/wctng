@@ -20,9 +20,9 @@
 | P4-E3 | CalDAV Tasks & Journals | 3 | 3 | DONE |
 | P4-E4 | CalDAV Integration Tests | 2 | 2 | DONE |
 | P4-E5 | OAuth2 / OIDC Authentication | 4 | 4 | DONE |
-| P4-E6 | LDAP Authentication | 3 | 2 | IN PROGRESS |
+| P4-E6 | LDAP Authentication | 3 | 3 | DONE |
 | P4-E7 | Per-Tenant Auth Configuration | 3 | 0 | NOT STARTED |
-| **Total** | | **23** | **19** | |
+| **Total** | | **23** | **20** | |
 
 ---
 
@@ -441,7 +441,7 @@ Authenticate users against LDAP directory and auto-provision webcalendar account
 
 ### P4-E6-S3: LDAP Group Sync
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Sync LDAP groups to webcalendar groups for permission management.
@@ -449,12 +449,12 @@ Sync LDAP groups to webcalendar groups for permission management.
 **Preconditions:** P4-E6-S2
 
 **Acceptance Criteria:**
-- [ ] LDAP group membership query (memberOf attribute or group search)
-- [ ] Configurable group DN mapping to webcalendar groups
-- [ ] Groups synced on user login (create group if missing, add/remove membership)
-- [ ] Admin-only sync trigger: `POST /api/v2/admin/ldap-config/sync-groups`
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests
+- [x] LDAP group membership query (memberOf attribute or group search)
+- [x] Configurable group DN mapping to webcalendar groups
+- [x] Groups synced on user login (create group if missing, add/remove membership)
+- [x] Admin-only sync trigger: `POST /api/v2/admin/ldap-config/sync-groups`
+- [x] PHPStan level 9 passes
+- [x] Unit tests
 
 ---
 
