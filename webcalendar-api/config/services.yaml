@@ -49,6 +49,11 @@ services:
         arguments:
             $appSecret: '%env(APP_SECRET)%'
 
+    # OAuth provider repository
+    App\Auth\OAuthProviderRepository:
+        arguments:
+            $pdo: '@pdo.connection'
+
     # webcalendar-core service factory
     App\Service\CoreServiceFactory:
         public: true

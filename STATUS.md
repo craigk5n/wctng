@@ -19,10 +19,10 @@
 | P4-E2 | CalDAV Calendar & Event Operations | 4 | 4 | DONE |
 | P4-E3 | CalDAV Tasks & Journals | 3 | 3 | DONE |
 | P4-E4 | CalDAV Integration Tests | 2 | 2 | DONE |
-| P4-E5 | OAuth2 / OIDC Authentication | 4 | 0 | NOT STARTED |
+| P4-E5 | OAuth2 / OIDC Authentication | 4 | 1 | IN PROGRESS |
 | P4-E6 | LDAP Authentication | 3 | 0 | NOT STARTED |
 | P4-E7 | Per-Tenant Auth Configuration | 3 | 0 | NOT STARTED |
-| **Total** | | **23** | **13** | |
+| **Total** | | **23** | **14** | |
 
 ---
 
@@ -322,7 +322,7 @@ Manual and automated tests with popular CalDAV clients.
 
 ### P4-E5-S1: OAuth2 Provider Configuration
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Database-driven OAuth2 provider configuration (client ID, secret, endpoints).
@@ -330,11 +330,11 @@ Database-driven OAuth2 provider configuration (client ID, secret, endpoints).
 **Preconditions:** Phase 3 complete
 
 **Acceptance Criteria:**
-- [ ] `oauth_providers` table: id, name, type (oauth2/oidc), client_id, client_secret, auth_url, token_url, userinfo_url, scopes, enabled
-- [ ] CRUD API endpoints: `GET/POST/PUT/DELETE /api/v2/admin/auth-providers`
-- [ ] Provider configuration stored per-tenant (multi-tenant) or globally (standalone)
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests
+- [x] `oauth_providers` table: id, name, type (oauth2/oidc), client_id, client_secret, auth_url, token_url, userinfo_url, scopes, enabled
+- [x] CRUD API endpoints: `GET/POST/PUT/DELETE /api/v2/admin/auth-providers`
+- [x] Provider configuration stored per-tenant (multi-tenant) or globally (standalone)
+- [x] PHPStan level 9 passes
+- [x] Unit tests
 
 ---
 
