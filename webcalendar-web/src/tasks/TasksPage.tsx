@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../api/client';
 import { useToast } from '../components/toast/ToastProvider';
 import { RichTextEditor } from '../components/editor/RichTextEditor';
+import { useFeatureFlags } from '../hooks/useFeatureFlags';
 
 interface Task {
   id: number;
@@ -32,6 +33,7 @@ export function TasksPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const { toast } = useToast();
+  const flags = useFeatureFlags();
 
   const fetchTasks = useCallback(async () => {
     setIsLoading(true);
@@ -166,11 +168,21 @@ export function TasksPage() {
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium">Description</label>
-            <RichTextEditor
-              content={newDescription}
-              onChange={setNewDescription}
-              placeholder="Optional description"
-            />
+            {flags.ALLOW_HTML_DESCRIPTION === 'Y' ? (
+              <RichTextEditor
+                content={newDescription}
+                onChange={setNewDescription}
+                placeholder="Optional description"
+              />
+            ) : (
+              <textarea
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+                rows={3}
+                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                placeholder="Optional description"
+              />
+            )}
           </div>
           <button
             type="submit"

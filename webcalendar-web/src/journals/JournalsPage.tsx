@@ -3,6 +3,7 @@ import { apiFetch } from '../api/client';
 import { useToast } from '../components/toast/ToastProvider';
 import { RichTextEditor } from '../components/editor/RichTextEditor';
 import { RichTextDisplay } from '../components/editor/RichTextDisplay';
+import { useFeatureFlags } from '../hooks/useFeatureFlags';
 
 interface JournalEntry {
   id: number;
@@ -27,6 +28,7 @@ export function JournalsPage() {
   const [editTitle, setEditTitle] = useState('');
   const [editText, setEditText] = useState('');
   const { toast } = useToast();
+  const flags = useFeatureFlags();
 
   const fetchEntries = useCallback(async () => {
     setIsLoading(true);
@@ -135,11 +137,11 @@ export function JournalsPage() {
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium">Content</label>
-            <RichTextEditor
-              content={newText}
-              onChange={setNewText}
-              placeholder="Write your thoughts..."
-            />
+            {flags.ALLOW_HTML_DESCRIPTION === 'Y' ? (
+              <RichTextEditor content={newText} onChange={setNewText} placeholder="Write your thoughts..." />
+            ) : (
+              <textarea value={newText} onChange={(e) => setNewText(e.target.value)} rows={4} className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="Write your thoughts..." />
+            )}
           </div>
           <button
             type="submit"
@@ -168,10 +170,11 @@ export function JournalsPage() {
                     onChange={(e) => setEditTitle(e.target.value)}
                     className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                   />
-                  <RichTextEditor
-                    content={editText}
-                    onChange={setEditText}
-                  />
+                  {flags.ALLOW_HTML_DESCRIPTION === 'Y' ? (
+                    <RichTextEditor content={editText} onChange={setEditText} />
+                  ) : (
+                    <textarea value={editText} onChange={(e) => setEditText(e.target.value)} rows={3} className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                  )}
                   <div className="flex gap-2">
                     <button
                       onClick={handleSaveEdit}

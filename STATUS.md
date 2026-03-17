@@ -24,9 +24,9 @@
 | P6-E5 | Event Attachments & VALARM | 3 | 3 | DONE |
 | P6-E6 | Remaining Service UIs | 4 | 4 | DONE |
 | P6-E7 | Internationalization | 3 | 3 | DONE |
-| P6-E8 | Admin Feature Configuration | 3 | 2 | IN PROGRESS |
+| P6-E8 | Admin Feature Configuration | 3 | 3 | DONE |
 | P6-E9 | Integration & E2E Testing | 3 | 0 | TODO |
-| **Total** | | **27** | **25** | |
+| **Total** | | **27** | **26** | |
 
 ---
 
@@ -597,7 +597,7 @@ Admin page for toggling feature flags with clear labels and descriptions.
 
 ### P6-E8-S3: Frontend Feature Flag Integration
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Frontend reads feature flags from the API and conditionally shows/hides fields in event, task, and journal forms.
@@ -605,13 +605,14 @@ Frontend reads feature flags from the API and conditionally shows/hides fields i
 **Preconditions:** P6-E8-S2
 
 **Acceptance Criteria:**
-- [ ] `useFeatureFlags()` hook fetches and caches feature flags from `/api/v2/config/features`
-- [ ] EventDialog hides location field when `DISABLE_LOCATION_FIELD=Y`
-- [ ] EventDialog shows plain textarea instead of RichTextEditor when `ALLOW_HTML_DESCRIPTION=N`
-- [ ] EventDialog hides participants section when `DISABLE_PARTICIPANTS_FIELD=Y`
-- [ ] TasksPage and JournalsPage respect `ALLOW_HTML_DESCRIPTION` flag
-- [ ] Feature flags cached in React Query with 5-minute stale time
-- [ ] Vitest tests
+- [x] `useFeatureFlags()` hook fetches and caches feature flags from `/api/v2/config/features`
+- [x] EventDialog hides location field when `DISABLE_LOCATION_FIELD=Y`
+- [x] EventDialog shows plain textarea instead of RichTextEditor when `ALLOW_HTML_DESCRIPTION=N`
+- [x] EventDialog hides participants section when `DISABLE_PARTICIPANTS_FIELD=Y`
+- [x] TasksPage and JournalsPage respect `ALLOW_HTML_DESCRIPTION` flag
+- [x] Feature flags cached in React Query with 5-minute stale time
+- [x] Global mock in test setup for clean test isolation
+- [x] 2 Vitest tests + 348 total tests pass
 
 ---
 

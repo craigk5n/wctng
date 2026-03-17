@@ -4,6 +4,7 @@ import { apiFetch } from '../api/client';
 import { RichTextEditor } from '../components/editor/RichTextEditor';
 import { ConflictWarning, type ConflictInfo } from './ConflictWarning';
 import { CustomFieldsSection } from './CustomFieldsSection';
+import { useFeatureFlags } from '../hooks/useFeatureFlags';
 
 interface GroupSuggestion {
   id: number;
@@ -74,6 +75,7 @@ export function EventDialog({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { categories: availableCategories } = useCategories();
+  const flags = useFeatureFlags();
   const [groups, setGroups] = useState<GroupSuggestion[]>([]);
   const [showGroupSuggestions, setShowGroupSuggestions] = useState(false);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
@@ -286,29 +288,41 @@ export function EventDialog({
             />
           )}
 
-          <div className="space-y-2">
-            <label htmlFor="event-location" className="text-sm font-medium">
-              Location
-            </label>
-            <input
-              id="event-location"
-              type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              placeholder="Optional location"
-            />
-          </div>
+          {flags.DISABLE_LOCATION_FIELD !== 'Y' && (
+            <div className="space-y-2">
+              <label htmlFor="event-location" className="text-sm font-medium">
+                Location
+              </label>
+              <input
+                id="event-location"
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                placeholder="Optional location"
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <label className="text-sm font-medium">
               Description
             </label>
-            <RichTextEditor
-              content={description}
-              onChange={setDescription}
-              placeholder="Optional description"
-            />
+            {flags.ALLOW_HTML_DESCRIPTION === 'Y' ? (
+              <RichTextEditor
+                content={description}
+                onChange={setDescription}
+                placeholder="Optional description"
+              />
+            ) : (
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                placeholder="Optional description"
+              />
+            )}
           </div>
 
           <div className="space-y-2">
@@ -421,6 +435,7 @@ export function EventDialog({
           )}
 
           {/* Participants */}
+          {flags.DISABLE_PARTICIPANTS_FIELD !== 'Y' && (
           <div className="space-y-2">
             <span className="text-sm font-medium">Participants</span>
             <div className="relative flex gap-2">
@@ -505,6 +520,7 @@ export function EventDialog({
               </div>
             )}
           </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-2">
             <button

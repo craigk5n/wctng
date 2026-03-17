@@ -25,6 +25,17 @@ vi.mock('../i18n', () => ({
   getLocale: () => 'en',
 }));
 
+// Mock useFeatureFlags globally
+vi.mock('../hooks/useFeatureFlags', () => ({
+  useFeatureFlags: () => ({
+    ALLOW_HTML_DESCRIPTION: 'Y',
+    DISABLE_LOCATION_FIELD: 'N',
+    DISABLE_URL_FIELD: 'N',
+    DISABLE_PRIORITY_FIELD: 'N',
+    DISABLE_PARTICIPANTS_FIELD: 'N',
+  }),
+}));
+
 // Mock matchMedia for jsdom (used by ThemeProvider)
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
