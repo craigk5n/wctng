@@ -17,12 +17,12 @@
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
 | P5-E1 | Email Notifications | 4 | 4 | DONE |
-| P5-E2 | Webhook Notifications | 3 | 0 | NOT STARTED |
+| P5-E2 | Webhook Notifications | 3 | 1 | IN PROGRESS |
 | P5-E3 | Full-Text Search | 3 | 0 | NOT STARTED |
 | P5-E4 | Reports & Analytics | 3 | 0 | NOT STARTED |
 | P5-E5 | Performance & Caching | 4 | 0 | NOT STARTED |
 | P5-E6 | Production Readiness | 4 | 0 | NOT STARTED |
-| **Total** | | **21** | **4** | |
+| **Total** | | **21** | **5** | |
 
 ---
 
@@ -139,7 +139,7 @@ User settings page for configuring email notification preferences.
 
 ### P5-E2-S1: Webhook Configuration API
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 CRUD API for managing webhook subscriptions.

@@ -67,6 +67,11 @@ services:
             $fromAddress: '%env(default:email_from_default:MAIL_FROM_ADDRESS)%'
             $fromName: '%env(default:email_from_name_default:MAIL_FROM_NAME)%'
 
+    # Webhook repository
+    App\Webhook\WebhookRepository:
+        arguments:
+            $pdo: '@pdo.connection'
+
     # Auth provider repositories
     App\Auth\LdapConfigRepository:
         arguments:
