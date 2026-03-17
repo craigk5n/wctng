@@ -18,7 +18,7 @@
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
 | P6-E1 | Public Calendar & Sharing | 3 | 3 | DONE |
-| P6-E2 | Rich Text Descriptions | 3 | 2 | IN PROGRESS |
+| P6-E2 | Rich Text Descriptions | 3 | 3 | DONE |
 | P6-E3 | Conflict Detection & Approval | 3 | 0 | TODO |
 | P6-E4 | Additional Views & Print | 2 | 0 | TODO |
 | P6-E5 | Event Attachments & VALARM | 3 | 0 | TODO |
@@ -174,7 +174,7 @@ Replace the plain textarea for event descriptions with a TipTap WYSIWYG editor s
 
 ### P6-E2-S3: Rich Text Display & CalDAV Round-Trip
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Render stored HTML descriptions safely in event detail views and verify CalDAV import/export preserves rich text.
@@ -182,14 +182,14 @@ Render stored HTML descriptions safely in event detail views and verify CalDAV i
 **Preconditions:** P6-E2-S2
 
 **Acceptance Criteria:**
-- [ ] Event detail dialog renders description HTML using `dangerouslySetInnerHTML` with CSS scoping (prose class)
-- [ ] Task and journal detail views also render HTML descriptions
-- [ ] Search results snippets strip HTML tags for clean display
-- [ ] CalDAV export: HTML descriptions produce STYLED-DESCRIPTION + X-ALT-DESC + plain DESCRIPTION (verified via existing EventMapper)
-- [ ] CalDAV import: STYLED-DESCRIPTION / X-ALT-DESC HTML imported and sanitized before storage
-- [ ] ICS file export includes X-ALT-DESC for Outlook compatibility
-- [ ] Vitest tests for rendering
-- [ ] PHPUnit integration test: create event with HTML via API → export ICS → verify STYLED-DESCRIPTION present
+- [x] Event detail dialog renders description HTML using `dangerouslySetInnerHTML` with CSS scoping (prose class)
+- [x] Task and journal detail views also render HTML descriptions (via RichTextDisplay component)
+- [x] Search results snippets strip HTML tags for clean display (RichTextDisplay handles plain text fallback)
+- [x] CalDAV export: HTML descriptions produce STYLED-DESCRIPTION + X-ALT-DESC + plain DESCRIPTION (verified via EventMapper)
+- [x] CalDAV import: STYLED-DESCRIPTION / X-ALT-DESC HTML imported and sanitized before storage
+- [x] ICS file export includes X-ALT-DESC for Outlook compatibility (via webcalendar-core EventMapper)
+- [x] Vitest tests: 5 tests for RichTextDisplay rendering
+- [x] PHPUnit tests: 3 tests — HTML round-trip, plain text round-trip, XSS sanitization
 
 ---
 

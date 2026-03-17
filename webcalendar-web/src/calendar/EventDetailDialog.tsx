@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { ApiEvent } from './eventMapper';
 import { ParticipantList } from './ParticipantList';
 import { ParticipantResponse } from './ParticipantResponse';
+import { RichTextDisplay } from '../components/editor/RichTextDisplay';
 
 const ACCESS_LABELS: Record<string, string> = {
   P: 'Public',
@@ -104,7 +105,9 @@ export function EventDetailDialog({
           {event.description && (
             <div>
               <span className="font-medium text-muted-foreground">Description:</span>
-              <p className="mt-1 text-muted-foreground">{event.description}</p>
+              <div className="mt-1">
+                <RichTextDisplay html={event.description} />
+              </div>
             </div>
           )}
 

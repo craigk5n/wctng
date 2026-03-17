@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\CalDav;
 
 use App\Service\CoreServiceFactory;
+use App\Service\DescriptionSanitizer;
 use Sabre\CalDAV\Backend\BackendInterface;
 use Sabre\CalDAV\Backend\SchedulingSupport;
 use Sabre\CalDAV\Backend\SyncSupport;
@@ -36,9 +37,12 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
 
     private const DEFAULT_COLOR = '#3788d8';
 
+    private readonly DescriptionSanitizer $descriptionSanitizer;
+
     public function __construct(
         private readonly CoreServiceFactory $coreServiceFactory,
     ) {
+        $this->descriptionSanitizer = new DescriptionSanitizer();
     }
 
     /**
@@ -517,7 +521,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
     private function vEventToEntity(VObject\Component $vevent, string $createdBy, ?int $id = null): Event
     {
         $summary = (string) ($vevent->SUMMARY ?? 'Untitled');
-        $description = (string) ($vevent->DESCRIPTION ?? '');
+        $description = $this->extractDescription($vevent);
         $location = (string) ($vevent->LOCATION ?? '');
         $uid = (string) ($vevent->UID ?? 'caldav-' . bin2hex(random_bytes(8)));
 
@@ -610,7 +614,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
     private function vTodoToEntity(VObject\Component $vtodo, string $createdBy, ?int $id = null): Task
     {
         $summary = (string) ($vtodo->SUMMARY ?? 'Untitled');
-        $description = (string) ($vtodo->DESCRIPTION ?? '');
+        $description = $this->extractDescription($vtodo);
         $percentComplete = 0;
 
         if (isset($vtodo->{'PERCENT-COMPLETE'})) {
@@ -703,7 +707,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
     private function vJournalToEntity(VObject\Component $vjournal, string $createdBy, ?int $id = null): Journal
     {
         $summary = (string) ($vjournal->SUMMARY ?? 'Untitled');
-        $description = (string) ($vjournal->DESCRIPTION ?? '');
+        $description = $this->extractDescription($vjournal);
         $uid = (string) ($vjournal->UID ?? 'caldav-journal-' . bin2hex(random_bytes(8)));
 
         $startDate = new \DateTimeImmutable();
@@ -764,5 +768,43 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    /**
+     * Extracts description from a VEVENT/VTODO/VJOURNAL with priority:
+     * 1. STYLED-DESCRIPTION (RFC 9073)
+     * 2. X-ALT-DESC with FMTTYPE=text/html (Outlook/Thunderbird)
+     * 3. DESCRIPTION (plain text fallback)
+     *
+     * HTML descriptions are sanitized before storage.
+     */
+    private function extractDescription(VObject\Component $component): string
+    {
+        // Priority 1: STYLED-DESCRIPTION (RFC 9073)
+        /** @var VObject\Property|null $styled */
+        $styled = $component->{'STYLED-DESCRIPTION'} ?? null;
+        if ($styled !== null) {
+            return $this->descriptionSanitizer->sanitize((string) $styled);
+        }
+
+        // Priority 2: X-ALT-DESC with HTML content type
+        /** @var VObject\Property|null $altDesc */
+        $altDesc = $component->{'X-ALT-DESC'} ?? null;
+        if ($altDesc instanceof VObject\Property) {
+            $params = $altDesc->parameters();
+            $fmttype = '';
+            foreach ($params as $param) {
+                if (strtoupper($param->name) === 'FMTTYPE') {
+                    $fmttype = (string) $param->getValue();
+                    break;
+                }
+            }
+            if (stripos($fmttype, 'text/html') !== false) {
+                return $this->descriptionSanitizer->sanitize((string) $altDesc);
+            }
+        }
+
+        // Priority 3: DESCRIPTION (plain text)
+        return (string) ($component->DESCRIPTION ?? '');
     }
 }

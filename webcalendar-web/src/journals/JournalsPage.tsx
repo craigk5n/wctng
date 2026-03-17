@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../api/client';
 import { useToast } from '../components/toast/ToastProvider';
 import { RichTextEditor } from '../components/editor/RichTextEditor';
+import { RichTextDisplay } from '../components/editor/RichTextDisplay';
 
 interface JournalEntry {
   id: number;
@@ -209,7 +210,9 @@ export function JournalsPage() {
                     </div>
                   </div>
                   {entry.text && (
-                    <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">{entry.text}</p>
+                    <div className="mt-2">
+                      <RichTextDisplay html={entry.text} />
+                    </div>
                   )}
                 </>
               )}
