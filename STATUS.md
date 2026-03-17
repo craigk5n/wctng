@@ -16,13 +16,13 @@
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
 | P4-E1 | CalDAV Server Core | 4 | 4 | DONE |
-| P4-E2 | CalDAV Calendar & Event Operations | 4 | 2 | IN PROGRESS |
+| P4-E2 | CalDAV Calendar & Event Operations | 4 | 3 | IN PROGRESS |
 | P4-E3 | CalDAV Tasks & Journals | 3 | 0 | NOT STARTED |
 | P4-E4 | CalDAV Integration Tests | 2 | 0 | NOT STARTED |
 | P4-E5 | OAuth2 / OIDC Authentication | 4 | 0 | NOT STARTED |
 | P4-E6 | LDAP Authentication | 3 | 0 | NOT STARTED |
 | P4-E7 | Per-Tenant Auth Configuration | 3 | 0 | NOT STARTED |
-| **Total** | | **23** | **6** | |
+| **Total** | | **23** | **7** | |
 
 ---
 
@@ -178,7 +178,7 @@ Support efficient synchronization via calendar ctag and sync-token, allowing cli
 
 ### P4-E2-S3: CalDAV Scheduling (Free/Busy)
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Support CalDAV scheduling for free/busy queries and meeting invitations.
@@ -186,11 +186,11 @@ Support CalDAV scheduling for free/busy queries and meeting invitations.
 **Preconditions:** P4-E2-S1
 
 **Acceptance Criteria:**
-- [ ] `getFreeBusyForCalendar()` returns VFREEBUSY response
-- [ ] Scheduling inbox/outbox collections configured
-- [ ] Meeting invitations (VFREEBUSY REQUEST) supported
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests
+- [x] `getFreeBusyForCalendar()` returns VFREEBUSY response
+- [x] Scheduling inbox/outbox collections configured
+- [x] Meeting invitations (VFREEBUSY REQUEST) supported
+- [x] PHPStan level 9 passes
+- [x] Unit tests
 
 ---
 

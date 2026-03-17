@@ -67,6 +67,7 @@ final class CalDavController
         $server->addPlugin(new DAV\Auth\Plugin($authBackend));
         $server->addPlugin(new DAVACL\Plugin());
         $server->addPlugin(new CalDAV\Plugin());
+        $server->addPlugin(new CalDAV\Schedule\Plugin());
         $server->addPlugin(new DAV\Browser\Plugin());
 
         // Run

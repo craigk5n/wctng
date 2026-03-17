@@ -6,6 +6,7 @@ namespace App\CalDav;
 
 use App\Service\CoreServiceFactory;
 use Sabre\CalDAV\Backend\BackendInterface;
+use Sabre\CalDAV\Backend\SchedulingSupport;
 use Sabre\CalDAV\Backend\SyncSupport;
 use Sabre\CalDAV\Plugin;
 use Sabre\CalDAV\Xml\Property\ScheduleCalendarTransp;
@@ -24,8 +25,10 @@ use WebCalendar\Core\Domain\ValueObject\EventType;
  * Each user has one implicit "default" calendar. Calendar objects
  * (VEVENT) are mapped to/from webcalendar-core Event entities.
  */
-final class CoreCalendarBackend implements BackendInterface, SyncSupport
+final class CoreCalendarBackend implements BackendInterface, SyncSupport, SchedulingSupport
 {
+    use CoreSchedulingBackend;
+
     private const DEFAULT_COLOR = '#3788d8';
 
     public function __construct(
