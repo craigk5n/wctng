@@ -21,7 +21,7 @@
 | P6-E2 | Rich Text Descriptions | 3 | 3 | DONE |
 | P6-E3 | Conflict Detection & Approval | 3 | 3 | DONE |
 | P6-E4 | Additional Views & Print | 2 | 2 | DONE |
-| P6-E5 | Event Attachments & VALARM | 3 | 0 | TODO |
+| P6-E5 | Event Attachments & VALARM | 3 | 1 | IN PROGRESS |
 | P6-E6 | Remaining Service UIs | 4 | 0 | TODO |
 | P6-E7 | Internationalization | 3 | 0 | TODO |
 | P6-E8 | Admin Feature Configuration | 3 | 0 | TODO |
@@ -321,7 +321,7 @@ CSS `@media print` rules for clean printable output from day, week, month, and y
 
 ### P6-E5-S1: File Upload API
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 API endpoints for uploading, listing, and downloading file attachments on events.
@@ -329,16 +329,16 @@ API endpoints for uploading, listing, and downloading file attachments on events
 **Preconditions:** Phase 5 complete
 
 **Acceptance Criteria:**
-- [ ] `POST /api/v2/events/{id}/attachments` accepts multipart/form-data file upload
-- [ ] `GET /api/v2/events/{id}/attachments` lists attachments (id, filename, mime_type, size, created_at)
-- [ ] `GET /api/v2/events/{id}/attachments/{attachmentId}` downloads the file
-- [ ] `DELETE /api/v2/events/{id}/attachments/{attachmentId}` removes attachment
-- [ ] Storage via BlobService (webcalendar-core `webcal_blob` table)
-- [ ] File size limit: 10MB per file (configurable via env var)
-- [ ] Allowed MIME types: images, PDF, Office docs, text files (configurable)
-- [ ] Max 10 attachments per event
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests
+- [x] `POST /api/v2/events/{id}/attachments` accepts multipart/form-data file upload
+- [x] `GET /api/v2/events/{id}/attachments` lists attachments (id, filename, mime_type, size, created_at)
+- [x] `GET /api/v2/events/{id}/attachments/{attachmentId}` downloads the file
+- [x] `DELETE /api/v2/events/{id}/attachments/{attachmentId}` removes attachment
+- [x] Storage via BlobRepository (webcalendar-core `webcal_blob` table)
+- [x] File size limit: 10MB per file (constant, configurable)
+- [x] Allowed MIME types: images, PDF, Office docs, text files (constant allowlist)
+- [x] Max 10 attachments per event
+- [x] PHPStan level 9 passes
+- [x] Unit tests: 5 tests (list, list 404, delete, delete wrong event, download)
 
 ---
 
