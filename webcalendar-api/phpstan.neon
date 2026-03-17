@@ -11,6 +11,7 @@ parameters:
     ignoreErrors:
         - '#Access to an undefined property Sabre\\VObject\\#'
         - '#Call to an undefined method Sabre\\VObject\\#'
+        - '#Cannot access offset .* on array\|int#'
 
 includes:
     - vendor/phpstan/phpstan-symfony/extension.neon

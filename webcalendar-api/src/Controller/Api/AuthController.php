@@ -6,6 +6,7 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
+use App\Auth\LdapAuthenticator;
 use App\Service\CoreServiceFactory;
 use App\Tenant\TenantContext;
 use Lexik\Bundle\JWTAuthenticationBundle\Encoder\JWTEncoderInterface;
@@ -22,6 +23,7 @@ final class AuthController
         private readonly JWTEncoderInterface $jwtEncoder,
         private readonly int $jwtTtl,
         private readonly TenantContext $tenantContext,
+        private readonly LdapAuthenticator $ldapAuthenticator,
     ) {
     }
 
@@ -46,14 +48,19 @@ final class AuthController
             return ApiResponse::error(400, 'Missing required field: password');
         }
 
+        // Try local password auth first
         $authService = $this->coreServiceFactory->getAuthService();
         $authenticated = $authService->authenticate($username, $password);
+        $coreUser = null;
 
-        if (!$authenticated) {
-            return ApiResponse::error(401, 'Invalid credentials');
+        if ($authenticated) {
+            $coreUser = $this->coreServiceFactory->getUserService()->getUserByLogin($username);
         }
 
-        $coreUser = $this->coreServiceFactory->getUserService()->getUserByLogin($username);
+        // Fallback to LDAP if local auth failed
+        if ($coreUser === null) {
+            $coreUser = $this->ldapAuthenticator->authenticate($username, $password);
+        }
 
         if ($coreUser === null) {
             return ApiResponse::error(401, 'Invalid credentials');

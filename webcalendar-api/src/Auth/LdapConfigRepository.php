@@ -17,7 +17,7 @@ final readonly class LdapConfigRepository
             port INTEGER NOT NULL DEFAULT 389,
             base_dn VARCHAR(500) NOT NULL DEFAULT '',
             bind_dn VARCHAR(500) NOT NULL DEFAULT '',
-            bind_password TEXT NOT NULL DEFAULT '',
+            bind_password VARCHAR(500) NOT NULL DEFAULT '',
             user_filter VARCHAR(255) NOT NULL DEFAULT '(uid=%s)',
             use_tls INTEGER NOT NULL DEFAULT 0,
             enabled INTEGER NOT NULL DEFAULT 0

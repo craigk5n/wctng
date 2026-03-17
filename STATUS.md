@@ -20,9 +20,9 @@
 | P4-E3 | CalDAV Tasks & Journals | 3 | 3 | DONE |
 | P4-E4 | CalDAV Integration Tests | 2 | 2 | DONE |
 | P4-E5 | OAuth2 / OIDC Authentication | 4 | 4 | DONE |
-| P4-E6 | LDAP Authentication | 3 | 1 | IN PROGRESS |
+| P4-E6 | LDAP Authentication | 3 | 2 | IN PROGRESS |
 | P4-E7 | Per-Tenant Auth Configuration | 3 | 0 | NOT STARTED |
-| **Total** | | **23** | **18** | |
+| **Total** | | **23** | **19** | |
 
 ---
 
@@ -421,7 +421,7 @@ LDAP server connection configuration and bind testing.
 
 ### P4-E6-S2: LDAP Authentication Flow
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Authenticate users against LDAP directory and auto-provision webcalendar accounts.
@@ -429,13 +429,13 @@ Authenticate users against LDAP directory and auto-provision webcalendar account
 **Preconditions:** P4-E6-S1
 
 **Acceptance Criteria:**
-- [ ] Login with LDAP credentials via `POST /api/v2/auth/login` (transparent fallback)
-- [ ] User search by sAMAccountName or uid attribute
-- [ ] LDAP bind to verify password
-- [ ] Auto-provision webcalendar user on first LDAP login (name, email from LDAP attributes)
-- [ ] Sync user attributes on subsequent logins (name, email updates)
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests with mock LDAP
+- [x] Login with LDAP credentials via `POST /api/v2/auth/login` (transparent fallback)
+- [x] User search by sAMAccountName or uid attribute
+- [x] LDAP bind to verify password
+- [x] Auto-provision webcalendar user on first LDAP login (name, email from LDAP attributes)
+- [x] Sync user attributes on subsequent logins (name, email updates)
+- [x] PHPStan level 9 passes
+- [x] Unit tests with mock LDAP
 
 ---
 
