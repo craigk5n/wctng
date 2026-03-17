@@ -16,13 +16,13 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| P5-E1 | Email Notifications | 4 | 1 | IN PROGRESS |
+| P5-E1 | Email Notifications | 4 | 2 | IN PROGRESS |
 | P5-E2 | Webhook Notifications | 3 | 0 | NOT STARTED |
 | P5-E3 | Full-Text Search | 3 | 0 | NOT STARTED |
 | P5-E4 | Reports & Analytics | 3 | 0 | NOT STARTED |
 | P5-E5 | Performance & Caching | 4 | 0 | NOT STARTED |
 | P5-E6 | Production Readiness | 4 | 0 | NOT STARTED |
-| **Total** | | **21** | **1** | |
+| **Total** | | **21** | **2** | |
 
 ---
 
@@ -77,7 +77,7 @@ Configure email sending via SMTP or API-based providers (Mailgun, SendGrid, SES)
 
 ### P5-E1-S2: Event Invitation Emails
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Send email notifications when a user is added as a participant to an event.

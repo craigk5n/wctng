@@ -7,6 +7,7 @@ namespace App\Controller\Api;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Service\CoreServiceFactory;
+use App\Service\EventNotificationService;
 use App\Service\MercurePublisher;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,6 +22,7 @@ final class ParticipantController
     public function __construct(
         private readonly CoreServiceFactory $coreServiceFactory,
         private readonly MercurePublisher $mercure,
+        private readonly EventNotificationService $notifications,
     ) {
     }
 
@@ -84,6 +86,16 @@ final class ParticipantController
 
         try {
             $this->mercure->publishParticipantChanged($eventId, ['action' => 'added', 'participants' => $participantList]);
+        } catch (\Throwable) {
+        }
+
+        // Send invitation emails to new participants
+        try {
+            $eventEntity = $this->coreServiceFactory->getEventService()->getEventById(new EventId($eventId));
+            if ($eventEntity !== null) {
+                $eventData = \App\DTO\EventResponseDTO::fromEntity($eventEntity);
+                $this->notifications->notifyParticipantsAdded($eventData, $participantList);
+            }
         } catch (\Throwable) {
         }
 

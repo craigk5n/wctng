@@ -9,6 +9,7 @@ use App\DTO\EventResponseDTO;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Service\CoreServiceFactory;
+use App\Service\EventNotificationService;
 use App\Service\MercurePublisher;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -24,6 +25,7 @@ final class EventController
         private readonly CoreServiceFactory $coreServiceFactory,
         private readonly MercurePublisher $mercure,
         private readonly \PDO $pdo,
+        private readonly EventNotificationService $notifications,
     ) {
     }
 
@@ -266,7 +268,18 @@ final class EventController
         try {
             $this->mercure->publishEventUpdated($id, $responseData);
         } catch (\Throwable) {
-            // Mercure publish failure should not break the API response
+        }
+
+        // Notify participants of update
+        try {
+            /** @var array<string, string> $participants */
+            $participants = $this->coreServiceFactory->getEventRepository()->getParticipantsWithStatus(new EventId($id));
+            $pList = [];
+            foreach ($participants as $login => $status) {
+                $pList[] = ['login' => $login, 'status' => $status];
+            }
+            $this->notifications->notifyEventUpdated($responseData, $pList);
+        } catch (\Throwable) {
         }
 
         return ApiResponse::success($responseData);
@@ -289,6 +302,18 @@ final class EventController
 
         if ($existing->createdBy() !== $coreUser->login() && !$coreUser->isAdmin()) {
             return ApiResponse::error(403, 'You do not have permission to delete this event');
+        }
+
+        // Notify participants before deleting
+        try {
+            /** @var array<string, string> $participants */
+            $participants = $this->coreServiceFactory->getEventRepository()->getParticipantsWithStatus(new EventId($id));
+            $pList = [];
+            foreach ($participants as $login => $status) {
+                $pList[] = ['login' => $login, 'status' => $status];
+            }
+            $this->notifications->notifyEventDeleted($existing->name(), $pList);
+        } catch (\Throwable) {
         }
 
         $this->coreServiceFactory->getEventService()->deleteEvent(new EventId($id), $coreUser);
