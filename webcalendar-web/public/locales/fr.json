@@ -1,0 +1,129 @@
+{
+  "app": {
+    "name": "WebCalendar",
+    "loading": "Chargement..."
+  },
+  "nav": {
+    "calendar": "Calendrier",
+    "tasks": "Tâches",
+    "journals": "Journal",
+    "reports": "Rapports",
+    "settings": "Paramètres",
+    "admin": "Administration",
+    "users": "Utilisateurs",
+    "categories": "Catégories",
+    "groups": "Groupes",
+    "webhooks": "Webhooks",
+    "activityLog": "Journal d'activité",
+    "customFields": "Champs personnalisés",
+    "logout": "Déconnexion"
+  },
+  "calendar": {
+    "newEvent": "Nouvel événement",
+    "editEvent": "Modifier l'événement",
+    "export": "Exporter",
+    "import": "Importer",
+    "print": "Imprimer",
+    "today": "Aujourd'hui",
+    "month": "Mois",
+    "week": "Semaine",
+    "day": "Jour",
+    "year": "Année",
+    "list": "Liste"
+  },
+  "event": {
+    "title": "Titre",
+    "date": "Date",
+    "time": "Heure",
+    "startTime": "Heure de début",
+    "duration": "Durée (minutes)",
+    "location": "Lieu",
+    "description": "Description",
+    "access": "Niveau d'accès",
+    "allDay": "Toute la journée",
+    "public": "Public",
+    "confidential": "Confidentiel",
+    "private": "Privé",
+    "categories": "Catégories",
+    "participants": "Participants",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "create": "Créer l'événement",
+    "saveChanges": "Enregistrer les modifications",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "duplicate": "Dupliquer",
+    "exportIcs": "Exporter en ICS"
+  },
+  "task": {
+    "title": "Titre",
+    "dueDate": "Date d'échéance",
+    "create": "Créer",
+    "newTask": "Nouvelle tâche",
+    "all": "Tout",
+    "pending": "En attente",
+    "completed": "Terminé"
+  },
+  "journal": {
+    "title": "Titre",
+    "content": "Contenu",
+    "create": "Créer une entrée",
+    "newEntry": "Nouvelle entrée de journal"
+  },
+  "settings": {
+    "preferences": "Préférences",
+    "notifications": "Notifications",
+    "sharing": "Partage",
+    "assistants": "Assistants",
+    "access": "Accès",
+    "authentication": "Authentification",
+    "defaultView": "Vue par défaut",
+    "timezone": "Fuseau horaire",
+    "conflictDetection": "Détection de conflits",
+    "language": "Langue"
+  },
+  "auth": {
+    "login": "Connexion",
+    "username": "Nom d'utilisateur",
+    "password": "Mot de passe",
+    "signIn": "Se connecter"
+  },
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "close": "Fermer",
+    "search": "Rechercher",
+    "noResults": "Aucun résultat",
+    "loading": "Chargement...",
+    "saving": "Enregistrement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "confirm": "Confirmer",
+    "yes": "Oui",
+    "no": "Non",
+    "add": "Ajouter",
+    "remove": "Supprimer",
+    "previous": "Précédent",
+    "next": "Suivant"
+  },
+  "conflict": {
+    "detected": "{{count}} conflit d'horaire détecté",
+    "detected_plural": "{{count}} conflits d'horaire détectés",
+    "cannotSave": "Cet événement ne peut pas être enregistré — il entre en conflit avec :",
+    "saveAnyway": "Enregistrer quand même"
+  },
+  "booking": {
+    "bookTime": "Réserver un créneau avec {{username}}",
+    "selectDate": "Sélectionner une date",
+    "availableTimes": "Créneaux disponibles",
+    "noSlots": "Aucun créneau disponible pour cette date.",
+    "yourName": "Votre nom",
+    "email": "E-mail",
+    "description": "Description (optionnel)",
+    "confirm": "Confirmer la réservation",
+    "confirmed": "Réservation confirmée",
+    "confirmMessage": "Votre rendez-vous avec {{username}} le {{date}} à {{time}} a été soumis."
+  }
+}

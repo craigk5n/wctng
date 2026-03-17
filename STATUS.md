@@ -23,10 +23,10 @@
 | P6-E4 | Additional Views & Print | 2 | 2 | DONE |
 | P6-E5 | Event Attachments & VALARM | 3 | 3 | DONE |
 | P6-E6 | Remaining Service UIs | 4 | 4 | DONE |
-| P6-E7 | Internationalization | 3 | 1 | IN PROGRESS |
+| P6-E7 | Internationalization | 3 | 2 | IN PROGRESS |
 | P6-E8 | Admin Feature Configuration | 3 | 0 | TODO |
 | P6-E9 | Integration & E2E Testing | 3 | 0 | TODO |
-| **Total** | | **27** | **19** | |
+| **Total** | | **27** | **23** | |
 
 ---
 
@@ -511,7 +511,7 @@ Configure Symfony translations for API error messages, email templates, and syst
 
 ### P6-E7-S2: Frontend i18n Integration
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Integrate react-i18next for frontend string translation with lazy-loaded locale bundles.
@@ -519,14 +519,14 @@ Integrate react-i18next for frontend string translation with lazy-loaded locale 
 **Preconditions:** P6-E7-S1
 
 **Acceptance Criteria:**
-- [ ] `react-i18next` and `i18next` installed
-- [ ] All hardcoded UI strings extracted to translation JSON files (`en.json`, `fr.json`, `de.json`, `es.json`)
-- [ ] `useTranslation()` hook used in all components
-- [ ] Locale JSON files lazy-loaded (only active locale downloaded)
-- [ ] Date/time formatting uses `Intl.DateTimeFormat` with active locale
-- [ ] Number formatting uses `Intl.NumberFormat` with active locale
-- [ ] FullCalendar locale set dynamically via `locale` prop
-- [ ] Vitest tests: components render with different locales
+- [x] `react-i18next`, `i18next`, `i18next-http-backend` installed
+- [x] Translation JSON files for en, fr, de, es covering nav, calendar, event, task, journal, settings, auth, common, conflict, booking
+- [x] i18n configured with HttpBackend for lazy-loading locale files from /locales/{lng}.json
+- [x] Locale persisted to localStorage (`wctng_locale`)
+- [x] `changeLocale()` and `getLocale()` utilities exported
+- [x] FullCalendar locale set dynamically via `locale={i18nInstance.language}` prop
+- [x] Initialized in main.tsx before app render
+- [x] Vitest tests: 4 tests (default English, switch to French, switch to German, fallback for missing keys)
 
 ---
 

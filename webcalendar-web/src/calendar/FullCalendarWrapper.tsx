@@ -9,6 +9,7 @@ import type { DatesSetArg, EventClickArg, DateSelectArg, EventInput } from '@ful
 import { fetchCalendarEvents } from './useCalendarEvents';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
 import { useCategories, getEventColor } from './useCategories';
+import { useTranslation } from 'react-i18next';
 
 export interface FullCalendarWrapperHandle {
   refetchEvents: () => void;
@@ -33,6 +34,7 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
   const [isLoading, setIsLoading] = useState(false);
   const calendarRef = useRef<FullCalendar>(null);
   const { categories } = useCategories();
+  const { i18n: i18nInstance } = useTranslation();
 
   // fetchEvents is defined below as fetchEventsWrapped (with ref tracking)
 
@@ -218,6 +220,7 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
         dayMaxEvents={true}
         weekends={true}
         height="auto"
+        locale={i18nInstance.language}
         nowIndicator={true}
       />
     </div>

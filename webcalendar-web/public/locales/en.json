@@ -1,0 +1,129 @@
+{
+  "app": {
+    "name": "WebCalendar",
+    "loading": "Loading..."
+  },
+  "nav": {
+    "calendar": "Calendar",
+    "tasks": "Tasks",
+    "journals": "Journals",
+    "reports": "Reports",
+    "settings": "Settings",
+    "admin": "Admin",
+    "users": "Users",
+    "categories": "Categories",
+    "groups": "Groups",
+    "webhooks": "Webhooks",
+    "activityLog": "Activity Log",
+    "customFields": "Custom Fields",
+    "logout": "Logout"
+  },
+  "calendar": {
+    "newEvent": "New Event",
+    "editEvent": "Edit Event",
+    "export": "Export",
+    "import": "Import",
+    "print": "Print",
+    "today": "Today",
+    "month": "Month",
+    "week": "Week",
+    "day": "Day",
+    "year": "Year",
+    "list": "List"
+  },
+  "event": {
+    "title": "Title",
+    "date": "Date",
+    "time": "Time",
+    "startTime": "Start time",
+    "duration": "Duration (minutes)",
+    "location": "Location",
+    "description": "Description",
+    "access": "Access level",
+    "allDay": "All day",
+    "public": "Public",
+    "confidential": "Confidential",
+    "private": "Private",
+    "categories": "Categories",
+    "participants": "Participants",
+    "save": "Save",
+    "cancel": "Cancel",
+    "create": "Create Event",
+    "saveChanges": "Save Changes",
+    "delete": "Delete",
+    "edit": "Edit",
+    "duplicate": "Duplicate",
+    "exportIcs": "Export as ICS"
+  },
+  "task": {
+    "title": "Title",
+    "dueDate": "Due Date",
+    "create": "Create",
+    "newTask": "New Task",
+    "all": "All",
+    "pending": "Pending",
+    "completed": "Completed"
+  },
+  "journal": {
+    "title": "Title",
+    "content": "Content",
+    "create": "Create Entry",
+    "newEntry": "New Journal Entry"
+  },
+  "settings": {
+    "preferences": "Preferences",
+    "notifications": "Notifications",
+    "sharing": "Sharing",
+    "assistants": "Assistants",
+    "access": "Access",
+    "authentication": "Authentication",
+    "defaultView": "Default View",
+    "timezone": "Timezone",
+    "conflictDetection": "Conflict Detection",
+    "language": "Language"
+  },
+  "auth": {
+    "login": "Login",
+    "username": "Username",
+    "password": "Password",
+    "signIn": "Sign In"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "search": "Search",
+    "noResults": "No results found",
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "add": "Add",
+    "remove": "Remove",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "conflict": {
+    "detected": "{{count}} scheduling conflict detected",
+    "detected_plural": "{{count}} scheduling conflicts detected",
+    "cannotSave": "This event cannot be saved — it conflicts with:",
+    "saveAnyway": "Save Anyway"
+  },
+  "booking": {
+    "bookTime": "Book time with {{username}}",
+    "selectDate": "Select a date",
+    "availableTimes": "Available times",
+    "noSlots": "No available slots for this date.",
+    "yourName": "Your Name",
+    "email": "Email",
+    "description": "Description (optional)",
+    "confirm": "Confirm Booking",
+    "confirmed": "Booking Confirmed",
+    "confirmMessage": "Your appointment with {{username}} on {{date}} at {{time}} has been submitted."
+  }
+}

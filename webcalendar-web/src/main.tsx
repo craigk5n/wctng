@@ -6,6 +6,7 @@ import App from './App';
 import { queryClient } from './hooks/queryClient';
 import { ToastProvider } from './components/toast/ToastProvider';
 import { ThemeProvider } from './components/theme/ThemeProvider';
+import './i18n';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
