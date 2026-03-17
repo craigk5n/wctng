@@ -17,12 +17,12 @@
 |------|-------|---------|------|--------|
 | P4-E1 | CalDAV Server Core | 4 | 4 | DONE |
 | P4-E2 | CalDAV Calendar & Event Operations | 4 | 4 | DONE |
-| P4-E3 | CalDAV Tasks & Journals | 3 | 2 | IN PROGRESS |
+| P4-E3 | CalDAV Tasks & Journals | 3 | 3 | DONE |
 | P4-E4 | CalDAV Integration Tests | 2 | 0 | NOT STARTED |
 | P4-E5 | OAuth2 / OIDC Authentication | 4 | 0 | NOT STARTED |
 | P4-E6 | LDAP Authentication | 3 | 0 | NOT STARTED |
 | P4-E7 | Per-Tenant Auth Configuration | 3 | 0 | NOT STARTED |
-| **Total** | | **23** | **9** | |
+| **Total** | | **23** | **11** | |
 
 ---
 
@@ -256,7 +256,7 @@ Map webcalendar journals to CalDAV VJOURNAL objects.
 
 ### P4-E3-S3: CalDAV Multi-Component Calendar
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Support calendars that contain mixed component types (VEVENT + VTODO + VJOURNAL).
@@ -264,11 +264,11 @@ Support calendars that contain mixed component types (VEVENT + VTODO + VJOURNAL)
 **Preconditions:** P4-E3-S1, P4-E3-S2
 
 **Acceptance Criteria:**
-- [ ] Calendar advertises support for VEVENT, VTODO, VJOURNAL in supported-calendar-component-set
-- [ ] Filtering by component type in REPORT queries
-- [ ] Client compatibility tested with Apple Calendar, Thunderbird, DAVx5
-- [ ] PHPStan level 9 passes
-- [ ] Functional tests
+- [x] Calendar advertises support for VEVENT, VTODO, VJOURNAL in supported-calendar-component-set
+- [x] Filtering by component type in REPORT queries
+- [x] Client compatibility tested with Apple Calendar, Thunderbird, DAVx5
+- [x] PHPStan level 9 passes
+- [x] Functional tests
 
 ---
 

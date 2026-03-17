@@ -369,8 +369,25 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
     {
         $objects = $this->getCalendarObjects($calendarId);
 
+        // Filter by component type if specified
+        $componentType = null;
+        if (isset($filters['comp-filters']) && \is_array($filters['comp-filters']) && \count($filters['comp-filters']) > 0) {
+            /** @var array<string, mixed> $firstFilter */
+            $firstFilter = $filters['comp-filters'][0];
+            if (isset($firstFilter['name']) && \is_string($firstFilter['name'])) {
+                $componentType = strtolower($firstFilter['name']);
+            }
+        }
+
+        if ($componentType !== null) {
+            $objects = array_filter($objects, static function (array $o) use ($componentType): bool {
+                $objComponent = \is_string($o['component'] ?? null) ? $o['component'] : '';
+                return $objComponent === $componentType;
+            });
+        }
+
         /** @var list<string> */
-        return array_map(static fn (array $o): string => \is_string($o['uri']) ? $o['uri'] : '', $objects);
+        return array_values(array_map(static fn (array $o): string => \is_string($o['uri']) ? $o['uri'] : '', $objects));
     }
 
     #[\Override]
