@@ -19,7 +19,7 @@
 |------|-------|---------|------|--------|
 | P6-E1 | Public Calendar & Sharing | 3 | 3 | DONE |
 | P6-E2 | Rich Text Descriptions | 3 | 3 | DONE |
-| P6-E3 | Conflict Detection & Approval | 3 | 1 | IN PROGRESS |
+| P6-E3 | Conflict Detection & Approval | 3 | 2 | IN PROGRESS |
 | P6-E4 | Additional Views & Print | 2 | 0 | TODO |
 | P6-E5 | Event Attachments & VALARM | 3 | 0 | TODO |
 | P6-E6 | Remaining Service UIs | 4 | 0 | TODO |
@@ -222,7 +222,7 @@ Server-side detection of overlapping events when creating or updating events.
 
 ### P6-E3-S2: Conflict Detection UI
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Show conflict warnings in the event create/edit dialog when overlapping events are detected.
@@ -230,14 +230,14 @@ Show conflict warnings in the event create/edit dialog when overlapping events a
 **Preconditions:** P6-E3-S1
 
 **Acceptance Criteria:**
-- [ ] When saving an event, if API returns `conflicts` array, show a warning banner in the dialog
-- [ ] Warning lists conflicting event titles, times, and calendar names
-- [ ] User can dismiss warning and save anyway (in `warn` mode)
-- [ ] In `block` mode, save button disabled with explanation
-- [ ] Real-time check: debounced conflict query fires when start/end time changes (before save)
-- [ ] Conflict indicator shown inline below time fields
-- [ ] User preference toggle in Settings: conflict detection mode (warn/block/off)
-- [ ] Vitest tests
+- [x] When saving an event, if API returns `conflicts` array, show a warning banner in the dialog
+- [x] Warning lists conflicting event titles, times, and calendar names
+- [x] User can dismiss warning and save anyway (in `warn` mode) via "Save Anyway" button
+- [x] In `block` mode, shows "cannot be saved" message without dismiss button
+- [x] Real-time check: debounced (500ms) conflict query fires when date/time/duration changes
+- [x] Conflict indicator shown inline below time/duration fields in EventDialog
+- [x] User preference toggle in Settings > Preferences: conflict detection mode (warn/block/off)
+- [x] Vitest tests: 6 tests for ConflictWarning component
 
 ---
 

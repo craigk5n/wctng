@@ -414,6 +414,7 @@ export function CalendarPage() {
           onClose={closeDialog}
           onSave={handleUpdate}
           mode="edit"
+          editEventId={dialog.event.id}
           initialDate={apiEventToInitialValues(dialog.event).start_date_display}
           initialTime={apiEventToInitialValues(dialog.event).start_time_display}
           initialAllDay={dialog.event.all_day}

@@ -13,6 +13,7 @@ export function PreferencesPage() {
   const [timezone, setTimezone] = useState('');
   const [workDayStart, setWorkDayStart] = useState('09:00');
   const [workDayEnd, setWorkDayEnd] = useState('17:00');
+  const [conflictMode, setConflictMode] = useState('warn');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -29,6 +30,7 @@ export function PreferencesPage() {
           if (p.key === 'TIMEZONE') setTimezone(p.value);
           if (p.key === 'WORK_DAY_START') setWorkDayStart(p.value);
           if (p.key === 'WORK_DAY_END') setWorkDayEnd(p.value);
+          if (p.key === 'conflict_mode') setConflictMode(p.value);
         }
       }
     })();
@@ -44,6 +46,7 @@ export function PreferencesPage() {
       WORK_DAY_END: workDayEnd,
     };
     if (timezone) prefs['TIMEZONE'] = timezone;
+    prefs['conflict_mode'] = conflictMode;
 
     const { error } = await apiFetch(`/users/${login}/preferences`, {
       method: 'PUT',
@@ -56,7 +59,7 @@ export function PreferencesPage() {
     } else {
       toast({ title: 'Failed to save', variant: 'error' });
     }
-  }, [login, defaultView, timezone, workDayStart, workDayEnd, toast]);
+  }, [login, defaultView, timezone, workDayStart, workDayEnd, conflictMode, toast]);
 
   return (
     <div>
@@ -111,6 +114,23 @@ export function PreferencesPage() {
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             />
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="conflict-mode" className="text-sm font-medium">Conflict Detection</label>
+          <select
+            id="conflict-mode"
+            value={conflictMode}
+            onChange={(e) => setConflictMode(e.target.value)}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            <option value="warn">Warn (show conflicts, allow save)</option>
+            <option value="block">Block (prevent saving conflicting events)</option>
+            <option value="off">Off (no conflict checking)</option>
+          </select>
+          <p className="text-xs text-muted-foreground">
+            Controls whether you are warned about scheduling conflicts when creating or editing events.
+          </p>
         </div>
 
         <button

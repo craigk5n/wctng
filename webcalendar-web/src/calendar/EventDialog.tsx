@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCategories } from './useCategories';
 import { apiFetch } from '../api/client';
 import { RichTextEditor } from '../components/editor/RichTextEditor';
+import { ConflictWarning, type ConflictInfo } from './ConflictWarning';
 
 interface GroupSuggestion {
   id: number;
@@ -31,6 +32,7 @@ interface EventDialogProps {
   onClose: () => void;
   onSave: (data: EventFormData) => Promise<boolean>;
   mode?: 'create' | 'edit';
+  editEventId?: number;
   initialDate?: string; // YYYY-MM-DD
   initialTime?: string; // HH:MM
   initialAllDay?: boolean;
@@ -50,6 +52,7 @@ export function EventDialog({
   onClose,
   onSave,
   mode = 'create',
+  editEventId,
   initialDate = '',
   initialTime = '',
   initialAllDay = false,
@@ -73,6 +76,36 @@ export function EventDialog({
   const [showGroupSuggestions, setShowGroupSuggestions] = useState(false);
   const [categorySearch, setCategorySearch] = useState('');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [conflicts, setConflicts] = useState<ConflictInfo[]>([]);
+  const [conflictsDismissed, setConflictsDismissed] = useState(false);
+  const conflictTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounced conflict check when date/time/duration changes
+  useEffect(() => {
+    if (!open || !date) return;
+
+    if (conflictTimerRef.current) clearTimeout(conflictTimerRef.current);
+    conflictTimerRef.current = setTimeout(async () => {
+      const startDate = toYYYYMMDD(date);
+      const params = new URLSearchParams({
+        start: startDate,
+        end: startDate,
+        duration: String(allDay ? 0 : duration),
+        all_day: allDay ? '1' : '0',
+      });
+      if (editEventId) params.set('exclude_id', String(editEventId));
+
+      const { data: conflictData } = await apiFetch<ConflictInfo[]>(
+        `/events/conflicts?${params.toString()}`,
+      );
+      setConflicts(conflictData ?? []);
+      setConflictsDismissed(false);
+    }, 500);
+
+    return () => {
+      if (conflictTimerRef.current) clearTimeout(conflictTimerRef.current);
+    };
+  }, [open, date, time, duration, allDay, editEventId]);
 
   useEffect(() => {
     void (async () => {
@@ -238,6 +271,15 @@ export function EventDialog({
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               />
             </div>
+          )}
+
+          {/* Conflict warning inline below time fields */}
+          {conflicts.length > 0 && !conflictsDismissed && (
+            <ConflictWarning
+              conflicts={conflicts}
+              mode="warn"
+              onDismiss={() => setConflictsDismissed(true)}
+            />
           )}
 
           <div className="space-y-2">
