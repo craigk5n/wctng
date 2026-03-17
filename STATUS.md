@@ -24,7 +24,7 @@
 | P6-E5 | Event Attachments & VALARM | 3 | 3 | DONE |
 | P6-E6 | Remaining Service UIs | 4 | 4 | DONE |
 | P6-E7 | Internationalization | 3 | 3 | DONE |
-| P6-E8 | Admin Feature Configuration | 3 | 0 | TODO |
+| P6-E8 | Admin Feature Configuration | 3 | 1 | IN PROGRESS |
 | P6-E9 | Integration & E2E Testing | 3 | 0 | TODO |
 | **Total** | | **27** | **24** | |
 
@@ -558,7 +558,7 @@ Language selector in user settings and app header, plus RTL layout support.
 
 ### P6-E8-S1: Config API Endpoints
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 API endpoints for reading and updating system configuration settings using ConfigService from webcalendar-core.
@@ -566,13 +566,13 @@ API endpoints for reading and updating system configuration settings using Confi
 **Preconditions:** Phase 5 complete
 
 **Acceptance Criteria:**
-- [ ] `GET /api/v2/admin/config` returns all system settings as key-value pairs
-- [ ] `PUT /api/v2/admin/config` accepts partial updates (key-value map)
-- [ ] Settings stored via ConfigService in `webcal_config` table
-- [ ] Default settings defined: `ALLOW_HTML_DESCRIPTION` (Y/N), `DISABLE_LOCATION_FIELD` (Y/N), `DISABLE_URL_FIELD` (Y/N), `DISABLE_PRIORITY_FIELD` (Y/N), `DISABLE_PARTICIPANTS_FIELD` (Y/N)
-- [ ] `GET /api/v2/config/features` returns feature flags (public, no admin required) for frontend conditional rendering
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests
+- [x] `GET /api/v2/admin/config` returns all system settings as key-value pairs (admin only)
+- [x] `PUT /api/v2/admin/config` accepts partial updates (key-value map, admin only)
+- [x] Settings stored via ConfigService in `webcal_config` table
+- [x] Default settings: `ALLOW_HTML_DESCRIPTION=Y`, `DISABLE_LOCATION_FIELD=N`, `DISABLE_URL_FIELD=N`, `DISABLE_PRIORITY_FIELD=N`, `DISABLE_PARTICIPANTS_FIELD=N`
+- [x] `GET /api/v2/config/features` returns feature flags (public, no admin required)
+- [x] PHPStan level 9 passes
+- [x] Unit tests: 4 tests (defaults, stored values, auth required for get/update)
 
 ---
 
