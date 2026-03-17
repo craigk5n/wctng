@@ -44,6 +44,12 @@ security:
             stateless: true
             security: false
 
+        # Public calendar endpoints — no authentication required
+        public_calendar:
+            pattern: ^/api/v2/public/
+            stateless: true
+            security: false
+
         # Protected API endpoints — require JWT
         api:
             pattern: ^/api/
@@ -55,4 +61,5 @@ security:
         - { path: ^/api/v2/auth/login$, roles: PUBLIC_ACCESS }
         - { path: ^/api/v2/health$, roles: PUBLIC_ACCESS }
         - { path: ^/api/v2/setup/, roles: PUBLIC_ACCESS }
+        - { path: ^/api/v2/public/, roles: PUBLIC_ACCESS }
         - { path: ^/api/, roles: IS_AUTHENTICATED_FULLY }

@@ -17,7 +17,7 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| P6-E1 | Public Calendar & Sharing | 3 | 0 | TODO |
+| P6-E1 | Public Calendar & Sharing | 3 | 1 | IN PROGRESS |
 | P6-E2 | Rich Text Descriptions | 3 | 0 | TODO |
 | P6-E3 | Conflict Detection & Approval | 3 | 0 | TODO |
 | P6-E4 | Additional Views & Print | 2 | 0 | TODO |
@@ -61,7 +61,7 @@ Same as Phase 1–5:
 
 ### P6-E1-S1: Public Calendar API
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 API endpoints for accessing public calendar data without authentication. Admins configure which calendars are publicly visible.
@@ -69,15 +69,15 @@ API endpoints for accessing public calendar data without authentication. Admins 
 **Preconditions:** Phase 5 complete
 
 **Acceptance Criteria:**
-- [ ] `webcal_entry` visibility field respected: public entries accessible without auth
-- [ ] `GET /api/v2/public/calendars` lists publicly visible calendars
-- [ ] `GET /api/v2/public/calendars/{id}/events?start={}&end={}` returns public events (date-range filtered)
-- [ ] Admin setting: per-user `public_calendar_enabled` flag (default off)
-- [ ] Admin API: `PUT /api/v2/admin/users/{login}/public-calendar` toggles public visibility
-- [ ] Public endpoints skip JWT authentication (firewall config)
-- [ ] Rate limiting on public endpoints (stricter than authenticated: 30 req/min)
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests
+- [x] `webcal_entry` visibility field respected: public entries accessible without auth
+- [x] `GET /api/v2/public/calendars` lists publicly visible calendars
+- [x] `GET /api/v2/public/calendars/{username}/events?start={}&end={}` returns public events (date-range filtered)
+- [x] Admin setting: per-user `public_calendar_enabled` flag (default off)
+- [x] Admin API: `PUT /api/v2/admin/users/{login}/public-calendar` toggles public visibility
+- [x] Public endpoints skip JWT authentication (firewall config)
+- [x] Rate limiting on public endpoints (stricter than authenticated: 30 req/min)
+- [x] PHPStan level 9 passes
+- [x] Unit tests (13 tests, 26 assertions)
 
 ---
 
