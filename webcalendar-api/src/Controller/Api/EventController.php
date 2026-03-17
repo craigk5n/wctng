@@ -9,6 +9,7 @@ use App\DTO\EventResponseDTO;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Service\CoreServiceFactory;
+use App\Service\DescriptionSanitizer;
 use App\Service\EventNotificationService;
 use App\Service\MercurePublisher;
 use App\Webhook\WebhookDispatcher;
@@ -28,6 +29,7 @@ final class EventController
         private readonly \PDO $pdo,
         private readonly EventNotificationService $notifications,
         private readonly WebhookDispatcher $webhookDispatcher,
+        private readonly DescriptionSanitizer $descriptionSanitizer = new DescriptionSanitizer(),
     ) {
     }
 
@@ -144,6 +146,10 @@ final class EventController
         /** @var array<string, mixed> $data */
         $data = $decoded;
 
+        if (isset($data['description']) && \is_string($data['description'])) {
+            $data['description'] = $this->descriptionSanitizer->sanitize($data['description']);
+        }
+
         try {
             $event = EventRequestDTO::toEntity($data, $user->getUserIdentifier());
         } catch (\InvalidArgumentException $e) {
@@ -242,6 +248,10 @@ final class EventController
 
         /** @var array<string, mixed> $data */
         $data = $decoded;
+
+        if (isset($data['description']) && \is_string($data['description'])) {
+            $data['description'] = $this->descriptionSanitizer->sanitize($data['description']);
+        }
 
         try {
             $updated = EventRequestDTO::applyUpdate($data, $existing);

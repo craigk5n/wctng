@@ -7,6 +7,7 @@ namespace App\Controller\Api;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Service\CoreServiceFactory;
+use App\Service\DescriptionSanitizer;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,6 +23,7 @@ final class TaskController
 {
     public function __construct(
         private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly DescriptionSanitizer $descriptionSanitizer = new DescriptionSanitizer(),
     ) {
     }
 
@@ -80,7 +82,9 @@ final class TaskController
 
         $priority = isset($data['priority']) && is_numeric($data['priority']) ? (int) $data['priority'] : 5;
         $percentComplete = isset($data['percent_complete']) && is_numeric($data['percent_complete']) ? (int) $data['percent_complete'] : 0;
-        $description = isset($data['description']) && \is_string($data['description']) ? $data['description'] : '';
+        $description = isset($data['description']) && \is_string($data['description'])
+            ? $this->descriptionSanitizer->sanitize($data['description'])
+            : '';
 
         $startDate = $dueDate ?? new \DateTimeImmutable();
 
@@ -163,7 +167,9 @@ final class TaskController
         $data = $decoded;
 
         $title = isset($data['title']) && \is_string($data['title']) ? $data['title'] : $existing->name();
-        $description = isset($data['description']) && \is_string($data['description']) ? $data['description'] : $existing->description();
+        $description = isset($data['description']) && \is_string($data['description'])
+            ? $this->descriptionSanitizer->sanitize($data['description'])
+            : $existing->description();
         $percentComplete = isset($data['percent_complete']) && is_numeric($data['percent_complete']) ? (int) $data['percent_complete'] : $existing->percentComplete();
 
         $dueDateStr = isset($data['due_date']) && \is_string($data['due_date']) ? $data['due_date'] : null;

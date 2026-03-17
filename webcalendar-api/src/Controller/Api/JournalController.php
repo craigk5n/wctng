@@ -7,6 +7,7 @@ namespace App\Controller\Api;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Service\CoreServiceFactory;
+use App\Service\DescriptionSanitizer;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,6 +23,7 @@ final class JournalController
 {
     public function __construct(
         private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly DescriptionSanitizer $descriptionSanitizer = new DescriptionSanitizer(),
     ) {
     }
 
@@ -82,7 +84,9 @@ final class JournalController
             return ApiResponse::error(400, 'Invalid date format');
         }
 
-        $text = isset($data['text']) && \is_string($data['text']) ? $data['text'] : '';
+        $text = isset($data['text']) && \is_string($data['text'])
+            ? $this->descriptionSanitizer->sanitize($data['text'])
+            : '';
         $uid = sprintf('wctng-journal-%s@webcalendar', bin2hex(random_bytes(16)));
 
         $journal = new Journal(
@@ -159,7 +163,9 @@ final class JournalController
         $data = $decoded;
 
         $title = isset($data['title']) && \is_string($data['title']) ? $data['title'] : $existing->name();
-        $text = isset($data['text']) && \is_string($data['text']) ? $data['text'] : $existing->description();
+        $text = isset($data['text']) && \is_string($data['text'])
+            ? $this->descriptionSanitizer->sanitize($data['text'])
+            : $existing->description();
 
         $updated = new Journal(
             id: $existing->id(),

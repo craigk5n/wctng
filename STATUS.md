@@ -18,7 +18,7 @@
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
 | P6-E1 | Public Calendar & Sharing | 3 | 3 | DONE |
-| P6-E2 | Rich Text Descriptions | 3 | 0 | TODO |
+| P6-E2 | Rich Text Descriptions | 3 | 1 | IN PROGRESS |
 | P6-E3 | Conflict Detection & Approval | 3 | 0 | TODO |
 | P6-E4 | Additional Views & Print | 2 | 0 | TODO |
 | P6-E5 | Event Attachments & VALARM | 3 | 0 | TODO |
@@ -128,7 +128,7 @@ Generate shareable URLs with optional access tokens for private sharing, plus an
 
 ### P6-E2-S1: Backend HTML Sanitization
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Add server-side HTML sanitization for event descriptions using Symfony HtmlSanitizer. Ensures stored HTML is safe against XSS while preserving formatting.
@@ -136,15 +136,15 @@ Add server-side HTML sanitization for event descriptions using Symfony HtmlSanit
 **Preconditions:** Phase 5 complete
 
 **Acceptance Criteria:**
-- [ ] `symfony/html-sanitizer` installed via Composer
-- [ ] `DescriptionSanitizer` service with allowlist: `p, br, strong, em, b, i, u, ul, ol, li, a[href], h2, h3, blockquote, code, pre`
-- [ ] Strips all other tags (`<script>`, `<style>`, `<iframe>`, `<img>`, event handlers like `onclick`)
-- [ ] Strips dangerous attributes (`style`, `on*` event handlers)
-- [ ] `a[href]` restricted to `http:`, `https:`, `mailto:` schemes (no `javascript:`)
-- [ ] Sanitization applied in `EventRequestDTO`, `TaskRequestDTO`, and `JournalRequestDTO` on description field
-- [ ] Existing plain-text descriptions pass through unchanged
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests: XSS payloads stripped, valid HTML preserved, plain text unchanged
+- [x] `symfony/html-sanitizer` installed via Composer
+- [x] `DescriptionSanitizer` service with allowlist: `p, br, strong, em, b, i, u, ul, ol, li, a[href], h2, h3, blockquote, code, pre`
+- [x] Strips all other tags (`<script>`, `<style>`, `<iframe>`, `<img>`, event handlers like `onclick`)
+- [x] Strips dangerous attributes (`style`, `on*` event handlers)
+- [x] `a[href]` restricted to `http:`, `https:`, `mailto:` schemes (no `javascript:`)
+- [x] Sanitization applied in EventController, TaskController, and JournalController on description field
+- [x] Existing plain-text descriptions pass through unchanged
+- [x] PHPStan level 9 passes
+- [x] Unit tests: 23 tests — XSS payloads stripped, valid HTML preserved, plain text unchanged
 
 ---
 
