@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TOKEN_STORAGE_KEY } from '../api/client';
@@ -33,7 +33,7 @@ describe('App Routing', () => {
     expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
   });
 
-  it('renders 404 for unknown routes when authenticated', () => {
+  it('renders 404 for unknown routes when authenticated', async () => {
     // Set a valid fake token
     const payload = btoa(
       JSON.stringify({
@@ -47,7 +47,9 @@ describe('App Routing', () => {
 
     renderApp('/some-nonexistent-route');
 
-    expect(screen.getByText('404')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('404')).toBeInTheDocument();
+    });
   });
 
   it('renders calendar page at / when authenticated', () => {
