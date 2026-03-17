@@ -11,6 +11,7 @@ use App\Security\WebCalendarUser;
 use App\Service\CoreServiceFactory;
 use App\Service\EventNotificationService;
 use App\Service\MercurePublisher;
+use App\Webhook\WebhookDispatcher;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,6 +27,7 @@ final class EventController
         private readonly MercurePublisher $mercure,
         private readonly \PDO $pdo,
         private readonly EventNotificationService $notifications,
+        private readonly WebhookDispatcher $webhookDispatcher,
     ) {
     }
 
@@ -176,7 +178,11 @@ final class EventController
         try {
             $this->mercure->publishEventCreated($created->id()->value(), $responseData);
         } catch (\Throwable) {
-            // Mercure publish failure should not break the API response
+        }
+
+        try {
+            $this->webhookDispatcher->dispatch('event.created', $responseData);
+        } catch (\Throwable) {
         }
 
         return ApiResponse::success($responseData, null, Response::HTTP_CREATED);
@@ -270,6 +276,11 @@ final class EventController
         } catch (\Throwable) {
         }
 
+        try {
+            $this->webhookDispatcher->dispatch('event.updated', $responseData);
+        } catch (\Throwable) {
+        }
+
         // Notify participants of update
         try {
             /** @var array<string, string> $participants */
@@ -321,7 +332,11 @@ final class EventController
         try {
             $this->mercure->publishEventDeleted($id);
         } catch (\Throwable) {
-            // Mercure publish failure should not break the API response
+        }
+
+        try {
+            $this->webhookDispatcher->dispatch('event.deleted', ['id' => $id]);
+        } catch (\Throwable) {
         }
 
         return ApiResponse::noContent();
