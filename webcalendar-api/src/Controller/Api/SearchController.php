@@ -49,4 +49,21 @@ final class SearchController
             'offset' => $offset,
         ]);
     }
+
+    #[Route('/api/v2/search/suggest', name: 'api_search_suggest', methods: ['GET'])]
+    public function suggest(Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
+    {
+        if ($user === null) {
+            return ApiResponse::error(401, 'Authentication required');
+        }
+
+        $prefix = $request->query->getString('q', '');
+        if (\strlen($prefix) < 2) {
+            return ApiResponse::success([]);
+        }
+
+        $suggestions = $this->searchService->suggest($prefix, $user->getUserIdentifier(), 5);
+
+        return ApiResponse::success($suggestions);
+    }
 }

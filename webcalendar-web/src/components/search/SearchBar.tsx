@@ -61,7 +61,7 @@ export function SearchBar() {
     }
 
     setIsLoading(true);
-    const { data } = await apiFetch<SearchResult[]>(`/search?q=${encodeURIComponent(q)}`);
+    const { data } = await apiFetch<SearchResult[]>(`/search/suggest?q=${encodeURIComponent(q)}`);
     setResults(data ?? []);
     setIsOpen(true);
     setSelectedIndex(-1);

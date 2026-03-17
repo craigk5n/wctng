@@ -105,6 +105,47 @@ final readonly class SearchIndexService
     }
 
     /**
+     * Returns top N suggestions matching a prefix, searching titles and locations.
+     *
+     * @return list<array{id: int, title: string, start_date: string, type: string}>
+     */
+    public function suggest(string $prefix, string $userLogin, int $limit = 5): array
+    {
+        $pdo = $this->coreServiceFactory->getPdo();
+
+        $limitInt = (int) $limit;
+        $sql = "SELECT e.cal_id, e.cal_name, e.cal_date, e.cal_type
+                FROM webcal_entry e
+                WHERE (e.cal_name LIKE :q1 OR e.cal_description LIKE :q2)
+                AND e.cal_create_by = :user
+                ORDER BY e.cal_date DESC
+                LIMIT {$limitInt}";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+            'q1' => $prefix . '%',
+            'q2' => $prefix . '%',
+            'user' => $userLogin,
+        ]);
+
+        $results = [];
+        /** @var array<string, mixed>|false $row */
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        while (\is_array($row)) {
+            $results[] = [
+                'id' => \is_numeric($row['cal_id'] ?? null) ? (int) $row['cal_id'] : 0,
+                'title' => \is_string($row['cal_name'] ?? null) ? $row['cal_name'] : '',
+                'start_date' => \is_string($row['cal_date'] ?? null) ? (string) $row['cal_date'] : '',
+                'type' => \is_string($row['cal_type'] ?? null) ? $row['cal_type'] : 'E',
+            ];
+            /** @var array<string, mixed>|false $row */
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        }
+
+        return $results;
+    }
+
+    /**
      * Creates a FULLTEXT index on webcal_entry for MySQL.
      * No-op for SQLite (uses LIKE instead).
      */
