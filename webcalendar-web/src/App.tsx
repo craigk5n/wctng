@@ -26,6 +26,7 @@ const TenantsPage = lazy(() => import('./control/TenantsPage').then(m => ({ defa
 const StatsPage = lazy(() => import('./control/StatsPage').then(m => ({ default: m.StatsPage })));
 const TenantDetailPage = lazy(() => import('./control/TenantDetailPage').then(m => ({ default: m.TenantDetailPage })));
 const SetupWizard = lazy(() => import('./setup/SetupWizard').then(m => ({ default: m.SetupWizard })));
+const PublicCalendarPage = lazy(() => import('./public/PublicCalendarPage').then(m => ({ default: m.PublicCalendarPage })));
 
 function LoadingFallback() {
   return <div className="flex h-screen items-center justify-center text-muted-foreground">Loading...</div>;
@@ -38,6 +39,8 @@ export default function App() {
         <Routes>
           <Route path="/setup" element={<SetupWizard />} />
           <Route path="/login" element={<LoginPage />} />
+          {/* Public calendar — no auth required */}
+          <Route path="/public/:username" element={<PublicCalendarPage />} />
           <Route
             path="/"
             element={

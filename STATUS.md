@@ -17,7 +17,7 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| P6-E1 | Public Calendar & Sharing | 3 | 1 | IN PROGRESS |
+| P6-E1 | Public Calendar & Sharing | 3 | 2 | IN PROGRESS |
 | P6-E2 | Rich Text Descriptions | 3 | 0 | TODO |
 | P6-E3 | Conflict Detection & Approval | 3 | 0 | TODO |
 | P6-E4 | Additional Views & Print | 2 | 0 | TODO |
@@ -83,7 +83,7 @@ API endpoints for accessing public calendar data without authentication. Admins 
 
 ### P6-E1-S2: Public Calendar Frontend
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Read-only calendar view accessible without login, showing public events in a FullCalendar instance.
@@ -91,13 +91,13 @@ Read-only calendar view accessible without login, showing public events in a Ful
 **Preconditions:** P6-E1-S1
 
 **Acceptance Criteria:**
-- [ ] Route `/public/{username}` renders a read-only FullCalendar (month/week/day views)
-- [ ] No login required — page loads without JWT
-- [ ] Event click shows detail popup (title, time, location, description — no edit)
-- [ ] Calendar header shows owner's display name
-- [ ] Graceful 404 if user has no public calendar enabled
-- [ ] Mobile responsive
-- [ ] Vitest tests
+- [x] Route `/public/{username}` renders a read-only FullCalendar (month/week/day views)
+- [x] No login required — page loads without JWT
+- [x] Event click shows detail popup (title, time, location, description — no edit)
+- [x] Calendar header shows owner's display name
+- [x] Graceful 404 if user has no public calendar enabled
+- [x] Mobile responsive
+- [x] Vitest tests (6 tests)
 
 ---
 
