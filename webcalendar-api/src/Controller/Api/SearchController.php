@@ -35,12 +35,23 @@ final class SearchController
         $limit = min(100, max(1, $request->query->getInt('limit', 20)));
         $offset = max(0, $request->query->getInt('offset', 0));
 
+        $filters = [];
+        $start = $request->query->getString('start', '');
+        $end = $request->query->getString('end', '');
+        $categoryId = $request->query->getString('category_id', '');
+        $participant = $request->query->getString('participant', '');
+        if ($start !== '') { $filters['start'] = $start; }
+        if ($end !== '') { $filters['end'] = $end; }
+        if ($categoryId !== '') { $filters['category_id'] = $categoryId; }
+        if ($participant !== '') { $filters['participant'] = $participant; }
+
         $result = $this->searchService->search(
             $keyword,
             $user->getUserIdentifier(),
             $type !== '' ? $type : null,
             $limit,
             $offset,
+            $filters,
         );
 
         return ApiResponse::success($result['results'], [

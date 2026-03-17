@@ -27,16 +27,23 @@ final readonly class SearchIndexService
      *
      * @return array{results: list<array<string, mixed>>, total: int}
      */
+    /**
+     * @param array<string, string> $filters Optional filters: start, end, category_id, participant
+     *
+     * @return array{results: list<array<string, mixed>>, total: int}
+     */
     public function search(
         string $query,
         string $userLogin,
         ?string $type = null,
         int $limit = 20,
         int $offset = 0,
+        array $filters = [],
     ): array {
         $pdo = $this->coreServiceFactory->getPdo();
 
         $params = [];
+        $joins = '';
         $where = ['(e.cal_name LIKE :q1 OR e.cal_description LIKE :q2)'];
         $params['q1'] = '%' . $query . '%';
         $params['q2'] = '%' . $query . '%';
@@ -57,10 +64,34 @@ final readonly class SearchIndexService
             $where[] = 'e.cal_type IN (' . implode(', ', $typePlaceholders) . ')';
         }
 
+        // Date range filter
+        if (isset($filters['start']) && $filters['start'] !== '') {
+            $where[] = 'e.cal_date >= :start_date';
+            $params['start_date'] = $filters['start'];
+        }
+        if (isset($filters['end']) && $filters['end'] !== '') {
+            $where[] = 'e.cal_date <= :end_date';
+            $params['end_date'] = $filters['end'];
+        }
+
+        // Category filter
+        if (isset($filters['category_id']) && $filters['category_id'] !== '') {
+            $joins .= ' INNER JOIN webcal_entry_categories ec ON ec.cal_id = e.cal_id';
+            $where[] = 'ec.cat_id = :cat_id';
+            $params['cat_id'] = $filters['category_id'];
+        }
+
+        // Participant filter
+        if (isset($filters['participant']) && $filters['participant'] !== '') {
+            $joins .= ' INNER JOIN webcal_entry_user eu ON eu.cal_id = e.cal_id';
+            $where[] = 'eu.cal_login = :participant';
+            $params['participant'] = $filters['participant'];
+        }
+
         $whereClause = implode(' AND ', $where);
 
         // Count total
-        $countSql = "SELECT COUNT(*) FROM webcal_entry e WHERE {$whereClause}";
+        $countSql = "SELECT COUNT(*) FROM webcal_entry e{$joins} WHERE {$whereClause}";
         $countStmt = $pdo->prepare($countSql);
         $countStmt->execute($params);
         $total = (int) $countStmt->fetchColumn();
@@ -70,7 +101,7 @@ final readonly class SearchIndexService
         $offsetInt = (int) $offset;
         $sql = "SELECT e.cal_id, e.cal_name, e.cal_description, e.cal_date, e.cal_time,
                        e.cal_type, e.cal_create_by, e.cal_duration
-                FROM webcal_entry e
+                FROM webcal_entry e{$joins}
                 WHERE {$whereClause}
                 ORDER BY e.cal_date DESC
                 LIMIT {$limitInt} OFFSET {$offsetInt}";
