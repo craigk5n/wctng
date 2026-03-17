@@ -21,8 +21,8 @@
 | P4-E4 | CalDAV Integration Tests | 2 | 2 | DONE |
 | P4-E5 | OAuth2 / OIDC Authentication | 4 | 4 | DONE |
 | P4-E6 | LDAP Authentication | 3 | 3 | DONE |
-| P4-E7 | Per-Tenant Auth Configuration | 3 | 0 | NOT STARTED |
-| **Total** | | **23** | **20** | |
+| P4-E7 | Per-Tenant Auth Configuration | 3 | 1 | IN PROGRESS |
+| **Total** | | **23** | **21** | |
 
 ---
 
@@ -464,7 +464,7 @@ Sync LDAP groups to webcalendar groups for permission management.
 
 ### P4-E7-S1: Auth Provider Registry
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 System for tenants to register and manage their authentication providers.
