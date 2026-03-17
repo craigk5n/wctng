@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { apiFetch } from '../api/client';
+import { apiFetch, TOKEN_STORAGE_KEY } from '../api/client';
 
 interface ActivityEntry { date: string; count: number }
 interface BusyHourEntry { hour: number; count: number }
@@ -39,6 +39,23 @@ export function ReportsPage() {
     void fetchReports();
   }, [fetchReports]);
 
+  const handleExportCsv = (type: string) => {
+    const baseUrl = import.meta.env.VITE_API_URL ?? '/api/v2';
+    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+    const url = `${baseUrl}/reports/export/${type}?start=${startDate}&end=${endDate}`;
+
+    // Use fetch + blob to include auth header
+    void fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then((res) => res.blob())
+      .then((blob) => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `report-${type}-${startDate}-to-${endDate}.csv`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+  };
+
   const maxActivity = Math.max(1, ...activity.map((a) => a.count));
   const maxBusy = Math.max(1, ...busyHours.map((b) => b.count));
   const maxCat = Math.max(1, ...categories.map((c) => c.count));
@@ -64,6 +81,9 @@ export function ReportsPage() {
             onChange={(e) => setEndDate(e.target.value.replace(/-/g, ''))}
             className="h-8 rounded-md border border-input bg-background px-2 text-sm"
           />
+          <span className="ml-2 border-l border-border pl-2">
+            <button onClick={() => handleExportCsv('activity')} className="rounded px-2 py-1 text-xs hover:bg-accent" title="Export activity CSV">CSV</button>
+          </span>
         </div>
       </div>
 
