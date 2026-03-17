@@ -18,6 +18,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { label: 'Journals', href: '/journals', icon: '📓' },
     { label: 'Reports', href: '/reports', icon: '📊' },
     { label: 'Settings', href: '/settings/preferences', icon: '⚙' },
+    { label: 'Profile', href: '/settings/profile', icon: '👤' },
     { label: 'Access', href: '/settings/access', icon: '🔒' },
   ];
 

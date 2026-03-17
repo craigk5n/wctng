@@ -18,6 +18,7 @@ const AccessSettings = lazy(() => import('./settings/AccessSettings').then(m => 
 const AuthSettings = lazy(() => import('./settings/AuthSettings').then(m => ({ default: m.AuthSettings })));
 const NotificationSettings = lazy(() => import('./settings/NotificationSettings').then(m => ({ default: m.NotificationSettings })));
 const AssistantSettings = lazy(() => import('./settings/AssistantSettings').then(m => ({ default: m.AssistantSettings })));
+const ProfileSettings = lazy(() => import('./settings/ProfileSettings').then(m => ({ default: m.ProfileSettings })));
 const TasksPage = lazy(() => import('./tasks/TasksPage').then(m => ({ default: m.TasksPage })));
 const JournalsPage = lazy(() => import('./journals/JournalsPage').then(m => ({ default: m.JournalsPage })));
 const ReportsPage = lazy(() => import('./reports/ReportsPage').then(m => ({ default: m.ReportsPage })));
@@ -179,6 +180,16 @@ export default function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <AssistantSettings />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings/profile"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ProfileSettings />
                 </AppLayout>
               </ProtectedRoute>
             }
