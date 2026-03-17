@@ -15,6 +15,7 @@ use Sabre\DAV\PropPatch;
 use Sabre\VObject;
 use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
+use WebCalendar\Core\Domain\Entity\Task;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 use WebCalendar\Core\Domain\ValueObject\EventId;
 use WebCalendar\Core\Domain\ValueObject\EventType;
@@ -129,6 +130,26 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
                 ];
             }
 
+            // Include tasks (VTODO)
+            try {
+                $tasks = $this->coreServiceFactory->getTaskService()->getTasksInDateRange($range, $username);
+                foreach ($tasks as $task) {
+                    $ics = $this->taskToIcs($task);
+                    $objects[] = [
+                        'id' => 'task-' . $task->id()->value(),
+                        'uri' => 'task-' . $task->id()->value() . '.ics',
+                        'calendarid' => $username,
+                        'calendardata' => $ics,
+                        'lastmodified' => time(),
+                        'etag' => '"' . md5($ics) . '"',
+                        'size' => \strlen($ics),
+                        'component' => 'vtodo',
+                    ];
+                }
+            } catch (\Throwable) {
+                // Tasks table may not exist
+            }
+
             return $objects;
         } catch (\Throwable) {
             return [];
@@ -143,6 +164,12 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
     {
         /** @var string $uri */
         $uri = $objectUri;
+
+        // Handle task URIs (task-{id}.ics)
+        if (str_starts_with($uri, 'task-')) {
+            return $this->getTaskObject($calendarId, $uri);
+        }
+
         $eventId = $this->extractEventId($uri);
         if ($eventId === null) {
             return null;
@@ -200,22 +227,29 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
                 return null;
             }
 
-            $vevent = $vcalendar->VEVENT;
-            if ($vevent === null) {
+            $user = $this->coreServiceFactory->getUserService()->getUserByLogin($username);
+            if ($user === null) {
                 return null;
             }
 
-            $user = $this->coreServiceFactory->getUserService()->getUserByLogin($username);
-            if ($user === null) {
+            // Handle VTODO
+            $vtodo = $vcalendar->VTODO;
+            if ($vtodo !== null) {
+                $task = $this->vTodoToEntity($vtodo, $username);
+                $this->coreServiceFactory->getTaskService()->createTask($task, $user);
+                return '"' . md5($icsString) . '"';
+            }
+
+            // Handle VEVENT
+            $vevent = $vcalendar->VEVENT;
+            if ($vevent === null) {
                 return null;
             }
 
             $event = $this->vEventToEntity($vevent, $username);
             $this->coreServiceFactory->getEventService()->createEvent($event, $user);
 
-            $etag = '"' . md5($icsString) . '"';
-
-            return $etag;
+            return '"' . md5($icsString) . '"';
         } catch (\Throwable) {
             return null;
         }
@@ -493,5 +527,112 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             recurrence: $recurrence,
             allDay: $allDay,
         );
+    }
+
+    private function taskToIcs(Task $task): string
+    {
+        $vcalendar = new VObject\Component\VCalendar();
+        $vtodo = $vcalendar->add('VTODO', [
+            'UID' => $task->uid(),
+            'SUMMARY' => $task->name(),
+            'DESCRIPTION' => $task->description(),
+            'PERCENT-COMPLETE' => (string) $task->percentComplete(),
+        ]);
+
+        if ($task->dueDate() !== null) {
+            $vtodo->add('DUE', $task->dueDate());
+        }
+
+        $vtodo->add('DTSTART', $task->start());
+
+        if ($task->percentComplete() >= 100) {
+            $vtodo->add('STATUS', 'COMPLETED');
+        } elseif ($task->percentComplete() > 0) {
+            $vtodo->add('STATUS', 'IN-PROCESS');
+        } else {
+            $vtodo->add('STATUS', 'NEEDS-ACTION');
+        }
+
+        return $vcalendar->serialize();
+    }
+
+    private function vTodoToEntity(VObject\Component $vtodo, string $createdBy, ?int $id = null): Task
+    {
+        $summary = (string) ($vtodo->SUMMARY ?? 'Untitled');
+        $description = (string) ($vtodo->DESCRIPTION ?? '');
+        $percentComplete = 0;
+
+        if (isset($vtodo->{'PERCENT-COMPLETE'})) {
+            $percentComplete = (int) (string) $vtodo->{'PERCENT-COMPLETE'};
+        }
+
+        $startDate = new \DateTimeImmutable();
+        if (isset($vtodo->DTSTART)) {
+            $dt = $vtodo->DTSTART->getDateTime();
+            $startDate = $dt instanceof \DateTimeImmutable ? $dt : \DateTimeImmutable::createFromMutable($dt);
+        }
+
+        $dueDate = null;
+        if (isset($vtodo->DUE)) {
+            $dt = $vtodo->DUE->getDateTime();
+            $dueDate = $dt instanceof \DateTimeImmutable ? $dt : \DateTimeImmutable::createFromMutable($dt);
+        }
+
+        $uid = (string) ($vtodo->UID ?? 'caldav-task-' . bin2hex(random_bytes(8)));
+
+        return new Task(
+            id: $id !== null ? new EventId($id) : new EventId(0),
+            uid: $uid,
+            name: $summary,
+            description: $description,
+            location: '',
+            start: $startDate,
+            duration: 0,
+            createdBy: $createdBy,
+            type: EventType::TASK,
+            access: AccessLevel::PUBLIC,
+            dueDate: $dueDate,
+            percentComplete: $percentComplete,
+        );
+    }
+
+    /**
+     * @param mixed $calendarId
+     *
+     * @return array<string, mixed>|null
+     */
+    private function getTaskObject(mixed $calendarId, string $uri): ?array
+    {
+        $idPart = substr($uri, 5); // Remove 'task-' prefix
+        if (!str_ends_with($idPart, '.ics')) {
+            return null;
+        }
+        $taskIdStr = substr($idPart, 0, -4);
+        if (!ctype_digit($taskIdStr)) {
+            return null;
+        }
+
+        try {
+            $taskId = (int) $taskIdStr;
+            $task = $this->coreServiceFactory->getTaskService()->getTaskById(new EventId($taskId));
+            if ($task === null) {
+                return null;
+            }
+
+            $ics = $this->taskToIcs($task);
+
+            return [
+                'id' => 'task-' . $task->id()->value(),
+                'uri' => $uri,
+                'calendarid' => $calendarId,
+                'calendardata' => $ics,
+                'lastmodified' => time(),
+                'etag' => '"' . md5($ics) . '"',
+                'size' => \strlen($ics),
+                'component' => 'vtodo',
+            ];
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }

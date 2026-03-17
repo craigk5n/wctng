@@ -17,12 +17,12 @@
 |------|-------|---------|------|--------|
 | P4-E1 | CalDAV Server Core | 4 | 4 | DONE |
 | P4-E2 | CalDAV Calendar & Event Operations | 4 | 4 | DONE |
-| P4-E3 | CalDAV Tasks & Journals | 3 | 0 | NOT STARTED |
+| P4-E3 | CalDAV Tasks & Journals | 3 | 1 | IN PROGRESS |
 | P4-E4 | CalDAV Integration Tests | 2 | 0 | NOT STARTED |
 | P4-E5 | OAuth2 / OIDC Authentication | 4 | 0 | NOT STARTED |
 | P4-E6 | LDAP Authentication | 3 | 0 | NOT STARTED |
 | P4-E7 | Per-Tenant Auth Configuration | 3 | 0 | NOT STARTED |
-| **Total** | | **23** | **8** | |
+| **Total** | | **23** | **9** | |
 
 ---
 
@@ -219,7 +219,7 @@ Handle recurring events (RRULE) in CalDAV, expanding occurrences for time-range 
 
 ### P4-E3-S1: CalDAV Tasks (VTODO)
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Map webcalendar tasks to CalDAV VTODO objects.
@@ -227,12 +227,12 @@ Map webcalendar tasks to CalDAV VTODO objects.
 **Preconditions:** P4-E1-S3
 
 **Acceptance Criteria:**
-- [ ] Tasks exposed as VTODO objects in CalDAV
-- [ ] CRUD operations: create, read, update, delete tasks via PUT/GET/DELETE
-- [ ] Task properties mapped: summary, due date, priority, percent-complete, status
-- [ ] Supported in Apple Reminders, Thunderbird, GNOME To Do
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests
+- [x] Tasks exposed as VTODO objects in CalDAV
+- [x] CRUD operations: create, read, update, delete tasks via PUT/GET/DELETE
+- [x] Task properties mapped: summary, due date, priority, percent-complete, status
+- [x] Supported in Apple Reminders, Thunderbird, GNOME To Do
+- [x] PHPStan level 9 passes
+- [x] Unit tests
 
 ---
 
