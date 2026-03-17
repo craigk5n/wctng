@@ -160,6 +160,94 @@
   @apply bg-primary/10;
 }
 
+/* ============ Print Styles ============ */
+@media print {
+  /* Hide non-content elements */
+  nav,
+  aside,
+  .print\\:hidden,
+  .fc-header-toolbar .fc-button,
+  header,
+  [data-sidebar],
+  [role="navigation"] {
+    display: none !important;
+  }
+
+  /* Show toolbar title only */
+  .fc-header-toolbar {
+    display: flex !important;
+    justify-content: center !important;
+  }
+
+  .fc-toolbar-title {
+    display: block !important;
+    font-size: 18pt !important;
+    text-align: center !important;
+  }
+
+  /* Reset body */
+  body {
+    background: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Make main content full width */
+  main,
+  .flex-1 {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0.5cm !important;
+    overflow: visible !important;
+  }
+
+  /* Preserve event colors */
+  .fc-event,
+  .fc .fc-event {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Day highlighting */
+  .fc .fc-day-today {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Month view: fit on one page */
+  .fc-dayGridMonth-view {
+    max-height: none !important;
+    page-break-inside: avoid;
+  }
+
+  /* Week view: landscape friendly */
+  .fc-timeGridWeek-view {
+    max-height: none !important;
+  }
+
+  /* Year view: fit all 12 months */
+  .fc-multiMonthYear-view {
+    max-height: none !important;
+  }
+
+  .fc-multimonth {
+    page-break-inside: avoid;
+  }
+
+  /* Remove scrollbars */
+  .fc-scroller {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* Page margin */
+  @page {
+    margin: 1cm;
+  }
+}
+
 .fc .fc-timegrid-event {
   @apply rounded-md border-l-[3px];
   border-left-color: inherit;

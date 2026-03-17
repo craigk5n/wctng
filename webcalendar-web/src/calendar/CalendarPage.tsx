@@ -13,6 +13,7 @@ import { ShortcutsDialog } from '../components/shortcuts/ShortcutsDialog';
 import { useGlobalShortcuts } from '../components/shortcuts/useGlobalShortcuts';
 import { ExportButton } from './ExportButton';
 import { ImportDialog } from './ImportDialog';
+import { PrintButton } from './PrintButton';
 import { exportEventAsIcs } from './exportEventIcs';
 import { LayerPanel, type LayerVisibility } from './LayerPanel';
 import { useMercure, type MercureMessage } from '../hooks/useMercure';
@@ -292,6 +293,7 @@ export function CalendarPage() {
     <div>
       {/* Toolbar */}
       <div className="mb-4 flex justify-end gap-2">
+        <PrintButton />
         <ExportButton />
         <button
           onClick={() => setShowImport(true)}
