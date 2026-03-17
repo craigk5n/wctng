@@ -49,7 +49,11 @@ services:
         arguments:
             $appSecret: '%env(APP_SECRET)%'
 
-    # OAuth provider repository
+    # Auth provider repositories
+    App\Auth\LdapConfigRepository:
+        arguments:
+            $pdo: '@pdo.connection'
+
     App\Auth\OAuthProviderRepository:
         arguments:
             $pdo: '@pdo.connection'

@@ -20,9 +20,9 @@
 | P4-E3 | CalDAV Tasks & Journals | 3 | 3 | DONE |
 | P4-E4 | CalDAV Integration Tests | 2 | 2 | DONE |
 | P4-E5 | OAuth2 / OIDC Authentication | 4 | 4 | DONE |
-| P4-E6 | LDAP Authentication | 3 | 0 | NOT STARTED |
+| P4-E6 | LDAP Authentication | 3 | 1 | IN PROGRESS |
 | P4-E7 | Per-Tenant Auth Configuration | 3 | 0 | NOT STARTED |
-| **Total** | | **23** | **17** | |
+| **Total** | | **23** | **18** | |
 
 ---
 
@@ -402,7 +402,7 @@ Login page shows OAuth/OIDC provider buttons for SSO.
 
 ### P4-E6-S1: LDAP Connection & Configuration
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 LDAP server connection configuration and bind testing.
@@ -410,12 +410,12 @@ LDAP server connection configuration and bind testing.
 **Preconditions:** Phase 3 complete
 
 **Acceptance Criteria:**
-- [ ] LDAP configuration: host, port, base DN, bind DN, bind password, user filter, TLS/STARTTLS
-- [ ] Configuration stored in database (per-tenant or global)
-- [ ] `GET/PUT /api/v2/admin/ldap-config` endpoints
-- [ ] Connection test endpoint: `POST /api/v2/admin/ldap-config/test`
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests with mock LDAP
+- [x] LDAP configuration: host, port, base DN, bind DN, bind password, user filter, TLS/STARTTLS
+- [x] Configuration stored in database (per-tenant or global)
+- [x] `GET/PUT /api/v2/admin/ldap-config` endpoints
+- [x] Connection test endpoint: `POST /api/v2/admin/ldap-config/test`
+- [x] PHPStan level 9 passes
+- [x] Unit tests with mock LDAP
 
 ---
 
