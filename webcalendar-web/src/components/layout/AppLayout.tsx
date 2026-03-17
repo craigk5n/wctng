@@ -28,6 +28,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     navItems.push({ label: 'Categories', href: '/admin/categories', icon: '🏷' });
     navItems.push({ label: 'Groups', href: '/admin/groups', icon: '👥' });
     navItems.push({ label: 'Webhooks', href: '/admin/webhooks', icon: '🔗' });
+    navItems.push({ label: 'Settings', href: '/admin/settings', icon: '🔧' });
   }
 
   return (

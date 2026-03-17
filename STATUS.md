@@ -24,9 +24,9 @@
 | P6-E5 | Event Attachments & VALARM | 3 | 3 | DONE |
 | P6-E6 | Remaining Service UIs | 4 | 4 | DONE |
 | P6-E7 | Internationalization | 3 | 3 | DONE |
-| P6-E8 | Admin Feature Configuration | 3 | 1 | IN PROGRESS |
+| P6-E8 | Admin Feature Configuration | 3 | 2 | IN PROGRESS |
 | P6-E9 | Integration & E2E Testing | 3 | 0 | TODO |
-| **Total** | | **27** | **24** | |
+| **Total** | | **27** | **25** | |
 
 ---
 
@@ -578,7 +578,7 @@ API endpoints for reading and updating system configuration settings using Confi
 
 ### P6-E8-S2: Admin Settings Page
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Admin page for toggling feature flags with clear labels and descriptions.
@@ -586,12 +586,12 @@ Admin page for toggling feature flags with clear labels and descriptions.
 **Preconditions:** P6-E8-S1
 
 **Acceptance Criteria:**
-- [ ] Route `/admin/settings` accessible to admins
-- [ ] Toggle switches for each feature: rich text descriptions, location field, URL field, priority field, participants
-- [ ] Each toggle shows label, description, and current state
-- [ ] Changes saved immediately via API (optimistic UI)
-- [ ] Success toast on save
-- [ ] Vitest tests
+- [x] Route `/admin/settings` accessible to admins (added to sidebar nav)
+- [x] Checkbox toggles for each feature: rich text descriptions, location, URL, priority, participants
+- [x] Each toggle shows label, description, and current state
+- [x] Changes saved immediately via PUT /admin/config (optimistic UI with revert on failure)
+- [x] Success toast on save
+- [x] Vitest tests: 3 tests (heading, feature labels, checkboxes)
 
 ---
 
