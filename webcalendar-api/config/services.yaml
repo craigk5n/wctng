@@ -76,6 +76,11 @@ services:
         arguments:
             $pdo: '@pdo.connection'
 
+    # OAuth controller needs JWT TTL
+    App\Controller\Api\OAuthController:
+        arguments:
+            $jwtTtl: '%env(int:JWT_TTL)%'
+
     # Auth controller needs JWT TTL
     App\Controller\Api\AuthController:
         arguments:

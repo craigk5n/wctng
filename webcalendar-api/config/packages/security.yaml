@@ -27,6 +27,11 @@ security:
             stateless: true
             security: false
 
+        oauth:
+            pattern: ^/api/v2/auth/oauth/
+            stateless: true
+            security: false
+
         # CalDAV — auth handled by sabre/dav internally
         caldav:
             pattern: ^/dav/

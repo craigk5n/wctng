@@ -19,10 +19,10 @@
 | P4-E2 | CalDAV Calendar & Event Operations | 4 | 4 | DONE |
 | P4-E3 | CalDAV Tasks & Journals | 3 | 3 | DONE |
 | P4-E4 | CalDAV Integration Tests | 2 | 2 | DONE |
-| P4-E5 | OAuth2 / OIDC Authentication | 4 | 1 | IN PROGRESS |
+| P4-E5 | OAuth2 / OIDC Authentication | 4 | 2 | IN PROGRESS |
 | P4-E6 | LDAP Authentication | 3 | 0 | NOT STARTED |
 | P4-E7 | Per-Tenant Auth Configuration | 3 | 0 | NOT STARTED |
-| **Total** | | **23** | **14** | |
+| **Total** | | **23** | **15** | |
 
 ---
 
@@ -340,7 +340,7 @@ Database-driven OAuth2 provider configuration (client ID, secret, endpoints).
 
 ### P4-E5-S2: OAuth2 Authorization Flow
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Implement the OAuth2 authorization code flow with PKCE for browser-based login.
@@ -348,13 +348,13 @@ Implement the OAuth2 authorization code flow with PKCE for browser-based login.
 **Preconditions:** P4-E5-S1
 
 **Acceptance Criteria:**
-- [ ] `GET /api/v2/auth/oauth/{provider}/redirect` — redirects to provider's auth URL
-- [ ] `GET /api/v2/auth/oauth/{provider}/callback` — handles callback, exchanges code for token
-- [ ] User auto-provisioned on first login (creates webcalendar user from OAuth profile)
-- [ ] JWT issued after successful OAuth flow (same as password login)
-- [ ] PKCE support for public clients
-- [ ] PHPStan level 9 passes
-- [ ] Functional tests with mock OAuth server
+- [x] `GET /api/v2/auth/oauth/{provider}/redirect` — redirects to provider's auth URL
+- [x] `GET /api/v2/auth/oauth/{provider}/callback` — handles callback, exchanges code for token
+- [x] User auto-provisioned on first login (creates webcalendar user from OAuth profile)
+- [x] JWT issued after successful OAuth flow (same as password login)
+- [x] PKCE support for public clients
+- [x] PHPStan level 9 passes
+- [x] Functional tests with mock OAuth server
 
 ---
 
