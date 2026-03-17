@@ -14,8 +14,9 @@ use Sabre\CalDAV\Xml\Property\SupportedCalendarComponentSet;
 use Sabre\DAV\PropPatch;
 use Sabre\VObject;
 use WebCalendar\Core\Domain\Entity\Event;
-use WebCalendar\Core\Domain\ValueObject\AccessLevel;
+use WebCalendar\Core\Domain\Entity\Journal;
 use WebCalendar\Core\Domain\Entity\Task;
+use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 use WebCalendar\Core\Domain\ValueObject\EventId;
 use WebCalendar\Core\Domain\ValueObject\EventType;
@@ -150,6 +151,26 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
                 // Tasks table may not exist
             }
 
+            // Include journals (VJOURNAL)
+            try {
+                $journals = $this->coreServiceFactory->getJournalService()->getJournalsInDateRange($range, $username);
+                foreach ($journals as $journal) {
+                    $ics = $this->journalToIcs($journal);
+                    $objects[] = [
+                        'id' => 'journal-' . $journal->id()->value(),
+                        'uri' => 'journal-' . $journal->id()->value() . '.ics',
+                        'calendarid' => $username,
+                        'calendardata' => $ics,
+                        'lastmodified' => time(),
+                        'etag' => '"' . md5($ics) . '"',
+                        'size' => \strlen($ics),
+                        'component' => 'vjournal',
+                    ];
+                }
+            } catch (\Throwable) {
+                // Journals table may not exist
+            }
+
             return $objects;
         } catch (\Throwable) {
             return [];
@@ -168,6 +189,11 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
         // Handle task URIs (task-{id}.ics)
         if (str_starts_with($uri, 'task-')) {
             return $this->getTaskObject($calendarId, $uri);
+        }
+
+        // Handle journal URIs (journal-{id}.ics)
+        if (str_starts_with($uri, 'journal-')) {
+            return $this->getJournalObject($calendarId, $uri);
         }
 
         $eventId = $this->extractEventId($uri);
@@ -230,6 +256,14 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             $user = $this->coreServiceFactory->getUserService()->getUserByLogin($username);
             if ($user === null) {
                 return null;
+            }
+
+            // Handle VJOURNAL
+            $vjournal = $vcalendar->VJOURNAL;
+            if ($vjournal !== null) {
+                $journal = $this->vJournalToEntity($vjournal, $username);
+                $this->coreServiceFactory->getJournalService()->createJournal($journal, $user);
+                return '"' . md5($icsString) . '"';
             }
 
             // Handle VTODO
@@ -630,6 +664,85 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
                 'etag' => '"' . md5($ics) . '"',
                 'size' => \strlen($ics),
                 'component' => 'vtodo',
+            ];
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function journalToIcs(Journal $journal): string
+    {
+        $vcalendar = new VObject\Component\VCalendar();
+        $vcalendar->add('VJOURNAL', [
+            'UID' => $journal->uid(),
+            'SUMMARY' => $journal->name(),
+            'DESCRIPTION' => $journal->description(),
+            'DTSTART' => $journal->start()->format('Ymd'),
+        ]);
+
+        return $vcalendar->serialize();
+    }
+
+    private function vJournalToEntity(VObject\Component $vjournal, string $createdBy, ?int $id = null): Journal
+    {
+        $summary = (string) ($vjournal->SUMMARY ?? 'Untitled');
+        $description = (string) ($vjournal->DESCRIPTION ?? '');
+        $uid = (string) ($vjournal->UID ?? 'caldav-journal-' . bin2hex(random_bytes(8)));
+
+        $startDate = new \DateTimeImmutable();
+        if (isset($vjournal->DTSTART)) {
+            $dt = $vjournal->DTSTART->getDateTime();
+            $startDate = $dt instanceof \DateTimeImmutable ? $dt : \DateTimeImmutable::createFromMutable($dt);
+        }
+
+        return new Journal(
+            id: $id !== null ? new EventId($id) : new EventId(0),
+            uid: $uid,
+            name: $summary,
+            description: $description,
+            location: '',
+            start: $startDate,
+            duration: 0,
+            createdBy: $createdBy,
+            type: EventType::JOURNAL,
+            access: AccessLevel::PUBLIC,
+        );
+    }
+
+    /**
+     * @param mixed $calendarId
+     *
+     * @return array<string, mixed>|null
+     */
+    private function getJournalObject(mixed $calendarId, string $uri): ?array
+    {
+        $idPart = substr($uri, 8); // Remove 'journal-' prefix
+        if (!str_ends_with($idPart, '.ics')) {
+            return null;
+        }
+        $journalIdStr = substr($idPart, 0, -4);
+        if (!ctype_digit($journalIdStr)) {
+            return null;
+        }
+
+        try {
+            $journalId = (int) $journalIdStr;
+            $journal = $this->coreServiceFactory->getJournalService()->getJournalById(new EventId($journalId));
+            if ($journal === null) {
+                return null;
+            }
+
+            $ics = $this->journalToIcs($journal);
+
+            return [
+                'id' => 'journal-' . $journal->id()->value(),
+                'uri' => $uri,
+                'calendarid' => $calendarId,
+                'calendardata' => $ics,
+                'lastmodified' => time(),
+                'etag' => '"' . md5($ics) . '"',
+                'size' => \strlen($ics),
+                'component' => 'vjournal',
             ];
         } catch (\Throwable) {
             return null;

@@ -17,7 +17,7 @@
 |------|-------|---------|------|--------|
 | P4-E1 | CalDAV Server Core | 4 | 4 | DONE |
 | P4-E2 | CalDAV Calendar & Event Operations | 4 | 4 | DONE |
-| P4-E3 | CalDAV Tasks & Journals | 3 | 1 | IN PROGRESS |
+| P4-E3 | CalDAV Tasks & Journals | 3 | 2 | IN PROGRESS |
 | P4-E4 | CalDAV Integration Tests | 2 | 0 | NOT STARTED |
 | P4-E5 | OAuth2 / OIDC Authentication | 4 | 0 | NOT STARTED |
 | P4-E6 | LDAP Authentication | 3 | 0 | NOT STARTED |
@@ -238,7 +238,7 @@ Map webcalendar tasks to CalDAV VTODO objects.
 
 ### P4-E3-S2: CalDAV Journals (VJOURNAL)
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Map webcalendar journals to CalDAV VJOURNAL objects.
@@ -246,11 +246,11 @@ Map webcalendar journals to CalDAV VJOURNAL objects.
 **Preconditions:** P4-E1-S3
 
 **Acceptance Criteria:**
-- [ ] Journals exposed as VJOURNAL objects in CalDAV
-- [ ] CRUD operations via PUT/GET/DELETE
-- [ ] Properties mapped: summary, description, date
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests
+- [x] Journals exposed as VJOURNAL objects in CalDAV
+- [x] CRUD operations via PUT/GET/DELETE
+- [x] Properties mapped: summary, description, date
+- [x] PHPStan level 9 passes
+- [x] Unit tests
 
 ---
 
