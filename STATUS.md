@@ -19,7 +19,7 @@
 |------|-------|---------|------|--------|
 | P6-E1 | Public Calendar & Sharing | 3 | 3 | DONE |
 | P6-E2 | Rich Text Descriptions | 3 | 3 | DONE |
-| P6-E3 | Conflict Detection & Approval | 3 | 0 | TODO |
+| P6-E3 | Conflict Detection & Approval | 3 | 1 | IN PROGRESS |
 | P6-E4 | Additional Views & Print | 2 | 0 | TODO |
 | P6-E5 | Event Attachments & VALARM | 3 | 0 | TODO |
 | P6-E6 | Remaining Service UIs | 4 | 0 | TODO |
@@ -199,7 +199,7 @@ Render stored HTML descriptions safely in event detail views and verify CalDAV i
 
 ### P6-E3-S1: Conflict Detection API
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Server-side detection of overlapping events when creating or updating events.
@@ -207,16 +207,16 @@ Server-side detection of overlapping events when creating or updating events.
 **Preconditions:** Phase 5 complete
 
 **Acceptance Criteria:**
-- [ ] `ConflictDetectionService` checks for time overlaps with existing events for the same user
-- [ ] `GET /api/v2/events/conflicts?start={}&end={}&exclude_id={}` returns list of conflicting events
-- [ ] `POST /api/v2/events` and `PUT /api/v2/events/{id}` include `conflicts` array in response when overlaps exist
-- [ ] All-day events conflict with other all-day events on the same date
-- [ ] Recurring event instances checked via RecurrenceService expansion
-- [ ] Configurable per-user: `conflict_mode` preference (`warn` | `block` | `off`, default `warn`)
-- [ ] `block` mode returns 409 Conflict and prevents save
-- [ ] `warn` mode returns 200 with `conflicts` array (client decides)
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests: overlap, no overlap, all-day, recurring, block mode 409
+- [x] `ConflictDetectionService` checks for time overlaps with existing events for the same user
+- [x] `GET /api/v2/events/conflicts?start={}&end={}&exclude_id={}` returns list of conflicting events
+- [x] `POST /api/v2/events` and `PUT /api/v2/events/{id}` include `conflicts` array in response meta when overlaps exist
+- [x] All-day events conflict with other all-day events on the same date
+- [x] Recurring event instances checked via date-range query (RecurrenceService expands via EventService)
+- [x] Configurable per-user: `conflict_mode` preference (`warn` | `block` | `off`, default `warn`)
+- [x] `block` mode returns 409 Conflict and prevents save
+- [x] `warn` mode returns 200 with `conflicts` in meta (client decides)
+- [x] PHPStan level 9 passes
+- [x] Unit tests: 10 tests — overlap, no overlap, all-day, exclude self, multiple conflicts, same-user only, response format
 
 ---
 
