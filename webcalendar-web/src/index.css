@@ -126,6 +126,11 @@
   @apply mt-0.5;
 }
 
+.fc .fc-event-pending {
+  border: 2px dashed #9ca3af !important;
+  opacity: 0.7;
+}
+
 .fc .fc-timegrid-event {
   @apply rounded-md border-l-[3px];
   border-left-color: inherit;

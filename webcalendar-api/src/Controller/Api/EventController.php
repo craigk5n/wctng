@@ -232,6 +232,24 @@ final class EventController
             }
         }
 
+        // Check if user requires event approval
+        if ($this->requiresApproval($user->getUserIdentifier())) {
+            $event = new \WebCalendar\Core\Domain\Entity\Event(
+                id: $event->id(),
+                uid: $event->uid(),
+                name: $event->name(),
+                description: $event->description(),
+                location: $event->location(),
+                start: $event->start(),
+                duration: $event->duration(),
+                createdBy: $event->createdBy(),
+                type: $event->type(),
+                access: $event->access(),
+                status: 'needs_approval',
+                allDay: $event->isAllDay(),
+            );
+        }
+
         $this->coreServiceFactory->getEventService()->createEvent($event, $coreUser);
 
         // Retrieve the created event to get the assigned ID
@@ -539,6 +557,20 @@ final class EventController
         }
 
         return $result;
+    }
+
+    /**
+     * Checks if a user requires admin approval for new events.
+     */
+    private function requiresApproval(string $login): bool
+    {
+        $prefs = $this->coreServiceFactory->getUserRepository()->getPreferences($login);
+        foreach ($prefs as $pref) {
+            if ($pref->key() === 'require_event_approval' && $pref->value() === 'Y') {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

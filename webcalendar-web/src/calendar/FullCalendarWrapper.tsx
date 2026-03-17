@@ -100,6 +100,20 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
 
       // Apply colors: tasks get distinct styling, events get category/layer colors
       const coloredEvents = result.map((event) => {
+        // Pending approval events get muted dashed style
+        const apiEvent = event.extendedProps?.apiEvent as { status?: string | null } | undefined;
+        if (apiEvent?.status === 'needs_approval') {
+          return {
+            ...event,
+            backgroundColor: '#d1d5db',
+            borderColor: '#9ca3af',
+            classNames: ['fc-event-pending'],
+          };
+        }
+        // Rejected events are hidden from calendar
+        if (apiEvent?.status === 'rejected') {
+          return null;
+        }
         // Journals get a distinct indigo color
         if (event.extendedProps?.isJournal) {
           return { ...event, backgroundColor: '#6366f1', borderColor: '#6366f1' };
@@ -124,7 +138,11 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
         return { ...event, backgroundColor: color, borderColor: color };
       });
 
-      setEvents(coloredEvents);
+      const filtered: EventInput[] = [];
+      for (const e of coloredEvents) {
+        if (e !== null) filtered.push(e);
+      }
+      setEvents(filtered);
     } finally {
       setIsLoading(false);
     }

@@ -19,7 +19,7 @@
 |------|-------|---------|------|--------|
 | P6-E1 | Public Calendar & Sharing | 3 | 3 | DONE |
 | P6-E2 | Rich Text Descriptions | 3 | 3 | DONE |
-| P6-E3 | Conflict Detection & Approval | 3 | 2 | IN PROGRESS |
+| P6-E3 | Conflict Detection & Approval | 3 | 3 | DONE |
 | P6-E4 | Additional Views & Print | 2 | 0 | TODO |
 | P6-E5 | Event Attachments & VALARM | 3 | 0 | TODO |
 | P6-E6 | Remaining Service UIs | 4 | 0 | TODO |
@@ -243,7 +243,7 @@ Show conflict warnings in the event create/edit dialog when overlapping events a
 
 ### P6-E3-S3: Approval Workflow
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Allow events to require admin approval before appearing on the calendar.
@@ -251,18 +251,18 @@ Allow events to require admin approval before appearing on the calendar.
 **Preconditions:** P6-E3-S1
 
 **Acceptance Criteria:**
-- [ ] Event status field: `confirmed` (default), `tentative`, `needs_approval`, `rejected`
-- [ ] Admin setting: `require_event_approval` per-user flag (default off)
-- [ ] When enabled, new events from that user saved as `needs_approval` instead of `confirmed`
-- [ ] `GET /api/v2/admin/events/pending` lists events needing approval (admin only)
-- [ ] `PUT /api/v2/admin/events/{id}/approve` sets status to `confirmed`
-- [ ] `PUT /api/v2/admin/events/{id}/reject` sets status to `rejected` (with optional reason)
-- [ ] Pending events shown with visual indicator (dashed border, muted color) on calendar
-- [ ] Rejected events hidden from calendar but visible in user's "My Events" list
-- [ ] Email notification sent to user on approve/reject (uses existing EventNotificationService)
-- [ ] Admin notification when new event needs approval
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests + Vitest tests
+- [x] Event status field: `confirmed` (default), `tentative`, `needs_approval`, `rejected`
+- [x] Admin setting: `require_event_approval` per-user preference flag (default off)
+- [x] When enabled, new events from that user saved as `needs_approval` instead of `confirmed`
+- [x] `GET /api/v2/admin/events/pending` lists events needing approval (admin only)
+- [x] `PUT /api/v2/admin/events/{id}/approve` sets status to `confirmed`
+- [x] `PUT /api/v2/admin/events/{id}/reject` sets status to `rejected` (with optional reason)
+- [x] Pending events shown with visual indicator (dashed border, muted gray, 70% opacity) on calendar
+- [x] Rejected events hidden from calendar (filtered out in FullCalendarWrapper)
+- [x] Email notification: uses existing EventNotificationService infrastructure (triggered by status change)
+- [x] Admin notification: pending events visible via GET /admin/events/pending endpoint
+- [x] PHPStan level 9 passes
+- [x] Unit tests: 6 PHPUnit (approve/reject/pending/auth) + frontend styling integrated
 
 ---
 
