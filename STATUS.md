@@ -1,8 +1,8 @@
-# WCTNG — Phase 6 Development Plan & Status
+# WCTNG — Phase 7 Development Plan & Status
 
 > **Last Updated:** 2026-03-17
-> **Phase:** 6 — Feature Completion
-> **Goal:** Public calendars, rich text, conflict detection, year view, attachments, remaining service UIs, i18n
+> **Phase:** 7 — Competitive Parity & Differentiation
+> **Goal:** Drag-and-drop, ICS subscriptions, scheduling polls, room booking, MCP server, PWA notifications, natural language, saved views, private categories
 > **Methodology:** TDD (write tests first, then implementation)
 > **Developed by:** AI Agent
 > **Phase 1 Archive:** See `STATUS-PHASE1-ARCHIVE.md`
@@ -10,6 +10,7 @@
 > **Phase 3 Archive:** See `STATUS-PHASE3-ARCHIVE.md`
 > **Phase 4 Archive:** See `STATUS-PHASE4-ARCHIVE.md`
 > **Phase 5 Archive:** See `STATUS-PHASE5-ARCHIVE.md`
+> **Phase 6 Archive:** See `STATUS-PHASE6-ARCHIVE.md`
 
 ---
 
@@ -17,42 +18,38 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| P6-E1 | Public Calendar & Sharing | 3 | 3 | DONE |
-| P6-E2 | Rich Text Descriptions | 3 | 3 | DONE |
-| P6-E3 | Conflict Detection & Approval | 3 | 3 | DONE |
-| P6-E4 | Additional Views & Print | 2 | 2 | DONE |
-| P6-E5 | Event Attachments & VALARM | 3 | 3 | DONE |
-| P6-E6 | Remaining Service UIs | 4 | 4 | DONE |
-| P6-E7 | Internationalization | 3 | 3 | DONE |
-| P6-E8 | Admin Feature Configuration | 3 | 3 | DONE |
-| P6-E9 | Integration & E2E Testing | 3 | 3 | DONE |
-| **Total** | | **27** | **27** | |
+| P7-E1 | Drag-and-Drop & Resize | 2 | 0 | TODO |
+| P7-E2 | ICS Subscription & Holidays | 3 | 0 | TODO |
+| P7-E3 | Scheduling Polls | 3 | 0 | TODO |
+| P7-E4 | Room & Resource Booking | 2 | 0 | TODO |
+| P7-E5 | MCP Server (AI Integration) | 2 | 0 | TODO |
+| P7-E6 | PWA & Push Notifications | 2 | 0 | TODO |
+| P7-E7 | Saved Views & Private Categories | 2 | 0 | TODO |
+| P7-E8 | UX Quick Wins | 3 | 0 | TODO |
+| **Total** | | **19** | **0** | |
 
 ---
 
 ## Dependency Graph
 
 ```
-P6-E1 (Public Calendar) — independent
-P6-E2 (Rich Text) — independent
-P6-E3 (Conflict & Approval) — independent
-P6-E4 (Views & Print) — independent
-P6-E5 (Attachments & VALARM) — independent
-P6-E6 (Service UIs) — independent
-P6-E7 (i18n) — after E1-E8 ideally (translate what exists)
-P6-E8 (Admin Config) — independent, but best after E2 (rich text toggle)
-P6-E9 (Testing) — after all features complete (E1-E8)
+P7-E1 (Drag & Drop) — independent (quick win)
+P7-E2 (ICS Subscription) — independent
+P7-E3 (Scheduling Polls) — independent
+P7-E4 (Room Booking) — independent
+P7-E5 (MCP Server) — independent
+P7-E6 (PWA & Push) — independent
+P7-E7 (Views & Categories) — independent
+P7-E8 (UX Quick Wins) — independent
 ```
 
-**All epics E1-E6, E8 are independent** and can be done in any order.
-**E7 (i18n)** should come after feature work so all UI strings exist.
-**E9 (Testing)** should come last — validates the complete application.
+**All epics are independent.** Start with E1 (quick win) for immediate user impact.
 
 ---
 
 ## Global Standards
 
-Same as Phase 1–5:
+Same as Phase 1–6:
 - PHP 8.2+, PHPStan level 9, Psalm errorLevel 1, PHPUnit 10
 - React 18, TypeScript strict, ESLint, Vitest, Playwright
 - TDD: write tests first, then implementation
@@ -60,639 +57,428 @@ Same as Phase 1–5:
 
 ---
 
-## Epic P6-E1: Public Calendar & Sharing
+## Epic P7-E1: Drag-and-Drop & Resize
 
-**Goal:** Allow unauthenticated access to public calendars with shareable links and embeddable views.
+**Goal:** Enable drag-and-drop event rescheduling and duration resize on the calendar grid — the #1 expected UX feature across all competitors.
 
-### P6-E1-S1: Public Calendar API
+### P7-E1-S1: Drag-and-Drop Rescheduling
 
-**Status:** DONE
+**Status:** TODO
 
 **Description:**
-API endpoints for accessing public calendar data without authentication. Admins configure which calendars are publicly visible.
+Allow users to drag events to new dates/times on the calendar grid. FullCalendar already supports this via `editable: true` — wire the drop event to the PUT API.
 
-**Preconditions:** Phase 5 complete
+**Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [x] `webcal_entry` visibility field respected: public entries accessible without auth
-- [x] `GET /api/v2/public/calendars` lists publicly visible calendars
-- [x] `GET /api/v2/public/calendars/{username}/events?start={}&end={}` returns public events (date-range filtered)
-- [x] Admin setting: per-user `public_calendar_enabled` flag (default off)
-- [x] Admin API: `PUT /api/v2/admin/users/{login}/public-calendar` toggles public visibility
-- [x] Public endpoints skip JWT authentication (firewall config)
-- [x] Rate limiting on public endpoints (stricter than authenticated: 30 req/min)
-- [x] PHPStan level 9 passes
-- [x] Unit tests (13 tests, 26 assertions)
+- [ ] FullCalendar `editable` prop set to `true` for owned events
+- [ ] `eventDrop` callback sends PUT /api/v2/events/{id} with new start_date/start_time
+- [ ] All-day events can be dragged between dates
+- [ ] Timed events can be dragged between time slots (day/week views)
+- [ ] Events from other users' layers are NOT draggable
+- [ ] Optimistic UI: event moves immediately, reverts on API error
+- [ ] Toast notification on successful reschedule
+- [ ] Vitest + Playwright E2E tests
 
 ---
 
-### P6-E1-S2: Public Calendar Frontend
+### P7-E1-S2: Event Duration Resize
 
-**Status:** DONE
+**Status:** TODO
 
 **Description:**
-Read-only calendar view accessible without login, showing public events in a FullCalendar instance.
+Allow users to drag the bottom edge of an event to change its duration. FullCalendar supports this via `eventResize`.
 
-**Preconditions:** P6-E1-S1
+**Preconditions:** P7-E1-S1
 
 **Acceptance Criteria:**
-- [x] Route `/public/{username}` renders a read-only FullCalendar (month/week/day views)
-- [x] No login required — page loads without JWT
-- [x] Event click shows detail popup (title, time, location, description — no edit)
-- [x] Calendar header shows owner's display name
-- [x] Graceful 404 if user has no public calendar enabled
-- [x] Mobile responsive
-- [x] Vitest tests (6 tests)
+- [ ] `eventResize` callback sends PUT /api/v2/events/{id} with new duration
+- [ ] Resize handle visible on hover in day/week views
+- [ ] Duration snaps to 15-minute increments
+- [ ] Minimum duration: 15 minutes
+- [ ] Optimistic UI with revert on error
+- [ ] Vitest tests
 
 ---
 
-### P6-E1-S3: Shareable Links & Embed
+## Epic P7-E2: ICS Subscription & Holidays
 
-**Status:** DONE
+**Goal:** Subscribe to external ICS calendar feeds (holidays, sports, shared calendars) and display them as read-only layers.
+
+### P7-E2-S1: Remote Calendar Subscription API
+
+**Status:** TODO
 
 **Description:**
-Generate shareable URLs with optional access tokens for private sharing, plus an embeddable iframe snippet.
+Backend support for subscribing to external ICS URLs with periodic refresh.
 
-**Preconditions:** P6-E1-S2
+**Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [x] `POST /api/v2/calendars/share` generates a share token (UUID) with optional expiry
-- [x] `GET /api/v2/public/shared/{token}/events` returns events for the shared calendar
-- [x] Share tokens can be revoked: `DELETE /api/v2/calendars/share/{token}`
-- [x] Settings page lists active share links with copy-to-clipboard button
-- [x] Embed snippet generator: `<iframe src="/public/embed/{token}" ...>` with configurable dimensions
-- [x] `/public/embed/{token}` renders a minimal calendar (no header/nav, just the grid)
-- [x] PHPStan level 9 passes
-- [x] Unit tests (17 PHP) + Vitest tests (6 frontend)
+- [ ] `calendar_subscriptions` table: id, user_login, url, name, color, refresh_interval, last_fetched, etag
+- [ ] `POST /api/v2/calendars/subscribe` — add subscription (URL, name, color)
+- [ ] `GET /api/v2/calendars/subscriptions` — list user's subscriptions
+- [ ] `DELETE /api/v2/calendars/subscriptions/{id}` — remove subscription
+- [ ] Background refresh: `php bin/console webcalendar:refresh-subscriptions` (cron command)
+- [ ] ICS fetch with HTTP ETag/If-None-Match for efficiency
+- [ ] Events stored in memory (not persisted) or cached in Redis
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests
 
 ---
 
-## Epic P6-E2: Rich Text Descriptions
+### P7-E2-S2: Subscription Management UI
 
-**Goal:** Enable HTML rich text editing for event descriptions with a WYSIWYG editor and safe server-side sanitization.
-
-### P6-E2-S1: Backend HTML Sanitization
-
-**Status:** DONE
+**Status:** TODO
 
 **Description:**
-Add server-side HTML sanitization for event descriptions using Symfony HtmlSanitizer. Ensures stored HTML is safe against XSS while preserving formatting.
+Settings page for managing ICS subscriptions and a curated list of popular holiday calendars.
 
-**Preconditions:** Phase 5 complete
+**Preconditions:** P7-E2-S1
 
 **Acceptance Criteria:**
-- [x] `symfony/html-sanitizer` installed via Composer
-- [x] `DescriptionSanitizer` service with allowlist: `p, br, strong, em, b, i, u, ul, ol, li, a[href], h2, h3, blockquote, code, pre`
-- [x] Strips all other tags (`<script>`, `<style>`, `<iframe>`, `<img>`, event handlers like `onclick`)
-- [x] Strips dangerous attributes (`style`, `on*` event handlers)
-- [x] `a[href]` restricted to `http:`, `https:`, `mailto:` schemes (no `javascript:`)
-- [x] Sanitization applied in EventController, TaskController, and JournalController on description field
-- [x] Existing plain-text descriptions pass through unchanged
-- [x] PHPStan level 9 passes
-- [x] Unit tests: 23 tests — XSS payloads stripped, valid HTML preserved, plain text unchanged
+- [ ] Route `/settings/subscriptions` with add/remove subscriptions
+- [ ] Input fields: URL, display name, color picker
+- [ ] Quick-add: pre-built list of popular calendars (US Holidays, UK Holidays, etc.) with one-click subscribe
+- [ ] Subscribed calendars appear as read-only layers on the calendar
+- [ ] Refresh button to force re-fetch
+- [ ] Vitest tests
 
 ---
 
-### P6-E2-S2: TipTap Rich Text Editor
+### P7-E2-S3: Holiday Calendar Display
 
-**Status:** DONE
+**Status:** TODO
 
 **Description:**
-Replace the plain textarea for event descriptions with a TipTap WYSIWYG editor styled with Tailwind/shadcn.
+Display subscribed calendar events on the FullCalendar grid as a distinct layer.
 
-**Preconditions:** P6-E2-S1
+**Preconditions:** P7-E2-S2
 
 **Acceptance Criteria:**
-- [x] `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-link` installed
-- [x] `RichTextEditor` component with toolbar: bold, italic, bullet list, ordered list, link, heading (H2/H3), blockquote, code
-- [x] Toolbar buttons styled with Tailwind, consistent with shadcn/ui design system
-- [x] Editor outputs HTML string (not JSON) for API compatibility
-- [x] Editor accepts initial HTML content and renders it correctly (edit mode)
-- [x] Empty editor returns empty string (not `<p></p>`)
-- [x] Editor integrated into event create/edit dialog, task create dialog, and journal create/edit
-- [x] Keyboard shortcuts: Ctrl+B (bold), Ctrl+I (italic), Ctrl+K (link) via TipTap/ProseMirror
-- [x] Vitest tests: 5 tests — renders, toolbar buttons, initial content, onChange
+- [ ] Subscription events rendered on calendar with subscription color
+- [ ] Subscription events are read-only (no edit/delete/drag)
+- [ ] Subscription events show source name in detail popup
+- [ ] Toggle visibility per subscription (like layers)
+- [ ] Vitest tests
 
 ---
 
-### P6-E2-S3: Rich Text Display & CalDAV Round-Trip
+## Epic P7-E3: Scheduling Polls
 
-**Status:** DONE
+**Goal:** Propose multiple meeting times, let participants vote, and auto-schedule the winning time. Present in Outlook, Nextcloud, and Fantastical.
+
+### P7-E3-S1: Poll API
+
+**Status:** TODO
 
 **Description:**
-Render stored HTML descriptions safely in event detail views and verify CalDAV import/export preserves rich text.
+Backend for creating scheduling polls with time options and collecting votes.
 
-**Preconditions:** P6-E2-S2
+**Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [x] Event detail dialog renders description HTML using `dangerouslySetInnerHTML` with CSS scoping (prose class)
-- [x] Task and journal detail views also render HTML descriptions (via RichTextDisplay component)
-- [x] Search results snippets strip HTML tags for clean display (RichTextDisplay handles plain text fallback)
-- [x] CalDAV export: HTML descriptions produce STYLED-DESCRIPTION + X-ALT-DESC + plain DESCRIPTION (verified via EventMapper)
-- [x] CalDAV import: STYLED-DESCRIPTION / X-ALT-DESC HTML imported and sanitized before storage
-- [x] ICS file export includes X-ALT-DESC for Outlook compatibility (via webcalendar-core EventMapper)
-- [x] Vitest tests: 5 tests for RichTextDisplay rendering
-- [x] PHPUnit tests: 3 tests — HTML round-trip, plain text round-trip, XSS sanitization
+- [ ] `scheduling_polls` table: id, creator_login, title, description, status (open/closed), created_at
+- [ ] `scheduling_poll_options` table: id, poll_id, start_datetime, end_datetime
+- [ ] `scheduling_poll_votes` table: id, option_id, voter_login, vote (yes/maybe/no)
+- [ ] `POST /api/v2/polls` — create poll with title + time options
+- [ ] `GET /api/v2/polls/{id}` — get poll with options and vote counts
+- [ ] `POST /api/v2/polls/{id}/vote` — cast vote on options
+- [ ] `POST /api/v2/polls/{id}/finalize` — close poll, create event from winning option
+- [ ] Email notification to participants with voting link
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests
 
 ---
 
-## Epic P6-E3: Conflict Detection & Approval
+### P7-E3-S2: Poll Creation UI
 
-**Goal:** Detect scheduling conflicts and support approval workflows for event creation.
-
-### P6-E3-S1: Conflict Detection API
-
-**Status:** DONE
+**Status:** TODO
 
 **Description:**
-Server-side detection of overlapping events when creating or updating events.
+UI for creating scheduling polls with time slot selection.
 
-**Preconditions:** Phase 5 complete
+**Preconditions:** P7-E3-S1
 
 **Acceptance Criteria:**
-- [x] `ConflictDetectionService` checks for time overlaps with existing events for the same user
-- [x] `GET /api/v2/events/conflicts?start={}&end={}&exclude_id={}` returns list of conflicting events
-- [x] `POST /api/v2/events` and `PUT /api/v2/events/{id}` include `conflicts` array in response meta when overlaps exist
-- [x] All-day events conflict with other all-day events on the same date
-- [x] Recurring event instances checked via date-range query (RecurrenceService expands via EventService)
-- [x] Configurable per-user: `conflict_mode` preference (`warn` | `block` | `off`, default `warn`)
-- [x] `block` mode returns 409 Conflict and prevents save
-- [x] `warn` mode returns 200 with `conflicts` in meta (client decides)
-- [x] PHPStan level 9 passes
-- [x] Unit tests: 10 tests — overlap, no overlap, all-day, exclude self, multiple conflicts, same-user only, response format
+- [ ] "Schedule Meeting" button on calendar toolbar (distinct from "New Event")
+- [ ] Poll creation dialog: title, description, participant usernames
+- [ ] Time slot picker: click on calendar grid to add proposed times
+- [ ] Minimum 2 options, maximum 10
+- [ ] Preview before sending
+- [ ] Vitest tests
 
 ---
 
-### P6-E3-S2: Conflict Detection UI
+### P7-E3-S3: Poll Voting & Finalization UI
 
-**Status:** DONE
+**Status:** TODO
 
 **Description:**
-Show conflict warnings in the event create/edit dialog when overlapping events are detected.
+Voting interface for participants and finalization for the organizer.
 
-**Preconditions:** P6-E3-S1
+**Preconditions:** P7-E3-S2
 
 **Acceptance Criteria:**
-- [x] When saving an event, if API returns `conflicts` array, show a warning banner in the dialog
-- [x] Warning lists conflicting event titles, times, and calendar names
-- [x] User can dismiss warning and save anyway (in `warn` mode) via "Save Anyway" button
-- [x] In `block` mode, shows "cannot be saved" message without dismiss button
-- [x] Real-time check: debounced (500ms) conflict query fires when date/time/duration changes
-- [x] Conflict indicator shown inline below time/duration fields in EventDialog
-- [x] User preference toggle in Settings > Preferences: conflict detection mode (warn/block/off)
-- [x] Vitest tests: 6 tests for ConflictWarning component
+- [ ] Route `/polls/{id}` — voting page (accessible to participants)
+- [ ] Visual grid: options as columns, voters as rows, yes/maybe/no toggles
+- [ ] Real-time vote count display
+- [ ] Organizer: "Finalize" button picks the option with most "yes" votes
+- [ ] Finalization creates a calendar event and notifies all participants
+- [ ] Email with direct voting link (HMAC-signed token for unauthenticated voting)
+- [ ] Vitest tests
 
 ---
 
-### P6-E3-S3: Approval Workflow
+## Epic P7-E4: Room & Resource Booking
 
-**Status:** DONE
+**Goal:** Dedicated UI for managing rooms, equipment, and other shared resources. ResourceService is already wired in webcalendar-core.
+
+### P7-E4-S1: Resource Management API & Admin UI
+
+**Status:** TODO
 
 **Description:**
-Allow events to require admin approval before appearing on the calendar.
+Admin page for creating and managing rooms/resources, plus API for availability queries.
 
-**Preconditions:** P6-E3-S1
+**Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [x] Event status field: `confirmed` (default), `tentative`, `needs_approval`, `rejected`
-- [x] Admin setting: `require_event_approval` per-user preference flag (default off)
-- [x] When enabled, new events from that user saved as `needs_approval` instead of `confirmed`
-- [x] `GET /api/v2/admin/events/pending` lists events needing approval (admin only)
-- [x] `PUT /api/v2/admin/events/{id}/approve` sets status to `confirmed`
-- [x] `PUT /api/v2/admin/events/{id}/reject` sets status to `rejected` (with optional reason)
-- [x] Pending events shown with visual indicator (dashed border, muted gray, 70% opacity) on calendar
-- [x] Rejected events hidden from calendar (filtered out in FullCalendarWrapper)
-- [x] Email notification: uses existing EventNotificationService infrastructure (triggered by status change)
-- [x] Admin notification: pending events visible via GET /admin/events/pending endpoint
-- [x] PHPStan level 9 passes
-- [x] Unit tests: 6 PHPUnit (approve/reject/pending/auth) + frontend styling integrated
+- [ ] `GET /api/v2/admin/resources` — list all resources (rooms, equipment)
+- [ ] `POST /api/v2/admin/resources` — create resource (name, type, capacity, location)
+- [ ] `PUT/DELETE /api/v2/admin/resources/{id}` — update/delete
+- [ ] `GET /api/v2/resources/{id}/availability?date={}` — check resource availability
+- [ ] Route `/admin/resources` — admin management page
+- [ ] Uses ResourceService from webcalendar-core
+- [ ] PHPStan level 9 passes
+- [ ] Unit + Vitest tests
 
 ---
 
-## Epic P6-E4: Additional Views & Print
+### P7-E4-S2: Resource Booking in Event Dialog
 
-**Goal:** Add year view and print-friendly stylesheets for all calendar views.
-
-### P6-E4-S1: Year View
-
-**Status:** DONE
+**Status:** TODO
 
 **Description:**
-Full-year calendar grid showing all 12 months with event indicators.
+Add room/resource picker to the event create/edit dialog.
 
-**Preconditions:** Phase 5 complete
+**Preconditions:** P7-E4-S1
 
 **Acceptance Criteria:**
-- [x] Year button in view switcher toolbar (multiMonthYear)
-- [x] 12-month grid layout (responsive via FullCalendar multimonth plugin)
-- [x] Days with events show dot indicators (colored by category)
-- [x] Click on a day navigates to that day's day view (FullCalendar built-in)
-- [x] Click on a month header navigates to that month's month view (FullCalendar built-in)
-- [x] Year navigation: previous/next year arrows (FullCalendar built-in)
-- [x] Current day highlighted (bg-primary/10)
-- [x] FullCalendar `multiMonthYear` view via @fullcalendar/multimonth plugin
-- [x] Keyboard shortcut: Y for year view
-- [x] Vitest tests: 2 tests
+- [ ] "Room" dropdown in EventDialog showing available resources
+- [ ] Availability check: only show resources free during the event's time slot
+- [ ] Selected resource shown in event detail dialog
+- [ ] Resource calendar viewable as a layer
+- [ ] Double-booking prevention (409 if resource already booked)
+- [ ] Vitest tests
 
 ---
 
-### P6-E4-S2: Print Styles
+## Epic P7-E5: MCP Server (AI Integration)
 
-**Status:** DONE
+**Goal:** Model Context Protocol server enabling AI assistants (Claude, ChatGPT, etc.) to read and write calendar events. No competitor has this — unique differentiator.
+
+### P7-E5-S1: MCP Endpoint & Tool Definitions
+
+**Status:** TODO
 
 **Description:**
-CSS `@media print` rules for clean printable output from day, week, month, and year views.
+Implement MCP-compliant endpoint with tool definitions for calendar operations.
 
-**Preconditions:** P6-E4-S1
+**Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [x] Print button in toolbar (triggers `window.print()`) with printer icon
-- [x] `@media print` hides: sidebar, toolbar buttons, header nav, scrollbars
-- [x] Day view: events listed chronologically (FullCalendar renders visible content)
-- [x] Week view: 7-column grid with events (scroller overflow set to visible)
-- [x] Month view: month grid with event titles (page-break-inside: avoid)
-- [x] Year view: 12-month grid with dot indicators (page-break-inside: avoid)
-- [x] Event colors print as background colors (`-webkit-print-color-adjust: exact`)
-- [x] Page header shows calendar title centered (fc-toolbar-title)
-- [x] Vitest tests: 2 tests for PrintButton (renders, calls window.print)
+- [ ] `POST /api/v2/mcp` — MCP JSON-RPC endpoint
+- [ ] Authentication via API token (per-user `cal_api_token` field)
+- [ ] MCP tools defined:
+  - `list_events` — list events in date range
+  - `get_event` — get event details by ID
+  - `create_event` — create a new event (title, date, time, duration, description, location)
+  - `update_event` — update event fields
+  - `delete_event` — delete an event
+  - `search_events` — search by keyword
+  - `get_availability` — check free/busy for a user
+- [ ] Rate limiting: 60 requests/minute per token
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests
 
 ---
 
-## Epic P6-E5: Event Attachments & VALARM
+### P7-E5-S2: MCP Configuration & API Token Management
 
-**Goal:** File attachment support for events and iCalendar alarm (VALARM) support in CalDAV.
-
-### P6-E5-S1: File Upload API
-
-**Status:** DONE
+**Status:** TODO
 
 **Description:**
-API endpoints for uploading, listing, and downloading file attachments on events.
+User settings for generating/revoking API tokens for MCP access.
 
-**Preconditions:** Phase 5 complete
+**Preconditions:** P7-E5-S1
 
 **Acceptance Criteria:**
-- [x] `POST /api/v2/events/{id}/attachments` accepts multipart/form-data file upload
-- [x] `GET /api/v2/events/{id}/attachments` lists attachments (id, filename, mime_type, size, created_at)
-- [x] `GET /api/v2/events/{id}/attachments/{attachmentId}` downloads the file
-- [x] `DELETE /api/v2/events/{id}/attachments/{attachmentId}` removes attachment
-- [x] Storage via BlobRepository (webcalendar-core `webcal_blob` table)
-- [x] File size limit: 10MB per file (constant, configurable)
-- [x] Allowed MIME types: images, PDF, Office docs, text files (constant allowlist)
-- [x] Max 10 attachments per event
-- [x] PHPStan level 9 passes
-- [x] Unit tests: 5 tests (list, list 404, delete, delete wrong event, download)
+- [ ] Route `/settings/api-tokens` — manage API tokens
+- [ ] Generate new token (shown once, then hashed)
+- [ ] Revoke existing tokens
+- [ ] Token permissions: read-only or read-write
+- [ ] MCP connection instructions displayed (endpoint URL, token format)
+- [ ] Admin setting: enable/disable MCP server globally
+- [ ] Vitest tests
 
 ---
 
-### P6-E5-S2: Attachment UI
+## Epic P7-E6: PWA & Push Notifications
 
-**Status:** DONE
+**Goal:** Progressive Web App with service worker for offline support and Web Push notifications for event reminders.
+
+### P7-E6-S1: PWA Manifest & Service Worker
+
+**Status:** TODO
 
 **Description:**
-File attachment management in the event detail dialog.
+Add PWA manifest, service worker for caching, and installable app experience.
 
-**Preconditions:** P6-E5-S1
+**Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [x] Attachment section in event detail dialog showing file list
-- [x] Upload button with drag-and-drop zone (dashed border, highlights on drag)
-- [x] Upload progress indicator ("Uploading..." state)
-- [x] File preview for images (thumbnail via img tag), download link for others
-- [x] Delete button (event owner only) with X button per attachment
-- [x] File size formatted (B/KB/MB) and file extension badge displayed
-- [x] Error messages for upload failures shown inline
-- [x] Vitest tests: 5 tests (list, size format, upload button, delete button, empty state)
+- [ ] `manifest.json` with app name, icons, theme color, start URL
+- [ ] Service worker caches static assets (HTML, CSS, JS, fonts)
+- [ ] Offline fallback page when network unavailable
+- [ ] "Install App" banner on supported browsers
+- [ ] App icon on home screen (mobile) and desktop
+- [ ] Vitest tests for service worker registration
 
 ---
 
-### P6-E5-S3: VALARM CalDAV Support
+### P7-E6-S2: Web Push Notifications
 
-**Status:** DONE
+**Status:** TODO
 
 **Description:**
-Support iCalendar VALARM components in CalDAV for trigger-based reminders recognized by native calendar apps.
+Browser push notifications for event reminders and calendar updates.
 
-**Preconditions:** P6-E5-S1
+**Preconditions:** P7-E6-S1
 
 **Acceptance Criteria:**
-- [x] `CoreCalendarBackend` reads/writes VALARM components in VEVENT and VTODO
-- [x] VALARM DISPLAY type supported (popup reminder in calendar apps)
-- [x] VALARM AUDIO type supported (sound reminder)
-- [x] TRIGGER property: relative duration (e.g., `-PT15M` = 15 min before) and RELATED=END
-- [x] Default alarm: `createFromPreference()` maps user preference to Reminder entity
-- [x] Import: VALARM trigger extracted and stored as reminder via ReminderRepository
-- [x] Multiple alarms per event supported (extraction), first saved (table constraint)
-- [x] PHPStan level 9 passes
-- [x] Unit tests: 8 tests — add DISPLAY/AUDIO VALARM, after-end trigger, extract single/multiple/none, preference mapping
+- [ ] Web Push API integration (VAPID keys)
+- [ ] `POST /api/v2/push/subscribe` — store push subscription
+- [ ] Push notifications for: event reminders, invitation received, event updated
+- [ ] User preference: enable/disable push notifications
+- [ ] Notification click opens the relevant event
+- [ ] Works when browser tab is closed (service worker handles)
+- [ ] PHPStan level 9 passes
+- [ ] Unit tests
 
 ---
 
-## Epic P6-E6: Remaining Service UIs
+## Epic P7-E7: Saved Views & Private Categories
 
-**Goal:** Build frontend admin/user interfaces for core services that are wired but lack UI.
+**Goal:** Named multi-user views and per-user private categories for large multi-user deployments.
 
-### P6-E6-S1: Activity Log Viewer
+### P7-E7-S1: Saved Views (Named User Groups)
 
-**Status:** DONE
+**Status:** TODO
 
 **Description:**
-Admin page to browse the activity/audit log.
+Create named views that show specific users' calendars, switchable from a dropdown.
 
-**Preconditions:** Phase 5 complete
+**Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [x] Route `/admin/activity-log` accessible to admins
-- [x] Paginated table of activity log entries (newest first, 50 per page)
-- [x] Columns: timestamp, user, action (color-coded badge), details text
-- [x] Filter by user and date range
-- [x] Click on entry shows full detail panel (ID, event ID, user, action, calendar, text)
-- [x] Uses ActivityLogService from webcalendar-core via GET /api/v2/admin/activity-log
-- [x] Vitest tests: 4 tests (heading, table entries, empty state, detail text)
-- [x] PHPStan level 9 passes
+- [ ] `saved_views` table: id, owner_login, name, user_logins (JSON array)
+- [ ] `POST /api/v2/views` — create saved view (name + list of usernames)
+- [ ] `GET /api/v2/views` — list user's saved views
+- [ ] `PUT/DELETE /api/v2/views/{id}` — update/delete
+- [ ] View switcher dropdown in calendar toolbar
+- [ ] Selecting a view loads those users' events as layers
+- [ ] "My Calendar" always available as default view
+- [ ] Vitest tests
 
 ---
 
-### P6-E6-S2: Custom Event Fields Admin
+### P7-E7-S2: Private Categories (Per-User + Global)
 
-**Status:** DONE
+**Status:** TODO
 
 **Description:**
-Admin page for defining custom event fields (site extras) that appear on event forms.
+Allow users to create personal categories that only they see, while admins manage global categories visible to all.
 
-**Preconditions:** Phase 5 complete
+**Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [x] Route `/admin/custom-fields` accessible to admins
-- [x] List of defined custom fields with name, type, required flag
-- [x] Create/edit custom field: name, type (text, number, date, select, checkbox), required, sort order
-- [x] Select type: define options list (comma-separated input)
-- [x] Delete custom field (with confirmation — warns about data loss)
-- [x] Custom fields appear dynamically on event create/edit dialog (CustomFieldsSection)
-- [x] Custom field values saved via SiteExtraService (PUT /events/{id}/custom-fields)
-- [x] Custom field values endpoint (GET /events/{id}/custom-fields)
-- [x] PHPStan level 9 passes
-- [x] Unit tests: 5 PHPUnit (repo CRUD, sort order) + 4 Vitest (heading, list, empty, create form)
+- [ ] Category `owner` field: empty = global (admin-managed), set = private to that user
+- [ ] webcalendar-core `webcal_categories.cat_owner` column already exists — wire the filtering
+- [ ] `GET /api/v2/categories` returns global + current user's private categories
+- [ ] `POST /api/v2/categories` — non-admin users create private categories (owner = self)
+- [ ] Admin creates global categories (owner = empty)
+- [ ] Users cannot see other users' private categories
+- [ ] Category admin page shows "Global" vs "Personal" badge
+- [ ] PHPStan level 9 passes
+- [ ] Unit + Vitest tests
 
 ---
 
-### P6-E6-S3: Boss/Assistant Management
+## Epic P7-E8: UX Quick Wins
 
-**Status:** DONE
+**Goal:** Small, high-impact UX improvements identified in the competitive analysis.
+
+### P7-E8-S1: Per-Event Color Override
+
+**Status:** TODO
 
 **Description:**
-Settings page for managing boss/assistant calendar relationships.
+Allow users to set a custom color on individual events, overriding the category color.
 
-**Preconditions:** Phase 5 complete
+**Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [x] Route `/settings/assistants` accessible to all users
-- [x] User can add assistants by username
-- [x] User can see who they are an assistant for (boss list with "Calendars You Assist" section)
-- [x] Assistant permissions: managed via webcalendar-core AssistantService (view/manage boss calendar)
-- [x] Assistants see boss's calendar noted in their layer list
-- [x] `GET /api/v2/users/{login}/assistants` returns assistants and bosses
-- [x] `POST /api/v2/users/{login}/assistants` and `DELETE .../assistants/{login}` endpoints
-- [x] Uses AssistantService from webcalendar-core
-- [x] PHPStan level 9 passes
-- [x] 4 Vitest tests (heading, list assistants, show bosses, add input)
+- [ ] Color picker in EventDialog (optional, defaults to category color)
+- [ ] `color` field stored on event (webcal_entry.cal_color column exists)
+- [ ] FullCalendar renders event with custom color when set
+- [ ] Event detail dialog shows color swatch
+- [ ] PHPStan level 9 passes
+- [ ] Vitest tests
 
 ---
 
-### P6-E6-S4: Public Booking Page
+### P7-E8-S2: Focus Time & Working Location
 
-**Status:** DONE
+**Status:** TODO
 
 **Description:**
-Public-facing availability/booking page where external users can schedule time on a user's calendar.
+Special event types for "Focus Time" (auto-decline conflicts) and daily working location status.
 
-**Preconditions:** P6-E1-S1 (public calendar API)
+**Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [x] Route `/book/{username}` accessible without login
-- [x] Shows available time slots based on user's calendar (free/busy via BookingService)
-- [x] Slot duration: 30 min (configurable in BookingService), available hours 9:00-17:00
-- [x] `GET /api/v2/public/availability/{username}?date={}` returns available slots
-- [x] Booking form: name, email, description (no account required)
-- [x] `POST /api/v2/public/book/{username}` creates a TENTATIVE event via BookingService
-- [x] Booking confirmation screen shown after successful booking
-- [x] Uses BookingService from webcalendar-core
-- [x] PHPStan level 9 passes
-- [x] 4 Vitest tests (heading, slots, form fields, empty slots)
+- [ ] "Focus Time" event type in EventDialog — creates event that auto-declines overlapping invitations
+- [ ] Visual indicator: striped/hatched background on focus time blocks
+- [ ] Working location preference: per-day "Office" / "Remote" / "Traveling" status
+- [ ] `GET /api/v2/users/{login}/location?date={}` — returns working location
+- [ ] Working location shown in user's calendar header or sidebar
+- [ ] Vitest tests
 
 ---
 
-## Epic P6-E7: Internationalization
+### P7-E8-S3: Natural Language Event Creation
 
-**Goal:** Multi-language support for the entire application with language selector and RTL support.
-
-### P6-E7-S1: Backend i18n Setup
-
-**Status:** DONE
+**Status:** TODO
 
 **Description:**
-Configure Symfony translations for API error messages, email templates, and system strings.
+Parse natural language input like "Lunch with Sarah tomorrow at noon" into event fields.
 
-**Preconditions:** Phase 5 complete
-
-**Acceptance Criteria:**
-- [x] Symfony Translation component configured with `translations/` directory
-- [x] Default locale: `en` with fallback chain (framework.default_locale)
-- [x] API error/email/booking/label translation keys defined in YAML files
-- [x] Email notification string keys defined (invitation, update, cancellation, reminder, approval)
-- [x] `Accept-Language` header sets request locale via LocaleSubscriber
-- [x] User preference: locale settable via existing preferences API
-- [x] `GET /api/v2/i18n/locales` returns list of supported locales (public endpoint)
-- [x] Initial languages: English (en), French (fr), German (de), Spanish (es)
-- [x] PHPStan level 9 passes
-- [x] Unit tests: 5 tests (locale from header, default, German, unsupported fallback, event subscription)
-
----
-
-### P6-E7-S2: Frontend i18n Integration
-
-**Status:** DONE
-
-**Description:**
-Integrate react-i18next for frontend string translation with lazy-loaded locale bundles.
-
-**Preconditions:** P6-E7-S1
+**Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [x] `react-i18next`, `i18next`, `i18next-http-backend` installed
-- [x] Translation JSON files for en, fr, de, es covering nav, calendar, event, task, journal, settings, auth, common, conflict, booking
-- [x] i18n configured with HttpBackend for lazy-loading locale files from /locales/{lng}.json
-- [x] Locale persisted to localStorage (`wctng_locale`)
-- [x] `changeLocale()` and `getLocale()` utilities exported
-- [x] FullCalendar locale set dynamically via `locale={i18nInstance.language}` prop
-- [x] Initialized in main.tsx before app render
-- [x] Vitest tests: 4 tests (default English, switch to French, switch to German, fallback for missing keys)
-
----
-
-### P6-E7-S3: Language Selector & RTL
-
-**Status:** DONE
-
-**Description:**
-Language selector in user settings and app header, plus RTL layout support.
-
-**Preconditions:** P6-E7-S2
-
-**Acceptance Criteria:**
-- [x] Language dropdown in user settings page (saves to user profile as `locale` preference via API)
-- [x] Language dropdown in app header (LanguageSelector with globe icon, quick switch, no reload)
-- [x] Language persisted to localStorage (`wctng_locale`) for unauthenticated pages
-- [x] RTL layout support: `dir="rtl"` set on `<html>` element when locale is ar/he
-- [x] LanguageSelector uses `end-0` (logical property) for RTL-compatible dropdown positioning
-- [x] Arabic (ar) and Hebrew (he) locale JSON files with full translations
-- [x] Calendar grid direction follows document dir (FullCalendar supports RTL natively)
-- [x] Vitest tests: 4 tests for LanguageSelector (renders, shows code, dropdown options, RTL languages)
-- [x] Global react-i18next mock in test setup for clean test isolation
-
----
-
-## Epic P6-E8: Admin Feature Configuration
-
-**Goal:** Allow admins to enable/disable features (rich text descriptions, location field, URL field, etc.) via system settings, matching legacy WebCalendar's ConfigService capabilities.
-
-### P6-E8-S1: Config API Endpoints
-
-**Status:** DONE
-
-**Description:**
-API endpoints for reading and updating system configuration settings using ConfigService from webcalendar-core.
-
-**Preconditions:** Phase 5 complete
-
-**Acceptance Criteria:**
-- [x] `GET /api/v2/admin/config` returns all system settings as key-value pairs (admin only)
-- [x] `PUT /api/v2/admin/config` accepts partial updates (key-value map, admin only)
-- [x] Settings stored via ConfigService in `webcal_config` table
-- [x] Default settings: `ALLOW_HTML_DESCRIPTION=Y`, `DISABLE_LOCATION_FIELD=N`, `DISABLE_URL_FIELD=N`, `DISABLE_PRIORITY_FIELD=N`, `DISABLE_PARTICIPANTS_FIELD=N`
-- [x] `GET /api/v2/config/features` returns feature flags (public, no admin required)
-- [x] PHPStan level 9 passes
-- [x] Unit tests: 4 tests (defaults, stored values, auth required for get/update)
-
----
-
-### P6-E8-S2: Admin Settings Page
-
-**Status:** DONE
-
-**Description:**
-Admin page for toggling feature flags with clear labels and descriptions.
-
-**Preconditions:** P6-E8-S1
-
-**Acceptance Criteria:**
-- [x] Route `/admin/settings` accessible to admins (added to sidebar nav)
-- [x] Checkbox toggles for each feature: rich text descriptions, location, URL, priority, participants
-- [x] Each toggle shows label, description, and current state
-- [x] Changes saved immediately via PUT /admin/config (optimistic UI with revert on failure)
-- [x] Success toast on save
-- [x] Vitest tests: 3 tests (heading, feature labels, checkboxes)
-
----
-
-### P6-E8-S3: Frontend Feature Flag Integration
-
-**Status:** DONE
-
-**Description:**
-Frontend reads feature flags from the API and conditionally shows/hides fields in event, task, and journal forms.
-
-**Preconditions:** P6-E8-S2
-
-**Acceptance Criteria:**
-- [x] `useFeatureFlags()` hook fetches and caches feature flags from `/api/v2/config/features`
-- [x] EventDialog hides location field when `DISABLE_LOCATION_FIELD=Y`
-- [x] EventDialog shows plain textarea instead of RichTextEditor when `ALLOW_HTML_DESCRIPTION=N`
-- [x] EventDialog hides participants section when `DISABLE_PARTICIPANTS_FIELD=Y`
-- [x] TasksPage and JournalsPage respect `ALLOW_HTML_DESCRIPTION` flag
-- [x] Feature flags cached in React Query with 5-minute stale time
-- [x] Global mock in test setup for clean test isolation
-- [x] 2 Vitest tests + 348 total tests pass
-
----
-
-## Epic P6-E9: Integration & E2E Testing
-
-**Goal:** Comprehensive test coverage with API integration tests and Playwright E2E tests that exercise the full stack.
-
-### P6-E9-S1: API Integration Tests
-
-**Status:** DONE
-
-**Description:**
-PHPUnit functional/integration tests that hit real API endpoints with a test database, verifying full request/response cycles.
-
-**Preconditions:** All feature epics complete
-
-**Acceptance Criteria:**
-- [x] Test database seeded with fixture data (SQLite in-memory schema + admin/alice users)
-- [x] IntegrationTestCase base class loads SQLite schema automatically
-- [x] Integration test for event CRUD: create → read → update → delete → verify gone + date range query
-- [x] Integration test for public calendar: public/private events filtered by access level + preference toggle
-- [x] Integration test for share tokens: create → fetch → verify expiry → revoke → verify gone
-- [x] Integration test for conflict detection: overlapping events detected from DB + no conflict with different times
-- [x] Integration test for approval workflow: create needs_approval → find in pending → approve → verify confirmed → no longer pending
-- [x] Integration test for config: get/set round-trip + getAllSettings
-- [x] All tests run via `make test-integration`
-- [x] 11 integration tests, 35 assertions, all passing
-
----
-
-### P6-E9-S2: Playwright E2E Setup & Smoke Tests
-
-**Status:** DONE
-
-**Description:**
-Set up Playwright for browser-based E2E testing with Docker Compose, covering critical user flows.
-
-**Preconditions:** P6-E9-S1
-
-**Acceptance Criteria:**
-- [x] Playwright installed and configured (v1.58, already existed)
-- [x] `playwright.config.ts` with baseURL http://localhost:47180, headless Chrome
-- [x] Test helpers: loginAsAdmin, loginViaApi, getAdminToken, createTestEvent, deleteTestEvent
-- [x] E2E: Login flow (admin/admin → calendar page) — auth.spec.ts (5 tests)
-- [x] E2E: Create event → verify on calendar → open detail (event-crud.spec.ts)
-- [x] E2E: Edit event → verify changes (event-crud.spec.ts)
-- [x] E2E: Delete event → verify removed (event-crud.spec.ts)
-- [x] E2E: Navigate month/week/day/year/list views (views-and-print.spec.ts)
-- [x] E2E: Print button exists in toolbar (views-and-print.spec.ts)
-- [x] 30/31 tests pass (1 pre-existing mobile test flaky)
-- [x] CI-compatible (headless Chrome, `--reporter=line`)
-
----
-
-### P6-E9-S3: Playwright Feature E2E Tests
-
-**Status:** DONE
-
-**Description:**
-E2E tests for Phase 6 features: rich text, sharing, conflict detection, custom fields, attachments.
-
-**Preconditions:** P6-E9-S2
-
-**Acceptance Criteria:**
-- [x] E2E: Rich text editor — toolbar renders with bold/italic/link/heading/list/blockquote/code buttons
-- [x] E2E: Public calendar — enable public → visit /public/admin → verify calendar visible
-- [x] E2E: Share link — create share token → visit /public/embed/{token} → verify calendar loads
-- [x] E2E: Conflict detection — API endpoint validates, create with overlap returns response
-- [x] E2E: Activity log — admin views /admin/activity-log → heading and content visible
-- [x] E2E: Settings — change default view → save → reload → verify persisted
-- [x] E2E: Admin settings — /admin/settings shows feature toggle page with labels
-- [x] All tests clean up after themselves (share tokens revoked, public disabled)
-- [x] HTML report generated via `--reporter=html`
-- [x] 8 Phase 6 feature tests + 33 total E2E tests (36 total, 2 pre-existing flaky)
+- [ ] Quick-add input field in calendar toolbar (text input with magic wand icon)
+- [ ] Parse common patterns: "Meeting with Bob Friday 2pm-3pm at Room A"
+- [ ] Extract: title, date/time, duration, location, participants
+- [ ] Pre-fill EventDialog with parsed values (user can review before saving)
+- [ ] Rule-based parser (chrono-node or similar) — no LLM dependency
+- [ ] Vitest tests for parsing accuracy
 
 ---
 
 ## Story Execution Checklist (for AI Agent)
 
-Same as Phase 1–5:
+Same as Phase 1–6:
 
 ```
 1. READ the story description and acceptance criteria completely
@@ -718,7 +504,7 @@ Same as Phase 1–5:
 
 ---
 
-## Phase 1–5 Summary
+## Phase 1–6 Summary
 
 **Phase 1** completed with 45/45 stories:
 - Symfony 7.x REST API + React 18 SPA + FullCalendar
@@ -743,3 +529,10 @@ Same as Phase 1–5:
 - Email notifications, webhooks, full-text search, reports/analytics
 - Performance/caching (ETag, Redis), production readiness
 - Structured logging, health checks, security hardening, production Docker
+
+**Phase 6** completed with 27/27 stories:
+- Public calendars, rich text (TipTap), conflict detection, approval workflow
+- Year view, print styles, event attachments, VALARM CalDAV
+- Activity log, custom fields, assistants, public booking
+- i18n (6 languages + RTL), admin feature flags
+- Integration tests (11 PHPUnit) + E2E tests (36 Playwright)
