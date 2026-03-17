@@ -92,6 +92,11 @@ services:
             $pdo: '@pdo.connection'
             $appSecret: '%env(APP_SECRET)%'
 
+    # Share controller needs PDO for share_tokens table
+    App\Controller\Api\ShareController:
+        arguments:
+            $pdo: '@pdo.connection'
+
     # Event controller needs PDO for access permission checks
     App\Controller\Api\EventController:
         arguments:

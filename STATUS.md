@@ -17,7 +17,7 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| P6-E1 | Public Calendar & Sharing | 3 | 2 | IN PROGRESS |
+| P6-E1 | Public Calendar & Sharing | 3 | 3 | DONE |
 | P6-E2 | Rich Text Descriptions | 3 | 0 | TODO |
 | P6-E3 | Conflict Detection & Approval | 3 | 0 | TODO |
 | P6-E4 | Additional Views & Print | 2 | 0 | TODO |
@@ -103,7 +103,7 @@ Read-only calendar view accessible without login, showing public events in a Ful
 
 ### P6-E1-S3: Shareable Links & Embed
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Generate shareable URLs with optional access tokens for private sharing, plus an embeddable iframe snippet.
@@ -111,14 +111,14 @@ Generate shareable URLs with optional access tokens for private sharing, plus an
 **Preconditions:** P6-E1-S2
 
 **Acceptance Criteria:**
-- [ ] `POST /api/v2/calendars/share` generates a share token (UUID) with optional expiry
-- [ ] `GET /api/v2/public/shared/{token}/events` returns events for the shared calendar
-- [ ] Share tokens can be revoked: `DELETE /api/v2/calendars/share/{token}`
-- [ ] Settings page lists active share links with copy-to-clipboard button
-- [ ] Embed snippet generator: `<iframe src="/public/embed/{token}" ...>` with configurable dimensions
-- [ ] `/public/embed/{token}` renders a minimal calendar (no header/nav, just the grid)
-- [ ] PHPStan level 9 passes
-- [ ] Unit + Vitest tests
+- [x] `POST /api/v2/calendars/share` generates a share token (UUID) with optional expiry
+- [x] `GET /api/v2/public/shared/{token}/events` returns events for the shared calendar
+- [x] Share tokens can be revoked: `DELETE /api/v2/calendars/share/{token}`
+- [x] Settings page lists active share links with copy-to-clipboard button
+- [x] Embed snippet generator: `<iframe src="/public/embed/{token}" ...>` with configurable dimensions
+- [x] `/public/embed/{token}` renders a minimal calendar (no header/nav, just the grid)
+- [x] PHPStan level 9 passes
+- [x] Unit tests (17 PHP) + Vitest tests (6 frontend)
 
 ---
 

@@ -27,6 +27,8 @@ const StatsPage = lazy(() => import('./control/StatsPage').then(m => ({ default:
 const TenantDetailPage = lazy(() => import('./control/TenantDetailPage').then(m => ({ default: m.TenantDetailPage })));
 const SetupWizard = lazy(() => import('./setup/SetupWizard').then(m => ({ default: m.SetupWizard })));
 const PublicCalendarPage = lazy(() => import('./public/PublicCalendarPage').then(m => ({ default: m.PublicCalendarPage })));
+const EmbedCalendarPage = lazy(() => import('./public/EmbedCalendarPage').then(m => ({ default: m.EmbedCalendarPage })));
+const ShareSettings = lazy(() => import('./settings/ShareSettings').then(m => ({ default: m.ShareSettings })));
 
 function LoadingFallback() {
   return <div className="flex h-screen items-center justify-center text-muted-foreground">Loading...</div>;
@@ -41,6 +43,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           {/* Public calendar — no auth required */}
           <Route path="/public/:username" element={<PublicCalendarPage />} />
+          <Route path="/public/embed/:token" element={<EmbedCalendarPage />} />
           <Route
             path="/"
             element={
@@ -121,6 +124,16 @@ export default function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <PreferencesPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings/sharing"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ShareSettings />
                 </AppLayout>
               </ProtectedRoute>
             }
