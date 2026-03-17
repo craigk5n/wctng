@@ -18,11 +18,11 @@
 | P4-E1 | CalDAV Server Core | 4 | 4 | DONE |
 | P4-E2 | CalDAV Calendar & Event Operations | 4 | 4 | DONE |
 | P4-E3 | CalDAV Tasks & Journals | 3 | 3 | DONE |
-| P4-E4 | CalDAV Integration Tests | 2 | 1 | IN PROGRESS |
+| P4-E4 | CalDAV Integration Tests | 2 | 2 | DONE |
 | P4-E5 | OAuth2 / OIDC Authentication | 4 | 0 | NOT STARTED |
 | P4-E6 | LDAP Authentication | 3 | 0 | NOT STARTED |
 | P4-E7 | Per-Tenant Auth Configuration | 3 | 0 | NOT STARTED |
-| **Total** | | **23** | **12** | |
+| **Total** | | **23** | **13** | |
 
 ---
 
@@ -299,7 +299,7 @@ Automated tests that verify CalDAV RFC 4791 compliance using HTTP requests.
 
 ### P4-E4-S2: CalDAV Client Compatibility Tests
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Manual and automated tests with popular CalDAV clients.
@@ -307,12 +307,12 @@ Manual and automated tests with popular CalDAV clients.
 **Preconditions:** P4-E4-S1
 
 **Acceptance Criteria:**
-- [ ] Apple Calendar (macOS/iOS): add account, sync events, create/edit/delete
-- [ ] Thunderbird (Lightning): add account, sync events, tasks
-- [ ] DAVx5 (Android): add account, sync events
-- [ ] GNOME Calendar: add account, sync events
-- [ ] Documentation: client setup guides for each tested client
-- [ ] Known limitations documented
+- [x] Apple Calendar (macOS/iOS): add account, sync events, create/edit/delete
+- [x] Thunderbird (Lightning): add account, sync events, tasks
+- [x] DAVx5 (Android): add account, sync events
+- [x] GNOME Calendar: add account, sync events
+- [x] Documentation: client setup guides for each tested client
+- [x] Known limitations documented
 
 ---
 
