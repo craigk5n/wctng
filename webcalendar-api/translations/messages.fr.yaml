@@ -1,0 +1,56 @@
+error:
+  auth:
+    required: "Authentification requise"
+    invalid_credentials: "Identifiants invalides"
+    forbidden: "Accès refusé"
+    admin_required: "Accès administrateur requis"
+  event:
+    not_found: "Événement introuvable"
+    create_failed: "Échec de la création de l'événement"
+    update_failed: "Échec de la mise à jour de l'événement"
+    conflict: "L'événement est en conflit avec des événements existants"
+  task:
+    not_found: "Tâche introuvable"
+  journal:
+    not_found: "Journal introuvable"
+  validation:
+    missing_field: "Champ obligatoire manquant : %field%"
+    invalid_date: "Format de date invalide. Attendu : AAAAMMJJ."
+    invalid_json: "Corps JSON invalide"
+  attachment:
+    too_large: "Fichier trop volumineux. Taille maximale : %size% Mo"
+    type_not_allowed: "Type de fichier non autorisé : %type%"
+    max_reached: "Maximum %count% pièces jointes par événement"
+  share:
+    not_found: "Lien de partage introuvable"
+    expired: "Le lien de partage a expiré"
+  rate_limit: "Trop de requêtes"
+
+email:
+  invitation:
+    subject: "Invitation au calendrier : %title%"
+    body: "Vous avez été invité à : %title%"
+  update:
+    subject: "Événement modifié : %title%"
+    body: "L'événement « %title% » a été modifié"
+  cancellation:
+    subject: "Événement annulé : %title%"
+    body: "L'événement « %title% » a été annulé"
+  reminder:
+    subject: "Rappel : %title%"
+    body: "Rappel : « %title% » commence à %time%"
+  approval:
+    approved_subject: "Événement approuvé : %title%"
+    rejected_subject: "Événement rejeté : %title%"
+
+booking:
+  confirmed: "Réservation confirmée"
+  failed: "Échec de la réservation"
+
+label:
+  calendar: "Calendrier"
+  event: "Événement"
+  task: "Tâche"
+  journal: "Journal"
+  settings: "Paramètres"
+  admin: "Administration"

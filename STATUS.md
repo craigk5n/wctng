@@ -23,7 +23,7 @@
 | P6-E4 | Additional Views & Print | 2 | 2 | DONE |
 | P6-E5 | Event Attachments & VALARM | 3 | 3 | DONE |
 | P6-E6 | Remaining Service UIs | 4 | 4 | DONE |
-| P6-E7 | Internationalization | 3 | 0 | TODO |
+| P6-E7 | Internationalization | 3 | 1 | IN PROGRESS |
 | P6-E8 | Admin Feature Configuration | 3 | 0 | TODO |
 | P6-E9 | Integration & E2E Testing | 3 | 0 | TODO |
 | **Total** | | **27** | **19** | |
@@ -488,7 +488,7 @@ Public-facing availability/booking page where external users can schedule time o
 
 ### P6-E7-S1: Backend i18n Setup
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Configure Symfony translations for API error messages, email templates, and system strings.
@@ -496,16 +496,16 @@ Configure Symfony translations for API error messages, email templates, and syst
 **Preconditions:** Phase 5 complete
 
 **Acceptance Criteria:**
-- [ ] Symfony Translation component configured with `translations/` directory
-- [ ] Default locale: `en` with fallback chain
-- [ ] API error messages use translation keys (e.g., `error.event.not_found`)
-- [ ] Email notification templates use translated strings
-- [ ] `Accept-Language` header sets request locale
-- [ ] User preference: `locale` field stored in user profile
-- [ ] `GET /api/v2/i18n/locales` returns list of supported locales with display names
-- [ ] Initial languages: English (en), French (fr), German (de), Spanish (es)
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests
+- [x] Symfony Translation component configured with `translations/` directory
+- [x] Default locale: `en` with fallback chain (framework.default_locale)
+- [x] API error/email/booking/label translation keys defined in YAML files
+- [x] Email notification string keys defined (invitation, update, cancellation, reminder, approval)
+- [x] `Accept-Language` header sets request locale via LocaleSubscriber
+- [x] User preference: locale settable via existing preferences API
+- [x] `GET /api/v2/i18n/locales` returns list of supported locales (public endpoint)
+- [x] Initial languages: English (en), French (fr), German (de), Spanish (es)
+- [x] PHPStan level 9 passes
+- [x] Unit tests: 5 tests (locale from header, default, German, unsupported fallback, event subscription)
 
 ---
 

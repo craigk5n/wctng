@@ -1,0 +1,56 @@
+error:
+  auth:
+    required: "Autenticación requerida"
+    invalid_credentials: "Credenciales inválidas"
+    forbidden: "Acceso denegado"
+    admin_required: "Se requiere acceso de administrador"
+  event:
+    not_found: "Evento no encontrado"
+    create_failed: "Error al crear el evento"
+    update_failed: "Error al actualizar el evento"
+    conflict: "El evento entra en conflicto con eventos existentes"
+  task:
+    not_found: "Tarea no encontrada"
+  journal:
+    not_found: "Diario no encontrado"
+  validation:
+    missing_field: "Campo obligatorio faltante: %field%"
+    invalid_date: "Formato de fecha inválido. Esperado: AAAAMMDD."
+    invalid_json: "Cuerpo JSON inválido"
+  attachment:
+    too_large: "Archivo demasiado grande. Tamaño máximo: %size% MB"
+    type_not_allowed: "Tipo de archivo no permitido: %type%"
+    max_reached: "Máximo %count% archivos adjuntos por evento"
+  share:
+    not_found: "Enlace compartido no encontrado"
+    expired: "El enlace compartido ha expirado"
+  rate_limit: "Demasiadas solicitudes"
+
+email:
+  invitation:
+    subject: "Invitación de calendario: %title%"
+    body: "Has sido invitado a: %title%"
+  update:
+    subject: "Evento actualizado: %title%"
+    body: "El evento «%title%» ha sido actualizado"
+  cancellation:
+    subject: "Evento cancelado: %title%"
+    body: "El evento «%title%» ha sido cancelado"
+  reminder:
+    subject: "Recordatorio: %title%"
+    body: "Recordatorio: «%title%» comienza a las %time%"
+  approval:
+    approved_subject: "Evento aprobado: %title%"
+    rejected_subject: "Evento rechazado: %title%"
+
+booking:
+  confirmed: "Reserva confirmada"
+  failed: "Error en la reserva"
+
+label:
+  calendar: "Calendario"
+  event: "Evento"
+  task: "Tarea"
+  journal: "Diario"
+  settings: "Configuración"
+  admin: "Administración"

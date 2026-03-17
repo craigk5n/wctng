@@ -1,0 +1,56 @@
+error:
+  auth:
+    required: "Authentication required"
+    invalid_credentials: "Invalid credentials"
+    forbidden: "Access denied"
+    admin_required: "Admin access required"
+  event:
+    not_found: "Event not found"
+    create_failed: "Failed to create event"
+    update_failed: "Failed to update event"
+    conflict: "Event conflicts with existing events"
+  task:
+    not_found: "Task not found"
+  journal:
+    not_found: "Journal not found"
+  validation:
+    missing_field: "Missing required field: %field%"
+    invalid_date: "Invalid date format. Expected YYYYMMDD."
+    invalid_json: "Invalid JSON body"
+  attachment:
+    too_large: "File too large. Maximum size: %size%MB"
+    type_not_allowed: "File type not allowed: %type%"
+    max_reached: "Maximum %count% attachments per event"
+  share:
+    not_found: "Share link not found"
+    expired: "Share link has expired"
+  rate_limit: "Too many requests"
+
+email:
+  invitation:
+    subject: "Calendar Invitation: %title%"
+    body: "You have been invited to: %title%"
+  update:
+    subject: "Event Updated: %title%"
+    body: "The event '%title%' has been updated"
+  cancellation:
+    subject: "Event Cancelled: %title%"
+    body: "The event '%title%' has been cancelled"
+  reminder:
+    subject: "Reminder: %title%"
+    body: "Reminder: '%title%' starts at %time%"
+  approval:
+    approved_subject: "Event Approved: %title%"
+    rejected_subject: "Event Rejected: %title%"
+
+booking:
+  confirmed: "Booking confirmed"
+  failed: "Booking failed"
+
+label:
+  calendar: "Calendar"
+  event: "Event"
+  task: "Task"
+  journal: "Journal"
+  settings: "Settings"
+  admin: "Admin"

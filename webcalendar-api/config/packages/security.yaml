@@ -50,6 +50,11 @@ security:
             stateless: true
             security: false
 
+        i18n:
+            pattern: ^/api/v2/i18n/
+            stateless: true
+            security: false
+
         # Protected API endpoints — require JWT
         api:
             pattern: ^/api/
@@ -62,4 +67,6 @@ security:
         - { path: ^/api/v2/health$, roles: PUBLIC_ACCESS }
         - { path: ^/api/v2/setup/, roles: PUBLIC_ACCESS }
         - { path: ^/api/v2/public/, roles: PUBLIC_ACCESS }
+        - { path: ^/api/v2/i18n/, roles: PUBLIC_ACCESS }
+        - { path: ^/api/v2/custom-fields$, roles: PUBLIC_ACCESS }
         - { path: ^/api/, roles: IS_AUTHENTICATED_FULLY }

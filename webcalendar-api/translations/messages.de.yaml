@@ -1,0 +1,56 @@
+error:
+  auth:
+    required: "Authentifizierung erforderlich"
+    invalid_credentials: "Ungültige Anmeldedaten"
+    forbidden: "Zugriff verweigert"
+    admin_required: "Administratorzugriff erforderlich"
+  event:
+    not_found: "Termin nicht gefunden"
+    create_failed: "Termin konnte nicht erstellt werden"
+    update_failed: "Termin konnte nicht aktualisiert werden"
+    conflict: "Terminkonflikt mit bestehenden Terminen"
+  task:
+    not_found: "Aufgabe nicht gefunden"
+  journal:
+    not_found: "Journaleintrag nicht gefunden"
+  validation:
+    missing_field: "Pflichtfeld fehlt: %field%"
+    invalid_date: "Ungültiges Datumsformat. Erwartet: JJJJMMTT."
+    invalid_json: "Ungültiger JSON-Inhalt"
+  attachment:
+    too_large: "Datei zu groß. Maximale Größe: %size% MB"
+    type_not_allowed: "Dateityp nicht erlaubt: %type%"
+    max_reached: "Maximal %count% Anhänge pro Termin"
+  share:
+    not_found: "Freigabelink nicht gefunden"
+    expired: "Freigabelink ist abgelaufen"
+  rate_limit: "Zu viele Anfragen"
+
+email:
+  invitation:
+    subject: "Kalendereinladung: %title%"
+    body: "Sie wurden eingeladen zu: %title%"
+  update:
+    subject: "Termin aktualisiert: %title%"
+    body: "Der Termin „%title%" wurde aktualisiert"
+  cancellation:
+    subject: "Termin abgesagt: %title%"
+    body: "Der Termin „%title%" wurde abgesagt"
+  reminder:
+    subject: "Erinnerung: %title%"
+    body: "Erinnerung: „%title%" beginnt um %time%"
+  approval:
+    approved_subject: "Termin genehmigt: %title%"
+    rejected_subject: "Termin abgelehnt: %title%"
+
+booking:
+  confirmed: "Buchung bestätigt"
+  failed: "Buchung fehlgeschlagen"
+
+label:
+  calendar: "Kalender"
+  event: "Termin"
+  task: "Aufgabe"
+  journal: "Journal"
+  settings: "Einstellungen"
+  admin: "Verwaltung"
