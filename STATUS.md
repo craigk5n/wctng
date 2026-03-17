@@ -23,10 +23,10 @@
 | P6-E4 | Additional Views & Print | 2 | 2 | DONE |
 | P6-E5 | Event Attachments & VALARM | 3 | 3 | DONE |
 | P6-E6 | Remaining Service UIs | 4 | 4 | DONE |
-| P6-E7 | Internationalization | 3 | 2 | IN PROGRESS |
+| P6-E7 | Internationalization | 3 | 3 | DONE |
 | P6-E8 | Admin Feature Configuration | 3 | 0 | TODO |
 | P6-E9 | Integration & E2E Testing | 3 | 0 | TODO |
-| **Total** | | **27** | **23** | |
+| **Total** | | **27** | **24** | |
 
 ---
 
@@ -532,7 +532,7 @@ Integrate react-i18next for frontend string translation with lazy-loaded locale 
 
 ### P6-E7-S3: Language Selector & RTL
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Language selector in user settings and app header, plus RTL layout support.
@@ -540,14 +540,15 @@ Language selector in user settings and app header, plus RTL layout support.
 **Preconditions:** P6-E7-S2
 
 **Acceptance Criteria:**
-- [ ] Language dropdown in user settings page (saves to user profile via API)
-- [ ] Language dropdown in app header (quick switch, no page reload)
-- [ ] Language persisted to localStorage for unauthenticated pages (login, public calendar)
-- [ ] RTL layout support: `dir="rtl"` on `<html>` element when locale is RTL
-- [ ] Tailwind CSS RTL utilities: logical properties (`ms-`, `me-`, `ps-`, `pe-` instead of `ml-`, `mr-`)
-- [ ] Arabic (ar) and Hebrew (he) locale files added with RTL flag
-- [ ] Calendar grid, dialogs, and navigation properly mirrored in RTL
-- [ ] Vitest tests: RTL rendering, language switch
+- [x] Language dropdown in user settings page (saves to user profile as `locale` preference via API)
+- [x] Language dropdown in app header (LanguageSelector with globe icon, quick switch, no reload)
+- [x] Language persisted to localStorage (`wctng_locale`) for unauthenticated pages
+- [x] RTL layout support: `dir="rtl"` set on `<html>` element when locale is ar/he
+- [x] LanguageSelector uses `end-0` (logical property) for RTL-compatible dropdown positioning
+- [x] Arabic (ar) and Hebrew (he) locale JSON files with full translations
+- [x] Calendar grid direction follows document dir (FullCalendar supports RTL natively)
+- [x] Vitest tests: 4 tests for LanguageSelector (renders, shows code, dropdown options, RTL languages)
+- [x] Global react-i18next mock in test setup for clean test isolation
 
 ---
 

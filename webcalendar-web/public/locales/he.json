@@ -1,0 +1,13 @@
+{
+  "app": { "name": "יומן רשת", "loading": "טוען..." },
+  "nav": { "calendar": "יומן", "tasks": "משימות", "journals": "יומנים", "reports": "דוחות", "settings": "הגדרות", "admin": "ניהול", "users": "משתמשים", "categories": "קטגוריות", "groups": "קבוצות", "webhooks": "ווב הוקס", "activityLog": "יומן פעילות", "customFields": "שדות מותאמים", "logout": "יציאה" },
+  "calendar": { "newEvent": "אירוע חדש", "editEvent": "ערוך אירוע", "export": "ייצוא", "import": "ייבוא", "print": "הדפסה", "today": "היום", "month": "חודש", "week": "שבוע", "day": "יום", "year": "שנה", "list": "רשימה" },
+  "event": { "title": "כותרת", "date": "תאריך", "time": "שעה", "startTime": "שעת התחלה", "duration": "משך (דקות)", "location": "מיקום", "description": "תיאור", "access": "רמת גישה", "allDay": "כל היום", "public": "ציבורי", "confidential": "סודי", "private": "פרטי", "categories": "קטגוריות", "participants": "משתתפים", "save": "שמירה", "cancel": "ביטול", "create": "צור אירוע", "saveChanges": "שמור שינויים", "delete": "מחיקה", "edit": "עריכה", "duplicate": "שכפול", "exportIcs": "ייצוא כ-ICS" },
+  "task": { "title": "כותרת", "dueDate": "תאריך יעד", "create": "צור", "newTask": "משימה חדשה", "all": "הכל", "pending": "ממתין", "completed": "הושלם" },
+  "journal": { "title": "כותרת", "content": "תוכן", "create": "צור רשומה", "newEntry": "רשומת יומן חדשה" },
+  "settings": { "preferences": "העדפות", "notifications": "התראות", "sharing": "שיתוף", "assistants": "עוזרים", "access": "גישה", "authentication": "אימות", "defaultView": "תצוגה ברירת מחדל", "timezone": "אזור זמן", "conflictDetection": "זיהוי התנגשויות", "language": "שפה" },
+  "auth": { "login": "כניסה", "username": "שם משתמש", "password": "סיסמה", "signIn": "היכנס" },
+  "common": { "save": "שמירה", "cancel": "ביטול", "delete": "מחיקה", "edit": "עריכה", "close": "סגירה", "search": "חיפוש", "noResults": "אין תוצאות", "loading": "טוען...", "saving": "שומר...", "error": "שגיאה", "success": "הצלחה", "confirm": "אישור", "yes": "כן", "no": "לא", "add": "הוספה", "remove": "הסרה", "previous": "הקודם", "next": "הבא" },
+  "conflict": { "detected": "זוהו {{count}} התנגשויות לוח זמנים", "cannotSave": "לא ניתן לשמור אירוע זה — מתנגש עם:", "saveAnyway": "שמור בכל זאת" },
+  "booking": { "bookTime": "הזמן זמן עם {{username}}", "selectDate": "בחר תאריך", "availableTimes": "שעות פנויות", "noSlots": "אין שעות פנויות לתאריך זה.", "yourName": "השם שלך", "email": "דוא\"ל", "description": "תיאור (אופציונלי)", "confirm": "אשר הזמנה", "confirmed": "ההזמנה אושרה", "confirmMessage": "הפגישה שלך עם {{username}} ב-{{date}} בשעה {{time}} נשלחה." }
+}

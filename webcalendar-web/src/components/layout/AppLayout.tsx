@@ -4,6 +4,7 @@ import { useAuth } from '../../auth/auth-context';
 import { cn } from '../../lib/utils';
 import { SearchBar } from '../search/SearchBar';
 import { ThemeToggle } from '../theme/ThemeToggle';
+import { LanguageSelector } from '../i18n/LanguageSelector';
 import { useTenant } from '../../hooks/useTenant';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -127,6 +128,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-3">
+            <LanguageSelector />
             <ThemeToggle />
             {user && (
               <span className="hidden text-sm text-muted-foreground sm:inline">

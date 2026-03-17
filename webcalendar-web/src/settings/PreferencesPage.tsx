@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../api/client';
 import { useToast } from '../components/toast/ToastProvider';
 import { useAuth } from '../auth/auth-context';
+import { changeLocale, getLocale } from '../i18n';
 
 interface Pref {
   key: string;
@@ -14,6 +15,7 @@ export function PreferencesPage() {
   const [workDayStart, setWorkDayStart] = useState('09:00');
   const [workDayEnd, setWorkDayEnd] = useState('17:00');
   const [conflictMode, setConflictMode] = useState('warn');
+  const [language, setLanguage] = useState(getLocale());
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -31,6 +33,7 @@ export function PreferencesPage() {
           if (p.key === 'WORK_DAY_START') setWorkDayStart(p.value);
           if (p.key === 'WORK_DAY_END') setWorkDayEnd(p.value);
           if (p.key === 'conflict_mode') setConflictMode(p.value);
+          if (p.key === 'locale') { setLanguage(p.value); changeLocale(p.value); }
         }
       }
     })();
@@ -47,6 +50,7 @@ export function PreferencesPage() {
     };
     if (timezone) prefs['TIMEZONE'] = timezone;
     prefs['conflict_mode'] = conflictMode;
+    prefs['locale'] = language;
 
     const { error } = await apiFetch(`/users/${login}/preferences`, {
       method: 'PUT',
@@ -59,7 +63,7 @@ export function PreferencesPage() {
     } else {
       toast({ title: 'Failed to save', variant: 'error' });
     }
-  }, [login, defaultView, timezone, workDayStart, workDayEnd, conflictMode, toast]);
+  }, [login, defaultView, timezone, workDayStart, workDayEnd, conflictMode, language, toast]);
 
   return (
     <div>
@@ -131,6 +135,23 @@ export function PreferencesPage() {
           <p className="text-xs text-muted-foreground">
             Controls whether you are warned about scheduling conflicts when creating or editing events.
           </p>
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="language" className="text-sm font-medium">Language</label>
+          <select
+            id="language"
+            value={language}
+            onChange={(e) => { setLanguage(e.target.value); changeLocale(e.target.value); }}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
+            <option value="es">Español</option>
+            <option value="ar">العربية</option>
+            <option value="he">עברית</option>
+          </select>
         </div>
 
         <button

@@ -10,7 +10,7 @@ void i18n
   .init({
     lng: savedLocale,
     fallbackLng: 'en',
-    supportedLngs: ['en', 'fr', 'de', 'es'],
+    supportedLngs: ['en', 'fr', 'de', 'es', 'ar', 'he'],
     interpolation: {
       escapeValue: false, // React already escapes
     },
@@ -18,6 +18,15 @@ void i18n
       loadPath: '/locales/{{lng}}.json',
     },
   });
+
+// Set initial document direction based on saved locale
+const RTL_LOCALES = new Set(['ar', 'he']);
+if (RTL_LOCALES.has(savedLocale)) {
+  document.documentElement.dir = 'rtl';
+} else {
+  document.documentElement.dir = 'ltr';
+}
+document.documentElement.lang = savedLocale;
 
 export default i18n;
 

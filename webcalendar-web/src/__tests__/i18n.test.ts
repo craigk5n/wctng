@@ -1,6 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
+
+// Use actual react-i18next for this test (not the global mock)
+vi.unmock('react-i18next');
+vi.unmock('../i18n');
+const { initReactI18next } = await import('react-i18next');
 
 // Initialize i18n with inline resources for testing
 beforeEach(async () => {

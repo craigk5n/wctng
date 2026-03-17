@@ -1,0 +1,13 @@
+{
+  "app": { "name": "تقويم الويب", "loading": "جارٍ التحميل..." },
+  "nav": { "calendar": "التقويم", "tasks": "المهام", "journals": "اليوميات", "reports": "التقارير", "settings": "الإعدادات", "admin": "الإدارة", "users": "المستخدمون", "categories": "الفئات", "groups": "المجموعات", "webhooks": "ويب هوكس", "activityLog": "سجل النشاط", "customFields": "حقول مخصصة", "logout": "تسجيل الخروج" },
+  "calendar": { "newEvent": "حدث جديد", "editEvent": "تعديل الحدث", "export": "تصدير", "import": "استيراد", "print": "طباعة", "today": "اليوم", "month": "شهر", "week": "أسبوع", "day": "يوم", "year": "سنة", "list": "قائمة" },
+  "event": { "title": "العنوان", "date": "التاريخ", "time": "الوقت", "startTime": "وقت البدء", "duration": "المدة (دقائق)", "location": "الموقع", "description": "الوصف", "access": "مستوى الوصول", "allDay": "طوال اليوم", "public": "عام", "confidential": "سري", "private": "خاص", "categories": "الفئات", "participants": "المشاركون", "save": "حفظ", "cancel": "إلغاء", "create": "إنشاء حدث", "saveChanges": "حفظ التغييرات", "delete": "حذف", "edit": "تعديل", "duplicate": "نسخ", "exportIcs": "تصدير كـ ICS" },
+  "task": { "title": "العنوان", "dueDate": "تاريخ الاستحقاق", "create": "إنشاء", "newTask": "مهمة جديدة", "all": "الكل", "pending": "قيد الانتظار", "completed": "مكتمل" },
+  "journal": { "title": "العنوان", "content": "المحتوى", "create": "إنشاء مدخل", "newEntry": "مدخل يوميات جديد" },
+  "settings": { "preferences": "التفضيلات", "notifications": "الإشعارات", "sharing": "المشاركة", "assistants": "المساعدون", "access": "الوصول", "authentication": "المصادقة", "defaultView": "العرض الافتراضي", "timezone": "المنطقة الزمنية", "conflictDetection": "كشف التعارض", "language": "اللغة" },
+  "auth": { "login": "تسجيل الدخول", "username": "اسم المستخدم", "password": "كلمة المرور", "signIn": "دخول" },
+  "common": { "save": "حفظ", "cancel": "إلغاء", "delete": "حذف", "edit": "تعديل", "close": "إغلاق", "search": "بحث", "noResults": "لا توجد نتائج", "loading": "جارٍ التحميل...", "saving": "جارٍ الحفظ...", "error": "خطأ", "success": "نجاح", "confirm": "تأكيد", "yes": "نعم", "no": "لا", "add": "إضافة", "remove": "إزالة", "previous": "السابق", "next": "التالي" },
+  "conflict": { "detected": "تم اكتشاف {{count}} تعارض في الجدول", "cannotSave": "لا يمكن حفظ هذا الحدث — يتعارض مع:", "saveAnyway": "حفظ على أي حال" },
+  "booking": { "bookTime": "حجز وقت مع {{username}}", "selectDate": "اختر تاريخاً", "availableTimes": "الأوقات المتاحة", "noSlots": "لا توجد أوقات متاحة لهذا التاريخ.", "yourName": "اسمك", "email": "البريد الإلكتروني", "description": "الوصف (اختياري)", "confirm": "تأكيد الحجز", "confirmed": "تم تأكيد الحجز", "confirmMessage": "تم إرسال موعدك مع {{username}} في {{date}} الساعة {{time}}." }
+}

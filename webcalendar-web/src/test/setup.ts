@@ -1,4 +1,29 @@
 import '@testing-library/jest-dom/vitest';
+import { vi } from 'vitest';
+
+// Mock react-i18next globally so all components render untranslated keys as-is
+vi.mock('react-i18next', async () => {
+  const actual = await vi.importActual<typeof import('react-i18next')>('react-i18next');
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (key: string) => key,
+      i18n: {
+        language: 'en',
+        changeLanguage: vi.fn().mockResolvedValue(undefined),
+      },
+    }),
+    // Pass through Trans component
+    Trans: ({ children }: { children: React.ReactNode }) => children,
+  };
+});
+
+// Mock i18n module
+vi.mock('../i18n', () => ({
+  default: { language: 'en', changeLanguage: vi.fn() },
+  changeLocale: vi.fn(),
+  getLocale: () => 'en',
+}));
 
 // Mock matchMedia for jsdom (used by ThemeProvider)
 Object.defineProperty(window, 'matchMedia', {
