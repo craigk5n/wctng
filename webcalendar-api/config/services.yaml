@@ -52,6 +52,10 @@ services:
             $appSecret: '%env(APP_SECRET)%'
 
     # Email services
+    App\Service\ReminderService:
+        arguments:
+            $baseUrl: '%env(DEFAULT_URI)%'
+
     App\Service\EventNotificationService:
         arguments:
             $fromAddress: '%env(default:email_from_default:MAIL_FROM_ADDRESS)%'
