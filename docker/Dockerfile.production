@@ -1,0 +1,47 @@
+# Multi-stage production Dockerfile for WebCalendar Next Generation
+# Stage 1: Build frontend
+FROM node:20-alpine AS frontend-build
+WORKDIR /app
+COPY webcalendar-web/package*.json ./
+RUN npm ci --production=false
+COPY webcalendar-web/ ./
+RUN npm run build
+
+# Stage 2: Build PHP dependencies
+FROM composer:2 AS php-build
+WORKDIR /app
+COPY webcalendar-api/composer.json webcalendar-api/composer.lock ./
+RUN composer install --no-dev --optimize-autoloader --no-scripts
+
+# Stage 3: Production image
+FROM php:8.2-fpm-alpine AS production
+
+# Install PHP extensions
+RUN apk add --no-cache \
+    nginx \
+    supervisor \
+    mysql-client \
+    && docker-php-ext-install pdo_mysql opcache
+
+# PHP production config
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+COPY docker/php-fpm/conf.d/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
+
+# Copy application
+WORKDIR /var/www/html
+COPY webcalendar-api/ webcalendar-api/
+COPY --from=php-build /app/vendor/ webcalendar-api/vendor/
+COPY --from=frontend-build /app/dist/ webcalendar-web/dist/
+
+# Copy nginx config for production
+COPY docker/nginx/production.conf /etc/nginx/http.d/default.conf
+
+# Copy supervisor config
+COPY docker/supervisor.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Create required directories
+RUN mkdir -p webcalendar-api/var/cache webcalendar-api/var/log \
+    && chown -R www-data:www-data webcalendar-api/var
+
+EXPOSE 80
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
