@@ -18,11 +18,11 @@
 | P4-E1 | CalDAV Server Core | 4 | 4 | DONE |
 | P4-E2 | CalDAV Calendar & Event Operations | 4 | 4 | DONE |
 | P4-E3 | CalDAV Tasks & Journals | 3 | 3 | DONE |
-| P4-E4 | CalDAV Integration Tests | 2 | 0 | NOT STARTED |
+| P4-E4 | CalDAV Integration Tests | 2 | 1 | IN PROGRESS |
 | P4-E5 | OAuth2 / OIDC Authentication | 4 | 0 | NOT STARTED |
 | P4-E6 | LDAP Authentication | 3 | 0 | NOT STARTED |
 | P4-E7 | Per-Tenant Auth Configuration | 3 | 0 | NOT STARTED |
-| **Total** | | **23** | **11** | |
+| **Total** | | **23** | **12** | |
 
 ---
 
@@ -278,7 +278,7 @@ Support calendars that contain mixed component types (VEVENT + VTODO + VJOURNAL)
 
 ### P4-E4-S1: CalDAV Protocol Compliance Tests
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Automated tests that verify CalDAV RFC 4791 compliance using HTTP requests.
@@ -286,14 +286,14 @@ Automated tests that verify CalDAV RFC 4791 compliance using HTTP requests.
 **Preconditions:** P4-E2-S1, P4-E3-S1
 
 **Acceptance Criteria:**
-- [ ] Test: PROPFIND on principal URL returns calendar-home-set
-- [ ] Test: PROPFIND on calendar-home returns calendar list
-- [ ] Test: PUT VEVENT → GET returns same event
-- [ ] Test: DELETE event → GET returns 404
-- [ ] Test: REPORT calendar-query with time-range filter
-- [ ] Test: REPORT calendar-multiget with specific hrefs
-- [ ] Test: PUT VTODO → GET returns same task
-- [ ] All tests pass
+- [x] Test: PROPFIND on principal URL returns calendar-home-set
+- [x] Test: PROPFIND on calendar-home returns calendar list
+- [x] Test: PUT VEVENT → GET returns same event
+- [x] Test: DELETE event → GET returns 404
+- [x] Test: REPORT calendar-query with time-range filter
+- [x] Test: REPORT calendar-multiget with specific hrefs
+- [x] Test: PUT VTODO → GET returns same task
+- [x] All tests pass
 
 ---
 
