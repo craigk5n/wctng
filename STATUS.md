@@ -16,13 +16,13 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| P5-E1 | Email Notifications | 4 | 0 | NOT STARTED |
+| P5-E1 | Email Notifications | 4 | 1 | IN PROGRESS |
 | P5-E2 | Webhook Notifications | 3 | 0 | NOT STARTED |
 | P5-E3 | Full-Text Search | 3 | 0 | NOT STARTED |
 | P5-E4 | Reports & Analytics | 3 | 0 | NOT STARTED |
 | P5-E5 | Performance & Caching | 4 | 0 | NOT STARTED |
 | P5-E6 | Production Readiness | 4 | 0 | NOT STARTED |
-| **Total** | | **21** | **0** | |
+| **Total** | | **21** | **1** | |
 
 ---
 
@@ -58,7 +58,7 @@ Same as Phase 1–4:
 
 ### P5-E1-S1: Email Transport Configuration
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 Configure email sending via SMTP or API-based providers (Mailgun, SendGrid, SES).
@@ -66,12 +66,12 @@ Configure email sending via SMTP or API-based providers (Mailgun, SendGrid, SES)
 **Preconditions:** Phase 4 complete
 
 **Acceptance Criteria:**
-- [ ] `MAILER_DSN` env var configures Symfony Mailer transport
-- [ ] Support for SMTP, Mailgun, SendGrid, Amazon SES
-- [ ] `GET /api/v2/admin/email-config` returns current config (without password)
-- [ ] `POST /api/v2/admin/email-config/test` sends a test email
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests
+- [x] `MAILER_DSN` env var configures Symfony Mailer transport
+- [x] Support for SMTP, Mailgun, SendGrid, Amazon SES
+- [x] `GET /api/v2/admin/email-config` returns current config (without password)
+- [x] `POST /api/v2/admin/email-config/test` sends a test email
+- [x] PHPStan level 9 passes
+- [x] Unit tests
 
 ---
 

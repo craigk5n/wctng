@@ -2,6 +2,8 @@ parameters:
     app_mode_default: 'standalone'
     db_driver_default: 'mysql'
     webhook_url_default: ''
+    email_from_default: 'noreply@webcalendar.local'
+    email_from_name_default: 'WebCalendar'
 
 services:
     _defaults:
@@ -48,6 +50,12 @@ services:
     App\Tenant\TenantDatabaseManager:
         arguments:
             $appSecret: '%env(APP_SECRET)%'
+
+    # Email service
+    App\Service\EmailService:
+        arguments:
+            $fromAddress: '%env(default:email_from_default:MAIL_FROM_ADDRESS)%'
+            $fromName: '%env(default:email_from_name_default:MAIL_FROM_NAME)%'
 
     # Auth provider repositories
     App\Auth\LdapConfigRepository:
