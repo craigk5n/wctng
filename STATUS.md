@@ -16,13 +16,13 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| P5-E1 | Email Notifications | 4 | 3 | IN PROGRESS |
+| P5-E1 | Email Notifications | 4 | 4 | DONE |
 | P5-E2 | Webhook Notifications | 3 | 0 | NOT STARTED |
 | P5-E3 | Full-Text Search | 3 | 0 | NOT STARTED |
 | P5-E4 | Reports & Analytics | 3 | 0 | NOT STARTED |
 | P5-E5 | Performance & Caching | 4 | 0 | NOT STARTED |
 | P5-E6 | Production Readiness | 4 | 0 | NOT STARTED |
-| **Total** | | **21** | **3** | |
+| **Total** | | **21** | **4** | |
 
 ---
 
@@ -116,7 +116,7 @@ Send reminder emails before upcoming events based on user preferences.
 
 ### P5-E1-S4: Notification Preferences UI
 
-**Status:** NOT STARTED
+**Status:** DONE
 
 **Description:**
 User settings page for configuring email notification preferences.
