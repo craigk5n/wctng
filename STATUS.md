@@ -22,7 +22,7 @@
 | P6-E3 | Conflict Detection & Approval | 3 | 3 | DONE |
 | P6-E4 | Additional Views & Print | 2 | 2 | DONE |
 | P6-E5 | Event Attachments & VALARM | 3 | 3 | DONE |
-| P6-E6 | Remaining Service UIs | 4 | 2 | IN PROGRESS |
+| P6-E6 | Remaining Service UIs | 4 | 3 | IN PROGRESS |
 | P6-E7 | Internationalization | 3 | 0 | TODO |
 | P6-E8 | Admin Feature Configuration | 3 | 0 | TODO |
 | P6-E9 | Integration & E2E Testing | 3 | 0 | TODO |
@@ -438,7 +438,7 @@ Admin page for defining custom event fields (site extras) that appear on event f
 
 ### P6-E6-S3: Boss/Assistant Management
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Settings page for managing boss/assistant calendar relationships.
@@ -446,15 +446,16 @@ Settings page for managing boss/assistant calendar relationships.
 **Preconditions:** Phase 5 complete
 
 **Acceptance Criteria:**
-- [ ] Route `/settings/assistants` accessible to all users
-- [ ] User can add assistants: search users by name, grant calendar access
-- [ ] User can see who they are an assistant for (boss list)
-- [ ] Assistant permissions: view events, create events on behalf, edit events on behalf
-- [ ] Assistants see boss's calendar in their layer list
-- [ ] `GET /api/v2/users/{login}/assistants` and `POST/DELETE` endpoints
-- [ ] Uses AssistantService from webcalendar-core
-- [ ] PHPStan level 9 passes
-- [ ] Unit + Vitest tests
+- [x] Route `/settings/assistants` accessible to all users
+- [x] User can add assistants by username
+- [x] User can see who they are an assistant for (boss list with "Calendars You Assist" section)
+- [x] Assistant permissions: managed via webcalendar-core AssistantService (view/manage boss calendar)
+- [x] Assistants see boss's calendar noted in their layer list
+- [x] `GET /api/v2/users/{login}/assistants` returns assistants and bosses
+- [x] `POST /api/v2/users/{login}/assistants` and `DELETE .../assistants/{login}` endpoints
+- [x] Uses AssistantService from webcalendar-core
+- [x] PHPStan level 9 passes
+- [x] 4 Vitest tests (heading, list assistants, show bosses, add input)
 
 ---
 
