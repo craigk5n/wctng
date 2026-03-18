@@ -11,7 +11,7 @@ final readonly class PollRepository
             id INTEGER PRIMARY KEY AUTO_INCREMENT,
             creator_login VARCHAR(60) NOT NULL,
             title VARCHAR(200) NOT NULL,
-            description TEXT DEFAULT '',
+            description TEXT,
             status VARCHAR(10) NOT NULL DEFAULT 'open',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
@@ -34,7 +34,7 @@ final readonly class PollRepository
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             creator_login VARCHAR(60) NOT NULL,
             title VARCHAR(200) NOT NULL,
-            description TEXT DEFAULT '',
+            description TEXT,
             status VARCHAR(10) NOT NULL DEFAULT 'open',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
