@@ -303,28 +303,28 @@ Add a clickable map link in the event detail dialog (React SPA) without embeddin
 
 | Story | Title | Status |
 |-------|-------|--------|
-| P8-E3-S1 | Custom HTML/CSS Admin API & Settings | TODO |
+| P8-E3-S1 | Custom HTML/CSS Admin API & Settings | DONE |
 | P8-E3-S2 | Apply Custom HTML/CSS to SPA & SSR Pages | TODO |
 
 ---
 
 ### P8-E3-S1: Custom HTML/CSS Admin API & Settings
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Admin page for entering custom header HTML, trailer/footer HTML, and custom CSS. Stored via ConfigService.
 
 **Acceptance Criteria:**
-- [ ] Config keys: `CUSTOM_HEADER_HTML`, `CUSTOM_TRAILER_HTML`, `CUSTOM_CSS`
-- [ ] `GET /api/v2/admin/custom-html` — returns all three values (admin only)
-- [ ] `PUT /api/v2/admin/custom-html` — updates any/all (admin only)
-- [ ] `GET /api/v2/config/custom-html` — returns values (public, for SPA rendering)
-- [ ] Admin settings page: three textareas (header HTML, trailer HTML, CSS)
-- [ ] Live preview panel showing how header/trailer will look
-- [ ] HTML sanitized: strips `<script>`, `<iframe>`, event handlers (uses DescriptionSanitizer allowlist + `<nav>`, `<header>`, `<footer>`, `<div>`, `<span>`, `<img>`)
-- [ ] CSS sanitized: strips `expression()`, `url(javascript:)`, `@import`
-- [ ] PHPStan level 9 + Vitest tests
+- [x] Config keys: `CUSTOM_HEADER_HTML`, `CUSTOM_TRAILER_HTML`, `CUSTOM_CSS`
+- [x] `GET /api/v2/admin/custom-html` — returns all three values (admin only)
+- [x] `PUT /api/v2/admin/custom-html` — updates any/all (admin only)
+- [x] `GET /api/v2/config/custom-html` — returns values (public, for SPA rendering)
+- [x] Admin settings page: three textareas (header HTML, trailer HTML, CSS) with preview
+- [x] Live preview panel showing how header/trailer will look
+- [x] HTML sanitized: strips `<script>`, `<iframe>`, event handlers via CustomHtmlSanitizer
+- [x] CSS sanitized: strips `expression()`, `url(javascript:)`, `@import`, `-moz-binding`
+- [x] PHPStan level 9 + 10 integration tests + 5 Vitest tests
 
 ---
 

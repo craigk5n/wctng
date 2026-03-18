@@ -49,6 +49,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { label: 'Custom Fields', href: '/admin/custom-fields', icon: '📝' },
     { label: 'Webhooks', href: '/admin/webhooks', icon: '🔗' },
     { label: 'Activity Log', href: '/admin/activity-log', icon: '📋' },
+    { label: 'Custom HTML/CSS', href: '/admin/custom-html', icon: '🎨' },
     { label: 'Settings', href: '/admin/settings', icon: '🔧' },
   ] : [];
 
