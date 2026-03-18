@@ -19,7 +19,7 @@
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
 | P7-E1 | Drag-and-Drop & Resize | 2 | 2 | DONE |
-| P7-E2 | ICS Subscription & Holidays | 3 | 0 | TODO |
+| P7-E2 | ICS Subscription & Holidays | 3 | 1 | IN PROGRESS |
 | P7-E3 | Scheduling Polls | 3 | 0 | TODO |
 | P7-E4 | Room & Resource Booking | 2 | 0 | TODO |
 | P7-E5 | MCP Server (AI Integration) | 2 | 0 | TODO |
@@ -107,7 +107,7 @@ Allow users to drag the bottom edge of an event to change its duration. FullCale
 
 ### P7-E2-S1: Remote Calendar Subscription API
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Backend support for subscribing to external ICS URLs with periodic refresh.
@@ -115,15 +115,16 @@ Backend support for subscribing to external ICS URLs with periodic refresh.
 **Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [ ] `calendar_subscriptions` table: id, user_login, url, name, color, refresh_interval, last_fetched, etag
-- [ ] `POST /api/v2/calendars/subscribe` — add subscription (URL, name, color)
-- [ ] `GET /api/v2/calendars/subscriptions` — list user's subscriptions
-- [ ] `DELETE /api/v2/calendars/subscriptions/{id}` — remove subscription
-- [ ] Background refresh: `php bin/console webcalendar:refresh-subscriptions` (cron command)
-- [ ] ICS fetch with HTTP ETag/If-None-Match for efficiency
-- [ ] Events stored in memory (not persisted) or cached in Redis
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests
+- [x] `calendar_subscriptions` table: id, user_login, url, name, color, refresh_interval, last_fetched, etag
+- [x] `POST /api/v2/calendars/subscribe` — add subscription (URL, name, color)
+- [x] `GET /api/v2/calendars/subscriptions` — list user's subscriptions
+- [x] `DELETE /api/v2/calendars/subscriptions/{id}` — remove subscription
+- [x] `GET /api/v2/calendars/subscriptions/{id}/events` — fetch and parse ICS events on demand
+- [x] Background refresh: `php bin/console webcalendar:refresh-subscriptions` (cron command)
+- [x] ICS fetch with HTTP ETag/If-None-Match for efficiency
+- [x] Simple VEVENT parser for ICS content (title, start, end, location, description)
+- [x] PHPStan level 9 passes
+- [x] Unit tests: 7 tests (CRUD, delete wrong user, fetch status, due for refresh, toArray)
 
 ---
 

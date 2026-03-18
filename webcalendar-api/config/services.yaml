@@ -92,6 +92,16 @@ services:
             $pdo: '@pdo.connection'
             $appSecret: '%env(APP_SECRET)%'
 
+    # Subscription controller needs PDO for subscriptions table
+    App\Controller\Api\SubscriptionController:
+        arguments:
+            $pdo: '@pdo.connection'
+
+    # Subscription refresh command
+    App\Command\RefreshSubscriptionsCommand:
+        arguments:
+            $pdo: '@pdo.connection'
+
     # Custom field controller needs PDO for definitions table
     App\Controller\Api\CustomFieldController:
         arguments:
