@@ -32,6 +32,176 @@
 
 ---
 
+## Phase 8 Preview: SEO & Public Discovery
+
+> **Not yet started.** Planned epic for server-rendered public event pages,
+> structured data, sitemap, and privacy controls.
+
+### Epic P8-E1: SEO & Public Event Pages (6 stories)
+
+| Story | Title | Status |
+|-------|-------|--------|
+| P8-E1-S1 | Admin & User SEO Feature Flags | TODO |
+| P8-E1-S2 | Single Event Detail Pages (SSR) | TODO |
+| P8-E1-S3 | Schema.org Structured Data (JSON-LD) | TODO |
+| P8-E1-S4 | Event Index & Archive Pages | TODO |
+| P8-E1-S5 | Sitemap.xml & robots.txt | TODO |
+| P8-E1-S6 | Open Graph & Social Sharing | TODO |
+
+---
+
+### P8-E1-S1: Admin & User SEO Feature Flags
+
+**Status:** TODO
+
+**Description:**
+Admin feature flag to enable/disable public event SEO pages globally. Per-user preference to opt out even when admin has it enabled. Consistent with existing `public_calendar_enabled` preference — SEO pages only render for users who have both the admin flag ON and their personal flag ON.
+
+**Acceptance Criteria:**
+- [ ] Admin config: `ENABLE_SEO_PAGES` (Y/N, default N) — controls whether SSR event pages exist at all
+- [ ] User preference: `seo_indexing_enabled` (Y/N, default Y) — allows users to opt out of search engine indexing
+- [ ] SEO pages only render when: admin flag ON + user `public_calendar_enabled` = Y + user `seo_indexing_enabled` != N
+- [ ] `noindex` meta tag added when user has opted out (pages still accessible but not crawled)
+- [ ] Admin settings page: toggle for "Enable public event pages for search engines"
+- [ ] User preferences page: toggle for "Allow search engines to index my public events"
+- [ ] `GET /api/v2/config/features` includes `ENABLE_SEO_PAGES` flag
+- [ ] PHPStan level 9 + unit tests
+
+---
+
+### P8-E1-S2: Single Event Detail Pages (SSR)
+
+**Status:** TODO
+
+**Description:**
+Server-side rendered HTML pages for individual public events at `/public/{username}/event/{id}`. Rendered by Symfony (not React) so crawlers get full HTML without JavaScript.
+
+**Acceptance Criteria:**
+- [ ] `GET /public/{username}/event/{id}` returns full HTML page (Symfony Twig template)
+- [ ] Page includes: event title as `<h1>`, date/time, location, description (sanitized HTML)
+- [ ] `<title>` tag: "{Event Title} — {User}'s Calendar"
+- [ ] `<meta name="description">` with event summary
+- [ ] Recurring events: shows specific occurrence info
+- [ ] Respects feature flags: returns 404 if SEO disabled or user opted out
+- [ ] `<meta name="robots" content="noindex">` when user has opted out of indexing
+- [ ] Links back to public calendar view
+- [ ] Mobile responsive (basic CSS, no JS framework needed)
+- [ ] PHPStan level 9 + unit tests
+
+---
+
+### P8-E1-S3: Schema.org Structured Data (JSON-LD)
+
+**Status:** TODO
+
+**Description:**
+Add Schema.org Event structured data to single event pages so Google shows rich event snippets in search results.
+
+**Acceptance Criteria:**
+- [ ] JSON-LD `<script type="application/ld+json">` block in event detail page
+- [ ] Schema.org `Event` type with: name, startDate, endDate, location, description, organizer
+- [ ] `location` maps to Schema.org `Place` (with name) or `VirtualLocation` (if URL present)
+- [ ] `organizer` maps to Schema.org `Person` with user's display name
+- [ ] `eventStatus`: SCHEDULED, CANCELLED (from event status field)
+- [ ] `eventAttendanceMode`: OFFLINE (default), ONLINE (if conference URL), MIXED
+- [ ] Validated against Google's Rich Results Test
+- [ ] Unit tests for JSON-LD generation
+
+---
+
+### P8-E1-S4: Event Index & Archive Pages
+
+**Status:** TODO
+
+**Description:**
+Paginated, server-rendered listing of public events for crawlers to discover individual event pages.
+
+**Acceptance Criteria:**
+- [ ] `GET /public/{username}/events` — upcoming events list (paginated, 20 per page)
+- [ ] `GET /public/{username}/events?month=2026-04` — monthly archive view
+- [ ] Server-rendered HTML with `<title>`, `<meta description>` per page
+- [ ] `<link rel="canonical">` to avoid duplicate content
+- [ ] `<link rel="next">` and `<link rel="prev">` for pagination
+- [ ] Each event links to its detail page (`/public/{username}/event/{id}`)
+- [ ] Respects same feature flag / user opt-out as detail pages
+- [ ] Clean, semantic HTML with `<article>`, `<time>`, `<address>` elements
+- [ ] Unit tests
+
+---
+
+### P8-E1-S5: Sitemap.xml & robots.txt
+
+**Status:** TODO
+
+**Description:**
+Auto-generated sitemap for search engine discovery and robots.txt to guide crawler behavior.
+
+**Acceptance Criteria:**
+- [ ] `GET /sitemap.xml` — auto-generated sitemap listing all public event pages
+- [ ] Only includes events from users with public calendar + SEO indexing enabled
+- [ ] `<lastmod>` from event modification date
+- [ ] `<changefreq>` based on event date (upcoming = daily, past = monthly)
+- [ ] `<priority>` based on event proximity (upcoming events higher priority)
+- [ ] Sitemap limited to 50,000 URLs (sitemap index if more)
+- [ ] `GET /robots.txt` — allows /public/, /book/; disallows /api/, /admin/, /settings/, /dav/
+- [ ] robots.txt references sitemap URL
+- [ ] Cached/regenerated periodically (not on every request)
+- [ ] PHPStan level 9 + unit tests
+
+---
+
+### P8-E1-S6: Open Graph & Social Sharing
+
+**Status:** TODO
+
+**Description:**
+Open Graph and Twitter Card meta tags on event pages for rich link previews when shared on social media, Slack, etc.
+
+**Acceptance Criteria:**
+- [ ] `<meta property="og:title">` — event title
+- [ ] `<meta property="og:description">` — date, time, location summary
+- [ ] `<meta property="og:type" content="website">`
+- [ ] `<meta property="og:url">` — canonical event URL
+- [ ] `<meta property="og:image">` — dynamically generated event card image (or default calendar icon)
+- [ ] `<meta name="twitter:card" content="summary">`
+- [ ] Shared links on Slack/Discord/Twitter show rich preview with event details
+- [ ] Optional: dynamic OG image generation (event title + date as PNG card)
+- [ ] Unit tests for meta tag generation
+
+---
+
+### Privacy Model Summary
+
+```
+Admin: ENABLE_SEO_PAGES = N (default)
+  → No SSR pages exist at all. 404 for all /public/*/event/* URLs.
+  → sitemap.xml returns empty.
+  → No impact on existing /public/{username} React SPA pages.
+
+Admin: ENABLE_SEO_PAGES = Y
+  → SSR pages available for users who have BOTH:
+     1. public_calendar_enabled = Y (existing flag — user opted into public calendar)
+     2. seo_indexing_enabled != N (new flag — default Y, user can opt out)
+
+  User: public_calendar_enabled = N
+    → No public calendar, no SEO pages. (Same as today.)
+
+  User: public_calendar_enabled = Y, seo_indexing_enabled = Y (default)
+    → Public calendar visible. SSR event pages crawlable.
+    → Events appear in sitemap.xml.
+
+  User: public_calendar_enabled = Y, seo_indexing_enabled = N
+    → Public calendar still visible (React SPA).
+    → SSR event pages render but with <meta name="robots" content="noindex">.
+    → Events excluded from sitemap.xml.
+    → Use case: user wants to share calendar link with colleagues
+      but doesn't want events appearing in Google search results.
+```
+
+This three-tier model (admin global → user public → user SEO) is consistent with how Google Workspace, Microsoft 365, and Nextcloud handle public calendar visibility vs search engine indexing. The principle is: **sharing ≠ indexing** — a user might want a shareable link without appearing in search results.
+
+---
+
 ## Dependency Graph
 
 ```
