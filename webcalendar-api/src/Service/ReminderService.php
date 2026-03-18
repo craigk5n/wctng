@@ -32,6 +32,12 @@ final class ReminderService
      */
     public function sendReminders(): int
     {
+        // Check admin feature flag
+        if (!$this->isEnabled()) {
+            $this->logger->info('Email reminders disabled globally');
+            return 0;
+        }
+
         $pdo = $this->coreServiceFactory->getPdo();
         $this->ensureTrackingTable($pdo);
 
@@ -48,7 +54,7 @@ final class ReminderService
         foreach ($users as $user) {
             $minutes = $this->getReminderMinutes($user->login());
             if ($minutes <= 0) {
-                continue; // Reminders disabled
+                continue; // Reminders disabled for this user
             }
 
             $windowStart = $now;
@@ -64,6 +70,17 @@ final class ReminderService
 
                     // Check if event starts within the reminder window
                     if ($eventStart < $windowStart || $eventStart > $windowEnd) {
+                        continue;
+                    }
+
+                    // Skip cancelled or rejected events
+                    $status = $event->status();
+                    if ($status === 'cancelled' || $status === 'rejected') {
+                        continue;
+                    }
+
+                    // Skip events where this user's participant status is rejected
+                    if ($this->isUserRejected($eventId, $user->login())) {
                         continue;
                     }
 
@@ -84,7 +101,7 @@ final class ReminderService
 
                     $this->emailService->send(
                         $user->email(),
-                        "Reminder: {$event->name()}",
+                        'Reminder: ' . htmlspecialchars($event->name(), \ENT_QUOTES, 'UTF-8'),
                         $html,
                     );
 
@@ -102,6 +119,16 @@ final class ReminderService
         }
 
         return $sent;
+    }
+
+    /**
+     * Check if the admin has enabled email reminders globally.
+     */
+    public function isEnabled(): bool
+    {
+        $value = $this->coreServiceFactory->getConfigService()->getSetting('ENABLE_EMAIL_REMINDERS');
+        // Default to Y if not set
+        return $value !== 'N';
     }
 
     private function getReminderMinutes(string $login): int
@@ -151,12 +178,28 @@ final class ReminderService
         );
     }
 
+    private function isUserRejected(int $eventId, string $login): bool
+    {
+        try {
+            /** @var array<string, string> $participants */
+            $participants = $this->coreServiceFactory->getEventRepository()
+                ->getParticipantsWithStatus(new \WebCalendar\Core\Domain\ValueObject\EventId($eventId));
+
+            $status = $participants[$login] ?? null;
+            return $status === 'R'; // R = Rejected
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     private function renderReminderEmail(string $title, string $date, string $time, string $location): string
     {
-        $locationHtml = $location !== '' ? "<p><strong>Location:</strong> {$location}</p>" : '';
+        $safeTitle = htmlspecialchars($title, \ENT_QUOTES, 'UTF-8');
+        $safeLocation = htmlspecialchars($location, \ENT_QUOTES, 'UTF-8');
+        $locationHtml = $safeLocation !== '' ? "<p><strong>Location:</strong> {$safeLocation}</p>" : '';
 
         return <<<HTML
-        <h2>Upcoming: {$title}</h2>
+        <h2>Upcoming: {$safeTitle}</h2>
         <p><strong>When:</strong> {$date} at {$time}</p>
         {$locationHtml}
         <p><a href="{$this->baseUrl}">View in WebCalendar</a></p>

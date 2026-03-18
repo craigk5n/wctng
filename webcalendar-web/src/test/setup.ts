@@ -35,6 +35,7 @@ vi.mock('../hooks/useFeatureFlags', () => ({
     DISABLE_PARTICIPANTS_FIELD: 'N',
     ENABLE_SEO_PAGES: 'N',
     ENABLE_GEOCODING: 'Y',
+    ENABLE_EMAIL_REMINDERS: 'Y',
   }),
 }));
 

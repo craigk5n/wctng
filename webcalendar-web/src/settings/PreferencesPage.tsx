@@ -18,6 +18,7 @@ export function PreferencesPage() {
   const [conflictMode, setConflictMode] = useState('warn');
   const [language, setLanguage] = useState(getLocale());
   const [seoIndexing, setSeoIndexing] = useState('Y');
+  const [reminderMinutes, setReminderMinutes] = useState('30');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -37,6 +38,7 @@ export function PreferencesPage() {
           if (p.key === 'conflict_mode') setConflictMode(p.value);
           if (p.key === 'locale') { setLanguage(p.value); changeLocale(p.value); }
           if (p.key === 'seo_indexing_enabled') setSeoIndexing(p.value);
+          if (p.key === 'REMINDER_MINUTES') setReminderMinutes(p.value);
         }
       }
     })();
@@ -55,6 +57,7 @@ export function PreferencesPage() {
     prefs['conflict_mode'] = conflictMode;
     prefs['locale'] = language;
     prefs['seo_indexing_enabled'] = seoIndexing;
+    prefs['REMINDER_MINUTES'] = reminderMinutes;
 
     const { error } = await apiFetch(`/users/${login}/preferences`, {
       method: 'PUT',
@@ -67,7 +70,7 @@ export function PreferencesPage() {
     } else {
       toast({ title: 'Failed to save', variant: 'error' });
     }
-  }, [login, defaultView, timezone, workDayStart, workDayEnd, conflictMode, language, seoIndexing, toast]);
+  }, [login, defaultView, timezone, workDayStart, workDayEnd, conflictMode, language, seoIndexing, reminderMinutes, toast]);
 
   return (
     <div>
@@ -156,6 +159,27 @@ export function PreferencesPage() {
             <option value="ar">العربية</option>
             <option value="he">עברית</option>
           </select>
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="email-reminder" className="text-sm font-medium">Email Reminder</label>
+          <select
+            id="email-reminder"
+            value={reminderMinutes}
+            onChange={(e) => setReminderMinutes(e.target.value)}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            <option value="0">Off</option>
+            <option value="5">5 minutes before</option>
+            <option value="10">10 minutes before</option>
+            <option value="15">15 minutes before</option>
+            <option value="30">30 minutes before</option>
+            <option value="60">1 hour before</option>
+            <option value="1440">1 day before</option>
+          </select>
+          <p className="text-xs text-muted-foreground">
+            Receive an email reminder before your events. Requires the cron job to be configured.
+          </p>
         </div>
 
         <div className="space-y-2">

@@ -52,6 +52,12 @@ const FEATURES: FeatureToggle[] = [
     description: 'Automatically geocode event locations to show maps on public event pages.',
     inverted: false,
   },
+  {
+    key: 'ENABLE_EMAIL_REMINDERS',
+    label: 'Email Reminders',
+    description: 'Send email reminders before events. Individual users can configure their reminder timing in preferences.',
+    inverted: false,
+  },
 ];
 
 export function AdminSettingsPage() {

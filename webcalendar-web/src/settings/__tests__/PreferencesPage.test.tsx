@@ -47,4 +47,20 @@ describe('PreferencesPage', () => {
     );
     expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
   });
+
+  it('shows email reminder dropdown', () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ data: [] }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+    );
+    render(
+      <MemoryRouter>
+        <AuthProvider><ToastProvider><PreferencesPage /></ToastProvider></AuthProvider>
+      </MemoryRouter>,
+    );
+    const select = screen.getByLabelText(/email reminder/i);
+    expect(select).toBeInTheDocument();
+    expect(select).toBeInstanceOf(HTMLSelectElement);
+    // Default value should be 30 minutes
+    expect((select as HTMLSelectElement).value).toBe('30');
+  });
 });

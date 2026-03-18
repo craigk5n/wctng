@@ -424,7 +424,7 @@ Audit query performance and add missing indexes. The webcalendar-core schema alr
 
 | Story | Title | Status |
 |-------|-------|--------|
-| P9-E2-S1 | Reminder Email Preferences UI & Hardening | TODO |
+| P9-E2-S1 | Reminder Email Preferences UI & Hardening | DONE |
 | P9-E2-S2 | Daily Agenda Email | TODO |
 | P9-E2-S3 | Email Preferences Page & Unsubscribe | TODO |
 
@@ -440,7 +440,7 @@ Audit query performance and add missing indexes. The webcalendar-core schema alr
 
 ### P9-E2-S1: Reminder Email Preferences UI & Hardening
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Add UI for configuring email reminder preferences. The backend `ReminderService` and `SendRemindersCommand` already work — this story adds the user-facing settings and hardens edge cases.
@@ -448,16 +448,16 @@ Add UI for configuring email reminder preferences. The backend `ReminderService`
 **Preconditions:** ReminderService, SendRemindersCommand, EmailService already exist
 
 **Acceptance Criteria:**
-- [ ] Preferences page: "Email Reminder" dropdown (Off / 5 min / 10 min / 15 min / 30 min / 1 hour / 1 day)
-- [ ] Maps to existing `REMINDER_MINUTES` preference key (0 = off)
-- [ ] `PUT /api/v2/users/me/preferences` saves the value (existing endpoint)
-- [ ] ReminderService: skip events with status `cancelled` or `rejected`
-- [ ] ReminderService: skip events where user's participant status is `rejected`
-- [ ] ReminderService: escape HTML in email template (event name, location could contain HTML)
-- [ ] Admin feature flag: `ENABLE_EMAIL_REMINDERS` (Y/N, default Y) — when N, command exits immediately
-- [ ] Add to admin settings page toggle list
-- [ ] Integration tests for skip-cancelled and skip-rejected logic
-- [ ] Vitest test for preferences dropdown
+- [x] Preferences page: "Email Reminder" dropdown (Off / 5 min / 10 min / 15 min / 30 min / 1 hour / 1 day)
+- [x] Maps to existing `REMINDER_MINUTES` preference key (0 = off)
+- [x] `PUT /api/v2/users/{login}/preferences` saves the value (existing endpoint)
+- [x] ReminderService: skip events with status `cancelled` or `rejected`
+- [x] ReminderService: skip events where user's participant status is `rejected` (via `getParticipantsWithStatus`)
+- [x] ReminderService: escape HTML in email template (event name, location)
+- [x] Admin feature flag: `ENABLE_EMAIL_REMINDERS` (Y/N, default Y) — when N, `sendReminders()` returns 0 immediately
+- [x] Added to admin settings page toggle list
+- [x] 8 integration tests (send, disabled globally, disabled per-user, skip cancelled, skip rejected, dedup, isEnabled)
+- [x] 1 Vitest test for preferences dropdown
 
 ---
 

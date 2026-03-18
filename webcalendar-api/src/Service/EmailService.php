@@ -12,7 +12,7 @@ use Symfony\Component\Mime\Email;
  *
  * Wraps MailerInterface with application-specific defaults.
  */
-final class EmailService
+class EmailService
 {
     public function __construct(
         private readonly MailerInterface $mailer,
