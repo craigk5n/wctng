@@ -13,32 +13,34 @@ export function QuickAddInput({ onParsed }: QuickAddInputProps) {
     e.preventDefault();
     if (!text.trim()) return;
 
-    const parsed = parseNaturalLanguage(text.trim());
+    void (async () => {
+      const parsed = await parseNaturalLanguage(text.trim());
 
-    const formData: Partial<EventFormData> & { start_date_display?: string; start_time_display?: string } = {
-      title: parsed.title,
-    };
+      const formData: Partial<EventFormData> & { start_date_display?: string; start_time_display?: string } = {
+        title: parsed.title,
+      };
 
-    if (parsed.startDate) {
-      formData.start_date = parsed.startDate.replace(/-/g, '');
-      formData.start_date_display = parsed.startDate;
-    }
-    if (parsed.startTime) {
-      formData.start_time = parsed.startTime.replace(/:/g, '') + '00';
-      formData.start_time_display = parsed.startTime;
-    }
-    if (parsed.duration) {
-      formData.duration = parsed.duration;
-    }
-    if (parsed.location) {
-      formData.location = parsed.location;
-    }
-    if (parsed.participants.length > 0) {
-      formData.participants = parsed.participants;
-    }
+      if (parsed.startDate) {
+        formData.start_date = parsed.startDate.replace(/-/g, '');
+        formData.start_date_display = parsed.startDate;
+      }
+      if (parsed.startTime) {
+        formData.start_time = parsed.startTime.replace(/:/g, '') + '00';
+        formData.start_time_display = parsed.startTime;
+      }
+      if (parsed.duration) {
+        formData.duration = parsed.duration;
+      }
+      if (parsed.location) {
+        formData.location = parsed.location;
+      }
+      if (parsed.participants.length > 0) {
+        formData.participants = parsed.participants;
+      }
 
-    onParsed(formData);
-    setText('');
+      onParsed(formData);
+      setText('');
+    })();
   }, [text, onParsed]);
 
   return (

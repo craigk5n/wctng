@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QuickAddInput } from '../QuickAddInput';
 
@@ -23,7 +23,9 @@ describe('QuickAddInput', () => {
     await user.type(screen.getByPlaceholderText(/quick add/i), 'Team meeting');
     await user.click(screen.getByTitle(/parse/i));
 
-    expect(onParsed).toHaveBeenCalledOnce();
+    await waitFor(() => {
+      expect(onParsed).toHaveBeenCalledOnce();
+    });
     const parsed = onParsed.mock.calls[0][0];
     expect(parsed.title).toContain('Team meeting');
   });
@@ -36,6 +38,8 @@ describe('QuickAddInput', () => {
     await user.type(input, 'Lunch');
     await user.click(screen.getByTitle(/parse/i));
 
-    expect(input.value).toBe('');
+    await waitFor(() => {
+      expect(input.value).toBe('');
+    });
   });
 });

@@ -1,5 +1,3 @@
-import * as chrono from 'chrono-node';
-
 export interface ParsedEvent {
   title: string;
   startDate?: string; // YYYY-MM-DD
@@ -18,7 +16,7 @@ export interface ParsedEvent {
  *   "Meeting at Room A Friday 2pm-3pm" → title: "Meeting", location: "Room A", date: Friday, time: 14:00, duration: 60
  *   "Dentist next Monday at 10am" → title: "Dentist", date: next Monday, time: 10:00
  */
-export function parseNaturalLanguage(text: string): ParsedEvent {
+export async function parseNaturalLanguage(text: string): Promise<ParsedEvent> {
   if (!text.trim()) {
     return { title: '', participants: [] };
   }
@@ -38,7 +36,8 @@ export function parseNaturalLanguage(text: string): ParsedEvent {
     result.location = atMatch[1].trim();
   }
 
-  // Extract date/time using chrono-node
+  // Extract date/time using chrono-node (dynamically imported to reduce bundle)
+  const chrono = await import('chrono-node');
   const parsed = chrono.parse(text);
   if (parsed.length > 0) {
     const ref = parsed[0];
