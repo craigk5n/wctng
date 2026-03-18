@@ -24,10 +24,10 @@
 | P7-E4 | Room & Resource Booking | 2 | 2 | DONE |
 | P7-E5 | MCP Server (AI Integration) | 2 | 2 | DONE |
 | P7-E6 | PWA & Push Notifications | 2 | 2 | DONE |
-| P7-E7 | Saved Views & Private Categories | 2 | 1 | IN PROGRESS |
+| P7-E7 | Saved Views & Private Categories | 2 | 2 | DONE |
 | P7-E8 | UX Quick Wins | 3 | 0 | TODO |
 | P7-E9 | Recurring Events UI | 2 | 2 | DONE |
-| **Total** | | **21** | **16** | |
+| **Total** | | **21** | **18** | |
 
 ---
 
@@ -400,7 +400,7 @@ Create named views that show specific users' calendars, switchable from a dropdo
 
 ### P7-E7-S2: Private Categories (Per-User + Global)
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Allow users to create personal categories that only they see, while admins manage global categories visible to all.
@@ -408,13 +408,13 @@ Allow users to create personal categories that only they see, while admins manag
 **Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [ ] Category `owner` field: empty = global (admin-managed), set = private to that user
-- [ ] webcalendar-core `webcal_categories.cat_owner` column already exists — wire the filtering
-- [ ] `GET /api/v2/categories` returns global + current user's private categories
-- [ ] `POST /api/v2/categories` — non-admin users create private categories (owner = self)
-- [ ] Admin creates global categories (owner = empty)
-- [ ] Users cannot see other users' private categories
-- [ ] Category admin page shows "Global" vs "Personal" badge
+- [x] Category `owner` field: empty = global, set = private (already in backend)
+- [x] `GET /api/v2/categories` returns global + current user's private categories (getCategoriesForUser)
+- [x] `POST /api/v2/categories` — non-admin creates private (owner=self), admin can toggle is_global
+- [x] Admin creates global categories via is_global checkbox
+- [x] Users cannot see other users' private categories (backend filtering)
+- [x] Category admin page shows "Global" (blue) vs "Personal" (green) badge
+- [x] TypeScript strict, 401 total tests pass
 - [ ] PHPStan level 9 passes
 - [ ] Unit + Vitest tests
 

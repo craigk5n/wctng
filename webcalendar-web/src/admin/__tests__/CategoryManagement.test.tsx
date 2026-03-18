@@ -5,6 +5,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from '../../components/toast/ToastProvider';
 import { CategoryManagement } from '../CategoryManagement';
 
+vi.mock('../../auth/auth-context', () => ({
+  useAuth: () => ({ user: { login: 'admin', is_admin: true } }),
+}));
+
 function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: 0 } },
@@ -43,7 +47,7 @@ describe('CategoryManagement', () => {
         JSON.stringify({
           data: [
             { id: 1, name: 'Work', color: '#FF0000', is_global: true, owner: null },
-            { id: 2, name: 'Personal', color: '#00FF00', is_global: false, owner: 'admin' },
+            { id: 2, name: 'Hobbies', color: '#00FF00', is_global: false, owner: 'admin' },
           ],
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } },
@@ -54,7 +58,7 @@ describe('CategoryManagement', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Work')).toBeInTheDocument();
-      expect(screen.getByText('Personal')).toBeInTheDocument();
+      expect(screen.getByText('Hobbies')).toBeInTheDocument();
     });
   });
 

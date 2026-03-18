@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../api/client';
 import { useToast } from '../components/toast/ToastProvider';
+import { useAuth } from '../auth/auth-context';
 
 interface Category {
   id: number;
@@ -16,7 +17,10 @@ export function CategoryManagement() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState('#3788d8');
+  const [newIsGlobal, setNewIsGlobal] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const { user } = useAuth();
+  const isAdmin = user?.is_admin ?? false;
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState('');
@@ -40,7 +44,7 @@ export function CategoryManagement() {
 
     const { error } = await apiFetch('/categories', {
       method: 'POST',
-      body: JSON.stringify({ name: newName.trim(), color: newColor }),
+      body: JSON.stringify({ name: newName.trim(), color: newColor, is_global: isAdmin && newIsGlobal }),
     });
 
     setIsCreating(false);
@@ -49,6 +53,7 @@ export function CategoryManagement() {
       toast({ title: `Category "${newName}" created`, variant: 'success' });
       setNewName('');
       setNewColor('#3788d8');
+      setNewIsGlobal(false);
       setShowCreateForm(false);
       void fetchCategories();
     } else {
@@ -104,29 +109,45 @@ export function CategoryManagement() {
 
       {/* Create Form */}
       {showCreateForm && (
-        <form onSubmit={handleCreate} className="mt-4 flex items-end gap-3 rounded-lg border border-border p-4">
-          <div className="flex-1 space-y-1">
-            <label htmlFor="cat-name" className="text-sm font-medium">Name</label>
-            <input
-              id="cat-name"
-              type="text"
-              required
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              placeholder="Category name"
-            />
+        <form onSubmit={handleCreate} className="mt-4 space-y-3 rounded-lg border border-border p-4">
+          <div className="flex items-end gap-3">
+            <div className="flex-1 space-y-1">
+              <label htmlFor="cat-name" className="text-sm font-medium">Name</label>
+              <input
+                id="cat-name"
+                type="text"
+                required
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                placeholder="Category name"
+              />
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="cat-color" className="text-sm font-medium">Color</label>
+              <input
+                id="cat-color"
+                type="color"
+                value={newColor}
+                onChange={(e) => setNewColor(e.target.value)}
+                className="h-10 w-16 cursor-pointer rounded-md border border-input"
+              />
+            </div>
           </div>
-          <div className="space-y-1">
-            <label htmlFor="cat-color" className="text-sm font-medium">Color</label>
-            <input
-              id="cat-color"
-              type="color"
-              value={newColor}
-              onChange={(e) => setNewColor(e.target.value)}
-              className="h-10 w-16 cursor-pointer rounded-md border border-input"
-            />
-          </div>
+          {isAdmin && (
+            <div className="flex items-center gap-2">
+              <input
+                id="cat-global"
+                type="checkbox"
+                checked={newIsGlobal}
+                onChange={(e) => setNewIsGlobal(e.target.checked)}
+                className="h-4 w-4"
+              />
+              <label htmlFor="cat-global" className="text-sm">
+                Global (visible to all users)
+              </label>
+            </div>
+          )}
           <button
             type="submit"
             disabled={isCreating}
@@ -186,9 +207,13 @@ export function CategoryManagement() {
                 ) : (
                   <div>
                     <span className="font-medium">{cat.name}</span>
-                    {cat.is_global && (
-                      <span className="ml-2 text-xs text-muted-foreground">(Global)</span>
-                    )}
+                    <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      cat.is_global
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                        : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                    }`}>
+                      {cat.is_global ? 'Global' : 'Personal'}
+                    </span>
                   </div>
                 )}
               </div>
