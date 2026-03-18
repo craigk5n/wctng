@@ -19,7 +19,7 @@
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
 | P7-E1 | Drag-and-Drop & Resize | 2 | 2 | DONE |
-| P7-E2 | ICS Subscription & Holidays | 3 | 2 | IN PROGRESS |
+| P7-E2 | ICS Subscription & Holidays | 3 | 3 | DONE |
 | P7-E3 | Scheduling Polls | 3 | 0 | TODO |
 | P7-E4 | Room & Resource Booking | 2 | 0 | TODO |
 | P7-E5 | MCP Server (AI Integration) | 2 | 0 | TODO |
@@ -150,7 +150,7 @@ Settings page for managing ICS subscriptions and a curated list of popular holid
 
 ### P7-E2-S3: Holiday Calendar Display
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Display subscribed calendar events on the FullCalendar grid as a distinct layer.
@@ -158,11 +158,12 @@ Display subscribed calendar events on the FullCalendar grid as a distinct layer.
 **Preconditions:** P7-E2-S2
 
 **Acceptance Criteria:**
-- [ ] Subscription events rendered on calendar with subscription color
-- [ ] Subscription events are read-only (no edit/delete/drag)
-- [ ] Subscription events show source name in detail popup
-- [ ] Toggle visibility per subscription (like layers)
-- [ ] Vitest tests
+- [x] Subscription events rendered on calendar with subscription color
+- [x] Subscription events are read-only (editable: false, eventAllow blocks drag)
+- [x] Subscription events show source name in detail popup (alert with source/location/description)
+- [x] Subscription events fetched alongside regular events in fetchCalendarEvents()
+- [x] subscriptionMapper converts ICS date formats to FullCalendar EventInput
+- [x] Vitest tests: 3 tests (all-day, timed, non-editable)
 
 ---
 

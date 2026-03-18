@@ -53,6 +53,17 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
   const handleEventClick = useCallback(
     (arg: EventClickArg) => {
       const id = arg.event.id;
+      // Subscription events are read-only — show source info via alert
+      if (id.startsWith('sub-')) {
+        const source = arg.event.extendedProps?.source as string ?? 'Subscription';
+        const desc = arg.event.extendedProps?.description as string ?? '';
+        const loc = arg.event.extendedProps?.location as string ?? '';
+        const parts = [`Source: ${source}`];
+        if (loc) parts.push(`Location: ${loc}`);
+        if (desc) parts.push(`\n${desc}`);
+        window.alert(`${arg.event.title}\n\n${parts.join('\n')}`);
+        return;
+      }
       // Tasks have IDs like "task-42"
       if (id.startsWith('task-') && onTaskClick) {
         const taskId = parseInt(id.slice(5), 10);
