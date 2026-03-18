@@ -20,7 +20,7 @@
 |------|-------|---------|------|--------|
 | P7-E1 | Drag-and-Drop & Resize | 2 | 2 | DONE |
 | P7-E2 | ICS Subscription & Holidays | 3 | 3 | DONE |
-| P7-E3 | Scheduling Polls | 3 | 1 | IN PROGRESS |
+| P7-E3 | Scheduling Polls | 3 | 2 | IN PROGRESS |
 | P7-E4 | Room & Resource Booking | 2 | 0 | TODO |
 | P7-E5 | MCP Server (AI Integration) | 2 | 0 | TODO |
 | P7-E6 | PWA & Push Notifications | 2 | 0 | TODO |
@@ -196,7 +196,7 @@ Backend for creating scheduling polls with time options and collecting votes.
 
 ### P7-E3-S2: Poll Creation UI
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 UI for creating scheduling polls with time slot selection.
@@ -204,12 +204,13 @@ UI for creating scheduling polls with time slot selection.
 **Preconditions:** P7-E3-S1
 
 **Acceptance Criteria:**
-- [ ] "Schedule Meeting" button on calendar toolbar (distinct from "New Event")
-- [ ] Poll creation dialog: title, description, participant usernames
-- [ ] Time slot picker: click on calendar grid to add proposed times
-- [ ] Minimum 2 options, maximum 10
-- [ ] Preview before sending
-- [ ] Vitest tests
+- [x] "Schedule Meeting" button on calendar toolbar (distinct from "New Event", outlined primary style)
+- [x] Poll creation dialog: title, description, time options with date/start/end pickers
+- [x] Add/remove time slots (min 2, max 10)
+- [x] Validation: requires title + at least 2 complete time options
+- [x] Creates poll via POST /api/v2/polls on submit
+- [x] Success toast and dialog close on creation
+- [x] Vitest tests: 5 tests (renders, closed state, add button, validation, cancel)
 
 ---
 

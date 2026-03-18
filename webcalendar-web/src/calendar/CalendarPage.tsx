@@ -16,6 +16,7 @@ import { ImportDialog } from './ImportDialog';
 import { PrintButton } from './PrintButton';
 import { exportEventAsIcs } from './exportEventIcs';
 import { LayerPanel, type LayerVisibility } from './LayerPanel';
+import { PollDialog } from './PollDialog';
 import { useMercure, type MercureMessage } from '../hooks/useMercure';
 
 type DialogState =
@@ -32,6 +33,7 @@ export function CalendarPage() {
   const [isResponding, setIsResponding] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showPoll, setShowPoll] = useState(false);
   const [defaultView, setDefaultView] = useState('dayGridMonth');
   const [activeLayers, setActiveLayers] = useState<LayerVisibility[]>([]);
   const { toast } = useToast();
@@ -341,6 +343,12 @@ export function CalendarPage() {
           ?
         </button>
         <button
+          onClick={() => setShowPoll(true)}
+          className="inline-flex h-10 items-center rounded-md border border-primary px-3 text-sm font-medium text-primary hover:bg-primary/10"
+        >
+          Schedule Meeting
+        </button>
+        <button
           onClick={handleNewEvent}
           className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
@@ -476,6 +484,12 @@ export function CalendarPage() {
         open={showImport}
         onClose={() => setShowImport(false)}
         onImported={() => calendarRef.current?.refetchEvents()}
+      />
+
+      <PollDialog
+        open={showPoll}
+        onClose={() => setShowPoll(false)}
+        onCreated={() => toast({ title: 'Poll created', variant: 'success' })}
       />
     </div>
   );
