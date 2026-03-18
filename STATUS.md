@@ -23,7 +23,7 @@
 | P7-E3 | Scheduling Polls | 3 | 3 | DONE |
 | P7-E4 | Room & Resource Booking | 2 | 2 | DONE |
 | P7-E5 | MCP Server (AI Integration) | 2 | 2 | DONE |
-| P7-E6 | PWA & Push Notifications | 2 | 0 | TODO |
+| P7-E6 | PWA & Push Notifications | 2 | 1 | IN PROGRESS |
 | P7-E7 | Saved Views & Private Categories | 2 | 0 | TODO |
 | P7-E8 | UX Quick Wins | 3 | 0 | TODO |
 | **Total** | | **19** | **0** | |
@@ -332,7 +332,7 @@ User settings for generating/revoking API tokens for MCP access.
 
 ### P7-E6-S1: PWA Manifest & Service Worker
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Add PWA manifest, service worker for caching, and installable app experience.
@@ -340,12 +340,13 @@ Add PWA manifest, service worker for caching, and installable app experience.
 **Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [ ] `manifest.json` with app name, icons, theme color, start URL
-- [ ] Service worker caches static assets (HTML, CSS, JS, fonts)
-- [ ] Offline fallback page when network unavailable
-- [ ] "Install App" banner on supported browsers
-- [ ] App icon on home screen (mobile) and desktop
-- [ ] Vitest tests for service worker registration
+- [x] `manifest.json` with app name (WebCalendar), icons, theme color (#3788d8), start URL, standalone display
+- [x] Service worker (`sw.js`): cache-first for static assets, network-first for navigation
+- [x] Offline fallback page (`offline.html`) with retry button
+- [x] "Install App" banner on supported browsers (via manifest + service worker)
+- [x] SVG calendar icon for home screen
+- [x] `index.html` links manifest, registers service worker, sets theme-color
+- [x] Vitest tests: 4 tests (manifest fields, display, start_url, icons)
 
 ---
 
