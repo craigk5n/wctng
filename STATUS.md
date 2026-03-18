@@ -27,7 +27,8 @@
 | P7-E7 | Saved Views & Private Categories | 2 | 2 | DONE |
 | P7-E8 | UX Quick Wins | 3 | 3 | DONE |
 | P7-E9 | Recurring Events UI | 2 | 2 | DONE |
-| **Total** | | **21** | **21** | |
+| P7-E10 | Test Coverage to 80% | 5 | 0 | TODO |
+| **Total** | | **26** | **21** | |
 
 ---
 
@@ -526,6 +527,114 @@ Display recurring event instances on the calendar and support exception dates (E
 - [x] `rrule` field added to ApiEvent interface
 - [x] 9 Vitest tests for rruleToHuman (empty, daily, weekly, monthly, yearly, interval, byDay, count, until)
 - [x] TypeScript strict passes, 399 total tests
+
+---
+
+## Epic P7-E10: Test Coverage to 80%
+
+**Goal:** Increase test coverage from ~50% to 80% across backend, frontend, and E2E layers. The bugs found in production (empty activity log, non-collapsible layers) should have been caught by E2E tests.
+
+### P7-E10-S1: Backend Controller Unit Tests
+
+**Status:** TODO
+
+**Description:**
+Add unit tests for the most critical backend controllers (36 of 40 are untested).
+
+**Preconditions:** Phase 7 features complete
+
+**Acceptance Criteria:**
+- [ ] EventController: create/update/delete with activity logging, conflict detection, approval
+- [ ] AuthController: login, token validation, invalid credentials
+- [ ] CategoryController: CRUD, private/global filtering
+- [ ] UserController: CRUD, password change, self-edit
+- [ ] TaskController: create/update/delete
+- [ ] JournalController: create/update/delete
+- [ ] SearchController: keyword search, filters
+- [ ] PollController: create/vote/finalize
+- [ ] 30+ new PHPUnit tests
+- [ ] PHPStan level 9 passes
+
+---
+
+### P7-E10-S2: Frontend Component Tests
+
+**Status:** TODO
+
+**Description:**
+Add Vitest tests for untested interactive components.
+
+**Preconditions:** P7-E10-S1
+
+**Acceptance Criteria:**
+- [ ] QuickAddInput: renders, parses NL, opens dialog with pre-filled data
+- [ ] WorkingLocationWidget: renders, toggles location, calls API
+- [ ] CustomFieldsSection: renders fields from API, handles value changes
+- [ ] ImportDialog: renders, file selection, upload flow
+- [ ] CalendarPage toolbar: verify all buttons render (print, export, import, quick-add, schedule meeting)
+- [ ] 20+ new Vitest tests
+
+---
+
+### P7-E10-S3: E2E Core User Flows
+
+**Status:** TODO
+
+**Description:**
+Playwright tests for critical user flows that have zero E2E coverage.
+
+**Preconditions:** P7-E10-S2
+
+**Acceptance Criteria:**
+- [ ] E2E: Create recurring event → verify indicator on calendar
+- [ ] E2E: Layer management → add layer, toggle visibility, verify events appear/disappear
+- [ ] E2E: Search → type query, verify results
+- [ ] E2E: Journal CRUD → create, edit, delete
+- [ ] E2E: Drag-and-drop → drag event to new time, verify rescheduled
+- [ ] E2E: Rich text → type formatted text, save, reopen, verify
+- [ ] E2E: Activity log → create event, verify log entry appears
+- [ ] 10+ new Playwright tests
+
+---
+
+### P7-E10-S4: E2E Phase 7 Features
+
+**Status:** TODO
+
+**Description:**
+Playwright tests for Phase 7 features that have no E2E coverage.
+
+**Preconditions:** P7-E10-S3
+
+**Acceptance Criteria:**
+- [ ] E2E: Poll workflow → create poll, add times, cast vote, finalize
+- [ ] E2E: Quick-add NLP → type "Lunch tomorrow at noon", verify dialog pre-filled
+- [ ] E2E: Subscription management → subscribe to calendar, verify events
+- [ ] E2E: Resource management → create room, verify in event dialog
+- [ ] E2E: Booking page → visit /book/{user}, select slot, submit
+- [ ] E2E: Custom fields → admin creates field, user fills on event, verify in detail
+- [ ] 10+ new Playwright tests
+
+---
+
+### P7-E10-S5: E2E Settings & Admin Flows
+
+**Status:** TODO
+
+**Description:**
+Playwright tests for settings pages and admin features.
+
+**Preconditions:** P7-E10-S4
+
+**Acceptance Criteria:**
+- [ ] E2E: Profile editing → change name/email, save, verify persisted
+- [ ] E2E: API token → generate, verify shown once, revoke
+- [ ] E2E: Admin settings → toggle feature flag, verify effect on event dialog
+- [ ] E2E: Language switch → change to French, verify UI updates
+- [ ] E2E: Sidebar collapse → collapse, reload, verify still collapsed
+- [ ] E2E: Working location → set Remote, verify persisted
+- [ ] E2E: Collapsible layers → collapse, reload, verify
+- [ ] 8+ new Playwright tests
 
 ---
 
