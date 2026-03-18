@@ -9,6 +9,7 @@ use App\DTO\EventResponseDTO;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Service\ConflictDetectionService;
+use WebCalendar\Core\Domain\ValueObject\ActivityLogType;
 use App\Service\CoreServiceFactory;
 use App\Service\DescriptionSanitizer;
 use App\Service\EventNotificationService;
@@ -284,6 +285,18 @@ final class EventController
         } catch (\Throwable) {
         }
 
+        // Log activity
+        try {
+            $this->coreServiceFactory->getActivityLogService()->log(
+                $created->id()->value(),
+                $user->getUserIdentifier(),
+                null,
+                ActivityLogType::CREATE,
+                'Created event: ' . $created->name(),
+            );
+        } catch (\Throwable) {
+        }
+
         $meta = \count($conflictList) > 0 ? ['conflicts' => $conflictList] : null;
         return ApiResponse::success($responseData, $meta, Response::HTTP_CREATED);
     }
@@ -415,6 +428,18 @@ final class EventController
         } catch (\Throwable) {
         }
 
+        // Log activity
+        try {
+            $this->coreServiceFactory->getActivityLogService()->log(
+                $id,
+                $user->getUserIdentifier(),
+                null,
+                ActivityLogType::UPDATE,
+                'Updated event: ' . $saved->name(),
+            );
+        } catch (\Throwable) {
+        }
+
         $meta = \count($conflictList) > 0 ? ['conflicts' => $conflictList] : null;
         return ApiResponse::success($responseData, $meta);
     }
@@ -459,6 +484,18 @@ final class EventController
 
         try {
             $this->webhookDispatcher->dispatch('event.deleted', ['id' => $id]);
+        } catch (\Throwable) {
+        }
+
+        // Log activity
+        try {
+            $this->coreServiceFactory->getActivityLogService()->log(
+                $id,
+                $user->getUserIdentifier(),
+                null,
+                ActivityLogType::UPDATE,
+                'Deleted event: ' . $existing->name(),
+            );
         } catch (\Throwable) {
         }
 

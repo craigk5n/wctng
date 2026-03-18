@@ -37,6 +37,9 @@ export function CalendarPage() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showPoll, setShowPoll] = useState(false);
+  const [showLayers, setShowLayers] = useState(() =>
+    localStorage.getItem('wctng_layers_visible') !== 'false',
+  );
   const [defaultView, setDefaultView] = useState('dayGridMonth');
   const [activeLayers, setActiveLayers] = useState<LayerVisibility[]>([]);
   const { toast } = useToast();
@@ -394,8 +397,24 @@ export function CalendarPage() {
             activeLayers={activeLayers}
           />
         </div>
-        <div className="hidden w-56 flex-shrink-0 rounded-lg border border-border bg-card md:block">
-          <LayerPanel onLayersChange={handleLayersChange} />
+        <div className="hidden flex-shrink-0 md:block">
+          <button
+            onClick={() => {
+              setShowLayers((prev) => {
+                localStorage.setItem('wctng_layers_visible', String(!prev));
+                return !prev;
+              });
+            }}
+            className="mb-1 flex w-full items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-accent"
+          >
+            <span>Layers</span>
+            <span>{showLayers ? '▼' : '▶'}</span>
+          </button>
+          {showLayers && (
+            <div className="w-56 rounded-lg border border-border bg-card">
+              <LayerPanel onLayersChange={handleLayersChange} />
+            </div>
+          )}
         </div>
       </div>
 
