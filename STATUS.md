@@ -34,8 +34,8 @@
 
 ## Phase 8 Preview: SEO & Public Discovery
 
-> **Not yet started.** Planned epic for server-rendered public event pages,
-> structured data, sitemap, and privacy controls.
+> **Not yet started.** Planned epics for server-rendered public event pages,
+> structured data, sitemap, privacy controls, and map integration.
 
 ### Epic P8-E1: SEO & Public Event Pages (6 stories)
 
@@ -199,6 +199,99 @@ Admin: ENABLE_SEO_PAGES = Y
 ```
 
 This three-tier model (admin global → user public → user SEO) is consistent with how Google Workspace, Microsoft 365, and Nextcloud handle public calendar visibility vs search engine indexing. The principle is: **sharing ≠ indexing** — a user might want a shareable link without appearing in search results.
+
+---
+
+### Epic P8-E2: OpenStreetMap Integration (3 stories)
+
+| Story | Title | Status |
+|-------|-------|--------|
+| P8-E2-S1 | Location Geocoding Service | TODO |
+| P8-E2-S2 | Map on SSR Event Detail Page | TODO |
+| P8-E2-S3 | Map Link in Event Detail Dialog | TODO |
+
+---
+
+### P8-E2-S1: Location Geocoding Service
+
+**Status:** TODO
+
+**Description:**
+Backend service that geocodes event location text to latitude/longitude coordinates using the Nominatim API (OpenStreetMap's free geocoding service). Results cached to avoid rate limiting.
+
+**Acceptance Criteria:**
+- [ ] `GeocodingService` calls Nominatim API: `https://nominatim.openstreetmap.org/search?q={location}&format=json`
+- [ ] Returns lat/lon pair or null if location can't be geocoded
+- [ ] Results cached in `webcal_entry` columns `cal_geo_lat` / `cal_geo_lon` (already exist in schema)
+- [ ] Geocoding triggered on event create/update when location field changes
+- [ ] Respects Nominatim usage policy: max 1 request/second, User-Agent header with app name
+- [ ] `GET /api/v2/events/{id}` response includes `latitude` and `longitude` when available
+- [ ] Admin config: `ENABLE_GEOCODING` (Y/N, default Y)
+- [ ] PHPStan level 9 + unit tests
+
+---
+
+### P8-E2-S2: Map on SSR Event Detail Page
+
+**Status:** TODO
+
+**Description:**
+Embed an OpenStreetMap tile on the server-rendered event detail page when the event has geocoded coordinates. No JavaScript map library needed — use a static tile image or a Leaflet.js embed.
+
+**Preconditions:** P8-E1-S2 (SSR event page exists), P8-E2-S1 (geocoding available)
+
+**Acceptance Criteria:**
+- [ ] Map displayed on `/public/{username}/event/{id}` below the location field
+- [ ] Uses Leaflet.js (lightweight, open source) with OpenStreetMap tiles
+- [ ] Map centered on event coordinates with a marker
+- [ ] Map only shown when lat/lon are available (graceful fallback: no map, just text)
+- [ ] Map size: responsive, approximately 400x250px
+- [ ] "View larger map" link opens OpenStreetMap at the coordinates
+- [ ] No map API key required (OpenStreetMap tiles are free)
+- [ ] Tile attribution: "© OpenStreetMap contributors" (required by OSM license)
+- [ ] Schema.org `geo` property added to JSON-LD when coordinates exist
+- [ ] Vitest tests (verify map container renders when coordinates present)
+
+---
+
+### P8-E2-S3: Map Link in Event Detail Dialog
+
+**Status:** TODO
+
+**Description:**
+Add a clickable map link in the event detail dialog (React SPA) without embedding a full map. Keeps the dialog compact while giving users one-click access to directions.
+
+**Preconditions:** P8-E2-S1 (geocoding available)
+
+**Acceptance Criteria:**
+- [ ] When event has a location, show a clickable "View on Map" link next to the location text
+- [ ] Link format: `https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map=16/{lat}/{lon}`
+- [ ] Opens in new tab (`target="_blank"`, `rel="noopener"`)
+- [ ] When lat/lon not available, show a fallback search link: `https://www.openstreetmap.org/search?query={location}`
+- [ ] Small map icon (📍 or pin SVG) before the link — no embedded map, just a text link
+- [ ] No additional JavaScript libraries needed (just an `<a>` tag)
+- [ ] Vitest tests
+
+---
+
+### Map Architecture Decision
+
+**Why NOT embed a map in the dialog:**
+- Dialog is already at `max-h-[85vh]` with scrolling — a 250px map would consume ~30% of visible space
+- Every dialog open would load map tiles (bandwidth, latency) even for events without meaningful locations
+- Most events have locations like "Room A" or "Zoom" — not geocodable addresses
+- Mobile dialog is full-screen — map would push action buttons off-screen
+
+**Where maps DO appear:**
+- SSR event detail page (full-width, plenty of room, good for SEO with Schema.org geo data)
+- "View on Map" link in dialog (zero space cost, one click to full OpenStreetMap)
+
+**Why OpenStreetMap over Google Maps:**
+- No API key or billing required
+- No usage limits for tile display (just attribution)
+- Consistent with self-hosted/open-source philosophy of WCTNG
+- Nominatim geocoding is free (with rate limiting — 1 req/sec)
+- Leaflet.js is 42KB gzipped (vs Google Maps SDK at 200KB+)
 
 ---
 
