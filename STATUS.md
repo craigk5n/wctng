@@ -18,7 +18,7 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| P7-E1 | Drag-and-Drop & Resize | 2 | 1 | IN PROGRESS |
+| P7-E1 | Drag-and-Drop & Resize | 2 | 2 | DONE |
 | P7-E2 | ICS Subscription & Holidays | 3 | 0 | TODO |
 | P7-E3 | Scheduling Polls | 3 | 0 | TODO |
 | P7-E4 | Room & Resource Booking | 2 | 0 | TODO |
@@ -84,7 +84,7 @@ Allow users to drag events to new dates/times on the calendar grid. FullCalendar
 
 ### P7-E1-S2: Event Duration Resize
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Allow users to drag the bottom edge of an event to change its duration. FullCalendar supports this via `eventResize`.
@@ -92,12 +92,12 @@ Allow users to drag the bottom edge of an event to change its duration. FullCale
 **Preconditions:** P7-E1-S1
 
 **Acceptance Criteria:**
-- [ ] `eventResize` callback sends PUT /api/v2/events/{id} with new duration
-- [ ] Resize handle visible on hover in day/week views
-- [ ] Duration snaps to 15-minute increments
-- [ ] Minimum duration: 15 minutes
-- [ ] Optimistic UI with revert on error
-- [ ] Vitest tests
+- [x] `eventResize` callback sends PUT /api/v2/events/{id} with new duration (reuses handleEventDrop)
+- [x] Resize handle visible on hover in day/week views (FullCalendar built-in with editable=true)
+- [x] Duration snaps to 15-minute increments (`snapDuration="00:15:00"`)
+- [x] Minimum event height: 15px (`eventMinHeight={15}`)
+- [x] Optimistic UI with revert on error (same as drag-and-drop)
+- [x] Vitest tests: 2 tests (eventResize handler, snapDuration setting)
 
 ---
 

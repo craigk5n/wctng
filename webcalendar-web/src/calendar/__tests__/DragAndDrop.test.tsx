@@ -71,4 +71,24 @@ describe('Drag and Drop', () => {
 
     expect(typeof lastFcProps!.eventAllow).toBe('function');
   });
+
+  it('passes eventResize handler when onEventResize provided', () => {
+    render(
+      <FullCalendarWrapper
+        currentUserLogin="admin"
+        onEventDrop={vi.fn()}
+        onEventResize={vi.fn()}
+      />,
+    );
+
+    expect(typeof lastFcProps!.eventResize).toBe('function');
+  });
+
+  it('sets snapDuration to 15 minutes', () => {
+    render(
+      <FullCalendarWrapper currentUserLogin="admin" onEventDrop={vi.fn()} />,
+    );
+
+    expect(lastFcProps!.snapDuration).toBe('00:15:00');
+  });
 });
