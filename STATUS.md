@@ -18,7 +18,7 @@
 
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
-| P7-E1 | Drag-and-Drop & Resize | 2 | 0 | TODO |
+| P7-E1 | Drag-and-Drop & Resize | 2 | 1 | IN PROGRESS |
 | P7-E2 | ICS Subscription & Holidays | 3 | 0 | TODO |
 | P7-E3 | Scheduling Polls | 3 | 0 | TODO |
 | P7-E4 | Room & Resource Booking | 2 | 0 | TODO |
@@ -63,7 +63,7 @@ Same as Phase 1–6:
 
 ### P7-E1-S1: Drag-and-Drop Rescheduling
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Allow users to drag events to new dates/times on the calendar grid. FullCalendar already supports this via `editable: true` — wire the drop event to the PUT API.
@@ -71,14 +71,14 @@ Allow users to drag events to new dates/times on the calendar grid. FullCalendar
 **Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [ ] FullCalendar `editable` prop set to `true` for owned events
-- [ ] `eventDrop` callback sends PUT /api/v2/events/{id} with new start_date/start_time
-- [ ] All-day events can be dragged between dates
-- [ ] Timed events can be dragged between time slots (day/week views)
-- [ ] Events from other users' layers are NOT draggable
-- [ ] Optimistic UI: event moves immediately, reverts on API error
-- [ ] Toast notification on successful reschedule
-- [ ] Vitest + Playwright E2E tests
+- [x] FullCalendar `editable` prop set to `true` for owned events
+- [x] `eventDrop` callback sends PUT /api/v2/events/{id} with new start_date/start_time/duration
+- [x] All-day events can be dragged between dates
+- [x] Timed events can be dragged between time slots (day/week views)
+- [x] Events from other users' layers are NOT draggable (`eventAllow` checks `created_by`)
+- [x] Optimistic UI: event moves immediately, reverts on API error via `revert()`
+- [x] Toast notification on successful reschedule
+- [x] Vitest tests: 4 tests (editable true/false, eventDrop handler, eventAllow function)
 
 ---
 

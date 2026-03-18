@@ -5,7 +5,8 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
 import multiMonthPlugin from '@fullcalendar/multimonth';
-import type { DatesSetArg, EventClickArg, DateSelectArg, EventInput } from '@fullcalendar/core';
+import type { DatesSetArg, EventClickArg, DateSelectArg, EventInput, EventDropArg, AllowFunc } from '@fullcalendar/core';
+import type { EventResizeDoneArg } from '@fullcalendar/interaction';
 import { fetchCalendarEvents } from './useCalendarEvents';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
 import { useCategories, getEventColor } from './useCategories';
@@ -19,17 +20,28 @@ export interface FullCalendarWrapperHandle {
 
 import type { LayerVisibility } from './LayerPanel';
 
+interface EventDropInfo {
+  eventId: number;
+  newStart: Date;
+  newEnd: Date | null;
+  allDay: boolean;
+  revert: () => void;
+}
+
 interface FullCalendarWrapperProps {
   initialView?: string;
+  currentUserLogin?: string;
   onEventClick?: (eventId: number) => void;
   onTaskClick?: (taskId: number) => void;
   onJournalClick?: (journalId: number) => void;
   onDateSelect?: (start: Date, end: Date, allDay: boolean) => void;
+  onEventDrop?: (info: EventDropInfo) => void;
+  onEventResize?: (info: EventDropInfo) => void;
   activeLayers?: LayerVisibility[];
 }
 
 export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCalendarWrapperProps>(
-  function FullCalendarWrapper({ initialView = 'dayGridMonth', onEventClick, onTaskClick, onJournalClick, onDateSelect, activeLayers }, ref) {
+  function FullCalendarWrapper({ initialView = 'dayGridMonth', currentUserLogin, onEventClick, onTaskClick, onJournalClick, onDateSelect, onEventDrop, onEventResize, activeLayers }, ref) {
   const [events, setEvents] = useState<EventInput[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const calendarRef = useRef<FullCalendar>(null);
@@ -69,6 +81,50 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
     },
     [onDateSelect],
   );
+
+  const handleEventDrop = useCallback(
+    (arg: EventDropArg) => {
+      if (!onEventDrop) return;
+      const id = parseInt(arg.event.id, 10);
+      if (isNaN(id)) return;
+      onEventDrop({
+        eventId: id,
+        newStart: arg.event.start!,
+        newEnd: arg.event.end,
+        allDay: arg.event.allDay,
+        revert: arg.revert,
+      });
+    },
+    [onEventDrop],
+  );
+
+  const handleEventResize = useCallback(
+    (arg: EventResizeDoneArg) => {
+      if (!onEventResize) return;
+      const id = parseInt(arg.event.id, 10);
+      if (isNaN(id)) return;
+      onEventResize({
+        eventId: id,
+        newStart: arg.event.start!,
+        newEnd: arg.event.end,
+        allDay: arg.event.allDay,
+        revert: arg.revert,
+      });
+    },
+    [onEventResize],
+  );
+
+  // Only allow dragging/resizing events owned by the current user
+  const eventAllow: AllowFunc = useCallback(
+    (_dropInfo, draggedEvent) => {
+      if (!currentUserLogin || !draggedEvent) return false;
+      const createdBy = draggedEvent.extendedProps?.created_by as string | undefined;
+      return createdBy === currentUserLogin;
+    },
+    [currentUserLogin],
+  );
+
+  const isEditable = !!currentUserLogin && !!onEventDrop;
 
   const keyboardHandlers = useMemo(
     () => ({
@@ -216,7 +272,10 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
         selectable={true}
         selectLongPressDelay={300}
         select={handleDateSelect}
-        editable={false}
+        editable={isEditable}
+        eventDrop={handleEventDrop}
+        eventResize={handleEventResize}
+        eventAllow={eventAllow}
         dayMaxEvents={true}
         weekends={true}
         height="auto"

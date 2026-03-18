@@ -283,6 +283,31 @@ export function CalendarPage() {
 
   const closeDialog = useCallback(() => setDialog({ type: 'none' }), []);
 
+  // Drag-and-drop rescheduling
+  const handleEventDrop = useCallback(async (info: { eventId: number; newStart: Date; newEnd: Date | null; allDay: boolean; revert: () => void }) => {
+    const startDate = formatDateYmd(info.newStart);
+    const startTime = info.allDay ? undefined : formatTimeHms(info.newStart);
+    const duration = info.newEnd
+      ? Math.round((info.newEnd.getTime() - info.newStart.getTime()) / 60000)
+      : undefined;
+
+    const body: Record<string, unknown> = { start_date: startDate };
+    if (startTime) body.start_time = startTime;
+    if (duration !== undefined) body.duration = duration;
+
+    const { error } = await apiFetch(`/events/${info.eventId}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
+
+    if (error) {
+      info.revert();
+      toast({ title: 'Failed to reschedule', variant: 'error' });
+    } else {
+      toast({ title: 'Event rescheduled', variant: 'success' });
+    }
+  }, [toast]);
+
   const handleLayersChange = useCallback((layers: LayerVisibility[]) => {
     setActiveLayers((prev) => {
       // Only trigger refetch if visibility actually changed
@@ -333,6 +358,9 @@ export function CalendarPage() {
             onTaskClick={handleTaskClick}
             onJournalClick={handleJournalClick}
             onDateSelect={handleDateSelect}
+            currentUserLogin={user?.login}
+            onEventDrop={handleEventDrop}
+            onEventResize={handleEventDrop}
             activeLayers={activeLayers}
           />
         </div>
@@ -451,4 +479,17 @@ export function CalendarPage() {
       />
     </div>
   );
+}
+
+function formatDateYmd(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}${m}${d}`;
+}
+
+function formatTimeHms(date: Date): string {
+  const h = String(date.getHours()).padStart(2, '0');
+  const m = String(date.getMinutes()).padStart(2, '0');
+  return `${h}${m}00`;
 }
