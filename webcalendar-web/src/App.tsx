@@ -22,6 +22,7 @@ const NotificationSettings = lazy(() => import('./settings/NotificationSettings'
 const AssistantSettings = lazy(() => import('./settings/AssistantSettings').then(m => ({ default: m.AssistantSettings })));
 const ProfileSettings = lazy(() => import('./settings/ProfileSettings').then(m => ({ default: m.ProfileSettings })));
 const SubscriptionSettings = lazy(() => import('./settings/SubscriptionSettings').then(m => ({ default: m.SubscriptionSettings })));
+const ApiTokenSettings = lazy(() => import('./settings/ApiTokenSettings').then(m => ({ default: m.ApiTokenSettings })));
 const TasksPage = lazy(() => import('./tasks/TasksPage').then(m => ({ default: m.TasksPage })));
 const JournalsPage = lazy(() => import('./journals/JournalsPage').then(m => ({ default: m.JournalsPage })));
 const ReportsPage = lazy(() => import('./reports/ReportsPage').then(m => ({ default: m.ReportsPage })));
@@ -224,6 +225,16 @@ export default function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <SubscriptionSettings />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings/api-tokens"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <ApiTokenSettings />
                 </AppLayout>
               </ProtectedRoute>
             }

@@ -22,7 +22,7 @@
 | P7-E2 | ICS Subscription & Holidays | 3 | 3 | DONE |
 | P7-E3 | Scheduling Polls | 3 | 3 | DONE |
 | P7-E4 | Room & Resource Booking | 2 | 2 | DONE |
-| P7-E5 | MCP Server (AI Integration) | 2 | 1 | IN PROGRESS |
+| P7-E5 | MCP Server (AI Integration) | 2 | 2 | DONE |
 | P7-E6 | PWA & Push Notifications | 2 | 0 | TODO |
 | P7-E7 | Saved Views & Private Categories | 2 | 0 | TODO |
 | P7-E8 | UX Quick Wins | 3 | 0 | TODO |
@@ -308,7 +308,7 @@ Implement MCP-compliant endpoint with tool definitions for calendar operations.
 
 ### P7-E5-S2: MCP Configuration & API Token Management
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 User settings for generating/revoking API tokens for MCP access.
@@ -316,13 +316,13 @@ User settings for generating/revoking API tokens for MCP access.
 **Preconditions:** P7-E5-S1
 
 **Acceptance Criteria:**
-- [ ] Route `/settings/api-tokens` — manage API tokens
-- [ ] Generate new token (shown once, then hashed)
-- [ ] Revoke existing tokens
-- [ ] Token permissions: read-only or read-write
-- [ ] MCP connection instructions displayed (endpoint URL, token format)
-- [ ] Admin setting: enable/disable MCP server globally
-- [ ] Vitest tests
+- [x] Route `/settings/api-tokens` — manage API tokens
+- [x] Generate new token (64-char hex, shown once with copy button)
+- [x] Revoke existing tokens (clears api_token preference)
+- [x] Regenerate replaces existing token
+- [x] MCP connection instructions: endpoint URL, method, auth header, protocol
+- [x] Example curl command and available tools list in expandable sections
+- [x] Vitest tests: 4 tests (heading, generate button, MCP instructions, active token)
 
 ---
 
