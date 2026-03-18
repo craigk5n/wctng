@@ -45,7 +45,7 @@
 | P8-E1-S2 | Single Event Detail Pages (SSR) | DONE |
 | P8-E1-S3 | Schema.org Structured Data (JSON-LD) | DONE |
 | P8-E1-S4 | Event Index & Archive Pages | DONE |
-| P8-E1-S5 | Sitemap.xml & robots.txt | TODO |
+| P8-E1-S5 | Sitemap.xml & robots.txt | DONE |
 | P8-E1-S6 | Open Graph & Social Sharing | TODO |
 
 ---
@@ -135,22 +135,22 @@ Paginated, server-rendered listing of public events for crawlers to discover ind
 
 ### P8-E1-S5: Sitemap.xml & robots.txt
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Auto-generated sitemap for search engine discovery and robots.txt to guide crawler behavior.
 
 **Acceptance Criteria:**
-- [ ] `GET /sitemap.xml` — auto-generated sitemap listing all public event pages
-- [ ] Only includes events from users with public calendar + SEO indexing enabled
-- [ ] `<lastmod>` from event modification date
-- [ ] `<changefreq>` based on event date (upcoming = daily, past = monthly)
-- [ ] `<priority>` based on event proximity (upcoming events higher priority)
-- [ ] Sitemap limited to 50,000 URLs (sitemap index if more)
-- [ ] `GET /robots.txt` — allows /public/, /book/; disallows /api/, /admin/, /settings/, /dav/
-- [ ] robots.txt references sitemap URL
-- [ ] Cached/regenerated periodically (not on every request)
-- [ ] PHPStan level 9 + unit tests
+- [x] `GET /sitemap.xml` — auto-generated sitemap listing all public event pages
+- [x] Only includes events from users with public calendar + SEO indexing enabled
+- [x] `<lastmod>` from event modification date
+- [x] `<changefreq>` based on event date (upcoming = daily, past = monthly)
+- [x] `<priority>` based on event proximity (upcoming events higher priority)
+- [x] Sitemap limited to 50,000 URLs (sitemap index if more)
+- [x] `GET /robots.txt` — allows /public/, /book/; disallows /api/, /admin/, /settings/, /dav/
+- [x] robots.txt references sitemap URL
+- [x] Cached/regenerated periodically (not on every request) — Cache-Control headers: 1h sitemap, 24h robots
+- [x] PHPStan level 9 + unit tests — 10 integration tests
 
 ---
 
