@@ -212,7 +212,7 @@ This three-tier model (admin global → user public → user SEO) is consistent 
 |-------|-------|--------|
 | P8-E2-S1 | Location Geocoding Service | DONE |
 | P8-E2-S2 | Map on SSR Event Detail Page | DONE |
-| P8-E2-S3 | Map Link in Event Detail Dialog | TODO |
+| P8-E2-S3 | Map Link in Event Detail Dialog | DONE |
 
 ---
 
@@ -260,7 +260,7 @@ Embed an OpenStreetMap tile on the server-rendered event detail page when the ev
 
 ### P8-E2-S3: Map Link in Event Detail Dialog
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Add a clickable map link in the event detail dialog (React SPA) without embedding a full map. Keeps the dialog compact while giving users one-click access to directions.
@@ -268,13 +268,13 @@ Add a clickable map link in the event detail dialog (React SPA) without embeddin
 **Preconditions:** P8-E2-S1 (geocoding available)
 
 **Acceptance Criteria:**
-- [ ] When event has a location, show a clickable "View on Map" link next to the location text
-- [ ] Link format: `https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map=16/{lat}/{lon}`
-- [ ] Opens in new tab (`target="_blank"`, `rel="noopener"`)
-- [ ] When lat/lon not available, show a fallback search link: `https://www.openstreetmap.org/search?query={location}`
-- [ ] Small map icon (📍 or pin SVG) before the link — no embedded map, just a text link
-- [ ] No additional JavaScript libraries needed (just an `<a>` tag)
-- [ ] Vitest tests
+- [x] When event has a location, show a clickable "View on Map" link next to the location text
+- [x] Link format: `https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map=16/{lat}/{lon}`
+- [x] Opens in new tab (`target="_blank"`, `rel="noopener"`)
+- [x] When lat/lon not available, show a fallback search link: `https://www.openstreetmap.org/search?query={location}`
+- [x] Small map icon (📍) before the link — no embedded map, just a text link
+- [x] No additional JavaScript libraries needed (just an `<a>` tag)
+- [x] 3 Vitest tests (geo link, search fallback, no location)
 
 ---
 

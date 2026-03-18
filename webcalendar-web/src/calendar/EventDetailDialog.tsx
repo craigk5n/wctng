@@ -110,7 +110,32 @@ export function EventDetailDialog({
           {event.location && (
             <div className="flex gap-2">
               <span className="font-medium text-muted-foreground">Location:</span>
-              <span>{event.location}</span>
+              <span className="flex items-center gap-1.5">
+                {event.location}
+                {event.latitude != null && event.longitude != null ? (
+                  <a
+                    href={`https://www.openstreetmap.org/?mlat=${event.latitude}&mlon=${event.longitude}#map=16/${event.latitude}/${event.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-0.5 text-xs text-blue-600 hover:underline dark:text-blue-400"
+                    title="View on Map"
+                    data-testid="map-link"
+                  >
+                    📍 Map
+                  </a>
+                ) : (
+                  <a
+                    href={`https://www.openstreetmap.org/search?query=${encodeURIComponent(event.location)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-0.5 text-xs text-blue-600 hover:underline dark:text-blue-400"
+                    title="Search on Map"
+                    data-testid="map-search-link"
+                  >
+                    📍 Map
+                  </a>
+                )}
+              </span>
             </div>
           )}
 

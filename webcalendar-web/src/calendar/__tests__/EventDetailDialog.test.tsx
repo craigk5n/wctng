@@ -119,4 +119,41 @@ describe('EventDetailDialog', () => {
 
     expect(screen.getByText(/public/i)).toBeInTheDocument();
   });
+
+  it('shows map link with coordinates when geo available', () => {
+    const geoEvent: ApiEvent = {
+      ...timedEvent,
+      latitude: 40.7128,
+      longitude: -74.006,
+    };
+    render(
+      <EventDetailDialog event={geoEvent} open={true} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />,
+    );
+
+    const link = screen.getByTestId('map-link');
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', expect.stringContaining('openstreetmap.org'));
+    expect(link).toHaveAttribute('href', expect.stringContaining('40.7128'));
+    expect(link).toHaveAttribute('target', '_blank');
+  });
+
+  it('shows map search link when no coordinates', () => {
+    render(
+      <EventDetailDialog event={timedEvent} open={true} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />,
+    );
+
+    const link = screen.getByTestId('map-search-link');
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', expect.stringContaining('openstreetmap.org/search'));
+    expect(link).toHaveAttribute('href', expect.stringContaining('Room'));
+  });
+
+  it('does not show map link when no location', () => {
+    render(
+      <EventDetailDialog event={allDayEvent} open={true} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />,
+    );
+
+    expect(screen.queryByTestId('map-link')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('map-search-link')).not.toBeInTheDocument();
+  });
 });
