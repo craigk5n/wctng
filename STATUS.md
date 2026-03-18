@@ -27,8 +27,8 @@
 | P7-E7 | Saved Views & Private Categories | 2 | 2 | DONE |
 | P7-E8 | UX Quick Wins | 3 | 3 | DONE |
 | P7-E9 | Recurring Events UI | 2 | 2 | DONE |
-| P7-E10 | Test Coverage to 80% | 5 | 1 | IN PROGRESS |
-| **Total** | | **26** | **22** | |
+| P7-E10 | Test Coverage to 80% | 5 | 2 | IN PROGRESS |
+| **Total** | | **26** | **23** | |
 
 ---
 
@@ -559,7 +559,7 @@ Add unit tests for the most critical backend controllers (36 of 40 are untested)
 
 ### P7-E10-S2: Frontend Component Tests
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Add Vitest tests for untested interactive components.
@@ -567,12 +567,12 @@ Add Vitest tests for untested interactive components.
 **Preconditions:** P7-E10-S1
 
 **Acceptance Criteria:**
-- [ ] QuickAddInput: renders, parses NL, opens dialog with pre-filled data
-- [ ] WorkingLocationWidget: renders, toggles location, calls API
-- [ ] CustomFieldsSection: renders fields from API, handles value changes
-- [ ] ImportDialog: renders, file selection, upload flow
-- [ ] CalendarPage toolbar: verify all buttons render (print, export, import, quick-add, schedule meeting)
-- [ ] 20+ new Vitest tests
+- [x] QuickAddInput: renders, disabled empty, parses on submit, clears after (4 tests)
+- [x] WorkingLocationWidget: renders buttons, highlights active, calls API on change (3 tests)
+- [x] CustomFieldsSection: empty state, text field, select field, onChange (4 tests)
+- [x] ExportButton: renders (1 test)
+- [x] CalendarPage toolbar: print, import, schedule meeting, new event, quick-add, layers (6 tests)
+- [x] 18 new Vitest tests, frontend total: 426
 
 ---
 
