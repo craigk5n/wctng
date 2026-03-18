@@ -25,7 +25,6 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./webcalendar-api:/var/www/html/webcalendar-api
-      - ../webcalendar-core:/var/www/html/webcalendar-core:ro
     environment:
       APP_ENV: ${APP_ENV:-dev}
       APP_SECRET: ${APP_SECRET:-dev_secret_not_for_production}
@@ -56,7 +55,7 @@ services:
       - "${PORT_MYSQL:-47106}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ../webcalendar-core/src/Infrastructure/Persistence/mysql-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./webcalendar-api/vendor/craigk5n/webcalendar-core/src/Infrastructure/Persistence/mysql-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/02-init.sql:ro
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-wctng_root_secret}

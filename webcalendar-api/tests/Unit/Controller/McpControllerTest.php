@@ -22,11 +22,8 @@ final class McpControllerTest extends TestCase
         $this->pdo = new \PDO('sqlite::memory:');
         $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
-        // Load schema
-        $schemaPath = realpath(__DIR__ . '/../../../../../webcalendar-core/src/Infrastructure/Persistence/sqlite-schema.sql');
-        if ($schemaPath === false) {
-            $schemaPath = realpath(__DIR__ . '/../../vendor/craigk5n/webcalendar-core/src/Infrastructure/Persistence/sqlite-schema.sql');
-        }
+        // Load schema from vendor (installed via Composer from GitHub)
+        $schemaPath = realpath(__DIR__ . '/../../../vendor/craigk5n/webcalendar-core/src/Infrastructure/Persistence/sqlite-schema.sql');
         if ($schemaPath !== false) {
             $schema = file_get_contents($schemaPath);
             if ($schema !== false) {

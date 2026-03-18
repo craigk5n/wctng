@@ -44,11 +44,8 @@
     },
     "repositories": [
         {
-            "type": "path",
-            "url": "../webcalendar-core",
-            "options": {
-                "symlink": true
-            }
+            "type": "vcs",
+            "url": "https://github.com/craigk5n/webcalendar-core.git"
         }
     ],
     "config": {

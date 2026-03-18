@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3603a3a746c709540971be216cc7e43a",
+    "content-hash": "27d8317c251fbb4a5b85a92c9a4f013e",
     "packages": [
         {
             "name": "craigk5n/php-icalendar-core",
@@ -58,10 +58,16 @@
         {
             "name": "craigk5n/webcalendar-core",
             "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "/var/www/html/webcalendar-core",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/craigk5n/webcalendar-core.git",
                 "reference": "f6340348a0f00bc31def9f783687380c273524d8"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/craigk5n/webcalendar-core/zipball/f6340348a0f00bc31def9f783687380c273524d8",
+                "reference": "f6340348a0f00bc31def9f783687380c273524d8",
+                "shasum": ""
             },
             "require": {
                 "craigk5n/php-icalendar-core": "^1.1.0",
@@ -76,6 +82,7 @@
                 "squizlabs/php_codesniffer": "^3.7",
                 "vimeo/psalm": "^6.15"
             },
+            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
@@ -130,10 +137,11 @@
                 "scheduling",
                 "webcalendar"
             ],
-            "transport-options": {
-                "symlink": true,
-                "relative": false
-            }
+            "support": {
+                "source": "https://github.com/craigk5n/webcalendar-core/tree/main",
+                "issues": "https://github.com/craigk5n/webcalendar-core/issues"
+            },
+            "time": "2026-03-10T18:38:55+00:00"
         },
         {
             "name": "doctrine/lexer",

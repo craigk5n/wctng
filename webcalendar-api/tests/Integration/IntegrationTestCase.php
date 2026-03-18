@@ -24,12 +24,8 @@ abstract class IntegrationTestCase extends TestCase
         $this->pdo = new \PDO('sqlite::memory:');
         $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
-        // Load SQLite schema
-        $schemaPath = realpath(__DIR__ . '/../../../../webcalendar-core/src/Infrastructure/Persistence/sqlite-schema.sql');
-        if ($schemaPath === false) {
-            // Try alternate path via vendor symlink
-            $schemaPath = realpath(__DIR__ . '/../../vendor/craigk5n/webcalendar-core/src/Infrastructure/Persistence/sqlite-schema.sql');
-        }
+        // Load SQLite schema from vendor (installed via Composer from GitHub)
+        $schemaPath = realpath(__DIR__ . '/../../vendor/craigk5n/webcalendar-core/src/Infrastructure/Persistence/sqlite-schema.sql');
 
         if ($schemaPath !== false) {
             $schema = file_get_contents($schemaPath);
