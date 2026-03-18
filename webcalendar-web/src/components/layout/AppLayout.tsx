@@ -43,6 +43,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const adminNav = user?.is_admin ? [
+    { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
     { label: 'Users', href: '/admin/users', icon: '👤' },
     { label: 'Categories', href: '/admin/categories', icon: '🏷' },
     { label: 'Groups', href: '/admin/groups', icon: '👥' },

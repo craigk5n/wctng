@@ -16,6 +16,7 @@ const CustomFieldsPage = lazy(() => import('./admin/CustomFieldsPage').then(m =>
 const AdminSettingsPage = lazy(() => import('./admin/AdminSettingsPage').then(m => ({ default: m.AdminSettingsPage })));
 const ResourceManagement = lazy(() => import('./admin/ResourceManagement').then(m => ({ default: m.ResourceManagement })));
 const CustomHtmlPage = lazy(() => import('./admin/CustomHtmlPage').then(m => ({ default: m.CustomHtmlPage })));
+const DashboardPage = lazy(() => import('./admin/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const PreferencesPage = lazy(() => import('./settings/PreferencesPage').then(m => ({ default: m.PreferencesPage })));
 const AccessSettings = lazy(() => import('./settings/AccessSettings').then(m => ({ default: m.AccessSettings })));
 const AuthSettings = lazy(() => import('./settings/AuthSettings').then(m => ({ default: m.AuthSettings })));
@@ -136,6 +137,16 @@ export default function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <ResourceManagement />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <DashboardPage />
                 </AppLayout>
               </ProtectedRoute>
             }

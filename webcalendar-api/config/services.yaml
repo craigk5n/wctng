@@ -153,6 +153,11 @@ services:
         arguments:
             $appSecret: '%env(APP_SECRET)%'
 
+    # Dashboard controller needs PDO for stats queries
+    App\Controller\Api\DashboardController:
+        arguments:
+            $pdo: '@pdo.connection'
+
     # Event controller needs PDO for access permission checks
     App\Controller\Api\EventController:
         arguments:

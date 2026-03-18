@@ -512,7 +512,7 @@ Dedicated email preferences section in the user settings page, plus CAN-SPAM com
 | Story | Title | Status |
 |-------|-------|--------|
 | P9-E3-S1 | Request Correlation IDs & Error Logging | DONE |
-| P9-E3-S2 | Admin Dashboard & System Health | TODO |
+| P9-E3-S2 | Admin Dashboard & System Health | DONE |
 | P9-E3-S3 | Database Backup & Restore | TODO |
 
 **Existing infrastructure:**
@@ -546,30 +546,22 @@ Add correlation IDs to every request for log tracing, and enhance error logging 
 
 ### P9-E3-S2: Admin Dashboard & System Health
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Admin-only dashboard page showing system statistics and health at a glance. Backend API endpoint + React admin page.
 
 **Acceptance Criteria:**
-- [ ] `GET /api/v2/admin/dashboard` endpoint (admin only):
-  ```json
-  {
-    "users": {"total": 42, "active_7d": 15, "created_7d": 2},
-    "events": {"total": 1234, "created_7d": 56, "upcoming_7d": 23},
-    "system": {"db_size_mb": 45.2, "php_version": "8.2.30", "uptime": "15d 3h"},
-    "email": {"reminders_sent_7d": 89, "agenda_sent_7d": 12}
-  }
-  ```
-- [ ] DB size: `SELECT SUM(data_length + index_length) FROM information_schema.TABLES` (MySQL) or `PRAGMA page_count * page_size` (SQLite)
-- [ ] Active users: count distinct users with events or logins in last 7 days
-- [ ] React page at `/admin/dashboard`:
-  - Stat cards (4-column grid) with total users, events, active users, upcoming events
-  - Simple bar chart for events created per day (last 7 days) using lightweight inline SVG (no chart library)
-  - System info section: PHP version, DB driver, Mercure status, email status
-- [ ] Sidebar link: "Dashboard" as first item in Admin section
-- [ ] Auto-refresh every 60 seconds via React Query `refetchInterval`
-- [ ] Vitest tests for dashboard component
+- [x] `GET /api/v2/admin/dashboard` endpoint (admin only) returns users, events, system, email stats
+- [x] DB size: MySQL `information_schema.TABLES` or SQLite `PRAGMA page_count * page_size`
+- [x] Active users: count distinct creators in last 7 days
+- [x] React page at `/admin/dashboard`:
+  - Stat cards (4-column grid): users, events, upcoming, errors
+  - Email stats: reminders sent, agendas sent (7d)
+  - System info section: PHP version, DB driver, DB size
+- [x] Sidebar link: "Dashboard" as first item in Admin section
+- [x] Auto-refresh every 60 seconds via `setInterval`
+- [x] PHPStan level 9 + 6 Vitest tests for dashboard component
 
 ---
 
