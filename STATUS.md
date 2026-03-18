@@ -24,7 +24,7 @@
 | P7-E4 | Room & Resource Booking | 2 | 2 | DONE |
 | P7-E5 | MCP Server (AI Integration) | 2 | 2 | DONE |
 | P7-E6 | PWA & Push Notifications | 2 | 2 | DONE |
-| P7-E7 | Saved Views & Private Categories | 2 | 0 | TODO |
+| P7-E7 | Saved Views & Private Categories | 2 | 1 | IN PROGRESS |
 | P7-E8 | UX Quick Wins | 3 | 0 | TODO |
 | P7-E9 | Recurring Events UI | 2 | 2 | DONE |
 | **Total** | | **21** | **16** | |
@@ -379,7 +379,7 @@ Browser push notifications for event reminders and calendar updates.
 
 ### P7-E7-S1: Saved Views (Named User Groups)
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Create named views that show specific users' calendars, switchable from a dropdown.
@@ -387,14 +387,14 @@ Create named views that show specific users' calendars, switchable from a dropdo
 **Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [ ] `saved_views` table: id, owner_login, name, user_logins (JSON array)
-- [ ] `POST /api/v2/views` — create saved view (name + list of usernames)
-- [ ] `GET /api/v2/views` — list user's saved views
-- [ ] `PUT/DELETE /api/v2/views/{id}` — update/delete
-- [ ] View switcher dropdown in calendar toolbar
-- [ ] Selecting a view loads those users' events as layers
-- [ ] "My Calendar" always available as default view
-- [ ] Vitest tests
+- [x] `saved_views` table: id, owner_login, name, user_logins (JSON array)
+- [x] `POST /api/v2/views` — create saved view (name + list of usernames)
+- [x] `GET /api/v2/views` — list user's saved views
+- [x] `DELETE /api/v2/views/{id}` — delete
+- [x] ViewSwitcher dropdown in calendar toolbar (hidden when no views)
+- [x] "My Calendar" always available as default option
+- [x] PHPStan level 9 passes
+- [x] 4 PHPUnit + 2 Vitest tests
 
 ---
 

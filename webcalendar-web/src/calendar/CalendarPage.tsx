@@ -17,6 +17,7 @@ import { PrintButton } from './PrintButton';
 import { exportEventAsIcs } from './exportEventIcs';
 import { LayerPanel, type LayerVisibility } from './LayerPanel';
 import { PollDialog } from './PollDialog';
+import { ViewSwitcher } from './ViewSwitcher';
 import { useMercure, type MercureMessage } from '../hooks/useMercure';
 
 type DialogState =
@@ -330,6 +331,9 @@ export function CalendarPage() {
     <div>
       {/* Toolbar */}
       <div className="mb-4 flex justify-end gap-2">
+        <ViewSwitcher onViewChange={() => {
+          calendarRef.current?.refetchEvents();
+        }} />
         <PrintButton />
         <ExportButton />
         <button
