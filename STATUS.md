@@ -44,7 +44,7 @@
 | P8-E1-S1 | Admin & User SEO Feature Flags | DONE |
 | P8-E1-S2 | Single Event Detail Pages (SSR) | DONE |
 | P8-E1-S3 | Schema.org Structured Data (JSON-LD) | DONE |
-| P8-E1-S4 | Event Index & Archive Pages | TODO |
+| P8-E1-S4 | Event Index & Archive Pages | DONE |
 | P8-E1-S5 | Sitemap.xml & robots.txt | TODO |
 | P8-E1-S6 | Open Graph & Social Sharing | TODO |
 
@@ -115,21 +115,21 @@ Add Schema.org Event structured data to single event pages so Google shows rich 
 
 ### P8-E1-S4: Event Index & Archive Pages
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Paginated, server-rendered listing of public events for crawlers to discover individual event pages.
 
 **Acceptance Criteria:**
-- [ ] `GET /public/{username}/events` — upcoming events list (paginated, 20 per page)
-- [ ] `GET /public/{username}/events?month=2026-04` — monthly archive view
-- [ ] Server-rendered HTML with `<title>`, `<meta description>` per page
-- [ ] `<link rel="canonical">` to avoid duplicate content
-- [ ] `<link rel="next">` and `<link rel="prev">` for pagination
-- [ ] Each event links to its detail page (`/public/{username}/event/{id}`)
-- [ ] Respects same feature flag / user opt-out as detail pages
-- [ ] Clean, semantic HTML with `<article>`, `<time>`, `<address>` elements
-- [ ] Unit tests
+- [x] `GET /public/{username}/events` — upcoming events list (paginated, 20 per page)
+- [x] `GET /public/{username}/events?month=2026-04` — monthly archive view
+- [x] Server-rendered HTML with `<title>`, `<meta description>` per page
+- [x] `<link rel="canonical">` to avoid duplicate content
+- [x] `<link rel="next">` and `<link rel="prev">` for pagination
+- [x] Each event links to its detail page (`/public/{username}/event/{id}`)
+- [x] Respects same feature flag / user opt-out as detail pages
+- [x] Clean, semantic HTML with `<article>`, `<time>`, `<address>` elements
+- [x] Unit tests
 
 ---
 
