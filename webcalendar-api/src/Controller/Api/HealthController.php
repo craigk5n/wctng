@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Service\CoreServiceFactory;
+use App\Service\ErrorMetricsService;
 use App\Tenant\TenantContext;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
@@ -15,6 +16,7 @@ final class HealthController
         private readonly TenantContext $tenantContext,
         private readonly CoreServiceFactory $coreServiceFactory,
         private readonly string $appMode,
+        private readonly ?ErrorMetricsService $errorMetrics = null,
     ) {
     }
 
@@ -43,11 +45,19 @@ final class HealthController
 
         $allOk = $components['database'] === 'ok';
 
+        // Error metrics
+        $recentErrors = 0;
+        try {
+            $recentErrors = $this->errorMetrics?->getRecentErrorCount() ?? 0;
+        } catch (\Throwable) {
+        }
+
         $response = [
             'status' => $allOk ? 'ok' : 'degraded',
             'timestamp' => date('c'),
             'mode' => $this->appMode,
             'components' => $components,
+            'recent_errors' => $recentErrors,
         ];
 
         $tenant = $this->tenantContext->getTenant();

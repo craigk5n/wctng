@@ -133,6 +133,16 @@ services:
         arguments:
             $pdo: '@pdo.connection'
 
+    # Monolog processor for request correlation IDs
+    App\Monolog\RequestIdProcessor:
+        tags:
+            - { name: monolog.processor }
+
+    # Error metrics
+    App\Service\ErrorMetricsService:
+        arguments:
+            $pdo: '@pdo.connection'
+
     # Geo services
     App\Service\GeoRepository:
         arguments:

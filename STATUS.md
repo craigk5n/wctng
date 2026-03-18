@@ -511,7 +511,7 @@ Dedicated email preferences section in the user settings page, plus CAN-SPAM com
 
 | Story | Title | Status |
 |-------|-------|--------|
-| P9-E3-S1 | Request Correlation IDs & Error Logging | TODO |
+| P9-E3-S1 | Request Correlation IDs & Error Logging | DONE |
 | P9-E3-S2 | Admin Dashboard & System Health | TODO |
 | P9-E3-S3 | Database Backup & Restore | TODO |
 
@@ -525,7 +525,7 @@ Dedicated email preferences section in the user settings page, plus CAN-SPAM com
 
 ### P9-E3-S1: Request Correlation IDs & Error Logging
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Add correlation IDs to every request for log tracing, and enhance error logging with request context. Monolog JSON formatting already exists; this adds the correlation ID and structured error context.
@@ -533,17 +533,14 @@ Add correlation IDs to every request for log tracing, and enhance error logging 
 **Preconditions:** Monolog JSON config exists
 
 **Acceptance Criteria:**
-- [ ] `App\EventSubscriber\RequestIdSubscriber` — kernel.request listener
-  - Generates UUID v4 `X-Request-Id` if not present in incoming request
-  - Adds to response headers
-  - Pushes to Monolog processor context (all log lines include `request_id`)
-- [ ] `App\Monolog\RequestIdProcessor` — Monolog processor that adds `request_id` to every log record
-- [ ] ExceptionSubscriber: log 4xx/5xx with structured context: `{request_id, method, path, user, status, duration_ms}`
-- [ ] Request duration tracked via kernel.request → kernel.terminate timing
-- [ ] `GET /api/v2/admin/health` enhanced: include `recent_errors` count (last 24h) from a lightweight counter
-  - Counter stored in `system_metrics` table: `{metric_key, metric_value, updated_at}`
-  - Incremented by ExceptionSubscriber on 5xx responses
-- [ ] PHPStan level 9 + integration tests
+- [x] `RequestIdSubscriber` already existed — generates `X-Request-Id`, adds to response headers
+- [x] `App\Monolog\RequestIdProcessor` — Monolog processor injects `request_id` into every log record's `extra`
+- [x] ExceptionSubscriber: logs 4xx (warning) and 5xx (error) with `{request_id, method, path, status, exception, duration_ms}`
+- [x] Duration tracked via `REQUEST_TIME_FLOAT` → `microtime(true)` delta
+- [x] `GET /api/v2/admin/health` enhanced: includes `recent_errors` count (last 24h)
+  - `ErrorMetricsService` with `system_metrics` table, incremented on 5xx
+  - Auto-cleanup of metrics older than 30 days
+- [x] PHPStan level 9 + 3 integration tests (ErrorMetrics) + 2 unit tests (RequestIdProcessor)
 
 ---
 
