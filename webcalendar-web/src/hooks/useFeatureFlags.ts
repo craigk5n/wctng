@@ -7,6 +7,8 @@ export interface FeatureFlags {
   DISABLE_URL_FIELD: string;
   DISABLE_PRIORITY_FIELD: string;
   DISABLE_PARTICIPANTS_FIELD: string;
+  ENABLE_SEO_PAGES: string;
+  ENABLE_GEOCODING: string;
 }
 
 const DEFAULTS: FeatureFlags = {
@@ -15,6 +17,8 @@ const DEFAULTS: FeatureFlags = {
   DISABLE_URL_FIELD: 'N',
   DISABLE_PRIORITY_FIELD: 'N',
   DISABLE_PARTICIPANTS_FIELD: 'N',
+  ENABLE_SEO_PAGES: 'N',
+  ENABLE_GEOCODING: 'Y',
 };
 
 export function useFeatureFlags(): FeatureFlags {

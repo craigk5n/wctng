@@ -41,7 +41,7 @@
 
 | Story | Title | Status |
 |-------|-------|--------|
-| P8-E1-S1 | Admin & User SEO Feature Flags | TODO |
+| P8-E1-S1 | Admin & User SEO Feature Flags | DONE |
 | P8-E1-S2 | Single Event Detail Pages (SSR) | TODO |
 | P8-E1-S3 | Schema.org Structured Data (JSON-LD) | TODO |
 | P8-E1-S4 | Event Index & Archive Pages | TODO |
@@ -52,20 +52,22 @@
 
 ### P8-E1-S1: Admin & User SEO Feature Flags
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Admin feature flag to enable/disable public event SEO pages globally. Per-user preference to opt out even when admin has it enabled. Consistent with existing `public_calendar_enabled` preference — SEO pages only render for users who have both the admin flag ON and their personal flag ON.
 
 **Acceptance Criteria:**
-- [ ] Admin config: `ENABLE_SEO_PAGES` (Y/N, default N) — controls whether SSR event pages exist at all
-- [ ] User preference: `seo_indexing_enabled` (Y/N, default Y) — allows users to opt out of search engine indexing
-- [ ] SEO pages only render when: admin flag ON + user `public_calendar_enabled` = Y + user `seo_indexing_enabled` != N
-- [ ] `noindex` meta tag added when user has opted out (pages still accessible but not crawled)
-- [ ] Admin settings page: toggle for "Enable public event pages for search engines"
-- [ ] User preferences page: toggle for "Allow search engines to index my public events"
-- [ ] `GET /api/v2/config/features` includes `ENABLE_SEO_PAGES` flag
-- [ ] PHPStan level 9 + unit tests
+- [x] Admin config: `ENABLE_SEO_PAGES` (Y/N, default N) in ConfigController defaults
+- [x] Admin config: `ENABLE_GEOCODING` (Y/N, default Y) for future map support
+- [x] User preference: `seo_indexing_enabled` (Y/N, default Y) with checkbox in Preferences
+- [x] `SeoEligibilityService`: three-tier check (admin global → user public → user SEO)
+- [x] Returns `{eligible, noindex, reason}` — noindex for opted-out users
+- [x] Admin settings page: toggles for SEO Pages and Geocoding
+- [x] User preferences page: "Allow search engines to index my public events" checkbox
+- [x] `GET /api/v2/config/features` includes `ENABLE_SEO_PAGES` and `ENABLE_GEOCODING`
+- [x] `useFeatureFlags` hook updated with new flags
+- [x] PHPStan level 9, 6 integration tests, all frontend tests pass
 
 ---
 

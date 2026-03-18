@@ -40,6 +40,18 @@ const FEATURES: FeatureToggle[] = [
     description: 'Allow adding participants to events.',
     inverted: true,
   },
+  {
+    key: 'ENABLE_SEO_PAGES',
+    label: 'Public Event Pages for Search Engines',
+    description: 'Enable server-rendered event detail pages that search engines can crawl. Individual users can opt out in their preferences.',
+    inverted: false,
+  },
+  {
+    key: 'ENABLE_GEOCODING',
+    label: 'Location Geocoding',
+    description: 'Automatically geocode event locations to show maps on public event pages.',
+    inverted: false,
+  },
 ];
 
 export function AdminSettingsPage() {

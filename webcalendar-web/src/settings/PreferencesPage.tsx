@@ -17,6 +17,7 @@ export function PreferencesPage() {
   const [workDayEnd, setWorkDayEnd] = useState('17:00');
   const [conflictMode, setConflictMode] = useState('warn');
   const [language, setLanguage] = useState(getLocale());
+  const [seoIndexing, setSeoIndexing] = useState('Y');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -35,6 +36,7 @@ export function PreferencesPage() {
           if (p.key === 'WORK_DAY_END') setWorkDayEnd(p.value);
           if (p.key === 'conflict_mode') setConflictMode(p.value);
           if (p.key === 'locale') { setLanguage(p.value); changeLocale(p.value); }
+          if (p.key === 'seo_indexing_enabled') setSeoIndexing(p.value);
         }
       }
     })();
@@ -52,6 +54,7 @@ export function PreferencesPage() {
     if (timezone) prefs['TIMEZONE'] = timezone;
     prefs['conflict_mode'] = conflictMode;
     prefs['locale'] = language;
+    prefs['seo_indexing_enabled'] = seoIndexing;
 
     const { error } = await apiFetch(`/users/${login}/preferences`, {
       method: 'PUT',
@@ -64,7 +67,7 @@ export function PreferencesPage() {
     } else {
       toast({ title: 'Failed to save', variant: 'error' });
     }
-  }, [login, defaultView, timezone, workDayStart, workDayEnd, conflictMode, language, toast]);
+  }, [login, defaultView, timezone, workDayStart, workDayEnd, conflictMode, language, seoIndexing, toast]);
 
   return (
     <div>
@@ -153,6 +156,25 @@ export function PreferencesPage() {
             <option value="ar">العربية</option>
             <option value="he">עברית</option>
           </select>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <input
+              id="seo-indexing"
+              type="checkbox"
+              checked={seoIndexing === 'Y'}
+              onChange={(e) => setSeoIndexing(e.target.checked ? 'Y' : 'N')}
+              className="h-4 w-4"
+            />
+            <label htmlFor="seo-indexing" className="text-sm font-medium">
+              Allow search engines to index my public events
+            </label>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            When enabled, your public events may appear in Google and other search engine results.
+            Disable this to keep your calendar shareable via link but hidden from search engines.
+          </p>
         </div>
 
         <PushNotificationToggle />
