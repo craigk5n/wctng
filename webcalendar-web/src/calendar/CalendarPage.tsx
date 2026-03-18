@@ -198,11 +198,13 @@ export function CalendarPage() {
           body: JSON.stringify({ participants: data.participants }),
         });
       }
-      // Save custom field values
-      if (data.custom_fields && Object.keys(data.custom_fields).length > 0) {
+      // Save custom field values (including event color)
+      const customFields = { ...(data.custom_fields ?? {}) };
+      if (data.color) customFields['_event_color'] = data.color;
+      if (Object.keys(customFields).length > 0) {
         await apiFetch(`/events/${created.id}/custom-fields`, {
           method: 'PUT',
-          body: JSON.stringify(data.custom_fields),
+          body: JSON.stringify(customFields),
         });
       }
       calendarRef.current?.refetchEvents();

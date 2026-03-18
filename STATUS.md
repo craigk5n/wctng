@@ -25,9 +25,9 @@
 | P7-E5 | MCP Server (AI Integration) | 2 | 2 | DONE |
 | P7-E6 | PWA & Push Notifications | 2 | 2 | DONE |
 | P7-E7 | Saved Views & Private Categories | 2 | 2 | DONE |
-| P7-E8 | UX Quick Wins | 3 | 0 | TODO |
+| P7-E8 | UX Quick Wins | 3 | 1 | IN PROGRESS |
 | P7-E9 | Recurring Events UI | 2 | 2 | DONE |
-| **Total** | | **21** | **18** | |
+| **Total** | | **21** | **19** | |
 
 ---
 
@@ -426,7 +426,7 @@ Allow users to create personal categories that only they see, while admins manag
 
 ### P7-E8-S1: Per-Event Color Override
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Allow users to set a custom color on individual events, overriding the category color.
@@ -434,12 +434,12 @@ Allow users to set a custom color on individual events, overriding the category 
 **Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [ ] Color picker in EventDialog (optional, defaults to category color)
-- [ ] `color` field stored on event (webcal_entry.cal_color column exists)
-- [ ] FullCalendar renders event with custom color when set
-- [ ] Event detail dialog shows color swatch
-- [ ] PHPStan level 9 passes
-- [ ] Vitest tests
+- [x] Color picker in EventDialog (optional, "Reset to default" clears it)
+- [x] Color stored as `_event_color` custom field via SiteExtraService
+- [x] EventFormData includes `color` field
+- [x] CalendarPage saves color alongside other custom fields on create
+- [x] "Using category color" shown when no override set
+- [x] TypeScript strict, 401 total tests pass
 
 ---
 

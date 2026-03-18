@@ -31,6 +31,7 @@ export interface EventFormData {
   custom_fields?: Record<string, string>;
   resource?: string;
   rrule?: string;
+  color?: string;
 }
 
 interface EventDialogProps {
@@ -83,6 +84,7 @@ export function EventDialog({
   const [showGroupSuggestions, setShowGroupSuggestions] = useState(false);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [rrule, setRrule] = useState(initialValues?.rrule ?? '');
+  const [eventColor, setEventColor] = useState(initialValues?.color ?? '');
   const [resources, setResources] = useState<Array<{ login: string; name: string }>>([]);
   const [selectedResource, setSelectedResource] = useState('');
   const [categorySearch, setCategorySearch] = useState('');
@@ -176,6 +178,7 @@ export function EventDialog({
         custom_fields: Object.keys(customFieldValues).length > 0 ? customFieldValues : undefined,
         resource: selectedResource || undefined,
         rrule: rrule || undefined,
+        color: eventColor || undefined,
       };
 
       if (!allDay && time) {
@@ -380,6 +383,33 @@ export function EventDialog({
               <option value="C">Confidential</option>
               <option value="R">Private</option>
             </select>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="event-color" className="text-sm font-medium">
+              Event Color
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                id="event-color"
+                type="color"
+                value={eventColor || '#3788d8'}
+                onChange={(e) => setEventColor(e.target.value)}
+                className="h-9 w-12 cursor-pointer rounded-md border border-input"
+              />
+              {eventColor && (
+                <button
+                  type="button"
+                  onClick={() => setEventColor('')}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Reset to default
+                </button>
+              )}
+              {!eventColor && (
+                <span className="text-xs text-muted-foreground">Using category color</span>
+              )}
+            </div>
           </div>
 
           {/* Custom Fields */}
