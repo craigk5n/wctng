@@ -21,7 +21,7 @@
 | P7-E1 | Drag-and-Drop & Resize | 2 | 2 | DONE |
 | P7-E2 | ICS Subscription & Holidays | 3 | 3 | DONE |
 | P7-E3 | Scheduling Polls | 3 | 3 | DONE |
-| P7-E4 | Room & Resource Booking | 2 | 0 | TODO |
+| P7-E4 | Room & Resource Booking | 2 | 1 | IN PROGRESS |
 | P7-E5 | MCP Server (AI Integration) | 2 | 0 | TODO |
 | P7-E6 | PWA & Push Notifications | 2 | 0 | TODO |
 | P7-E7 | Saved Views & Private Categories | 2 | 0 | TODO |
@@ -242,7 +242,7 @@ Voting interface for participants and finalization for the organizer.
 
 ### P7-E4-S1: Resource Management API & Admin UI
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Admin page for creating and managing rooms/resources, plus API for availability queries.
@@ -250,14 +250,14 @@ Admin page for creating and managing rooms/resources, plus API for availability 
 **Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [ ] `GET /api/v2/admin/resources` — list all resources (rooms, equipment)
-- [ ] `POST /api/v2/admin/resources` — create resource (name, type, capacity, location)
-- [ ] `PUT/DELETE /api/v2/admin/resources/{id}` — update/delete
-- [ ] `GET /api/v2/resources/{id}/availability?date={}` — check resource availability
-- [ ] Route `/admin/resources` — admin management page
-- [ ] Uses ResourceService from webcalendar-core
-- [ ] PHPStan level 9 passes
-- [ ] Unit + Vitest tests
+- [x] `GET /api/v2/admin/resources` — list all resources
+- [x] `POST /api/v2/admin/resources` — create resource (login, name, admin, is_public)
+- [x] `PUT/DELETE /api/v2/admin/resources/{login}` — update/delete
+- [x] `GET /api/v2/resources/{login}/availability?date={}` — check busy times
+- [x] Route `/admin/resources` — admin management page with table, create form
+- [x] Uses ResourceService from webcalendar-core
+- [x] PHPStan level 9 passes
+- [x] 4 Vitest tests (heading, list, empty, add button)
 
 ---
 
