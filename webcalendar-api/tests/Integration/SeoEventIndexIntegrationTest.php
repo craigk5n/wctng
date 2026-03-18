@@ -111,4 +111,29 @@ final class SeoEventIndexIntegrationTest extends IntegrationTestCase
         $this->assertStringContainsString('<meta name="description"', $html);
         $this->assertStringContainsString('Alice Smith', $html);
     }
+
+    public function testHasOpenGraphTags(): void
+    {
+        $this->createEvents(1);
+        $request = Request::create('/public/alice/events');
+        $response = $this->controller->index('alice', $request);
+        $html = (string) $response->getContent();
+
+        $this->assertStringContainsString('<meta property="og:title"', $html);
+        $this->assertStringContainsString('<meta property="og:description"', $html);
+        $this->assertStringContainsString('<meta property="og:type" content="website">', $html);
+        $this->assertStringContainsString('<meta property="og:url"', $html);
+    }
+
+    public function testHasTwitterCardTags(): void
+    {
+        $this->createEvents(1);
+        $request = Request::create('/public/alice/events');
+        $response = $this->controller->index('alice', $request);
+        $html = (string) $response->getContent();
+
+        $this->assertStringContainsString('<meta name="twitter:card" content="summary">', $html);
+        $this->assertStringContainsString('<meta name="twitter:title"', $html);
+        $this->assertStringContainsString('<meta name="twitter:description"', $html);
+    }
 }

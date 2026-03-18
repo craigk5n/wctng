@@ -128,6 +128,35 @@ final class SeoEventPageIntegrationTest extends IntegrationTestCase
         $this->assertSame(404, $response->getStatusCode());
     }
 
+    public function testHasOpenGraphMetaTags(): void
+    {
+        $this->factory->getConfigService()->updateSetting('ENABLE_SEO_PAGES', 'Y');
+        $this->factory->getUserRepository()->savePreference('alice', new UserPreference('public_calendar_enabled', 'Y'));
+
+        $eventId = $this->createPublicEvent('OG Test Event');
+        $response = $this->controller->detail('alice', $eventId);
+        $html = (string) $response->getContent();
+
+        $this->assertStringContainsString('<meta property="og:title" content="OG Test Event">', $html);
+        $this->assertStringContainsString('<meta property="og:description"', $html);
+        $this->assertStringContainsString('<meta property="og:type" content="website">', $html);
+        $this->assertStringContainsString('<meta property="og:url"', $html);
+    }
+
+    public function testHasTwitterCardMetaTags(): void
+    {
+        $this->factory->getConfigService()->updateSetting('ENABLE_SEO_PAGES', 'Y');
+        $this->factory->getUserRepository()->savePreference('alice', new UserPreference('public_calendar_enabled', 'Y'));
+
+        $eventId = $this->createPublicEvent('Twitter Test');
+        $response = $this->controller->detail('alice', $eventId);
+        $html = (string) $response->getContent();
+
+        $this->assertStringContainsString('<meta name="twitter:card" content="summary">', $html);
+        $this->assertStringContainsString('<meta name="twitter:title" content="Twitter Test">', $html);
+        $this->assertStringContainsString('<meta name="twitter:description"', $html);
+    }
+
     public function testHasBackLink(): void
     {
         $this->factory->getConfigService()->updateSetting('ENABLE_SEO_PAGES', 'Y');

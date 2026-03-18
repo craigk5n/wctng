@@ -139,6 +139,13 @@ ITEM;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{$pageTitle} — {$displayName}'s Calendar</title>
     <meta name="description" content="{$metaDesc}">
+    <meta property="og:title" content="{$pageTitle} — {$displayName}'s Calendar">
+    <meta property="og:description" content="{$metaDesc}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{$canonical}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{$pageTitle} — {$displayName}'s Calendar">
+    <meta name="twitter:description" content="{$metaDesc}">
     <link rel="canonical" href="{$canonical}">
     {$linkTags}
     {$noindex}
