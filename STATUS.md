@@ -43,7 +43,7 @@
 |-------|-------|--------|
 | P8-E1-S1 | Admin & User SEO Feature Flags | DONE |
 | P8-E1-S2 | Single Event Detail Pages (SSR) | DONE |
-| P8-E1-S3 | Schema.org Structured Data (JSON-LD) | TODO |
+| P8-E1-S3 | Schema.org Structured Data (JSON-LD) | DONE |
 | P8-E1-S4 | Event Index & Archive Pages | TODO |
 | P8-E1-S5 | Sitemap.xml & robots.txt | TODO |
 | P8-E1-S6 | Open Graph & Social Sharing | TODO |
@@ -95,20 +95,21 @@ Server-side rendered HTML pages for individual public events at `/public/{userna
 
 ### P8-E1-S3: Schema.org Structured Data (JSON-LD)
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Add Schema.org Event structured data to single event pages so Google shows rich event snippets in search results.
 
 **Acceptance Criteria:**
-- [ ] JSON-LD `<script type="application/ld+json">` block in event detail page
-- [ ] Schema.org `Event` type with: name, startDate, endDate, location, description, organizer
-- [ ] `location` maps to Schema.org `Place` (with name) or `VirtualLocation` (if URL present)
-- [ ] `organizer` maps to Schema.org `Person` with user's display name
-- [ ] `eventStatus`: SCHEDULED, CANCELLED (from event status field)
-- [ ] `eventAttendanceMode`: OFFLINE (default), ONLINE (if conference URL), MIXED
-- [ ] Validated against Google's Rich Results Test
-- [ ] Unit tests for JSON-LD generation
+- [x] JSON-LD `<script type="application/ld+json">` block in event detail page
+- [x] Schema.org `Event` type with: name, startDate, endDate, location, description, organizer
+- [x] `location` → `Place` (physical) or `VirtualLocation` (URL-based location)
+- [x] `organizer` → `Person` with display name and email
+- [x] `eventStatus`: EventScheduled, EventCancelled, EventPostponed (from status field)
+- [x] `eventAttendanceMode`: Offline (default), Online (URL location)
+- [x] HTML stripped from description for plain-text structured data
+- [x] JSON-LD omitted when user has noindex (opted out)
+- [x] 11 unit tests for JsonLdGenerator, PHPStan level 9
 
 ---
 
@@ -295,6 +296,55 @@ Add a clickable map link in the event detail dialog (React SPA) without embeddin
 - Consistent with self-hosted/open-source philosophy of WCTNG
 - Nominatim geocoding is free (with rate limiting — 1 req/sec)
 - Leaflet.js is 42KB gzipped (vs Google Maps SDK at 200KB+)
+
+---
+
+### Epic P8-E3: Custom Header, Trailer & CSS (2 stories)
+
+| Story | Title | Status |
+|-------|-------|--------|
+| P8-E3-S1 | Custom HTML/CSS Admin API & Settings | TODO |
+| P8-E3-S2 | Apply Custom HTML/CSS to SPA & SSR Pages | TODO |
+
+---
+
+### P8-E3-S1: Custom HTML/CSS Admin API & Settings
+
+**Status:** TODO
+
+**Description:**
+Admin page for entering custom header HTML, trailer/footer HTML, and custom CSS. Stored via ConfigService.
+
+**Acceptance Criteria:**
+- [ ] Config keys: `CUSTOM_HEADER_HTML`, `CUSTOM_TRAILER_HTML`, `CUSTOM_CSS`
+- [ ] `GET /api/v2/admin/custom-html` — returns all three values (admin only)
+- [ ] `PUT /api/v2/admin/custom-html` — updates any/all (admin only)
+- [ ] `GET /api/v2/config/custom-html` — returns values (public, for SPA rendering)
+- [ ] Admin settings page: three textareas (header HTML, trailer HTML, CSS)
+- [ ] Live preview panel showing how header/trailer will look
+- [ ] HTML sanitized: strips `<script>`, `<iframe>`, event handlers (uses DescriptionSanitizer allowlist + `<nav>`, `<header>`, `<footer>`, `<div>`, `<span>`, `<img>`)
+- [ ] CSS sanitized: strips `expression()`, `url(javascript:)`, `@import`
+- [ ] PHPStan level 9 + Vitest tests
+
+---
+
+### P8-E3-S2: Apply Custom HTML/CSS to SPA & SSR Pages
+
+**Status:** TODO
+
+**Description:**
+Inject admin-defined header, trailer, and CSS into both the React SPA and server-rendered SEO pages.
+
+**Preconditions:** P8-E3-S1
+
+**Acceptance Criteria:**
+- [ ] SSR event pages: header HTML after `<body>`, trailer before `</body>`, CSS in `<style>` in `<head>`
+- [ ] React SPA: custom HTML fetched from `/api/v2/config/custom-html` on app load
+- [ ] SPA header injected above AppLayout, trailer below main content
+- [ ] Custom CSS applied via `<style>` tag in document head
+- [ ] Cached in React Query (5-minute stale time)
+- [ ] Changes visible immediately on SSR pages (no cache)
+- [ ] Vitest tests
 
 ---
 

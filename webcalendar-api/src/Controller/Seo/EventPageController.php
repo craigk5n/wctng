@@ -6,6 +6,7 @@ namespace App\Controller\Seo;
 
 use App\Service\CoreServiceFactory;
 use App\Service\DescriptionSanitizer;
+use App\Service\JsonLdGenerator;
 use App\Service\SeoEligibilityService;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -19,12 +20,14 @@ final class EventPageController
 {
     private readonly SeoEligibilityService $seoService;
     private readonly DescriptionSanitizer $sanitizer;
+    private readonly JsonLdGenerator $jsonLd;
 
     public function __construct(
         private readonly CoreServiceFactory $factory,
     ) {
         $this->seoService = new SeoEligibilityService($factory);
         $this->sanitizer = new DescriptionSanitizer();
+        $this->jsonLd = new JsonLdGenerator();
     }
 
     #[Route('/public/{username}/event/{id}', name: 'seo_event_detail', methods: ['GET'], requirements: ['id' => '\d+'])]
@@ -74,6 +77,10 @@ final class EventPageController
         $descriptionHtml = $description !== '' ? "<div class=\"description\">{$description}</div>" : '';
         $locationHtml = $location !== '' ? "<p class=\"meta\">📍 {$location}</p>" : '';
 
+        // Generate JSON-LD structured data
+        $canonicalUrl = "/public/{$username}/event/{$id}";
+        $jsonLdBlock = $seoStatus['noindex'] ? '' : $this->jsonLd->generateEventJsonLd($event, $user, $canonicalUrl);
+
         $html = <<<HTML
 <!DOCTYPE html>
 <html lang="en">
@@ -83,6 +90,7 @@ final class EventPageController
     <title>{$title} — {$displayName}'s Calendar</title>
     <meta name="description" content="{$metaDescription}">
     {$noindex}
+    {$jsonLdBlock}
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a1a; background: #f8f9fa; line-height: 1.6; }
