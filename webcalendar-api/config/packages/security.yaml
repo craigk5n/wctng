@@ -50,6 +50,12 @@ security:
             stateless: true
             security: false
 
+        # SSR public pages (SEO) — no authentication required
+        seo_pages:
+            pattern: ^/public/
+            stateless: true
+            security: false
+
         i18n:
             pattern: ^/api/v2/i18n/
             stateless: true
@@ -74,6 +80,9 @@ security:
             jwt: ~
 
     access_control:
+        - { path: ^/public/, roles: PUBLIC_ACCESS }
+        - { path: ^/sitemap\.xml$, roles: PUBLIC_ACCESS }
+        - { path: ^/robots\.txt$, roles: PUBLIC_ACCESS }
         - { path: ^/api/v2/auth/login$, roles: PUBLIC_ACCESS }
         - { path: ^/api/v2/health$, roles: PUBLIC_ACCESS }
         - { path: ^/api/v2/setup/, roles: PUBLIC_ACCESS }

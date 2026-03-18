@@ -42,7 +42,7 @@
 | Story | Title | Status |
 |-------|-------|--------|
 | P8-E1-S1 | Admin & User SEO Feature Flags | DONE |
-| P8-E1-S2 | Single Event Detail Pages (SSR) | TODO |
+| P8-E1-S2 | Single Event Detail Pages (SSR) | DONE |
 | P8-E1-S3 | Schema.org Structured Data (JSON-LD) | TODO |
 | P8-E1-S4 | Event Index & Archive Pages | TODO |
 | P8-E1-S5 | Sitemap.xml & robots.txt | TODO |
@@ -73,22 +73,23 @@ Admin feature flag to enable/disable public event SEO pages globally. Per-user p
 
 ### P8-E1-S2: Single Event Detail Pages (SSR)
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Server-side rendered HTML pages for individual public events at `/public/{username}/event/{id}`. Rendered by Symfony (not React) so crawlers get full HTML without JavaScript.
 
 **Acceptance Criteria:**
-- [ ] `GET /public/{username}/event/{id}` returns full HTML page (Symfony Twig template)
-- [ ] Page includes: event title as `<h1>`, date/time, location, description (sanitized HTML)
-- [ ] `<title>` tag: "{Event Title} — {User}'s Calendar"
-- [ ] `<meta name="description">` with event summary
-- [ ] Recurring events: shows specific occurrence info
-- [ ] Respects feature flags: returns 404 if SEO disabled or user opted out
-- [ ] `<meta name="robots" content="noindex">` when user has opted out of indexing
-- [ ] Links back to public calendar view
-- [ ] Mobile responsive (basic CSS, no JS framework needed)
-- [ ] PHPStan level 9 + unit tests
+- [x] `GET /public/{username}/event/{id}` returns full HTML (Symfony controller, inline template)
+- [x] Page: event title `<h1>`, date/time, location, sanitized HTML description
+- [x] `<title>`: "{Event Title} — {User}'s Calendar"
+- [x] `<meta name="description">` with date, time, location summary
+- [x] Recurring events: shows 🔁 indicator
+- [x] Respects feature flags: 404 if SEO disabled, user not public, or event private
+- [x] `<meta name="robots" content="noindex">` when user opted out of indexing
+- [x] Breadcrumb back to public calendar view
+- [x] Mobile responsive CSS (`@media max-width: 640px`)
+- [x] nginx config routes `/public/*/event/*` to PHP-FPM (before Vite catch-all)
+- [x] PHPStan level 9, 7 integration tests
 
 ---
 
