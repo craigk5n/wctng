@@ -77,6 +77,11 @@ security:
             stateless: true
             security: false
 
+        unsubscribe:
+            pattern: ^/api/v2/unsubscribe/
+            stateless: true
+            security: false
+
         # Protected API endpoints — require JWT
         api:
             pattern: ^/api/
@@ -96,5 +101,6 @@ security:
         - { path: ^/api/v2/custom-fields$, roles: PUBLIC_ACCESS }
         - { path: ^/api/v2/config/features$, roles: PUBLIC_ACCESS }
         - { path: ^/api/v2/config/custom-html$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/v2/unsubscribe/, roles: PUBLIC_ACCESS }
         - { path: ^/api/v2/mcp$, roles: PUBLIC_ACCESS }
         - { path: ^/api/, roles: IS_AUTHENTICATED_FULLY }

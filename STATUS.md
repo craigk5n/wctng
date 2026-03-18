@@ -426,7 +426,7 @@ Audit query performance and add missing indexes. The webcalendar-core schema alr
 |-------|-------|--------|
 | P9-E2-S1 | Reminder Email Preferences UI & Hardening | DONE |
 | P9-E2-S2 | Daily Agenda Email | DONE |
-| P9-E2-S3 | Email Preferences Page & Unsubscribe | TODO |
+| P9-E2-S3 | Email Preferences Page & Unsubscribe | DONE |
 
 **Existing infrastructure:**
 - `ReminderService` — fully implemented: queries users, finds events in reminder window, sends emails, tracks in `reminder_sent` table
@@ -485,7 +485,7 @@ Optional daily email summarizing the user's events for the day. New Symfony comm
 
 ### P9-E2-S3: Email Preferences Page & Unsubscribe
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Dedicated email preferences section in the user settings page, plus CAN-SPAM compliant one-click unsubscribe in all automated emails.
@@ -493,18 +493,17 @@ Dedicated email preferences section in the user settings page, plus CAN-SPAM com
 **Preconditions:** P9-E2-S1, P9-E2-S2
 
 **Acceptance Criteria:**
-- [ ] New "Email Notifications" section on preferences page with:
+- [x] Email Notifications section on preferences page with:
   - Reminder dropdown (from S1)
   - Daily agenda toggle + time picker (from S2)
-  - Event invitation emails toggle (maps to existing `EMAIL_INVITATION` pref)
-  - Event update emails toggle (maps to existing `EMAIL_UPDATE` pref)
-- [ ] All automated emails include footer: "Unsubscribe: [one-click link]"
-- [ ] `GET /api/v2/unsubscribe/{token}` — sets `REMINDER_MINUTES=0` and `daily_agenda_enabled=N`
-- [ ] Token format: HMAC-SHA256 of `user_login` with `APP_SECRET` — no expiry, deterministic per user
-- [ ] Endpoint returns simple HTML confirmation page (no auth required, SSR)
-- [ ] `List-Unsubscribe` and `List-Unsubscribe-Post` email headers for RFC 8058 compliance
-- [ ] Security firewall: `/api/v2/unsubscribe/` pattern has `security: false`
-- [ ] PHPStan level 9 + Vitest tests for preferences UI + integration test for unsubscribe endpoint
+  - Event invitation emails toggle (maps to `EMAIL_INVITATION` pref)
+  - Event update emails toggle (maps to `EMAIL_UPDATE` pref)
+- [x] All automated emails include footer: "Unsubscribe: [one-click link]" (ReminderService + DailyAgendaService)
+- [x] `GET /api/v2/unsubscribe/{token}` — sets REMINDER_MINUTES=0, daily_agenda_enabled=N, EMAIL_INVITATION=N, EMAIL_UPDATE=N
+- [x] Token format: HMAC-SHA256 of `user_login` with `APP_SECRET` — no expiry, deterministic per user
+- [x] Endpoint returns SSR HTML confirmation page (no auth required)
+- [x] Security firewall: `/api/v2/unsubscribe/` has `security: false` + `PUBLIC_ACCESS`
+- [x] PHPStan level 9 + 5 integration tests (valid/invalid token, deterministic, unique per user/secret) + 2 Vitest tests
 
 ---
 

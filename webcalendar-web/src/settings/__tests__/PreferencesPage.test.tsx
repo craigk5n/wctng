@@ -48,6 +48,20 @@ describe('PreferencesPage', () => {
     expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
   });
 
+  it('shows email notification controls', () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ data: [] }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+    );
+    render(
+      <MemoryRouter>
+        <AuthProvider><ToastProvider><PreferencesPage /></ToastProvider></AuthProvider>
+      </MemoryRouter>,
+    );
+    expect(screen.getByLabelText(/daily agenda email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/event invitation emails/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/event update emails/i)).toBeInTheDocument();
+  });
+
   it('shows email reminder dropdown', () => {
     globalThis.fetch = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ data: [] }), { status: 200, headers: { 'Content-Type': 'application/json' } }),

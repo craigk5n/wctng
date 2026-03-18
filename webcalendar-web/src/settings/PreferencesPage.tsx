@@ -19,6 +19,10 @@ export function PreferencesPage() {
   const [language, setLanguage] = useState(getLocale());
   const [seoIndexing, setSeoIndexing] = useState('Y');
   const [reminderMinutes, setReminderMinutes] = useState('30');
+  const [dailyAgendaEnabled, setDailyAgendaEnabled] = useState('N');
+  const [dailyAgendaTime, setDailyAgendaTime] = useState('06:00');
+  const [emailInvitation, setEmailInvitation] = useState('Y');
+  const [emailUpdate, setEmailUpdate] = useState('Y');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -39,6 +43,10 @@ export function PreferencesPage() {
           if (p.key === 'locale') { setLanguage(p.value); changeLocale(p.value); }
           if (p.key === 'seo_indexing_enabled') setSeoIndexing(p.value);
           if (p.key === 'REMINDER_MINUTES') setReminderMinutes(p.value);
+          if (p.key === 'daily_agenda_enabled') setDailyAgendaEnabled(p.value);
+          if (p.key === 'daily_agenda_time') setDailyAgendaTime(p.value);
+          if (p.key === 'EMAIL_INVITATION') setEmailInvitation(p.value);
+          if (p.key === 'EMAIL_UPDATE') setEmailUpdate(p.value);
         }
       }
     })();
@@ -58,6 +66,10 @@ export function PreferencesPage() {
     prefs['locale'] = language;
     prefs['seo_indexing_enabled'] = seoIndexing;
     prefs['REMINDER_MINUTES'] = reminderMinutes;
+    prefs['daily_agenda_enabled'] = dailyAgendaEnabled;
+    prefs['daily_agenda_time'] = dailyAgendaTime;
+    prefs['EMAIL_INVITATION'] = emailInvitation;
+    prefs['EMAIL_UPDATE'] = emailUpdate;
 
     const { error } = await apiFetch(`/users/${login}/preferences`, {
       method: 'PUT',
@@ -70,7 +82,7 @@ export function PreferencesPage() {
     } else {
       toast({ title: 'Failed to save', variant: 'error' });
     }
-  }, [login, defaultView, timezone, workDayStart, workDayEnd, conflictMode, language, seoIndexing, reminderMinutes, toast]);
+  }, [login, defaultView, timezone, workDayStart, workDayEnd, conflictMode, language, seoIndexing, reminderMinutes, dailyAgendaEnabled, dailyAgendaTime, emailInvitation, emailUpdate, toast]);
 
   return (
     <div>
@@ -179,6 +191,72 @@ export function PreferencesPage() {
           </select>
           <p className="text-xs text-muted-foreground">
             Receive an email reminder before your events. Requires the cron job to be configured.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <input
+              id="daily-agenda"
+              type="checkbox"
+              checked={dailyAgendaEnabled === 'Y'}
+              onChange={(e) => setDailyAgendaEnabled(e.target.checked ? 'Y' : 'N')}
+              className="h-4 w-4"
+            />
+            <label htmlFor="daily-agenda" className="text-sm font-medium">
+              Daily Agenda Email
+            </label>
+          </div>
+          {dailyAgendaEnabled === 'Y' && (
+            <div className="ml-6">
+              <label htmlFor="agenda-time" className="text-xs text-muted-foreground">Send at:</label>
+              <input
+                id="agenda-time"
+                type="time"
+                value={dailyAgendaTime}
+                onChange={(e) => setDailyAgendaTime(e.target.value)}
+                className="ml-2 h-8 rounded-md border border-input bg-background px-2 text-sm"
+              />
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Receive a daily email summarizing your events for the day.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <input
+              id="email-invitation"
+              type="checkbox"
+              checked={emailInvitation !== 'N'}
+              onChange={(e) => setEmailInvitation(e.target.checked ? 'Y' : 'N')}
+              className="h-4 w-4"
+            />
+            <label htmlFor="email-invitation" className="text-sm font-medium">
+              Event Invitation Emails
+            </label>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Receive email notifications when you are invited to events.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <input
+              id="email-update"
+              type="checkbox"
+              checked={emailUpdate !== 'N'}
+              onChange={(e) => setEmailUpdate(e.target.checked ? 'Y' : 'N')}
+              className="h-4 w-4"
+            />
+            <label htmlFor="email-update" className="text-sm font-medium">
+              Event Update Emails
+            </label>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Receive email notifications when events you are participating in are updated or cancelled.
           </p>
         </div>
 

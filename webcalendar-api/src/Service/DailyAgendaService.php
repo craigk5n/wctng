@@ -24,6 +24,7 @@ final class DailyAgendaService
         private readonly EmailService $emailService,
         private readonly string $baseUrl,
         ?LoggerInterface $logger = null,
+        private readonly string $appSecret = '',
     ) {
         $this->logger = $logger ?? new NullLogger();
     }
@@ -87,7 +88,7 @@ final class DailyAgendaService
                 }
 
                 // Render and send
-                $html = $this->renderAgendaEmail($dayEvents, $today, $user->fullName());
+                $html = $this->renderAgendaEmail($dayEvents, $today, $user->fullName(), $user->login());
 
                 $this->emailService->send(
                     $user->email(),
@@ -180,16 +181,18 @@ final class DailyAgendaService
     /**
      * @param list<\WebCalendar\Core\Domain\Entity\Event> $events
      */
-    private function renderAgendaEmail(array $events, string $date, string $displayName): string
+    private function renderAgendaEmail(array $events, string $date, string $displayName, string $login): string
     {
         $dateFormatted = (new \DateTimeImmutable($date))->format('l, F j, Y');
         $safeDisplayName = htmlspecialchars($displayName, \ENT_QUOTES, 'UTF-8');
+        $unsubFooter = $this->renderUnsubscribeFooter($login);
 
         if (\count($events) === 0) {
             return <<<HTML
             <h2>{$safeDisplayName}'s Agenda — {$dateFormatted}</h2>
             <p>No events scheduled for today.</p>
             <p><a href="{$this->baseUrl}">Open Calendar</a></p>
+            {$unsubFooter}
             HTML;
         }
 
@@ -212,6 +215,22 @@ final class DailyAgendaService
         {$eventListHtml}
         </ul>
         <p><a href="{$this->baseUrl}">Open Calendar</a></p>
+        {$unsubFooter}
         HTML;
+    }
+
+    private function renderUnsubscribeFooter(string $login): string
+    {
+        if ($this->appSecret === '') {
+            return '';
+        }
+
+        $token = \App\Controller\Api\UnsubscribeController::generateToken($login, $this->appSecret);
+        $url = "{$this->baseUrl}/api/v2/unsubscribe/{$token}";
+
+        return '<hr style="margin-top:1.5rem;border:none;border-top:1px solid #eee">'
+            . '<p style="font-size:0.75rem;color:#999;margin-top:0.5rem">'
+            . "<a href=\"{$url}\" style=\"color:#999\">Unsubscribe</a> from all WebCalendar email notifications."
+            . '</p>';
     }
 }

@@ -23,6 +23,7 @@ final class ReminderService
         private readonly EmailService $emailService,
         private readonly string $baseUrl,
         ?LoggerInterface $logger = null,
+        private readonly string $appSecret = '',
     ) {
         $this->logger = $logger ?? new NullLogger();
     }
@@ -97,6 +98,7 @@ final class ReminderService
                         $dateStr,
                         $timeStr,
                         $event->location(),
+                        $user->login(),
                     );
 
                     $this->emailService->send(
@@ -192,17 +194,34 @@ final class ReminderService
         }
     }
 
-    private function renderReminderEmail(string $title, string $date, string $time, string $location): string
+    private function renderReminderEmail(string $title, string $date, string $time, string $location, string $login): string
     {
         $safeTitle = htmlspecialchars($title, \ENT_QUOTES, 'UTF-8');
         $safeLocation = htmlspecialchars($location, \ENT_QUOTES, 'UTF-8');
         $locationHtml = $safeLocation !== '' ? "<p><strong>Location:</strong> {$safeLocation}</p>" : '';
+        $unsubscribeHtml = $this->renderUnsubscribeFooter($login);
 
         return <<<HTML
         <h2>Upcoming: {$safeTitle}</h2>
         <p><strong>When:</strong> {$date} at {$time}</p>
         {$locationHtml}
         <p><a href="{$this->baseUrl}">View in WebCalendar</a></p>
+        {$unsubscribeHtml}
         HTML;
+    }
+
+    private function renderUnsubscribeFooter(string $login): string
+    {
+        if ($this->appSecret === '') {
+            return '';
+        }
+
+        $token = \App\Controller\Api\UnsubscribeController::generateToken($login, $this->appSecret);
+        $url = "{$this->baseUrl}/api/v2/unsubscribe/{$token}";
+
+        return '<hr style="margin-top:1.5rem;border:none;border-top:1px solid #eee">'
+            . '<p style="font-size:0.75rem;color:#999;margin-top:0.5rem">'
+            . "<a href=\"{$url}\" style=\"color:#999\">Unsubscribe</a> from all WebCalendar email notifications."
+            . '</p>';
     }
 }

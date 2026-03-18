@@ -55,6 +55,12 @@ services:
     App\Service\ReminderService:
         arguments:
             $baseUrl: '%env(DEFAULT_URI)%'
+            $appSecret: '%env(APP_SECRET)%'
+
+    App\Service\DailyAgendaService:
+        arguments:
+            $baseUrl: '%env(DEFAULT_URI)%'
+            $appSecret: '%env(APP_SECRET)%'
 
     App\Service\EventNotificationService:
         arguments:
@@ -131,6 +137,11 @@ services:
     App\Service\GeoRepository:
         arguments:
             $pdo: '@pdo.connection'
+
+    # Unsubscribe controller needs APP_SECRET for token verification
+    App\Controller\Api\UnsubscribeController:
+        arguments:
+            $appSecret: '%env(APP_SECRET)%'
 
     # Event controller needs PDO for access permission checks
     App\Controller\Api\EventController:
