@@ -1,0 +1,204 @@
+#!/usr/bin/env bash
+#
+# Unified CI/CD tool for WCTNG (WebCalendar Next Generation).
+#
+# Usage:
+#   bin/ci                     Run all checks (unit, analyse, vitest, tsc)
+#   bin/ci test                PHPUnit unit + integration tests
+#   bin/ci phpstan             PHPStan level 9
+#   bin/ci vitest              Vitest frontend tests
+#   bin/ci tsc                 TypeScript strict check
+#   bin/ci e2e [--setup]       Playwright E2E tests (dev Docker)
+#   bin/ci mcp                 MCP server E2E test
+#   bin/ci all                 Full pipeline: all checks + E2E
+#   bin/ci quick               Fast checks only (no E2E)
+#
+# All output is logged to ci-logs/<command>-<timestamp>.log
+#
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_DIR"
+
+API_DIR="$PROJECT_DIR/webcalendar-api"
+WEB_DIR="$PROJECT_DIR/webcalendar-web"
+
+# ── Logging ───────────────────────────────────────────────────────────
+LOG_DIR="${PROJECT_DIR}/ci-logs"
+mkdir -p "$LOG_DIR"
+
+setup_logging() {
+  local cmd_name="${1:-ci}"
+  LOG_FILE="${LOG_DIR}/${cmd_name}-$(date +%Y%m%d-%H%M%S).log"
+  export FORCE_COLOR=1
+  export TERM="${TERM:-xterm-256color}"
+  exec > >(tee >(sed $'s/\x1b\[[0-9;]*m//g' > "$LOG_FILE")) 2>&1
+}
+
+# ── Colour helpers ────────────────────────────────────────────────────
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+RESET='\033[0m'
+
+RESULTS=()
+FAILED=0
+STARTED_AT=$(date +%s)
+
+header() {
+  echo ""
+  echo -e "${CYAN}${BOLD}── $1 ──${RESET}"
+}
+
+pass() { RESULTS+=("${GREEN}✓${RESET} $1"); }
+fail() { RESULTS+=("${RED}✗${RESET} $1"); FAILED=$((FAILED + 1)); }
+
+run_step() {
+  local name="$1"; shift
+  header "$name"
+  if "$@"; then
+    pass "$name"
+  else
+    fail "$name"
+  fi
+}
+
+summary() {
+  local elapsed=$(( $(date +%s) - STARTED_AT ))
+  echo ""
+  echo -e "${BOLD}── Summary ($((elapsed / 60))m $((elapsed % 60))s) ──${RESET}"
+  for r in "${RESULTS[@]}"; do
+    echo -e "  $r"
+  done
+  echo ""
+  if [[ $FAILED -gt 0 ]]; then
+    echo -e "  ${RED}${FAILED} job(s) failed.${RESET}"
+    exit 1
+  else
+    echo -e "  ${GREEN}All jobs passed!${RESET}"
+  fi
+}
+
+# ── Subcommands ───────────────────────────────────────────────────────
+
+cmd_test() {
+  cd "$API_DIR"
+  echo "Running PHPUnit Unit Tests..."
+  php vendor/bin/phpunit tests/Unit/ --no-progress "$@"
+  echo ""
+  echo "Running PHPUnit Integration Tests..."
+  php vendor/bin/phpunit \
+    tests/Integration/EventCrudIntegrationTest.php \
+    tests/Integration/PublicCalendarIntegrationTest.php \
+    tests/Integration/ConflictDetectionIntegrationTest.php \
+    tests/Integration/ShareTokenIntegrationTest.php \
+    tests/Integration/ApprovalWorkflowIntegrationTest.php \
+    tests/Integration/ConfigIntegrationTest.php \
+    tests/Integration/ActivityLogIntegrationTest.php \
+    tests/Integration/AuthFlowIntegrationTest.php \
+    tests/Integration/CategoryIntegrationTest.php \
+    tests/Integration/TaskJournalIntegrationTest.php \
+    tests/Integration/SearchIntegrationTest.php \
+    tests/Integration/PollIntegrationTest.php \
+    tests/Integration/RecurrenceIntegrationTest.php \
+    --no-progress
+}
+
+cmd_phpstan() {
+  cd "$API_DIR"
+  echo "Running PHPStan (level 9)..."
+  php vendor/bin/phpstan analyse --no-progress --memory-limit=512M "$@"
+}
+
+cmd_vitest() {
+  cd "$WEB_DIR"
+  echo "Running Vitest..."
+  npx vitest run "$@"
+}
+
+cmd_tsc() {
+  cd "$WEB_DIR"
+  echo "Running TypeScript strict check..."
+  npx tsc --noEmit "$@"
+}
+
+cmd_e2e() {
+  cd "$WEB_DIR"
+  echo "Running Playwright E2E tests..."
+  npx playwright test --reporter=line "$@"
+}
+
+cmd_mcp() {
+  cd "$WEB_DIR"
+  echo "Running MCP server E2E tests..."
+  npx playwright test mcp-server.spec.ts --reporter=line "$@"
+}
+
+# ── Composite commands ────────────────────────────────────────────────
+
+cmd_quick() {
+  run_step "PHPStan"          cmd_phpstan
+  run_step "PHPUnit"          cmd_test
+  run_step "TypeScript"       cmd_tsc
+  run_step "Vitest"           cmd_vitest
+  summary
+}
+
+cmd_all() {
+  run_step "PHPStan"          cmd_phpstan
+  run_step "PHPUnit"          cmd_test
+  run_step "TypeScript"       cmd_tsc
+  run_step "Vitest"           cmd_vitest
+  run_step "Playwright E2E"   cmd_e2e
+  summary
+}
+
+cmd_default() {
+  cmd_quick
+}
+
+# ── Dispatch ──────────────────────────────────────────────────────────
+CMD="${1:-}"
+shift 2>/dev/null || true
+
+if [[ "$CMD" != "help" && "$CMD" != "-h" && "$CMD" != "--help" ]]; then
+  setup_logging "${CMD:-default}"
+  echo "Log: ${LOG_FILE}"
+fi
+
+case "$CMD" in
+  test)       cmd_test "$@" ;;
+  phpstan)    cmd_phpstan "$@" ;;
+  vitest)     cmd_vitest "$@" ;;
+  tsc)        cmd_tsc "$@" ;;
+  e2e)        cmd_e2e "$@" ;;
+  mcp)        cmd_mcp "$@" ;;
+  quick)      cmd_quick ;;
+  all)        cmd_all ;;
+  help|-h|--help)
+    echo "Usage: bin/ci [command] [options]"
+    echo ""
+    echo "Quick checks (no Docker needed):"
+    echo "  (default)     Run unit tests, static analysis, vitest, tsc"
+    echo "  test          PHPUnit unit + integration tests"
+    echo "  phpstan       PHPStan level 9 static analysis"
+    echo "  vitest        Vitest frontend component tests"
+    echo "  tsc           TypeScript strict type check"
+    echo "  quick         All quick checks (no E2E)"
+    echo ""
+    echo "Full pipeline (requires running Docker dev environment):"
+    echo "  e2e           Playwright E2E tests"
+    echo "  mcp           MCP server E2E tests"
+    echo "  all           Everything: quick + E2E"
+    echo ""
+    echo "Test counts:"
+    echo "  PHPUnit:      434 tests (403 unit + 31 integration)"
+    echo "  Vitest:       426 tests"
+    echo "  Playwright:   68+ E2E tests"
+    echo "  Total:        928+ tests"
+    ;;
+  "")       cmd_default ;;
+  *)        echo "Unknown command: $CMD"; echo "Run 'bin/ci help' for usage."; exit 1 ;;
+esac
