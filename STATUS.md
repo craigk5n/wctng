@@ -25,9 +25,9 @@
 | P7-E5 | MCP Server (AI Integration) | 2 | 2 | DONE |
 | P7-E6 | PWA & Push Notifications | 2 | 2 | DONE |
 | P7-E7 | Saved Views & Private Categories | 2 | 2 | DONE |
-| P7-E8 | UX Quick Wins | 3 | 2 | IN PROGRESS |
+| P7-E8 | UX Quick Wins | 3 | 3 | DONE |
 | P7-E9 | Recurring Events UI | 2 | 2 | DONE |
-| **Total** | | **21** | **20** | |
+| **Total** | | **21** | **21** | |
 
 ---
 
@@ -466,7 +466,7 @@ Special event types for "Focus Time" (auto-decline conflicts) and daily working 
 
 ### P7-E8-S3: Natural Language Event Creation
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Parse natural language input like "Lunch with Sarah tomorrow at noon" into event fields.
@@ -474,12 +474,12 @@ Parse natural language input like "Lunch with Sarah tomorrow at noon" into event
 **Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [ ] Quick-add input field in calendar toolbar (text input with magic wand icon)
-- [ ] Parse common patterns: "Meeting with Bob Friday 2pm-3pm at Room A"
-- [ ] Extract: title, date/time, duration, location, participants
-- [ ] Pre-fill EventDialog with parsed values (user can review before saving)
-- [ ] Rule-based parser (chrono-node or similar) — no LLM dependency
-- [ ] Vitest tests for parsing accuracy
+- [x] Quick-add input field in calendar toolbar (text input with ✨ icon)
+- [x] Parse common patterns: "Meeting with Bob Friday 2pm-3pm at Room A"
+- [x] Extract: title, date/time, duration, location, participants
+- [x] Pre-fill EventDialog with parsed values (user reviews before saving)
+- [x] chrono-node for date/time parsing, regex for location/participants
+- [x] Vitest tests: 7 tests for parsing accuracy (time, location, range, participants, plain text, empty, complex)
 
 ---
 

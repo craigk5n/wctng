@@ -19,6 +19,7 @@ import { LayerPanel, type LayerVisibility } from './LayerPanel';
 import { PollDialog } from './PollDialog';
 import { ViewSwitcher } from './ViewSwitcher';
 import { WorkingLocationWidget } from './WorkingLocationWidget';
+import { QuickAddInput } from './QuickAddInput';
 import { useMercure, type MercureMessage } from '../hooks/useMercure';
 
 type DialogState =
@@ -335,6 +336,15 @@ export function CalendarPage() {
     <div>
       {/* Toolbar */}
       <div className="mb-4 flex justify-end gap-2">
+        <QuickAddInput onParsed={(parsed) => {
+          setDialog({
+            type: 'create',
+            initialDate: parsed.start_date_display ?? '',
+            initialTime: parsed.start_time_display ?? '',
+            initialAllDay: false,
+            initialValues: parsed as Record<string, unknown>,
+          });
+        }} />
         <WorkingLocationWidget />
         <ViewSwitcher onViewChange={() => {
           calendarRef.current?.refetchEvents();
