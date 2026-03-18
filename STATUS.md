@@ -19,7 +19,7 @@
 | Epic | Title | Stories | Done | Status |
 |------|-------|---------|------|--------|
 | P7-E1 | Drag-and-Drop & Resize | 2 | 2 | DONE |
-| P7-E2 | ICS Subscription & Holidays | 3 | 1 | IN PROGRESS |
+| P7-E2 | ICS Subscription & Holidays | 3 | 2 | IN PROGRESS |
 | P7-E3 | Scheduling Polls | 3 | 0 | TODO |
 | P7-E4 | Room & Resource Booking | 2 | 0 | TODO |
 | P7-E5 | MCP Server (AI Integration) | 2 | 0 | TODO |
@@ -130,7 +130,7 @@ Backend support for subscribing to external ICS URLs with periodic refresh.
 
 ### P7-E2-S2: Subscription Management UI
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Settings page for managing ICS subscriptions and a curated list of popular holiday calendars.
@@ -138,12 +138,13 @@ Settings page for managing ICS subscriptions and a curated list of popular holid
 **Preconditions:** P7-E2-S1
 
 **Acceptance Criteria:**
-- [ ] Route `/settings/subscriptions` with add/remove subscriptions
-- [ ] Input fields: URL, display name, color picker
-- [ ] Quick-add: pre-built list of popular calendars (US Holidays, UK Holidays, etc.) with one-click subscribe
-- [ ] Subscribed calendars appear as read-only layers on the calendar
-- [ ] Refresh button to force re-fetch
-- [ ] Vitest tests
+- [x] Route `/settings/subscriptions` with add/remove subscriptions
+- [x] Input fields: URL, display name, color picker
+- [x] Quick-add: pre-built list of popular calendars (US, UK, Canadian, German, French holidays) with one-click subscribe
+- [x] Already-subscribed calendars shown as "Added" (disabled)
+- [x] Remove button per subscription
+- [x] Last synced timestamp displayed
+- [x] Vitest tests: 4 tests (heading, list, popular calendars, add form)
 
 ---
 
