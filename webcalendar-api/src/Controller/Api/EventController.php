@@ -13,6 +13,8 @@ use WebCalendar\Core\Domain\ValueObject\ActivityLogType;
 use App\Service\CoreServiceFactory;
 use App\Service\DescriptionSanitizer;
 use App\Service\EventNotificationService;
+use App\Service\GeocodingService;
+use App\Service\GeoRepository;
 use App\Service\MercurePublisher;
 use App\Webhook\WebhookDispatcher;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -25,6 +27,8 @@ use WebCalendar\Core\Domain\ValueObject\EventId;
 
 final class EventController
 {
+    private readonly GeoRepository $geoRepository;
+
     public function __construct(
         private readonly CoreServiceFactory $coreServiceFactory,
         private readonly MercurePublisher $mercure,
@@ -33,7 +37,9 @@ final class EventController
         private readonly WebhookDispatcher $webhookDispatcher,
         private readonly DescriptionSanitizer $descriptionSanitizer = new DescriptionSanitizer(),
         private readonly ConflictDetectionService $conflictService = new ConflictDetectionService(),
+        private readonly ?GeocodingService $geocodingService = null,
     ) {
+        $this->geoRepository = new GeoRepository($pdo);
     }
 
     #[Route('/api/v2/events', name: 'api_events_list', methods: ['GET'])]
@@ -109,7 +115,19 @@ final class EventController
             }
         }
 
-        $items = EventResponseDTO::fromCollection($pageItems, $categoryMap);
+        // Batch load geo coordinates
+        $geoMap = $this->geoRepository->getCoordinatesBatch(
+            array_map(static fn ($e) => $e->id()->value(), $pageItems),
+        );
+
+        $items = array_map(
+            static fn (\WebCalendar\Core\Domain\Entity\Event $event): array => EventResponseDTO::fromEntity(
+                $event,
+                $categoryMap[$event->id()->value()] ?? [],
+                $geoMap[$event->id()->value()] ?? null,
+            ),
+            $pageItems,
+        );
 
         // Mask confidential events from other users with see_time_only access
         if (isset($accessMap)) {
@@ -273,7 +291,17 @@ final class EventController
             );
         }
 
-        $responseData = EventResponseDTO::fromEntity($created, $categoryIds);
+        // Geocode location in background
+        $geo = null;
+        try {
+            if ($this->geocodingService !== null) {
+                $this->geocodingService->geocodeEvent($created->id()->value(), $created->location());
+                $geo = $this->geoRepository->getCoordinates($created->id()->value());
+            }
+        } catch (\Throwable) {
+        }
+
+        $responseData = EventResponseDTO::fromEntity($created, $categoryIds, $geo);
 
         try {
             $this->mercure->publishEventCreated($created->id()->value(), $responseData);
@@ -314,7 +342,8 @@ final class EventController
             return ApiResponse::error(404, 'Event not found');
         }
 
-        $response = EventResponseDTO::fromEntity($event);
+        $geo = $this->geoRepository->getCoordinates($id);
+        $response = EventResponseDTO::fromEntity($event, [], $geo);
 
         // Include participants
         /** @var array<string, string> $participants */
@@ -404,7 +433,17 @@ final class EventController
             return ApiResponse::error(500, 'Event updated but could not be retrieved');
         }
 
-        $responseData = EventResponseDTO::fromEntity($saved, $categoryIds);
+        // Re-geocode if location changed
+        $geo = null;
+        try {
+            if ($this->geocodingService !== null && $saved->location() !== $existing->location()) {
+                $this->geocodingService->geocodeEvent($id, $saved->location());
+            }
+            $geo = $this->geoRepository->getCoordinates($id);
+        } catch (\Throwable) {
+        }
+
+        $responseData = EventResponseDTO::fromEntity($saved, $categoryIds, $geo);
 
         try {
             $this->mercure->publishEventUpdated($id, $responseData);

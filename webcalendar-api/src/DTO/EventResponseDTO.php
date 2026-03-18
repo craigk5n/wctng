@@ -14,17 +14,18 @@ final class EventResponseDTO
     /**
      * Converts a single Event entity to a response array.
      *
-     * @param list<int> $categoryIds Optional category IDs for this event
+     * @param list<int>                          $categoryIds Optional category IDs for this event
+     * @param array{lat: float, lon: float}|null $geo         Optional geo coordinates
      *
      * @return array<string, mixed>
      */
-    public static function fromEntity(Event $event, array $categoryIds = []): array
+    public static function fromEntity(Event $event, array $categoryIds = [], ?array $geo = null): array
     {
         $start = $event->start();
         $end = $event->end();
         $allDay = $event->isAllDay();
 
-        return [
+        $data = [
             'id' => $event->id()->value(),
             'uid' => $event->uid(),
             'title' => $event->name(),
@@ -44,6 +45,13 @@ final class EventResponseDTO
             'rrule' => $event->recurrence()->rule() !== null ? $event->recurrence()->rule()->toString() : null,
             'categories' => $categoryIds,
         ];
+
+        if ($geo !== null) {
+            $data['latitude'] = $geo['lat'];
+            $data['longitude'] = $geo['lon'];
+        }
+
+        return $data;
     }
 
     /**

@@ -127,6 +127,11 @@ services:
         arguments:
             $pdo: '@pdo.connection'
 
+    # Geo services
+    App\Service\GeoRepository:
+        arguments:
+            $pdo: '@pdo.connection'
+
     # Event controller needs PDO for access permission checks
     App\Controller\Api\EventController:
         arguments:

@@ -210,7 +210,7 @@ This three-tier model (admin global → user public → user SEO) is consistent 
 
 | Story | Title | Status |
 |-------|-------|--------|
-| P8-E2-S1 | Location Geocoding Service | TODO |
+| P8-E2-S1 | Location Geocoding Service | DONE |
 | P8-E2-S2 | Map on SSR Event Detail Page | TODO |
 | P8-E2-S3 | Map Link in Event Detail Dialog | TODO |
 
@@ -218,20 +218,20 @@ This three-tier model (admin global → user public → user SEO) is consistent 
 
 ### P8-E2-S1: Location Geocoding Service
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Backend service that geocodes event location text to latitude/longitude coordinates using the Nominatim API (OpenStreetMap's free geocoding service). Results cached to avoid rate limiting.
 
 **Acceptance Criteria:**
-- [ ] `GeocodingService` calls Nominatim API: `https://nominatim.openstreetmap.org/search?q={location}&format=json`
-- [ ] Returns lat/lon pair or null if location can't be geocoded
-- [ ] Results cached in `webcal_entry` columns `cal_geo_lat` / `cal_geo_lon` (already exist in schema)
-- [ ] Geocoding triggered on event create/update when location field changes
-- [ ] Respects Nominatim usage policy: max 1 request/second, User-Agent header with app name
-- [ ] `GET /api/v2/events/{id}` response includes `latitude` and `longitude` when available
-- [ ] Admin config: `ENABLE_GEOCODING` (Y/N, default Y)
-- [ ] PHPStan level 9 + unit tests
+- [x] `GeocodingService` calls Nominatim API: `https://nominatim.openstreetmap.org/search?q={location}&format=json`
+- [x] Returns lat/lon pair or null if location can't be geocoded
+- [x] Results cached in `webcal_entry` columns `cal_geo_lat` / `cal_geo_lon` (already exist in schema)
+- [x] Geocoding triggered on event create/update when location field changes
+- [x] Respects Nominatim usage policy: max 1 request/second, User-Agent header with app name
+- [x] `GET /api/v2/events/{id}` response includes `latitude` and `longitude` when available
+- [x] Admin config: `ENABLE_GEOCODING` (Y/N, default Y)
+- [x] PHPStan level 9 + 14 tests (5 integration + 9 unit)
 
 ---
 
