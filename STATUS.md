@@ -1,6 +1,6 @@
 # WCTNG — Phase 7 Development Plan & Status
 
-> **Last Updated:** 2026-03-17
+> **Last Updated:** 2026-03-18
 > **Phase:** 7 — Competitive Parity & Differentiation
 > **Goal:** Drag-and-drop, ICS subscriptions, scheduling polls, room booking, MCP server, PWA notifications, natural language, saved views, private categories
 > **Methodology:** TDD (write tests first, then implementation)
@@ -32,10 +32,9 @@
 
 ---
 
-## Phase 8 Preview: SEO & Public Discovery
+## Phase 8: SEO & Public Discovery — COMPLETE
 
-> **Not yet started.** Planned epics for server-rendered public event pages,
-> structured data, sitemap, privacy controls, and map integration.
+> All 11 stories across 3 epics delivered.
 
 ### Epic P8-E1: SEO & Public Event Pages (6 stories)
 
@@ -348,20 +347,252 @@ Inject admin-defined header, trailer, and CSS into both the React SPA and server
 
 ---
 
+## Phase 9: Performance, Production Readiness & Email
+
+### Epic P9-E1: Performance Optimization (3 stories)
+
+| Story | Title | Status |
+|-------|-------|--------|
+| P9-E1-S1 | Frontend Bundle Analysis & Optimization | TODO |
+| P9-E1-S2 | API Response Caching Headers | TODO |
+| P9-E1-S3 | Database Query Optimization & Indexing | TODO |
+
+---
+
+### P9-E1-S1: Frontend Bundle Analysis & Optimization
+
+**Status:** TODO
+
+**Description:**
+Analyze the Vite production bundle to identify oversized dependencies, unnecessary imports, and code-splitting opportunities. Optimize based on findings.
+
+**Acceptance Criteria:**
+- [ ] `vite-bundle-visualizer` added as dev dependency
+- [ ] NPM script `analyze` generates visual bundle report
+- [ ] Identify top 5 largest dependencies by size
+- [ ] Lazy-load any heavy libraries not needed at initial render (e.g., TipTap, Leaflet, rrule)
+- [ ] Tree-shake unused exports from large packages
+- [ ] Document bundle size before/after in commit message
+- [ ] Target: initial bundle < 300KB gzipped
+
+---
+
+### P9-E1-S2: API Response Caching Headers
+
+**Status:** TODO
+
+**Description:**
+Add appropriate `Cache-Control`, `ETag`, and `Last-Modified` headers to API responses to reduce redundant network requests and improve perceived performance.
+
+**Acceptance Criteria:**
+- [ ] `GET /api/v2/events` — `Cache-Control: private, no-cache` + `ETag` based on latest `mod_date` in result set
+- [ ] `GET /api/v2/events/{id}` — `ETag` based on event `sequence` + `mod_date`
+- [ ] `GET /api/v2/config/features` — `Cache-Control: public, max-age=300` (5 min)
+- [ ] `GET /api/v2/config/custom-html` — `Cache-Control: public, max-age=300`
+- [ ] `GET /api/v2/categories` — `Cache-Control: private, max-age=60`
+- [ ] `304 Not Modified` responses when `If-None-Match` matches current ETag
+- [ ] Symfony `ResponseHeaderBag` or event listener approach (not per-controller)
+- [ ] PHPStan level 9 + unit tests
+
+---
+
+### P9-E1-S3: Database Query Optimization & Indexing
+
+**Status:** TODO
+
+**Description:**
+Audit slow queries, add missing indexes, and optimize the most frequently called repository methods.
+
+**Acceptance Criteria:**
+- [ ] Audit: log slow queries (>100ms) during E2E test run
+- [ ] Add composite indexes for common query patterns (date range + user, access level filters)
+- [ ] Optimize `findByDateRange` to avoid loading full event objects when only IDs/dates needed
+- [ ] Review N+1 query patterns in EventController list endpoint
+- [ ] Before/after query count comparison for typical calendar page load
+- [ ] Schema migration SQL for new indexes
+
+---
+
+### Epic P9-E2: Email Notifications & Reminders (3 stories)
+
+| Story | Title | Status |
+|-------|-------|--------|
+| P9-E2-S1 | Event Reminder Emails | TODO |
+| P9-E2-S2 | Daily Agenda Email | TODO |
+| P9-E2-S3 | Email Preferences & Unsubscribe | TODO |
+
+---
+
+### P9-E2-S1: Event Reminder Emails
+
+**Status:** TODO
+
+**Description:**
+Send email reminders before events based on user preferences. Uses the existing Symfony Mailer + ReminderService infrastructure.
+
+**Acceptance Criteria:**
+- [ ] User preference: `email_reminder_minutes` (default: 15, options: 0/5/10/15/30/60/1440)
+- [ ] Symfony command `app:send-reminders` queries upcoming events and sends emails
+- [ ] Cron-friendly: runs every minute, idempotent (tracks sent reminders to avoid duplicates)
+- [ ] Email template: event name, date, time, location, link to calendar
+- [ ] Respects user timezone
+- [ ] Does not send for cancelled events or events the user declined
+- [ ] PHPStan level 9 + unit tests
+
+---
+
+### P9-E2-S2: Daily Agenda Email
+
+**Status:** TODO
+
+**Description:**
+Optional daily email summarizing the user's events for the day. Sent at a user-configurable time.
+
+**Acceptance Criteria:**
+- [ ] User preference: `daily_agenda_enabled` (Y/N, default N)
+- [ ] User preference: `daily_agenda_time` (default: 06:00)
+- [ ] Symfony command `app:send-daily-agenda` sends agenda emails
+- [ ] Email includes: date, list of events with times, locations, link to each event
+- [ ] Skips days with no events (configurable: always send or only when events exist)
+- [ ] PHPStan level 9 + unit tests
+
+---
+
+### P9-E2-S3: Email Preferences & Unsubscribe
+
+**Status:** TODO
+
+**Description:**
+User settings page for email notification preferences with one-click unsubscribe link in emails.
+
+**Acceptance Criteria:**
+- [ ] Preferences page section for email notifications (reminder, daily agenda)
+- [ ] One-click unsubscribe link in all automated emails
+- [ ] `GET /api/v2/unsubscribe/{token}` — disables email for that user (no auth required)
+- [ ] Unsubscribe tokens are HMAC-signed (not guessable)
+- [ ] Admin can disable all email notifications globally
+- [ ] Vitest tests for preferences UI
+
+---
+
+### Epic P9-E3: Production Hardening (3 stories)
+
+| Story | Title | Status |
+|-------|-------|--------|
+| P9-E3-S1 | Structured Error Logging & Monitoring | TODO |
+| P9-E3-S2 | Admin Dashboard & System Health | TODO |
+| P9-E3-S3 | Database Backup & Restore | TODO |
+
+---
+
+### P9-E3-S1: Structured Error Logging & Monitoring
+
+**Status:** TODO
+
+**Description:**
+Structured JSON logging for API errors with correlation IDs, plus a simple error dashboard for admins.
+
+**Acceptance Criteria:**
+- [ ] Monolog configured with JSON formatter for production
+- [ ] Each request gets a unique correlation ID (`X-Request-Id` header)
+- [ ] 4xx/5xx responses logged with correlation ID, user, endpoint, duration
+- [ ] Error counts exposed via `GET /api/v2/admin/health` (last 24h summary)
+- [ ] PHPStan level 9 + unit tests
+
+---
+
+### P9-E3-S2: Admin Dashboard & System Health
+
+**Status:** TODO
+
+**Description:**
+Admin-only dashboard page showing system health: user count, event count, storage usage, recent errors, uptime.
+
+**Acceptance Criteria:**
+- [ ] `GET /api/v2/admin/dashboard` — returns system stats (admin only)
+- [ ] Stats: total users, active users (7d), total events, events created (7d), DB size
+- [ ] React admin page with stat cards and simple charts
+- [ ] Auto-refresh every 60 seconds
+- [ ] Vitest tests
+
+---
+
+### P9-E3-S3: Database Backup & Restore
+
+**Status:** TODO
+
+**Description:**
+Admin-triggered database backup (SQL dump) and restore from backup file.
+
+**Acceptance Criteria:**
+- [ ] `POST /api/v2/admin/backup` — triggers SQL dump, returns download URL
+- [ ] `POST /api/v2/admin/restore` — accepts SQL dump upload, restores (with confirmation)
+- [ ] Backup includes all tables, excludes temporary/cache tables
+- [ ] Restore validates SQL before executing (basic sanity check)
+- [ ] Admin UI: backup button with download, restore with file upload
+- [ ] Safety: restore requires typing "RESTORE" to confirm
+- [ ] PHPStan level 9 + unit tests
+
+---
+
+### Epic P9-E4: Legacy Migration & Accessibility (2 stories)
+
+| Story | Title | Status |
+|-------|-------|--------|
+| P9-E4-S1 | Legacy WebCalendar Data Import | TODO |
+| P9-E4-S2 | WCAG 2.1 AA Accessibility Audit & Fixes | TODO |
+
+---
+
+### P9-E4-S1: Legacy WebCalendar Data Import
+
+**Status:** TODO
+
+**Description:**
+Import wizard that reads a legacy WebCalendar MySQL database and migrates users, events, categories, and preferences into WCTNG.
+
+**Acceptance Criteria:**
+- [ ] Symfony command `app:import-legacy` connects to legacy DB via provided DSN
+- [ ] Imports: users, events (with recurrence), categories, user preferences
+- [ ] Maps legacy access levels to WCTNG access model
+- [ ] Generates import report: counts, skipped items, warnings
+- [ ] Idempotent: can re-run without duplicating data (uses UID matching)
+- [ ] Admin UI wizard with progress indicator (optional, command-line is primary)
+- [ ] PHPStan level 9 + unit tests
+
+---
+
+### P9-E4-S2: WCAG 2.1 AA Accessibility Audit & Fixes
+
+**Status:** TODO
+
+**Description:**
+Audit the SPA against WCAG 2.1 AA criteria and fix identified issues. Focus on keyboard navigation, screen reader support, and color contrast.
+
+**Acceptance Criteria:**
+- [ ] Run axe-core audit on main calendar page, event dialog, settings pages
+- [ ] Fix all "critical" and "serious" violations
+- [ ] All interactive elements keyboard-accessible (Tab, Enter, Escape)
+- [ ] ARIA labels on icon-only buttons and custom controls
+- [ ] Color contrast ratio ≥ 4.5:1 for text, ≥ 3:1 for large text
+- [ ] Focus management: dialogs trap focus, return focus on close
+- [ ] Playwright accessibility tests using `@axe-core/playwright`
+
+---
+
+## Phase 9 Summary
+
+| Epic | Title | Stories |
+|------|-------|---------|
+| P9-E1 | Performance Optimization | 3 |
+| P9-E2 | Email Notifications & Reminders | 3 |
+| P9-E3 | Production Hardening | 3 |
+| P9-E4 | Legacy Migration & Accessibility | 2 |
+| **Total** | | **11** |
+
+---
+
 ## Dependency Graph
-
-```
-P7-E1 (Drag & Drop) — independent (quick win)
-P7-E2 (ICS Subscription) — independent
-P7-E3 (Scheduling Polls) — independent
-P7-E4 (Room Booking) — independent
-P7-E5 (MCP Server) — independent
-P7-E6 (PWA & Push) — independent
-P7-E7 (Views & Categories) — independent
-P7-E8 (UX Quick Wins) — independent
-```
-
-**All epics are independent.** Start with E1 (quick win) for immediate user impact.
 
 ---
 
