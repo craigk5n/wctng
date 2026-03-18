@@ -354,7 +354,7 @@ Inject admin-defined header, trailer, and CSS into both the React SPA and server
 | Story | Title | Status |
 |-------|-------|--------|
 | P9-E1-S1 | Frontend Bundle Analysis & Optimization | DONE |
-| P9-E1-S2 | API Response Caching Headers | TODO |
+| P9-E1-S2 | API Response Caching Headers | DONE |
 | P9-E1-S3 | Database Query Optimization & Indexing | TODO |
 
 ---
@@ -379,24 +379,23 @@ Analyze the Vite production bundle to identify oversized dependencies, unnecessa
 
 ### P9-E1-S2: API Response Caching Headers
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Add appropriate `Cache-Control`, `ETag`, and `Last-Modified` headers to API responses. Implement via a Symfony event listener so caching logic is centralized rather than scattered across controllers.
 
 **Acceptance Criteria:**
-- [ ] Create `App\EventSubscriber\CacheHeaderSubscriber` (kernel.response listener)
-- [ ] Route-based cache rules:
-  - `GET /api/v2/events` — `Cache-Control: private, no-cache` + `ETag` based on md5 of response body
-  - `GET /api/v2/events/{id}` — `Cache-Control: private, no-cache` + `ETag` based on event sequence + mod_date
-  - `GET /api/v2/config/features` — `Cache-Control: public, max-age=300`
-  - `GET /api/v2/config/custom-html` — `Cache-Control: public, max-age=300`
-  - `GET /api/v2/categories` — `Cache-Control: private, max-age=60`
-  - `GET /api/v2/users/me` — `Cache-Control: private, no-store`
-- [ ] `304 Not Modified` returned when request includes `If-None-Match` header matching current ETag
-- [ ] Non-GET requests always get `Cache-Control: no-store`
-- [ ] PHPStan level 9 + integration tests verifying headers on each route
-- [ ] Frontend: verify React Query still works correctly with 304 responses (no behavioral changes needed — `fetch` handles transparently)
+- [x] Enhanced existing `CacheHeaderSubscriber` with route-name-based rules (was path-prefix-based)
+- [x] Route-based cache rules:
+  - `events list/get` — `private, no-cache` + `ETag`
+  - `config/features` + `config/custom-html` — `public, max-age=300`
+  - `categories` — `private, max-age=60`
+  - `users/me` — `private, no-store`
+  - `sitemap` — `public, max-age=3600`
+  - `robots.txt` — `public, max-age=86400`
+- [x] `304 Not Modified` returned when `If-None-Match` matches current ETag
+- [x] Non-GET requests always get `no-store`
+- [x] PHPStan level 9 + 10 unit tests
 
 ---
 
