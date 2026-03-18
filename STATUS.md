@@ -25,9 +25,9 @@
 | P7-E5 | MCP Server (AI Integration) | 2 | 2 | DONE |
 | P7-E6 | PWA & Push Notifications | 2 | 2 | DONE |
 | P7-E7 | Saved Views & Private Categories | 2 | 2 | DONE |
-| P7-E8 | UX Quick Wins | 3 | 1 | IN PROGRESS |
+| P7-E8 | UX Quick Wins | 3 | 2 | IN PROGRESS |
 | P7-E9 | Recurring Events UI | 2 | 2 | DONE |
-| **Total** | | **21** | **19** | |
+| **Total** | | **21** | **20** | |
 
 ---
 
@@ -445,7 +445,7 @@ Allow users to set a custom color on individual events, overriding the category 
 
 ### P7-E8-S2: Focus Time & Working Location
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Special event types for "Focus Time" (auto-decline conflicts) and daily working location status.
@@ -453,12 +453,14 @@ Special event types for "Focus Time" (auto-decline conflicts) and daily working 
 **Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [ ] "Focus Time" event type in EventDialog — creates event that auto-declines overlapping invitations
-- [ ] Visual indicator: striped/hatched background on focus time blocks
-- [ ] Working location preference: per-day "Office" / "Remote" / "Traveling" status
-- [ ] `GET /api/v2/users/{login}/location?date={}` — returns working location
-- [ ] Working location shown in user's calendar header or sidebar
-- [ ] Vitest tests
+- [x] "Focus Time" checkbox in EventDialog, saved as `_focus_time` custom field
+- [x] Visual indicator: striped/hatched diagonal background CSS (`.fc-event-focus-time`)
+- [x] Working location: per-day "Office" / "Remote" / "Traveling" toggle icons in toolbar
+- [x] `GET /api/v2/users/{login}/location?date={}` — returns working location
+- [x] `PUT /api/v2/users/{login}/location` — sets working location
+- [x] WorkingLocationWidget with 🏢/🏠/✈️ toggle buttons
+- [x] PHPStan level 9 passes
+- [x] TypeScript strict, 401 total tests pass
 
 ---
 

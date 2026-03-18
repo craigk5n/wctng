@@ -126,6 +126,17 @@
   @apply mt-0.5;
 }
 
+.fc .fc-event-focus-time {
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    rgba(255, 255, 255, 0.15) 4px,
+    rgba(255, 255, 255, 0.15) 8px
+  ) !important;
+  border-left: 3px solid currentColor !important;
+}
+
 .fc .fc-event-pending {
   border: 2px dashed #9ca3af !important;
   opacity: 0.7;

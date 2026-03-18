@@ -18,6 +18,7 @@ import { exportEventAsIcs } from './exportEventIcs';
 import { LayerPanel, type LayerVisibility } from './LayerPanel';
 import { PollDialog } from './PollDialog';
 import { ViewSwitcher } from './ViewSwitcher';
+import { WorkingLocationWidget } from './WorkingLocationWidget';
 import { useMercure, type MercureMessage } from '../hooks/useMercure';
 
 type DialogState =
@@ -201,6 +202,7 @@ export function CalendarPage() {
       // Save custom field values (including event color)
       const customFields = { ...(data.custom_fields ?? {}) };
       if (data.color) customFields['_event_color'] = data.color;
+      if (data.focus_time) customFields['_focus_time'] = 'true';
       if (Object.keys(customFields).length > 0) {
         await apiFetch(`/events/${created.id}/custom-fields`, {
           method: 'PUT',
@@ -333,6 +335,7 @@ export function CalendarPage() {
     <div>
       {/* Toolbar */}
       <div className="mb-4 flex justify-end gap-2">
+        <WorkingLocationWidget />
         <ViewSwitcher onViewChange={() => {
           calendarRef.current?.refetchEvents();
         }} />

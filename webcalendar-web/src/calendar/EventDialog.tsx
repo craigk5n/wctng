@@ -32,6 +32,7 @@ export interface EventFormData {
   resource?: string;
   rrule?: string;
   color?: string;
+  focus_time?: boolean;
 }
 
 interface EventDialogProps {
@@ -85,6 +86,7 @@ export function EventDialog({
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [rrule, setRrule] = useState(initialValues?.rrule ?? '');
   const [eventColor, setEventColor] = useState(initialValues?.color ?? '');
+  const [isFocusTime, setIsFocusTime] = useState(false);
   const [resources, setResources] = useState<Array<{ login: string; name: string }>>([]);
   const [selectedResource, setSelectedResource] = useState('');
   const [categorySearch, setCategorySearch] = useState('');
@@ -179,6 +181,7 @@ export function EventDialog({
         resource: selectedResource || undefined,
         rrule: rrule || undefined,
         color: eventColor || undefined,
+        focus_time: isFocusTime || undefined,
       };
 
       if (!allDay && time) {
@@ -234,17 +237,31 @@ export function EventDialog({
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            <input
-              id="event-allday"
-              type="checkbox"
-              checked={allDay}
-              onChange={(e) => setAllDay(e.target.checked)}
-              className="h-4 w-4 rounded border-input"
-            />
-            <label htmlFor="event-allday" className="text-sm font-medium">
-              All day
-            </label>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <input
+                id="event-allday"
+                type="checkbox"
+                checked={allDay}
+                onChange={(e) => setAllDay(e.target.checked)}
+                className="h-4 w-4 rounded border-input"
+              />
+              <label htmlFor="event-allday" className="text-sm font-medium">
+                All day
+              </label>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                id="event-focus"
+                type="checkbox"
+                checked={isFocusTime}
+                onChange={(e) => setIsFocusTime(e.target.checked)}
+                className="h-4 w-4 rounded border-input"
+              />
+              <label htmlFor="event-focus" className="text-sm font-medium">
+                Focus Time
+              </label>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
