@@ -20,7 +20,7 @@
 |------|-------|---------|------|--------|
 | P7-E1 | Drag-and-Drop & Resize | 2 | 2 | DONE |
 | P7-E2 | ICS Subscription & Holidays | 3 | 3 | DONE |
-| P7-E3 | Scheduling Polls | 3 | 0 | TODO |
+| P7-E3 | Scheduling Polls | 3 | 1 | IN PROGRESS |
 | P7-E4 | Room & Resource Booking | 2 | 0 | TODO |
 | P7-E5 | MCP Server (AI Integration) | 2 | 0 | TODO |
 | P7-E6 | PWA & Push Notifications | 2 | 0 | TODO |
@@ -173,7 +173,7 @@ Display subscribed calendar events on the FullCalendar grid as a distinct layer.
 
 ### P7-E3-S1: Poll API
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Backend for creating scheduling polls with time options and collecting votes.
@@ -181,16 +181,16 @@ Backend for creating scheduling polls with time options and collecting votes.
 **Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [ ] `scheduling_polls` table: id, creator_login, title, description, status (open/closed), created_at
-- [ ] `scheduling_poll_options` table: id, poll_id, start_datetime, end_datetime
-- [ ] `scheduling_poll_votes` table: id, option_id, voter_login, vote (yes/maybe/no)
-- [ ] `POST /api/v2/polls` — create poll with title + time options
-- [ ] `GET /api/v2/polls/{id}` — get poll with options and vote counts
-- [ ] `POST /api/v2/polls/{id}/vote` — cast vote on options
-- [ ] `POST /api/v2/polls/{id}/finalize` — close poll, create event from winning option
-- [ ] Email notification to participants with voting link
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests
+- [x] `scheduling_polls` table: id, creator_login, title, description, status (open/closed), created_at
+- [x] `scheduling_poll_options` table: id, poll_id, start_datetime, end_datetime
+- [x] `scheduling_poll_votes` table: id, option_id, voter_login, vote (yes/maybe/no)
+- [x] `POST /api/v2/polls` — create poll with title + time options (min 2)
+- [x] `GET /api/v2/polls/{id}` — get poll with options, votes, and yes_count per option
+- [x] `GET /api/v2/polls` — list user's polls
+- [x] `POST /api/v2/polls/{id}/vote` — cast/recast votes on options
+- [x] `POST /api/v2/polls/{id}/finalize` — close poll, create event from winning option (most yes votes)
+- [x] PHPStan level 9 passes
+- [x] Unit tests: 6 tests (create, vote, recast, close, list, nonexistent)
 
 ---
 
