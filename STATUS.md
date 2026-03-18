@@ -425,7 +425,7 @@ Audit query performance and add missing indexes. The webcalendar-core schema alr
 | Story | Title | Status |
 |-------|-------|--------|
 | P9-E2-S1 | Reminder Email Preferences UI & Hardening | DONE |
-| P9-E2-S2 | Daily Agenda Email | TODO |
+| P9-E2-S2 | Daily Agenda Email | DONE |
 | P9-E2-S3 | Email Preferences Page & Unsubscribe | TODO |
 
 **Existing infrastructure:**
@@ -463,7 +463,7 @@ Add UI for configuring email reminder preferences. The backend `ReminderService`
 
 ### P9-E2-S2: Daily Agenda Email
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Optional daily email summarizing the user's events for the day. New Symfony command and service, following the same pattern as ReminderService.
@@ -471,15 +471,15 @@ Optional daily email summarizing the user's events for the day. New Symfony comm
 **Preconditions:** P9-E2-S1 (email infrastructure hardened)
 
 **Acceptance Criteria:**
-- [ ] `DailyAgendaService` — queries day's events for a user, renders HTML email
-- [ ] `webcalendar:send-daily-agenda` command — iterates users with agenda enabled
-- [ ] User preference: `daily_agenda_enabled` (Y/N, default N)
-- [ ] User preference: `daily_agenda_time` (HH:MM, default 06:00) — command only sends if current hour matches
-- [ ] Email template: date header, event list (time, title, location), link to calendar day view
-- [ ] Empty-day handling: configurable via `daily_agenda_skip_empty` (Y/N, default Y — skip empty days)
-- [ ] Tracking table `daily_agenda_sent` with (user_login, date) PK to prevent duplicates
-- [ ] Admin feature flag: `ENABLE_DAILY_AGENDA` (Y/N, default N)
-- [ ] PHPStan level 9 + integration tests
+- [x] `DailyAgendaService` — queries day's events for a user, renders HTML email with event list
+- [x] `webcalendar:send-daily-agenda` command — iterates users with agenda enabled at matching hour
+- [x] User preference: `daily_agenda_enabled` (Y/N, default N)
+- [x] User preference: `daily_agenda_time` (HH:MM, default 06:00) — command only sends if current hour matches
+- [x] Email template: date header, sorted event list (time, title, location), link to calendar
+- [x] Empty-day handling: configurable via `daily_agenda_skip_empty` (Y/N, default Y — skip empty days)
+- [x] Tracking table `daily_agenda_sent` with (user_login, agenda_date) PK to prevent duplicates
+- [x] Admin feature flag: `ENABLE_DAILY_AGENDA` (Y/N, default N) — added to admin settings page
+- [x] PHPStan level 9 + 8 integration tests
 
 ---
 

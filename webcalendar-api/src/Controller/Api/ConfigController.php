@@ -24,6 +24,7 @@ final class ConfigController
         'ENABLE_SEO_PAGES' => 'N',
         'ENABLE_GEOCODING' => 'Y',
         'ENABLE_EMAIL_REMINDERS' => 'Y',
+        'ENABLE_DAILY_AGENDA' => 'N',
     ];
 
     public function __construct(

@@ -1,0 +1,217 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Service;
+
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
+use WebCalendar\Core\Domain\ValueObject\DateRange;
+use WebCalendar\Core\Domain\ValueObject\UserPreference;
+
+/**
+ * Sends daily agenda emails to opted-in users.
+ *
+ * Tracks sent agendas in a `daily_agenda_sent` table to avoid duplicates.
+ * Designed to be called via cron every hour (checks user's preferred send time).
+ */
+final class DailyAgendaService
+{
+    private LoggerInterface $logger;
+
+    public function __construct(
+        private readonly CoreServiceFactory $factory,
+        private readonly EmailService $emailService,
+        private readonly string $baseUrl,
+        ?LoggerInterface $logger = null,
+    ) {
+        $this->logger = $logger ?? new NullLogger();
+    }
+
+    /**
+     * Sends daily agenda emails. Returns the count of agendas sent.
+     */
+    public function sendAgendas(): int
+    {
+        if (!$this->isEnabled()) {
+            $this->logger->info('Daily agenda emails disabled globally');
+            return 0;
+        }
+
+        $pdo = $this->factory->getPdo();
+        $this->ensureTrackingTable($pdo);
+
+        $now = new \DateTimeImmutable();
+        $today = $now->format('Y-m-d');
+        $currentHour = (int) $now->format('G');
+        $sent = 0;
+
+        try {
+            $users = $this->factory->getUserRepository()->findAll();
+        } catch (\Throwable) {
+            return 0;
+        }
+
+        foreach ($users as $user) {
+            try {
+                $prefs = $this->getUserAgendaPrefs($user->login());
+
+                // Skip if agenda not enabled
+                if (!$prefs['enabled']) {
+                    continue;
+                }
+
+                // Only send at the user's preferred hour
+                if ($prefs['hour'] !== $currentHour) {
+                    continue;
+                }
+
+                // Skip if already sent today
+                if ($this->isAgendaSent($pdo, $user->login(), $today)) {
+                    continue;
+                }
+
+                // Get today's events
+                $dayStart = new \DateTimeImmutable("{$today} 00:00:00");
+                $dayEnd = new \DateTimeImmutable("{$today} 23:59:59");
+                $range = new DateRange($dayStart, $dayEnd);
+                $events = $this->factory->getEventService()->getEventsInDateRange($range, $user);
+                $dayEvents = $events->all();
+
+                // Sort by start time
+                usort($dayEvents, static fn ($a, $b) => $a->start() <=> $b->start());
+
+                // Skip empty days if user prefers
+                if (\count($dayEvents) === 0 && $prefs['skip_empty']) {
+                    continue;
+                }
+
+                // Render and send
+                $html = $this->renderAgendaEmail($dayEvents, $today, $user->fullName());
+
+                $this->emailService->send(
+                    $user->email(),
+                    'Daily Agenda — ' . (new \DateTimeImmutable($today))->format('l, F j, Y'),
+                    $html,
+                );
+
+                $this->markAgendaSent($pdo, $user->login(), $today);
+                $sent++;
+
+                $this->logger->info('Daily agenda sent', [
+                    'user' => $user->login(),
+                    'events' => \count($dayEvents),
+                ]);
+            } catch (\Throwable $e) {
+                $this->logger->warning('Daily agenda failed', [
+                    'user' => $user->login(),
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $sent;
+    }
+
+    /**
+     * Check if the admin has enabled daily agenda globally.
+     */
+    public function isEnabled(): bool
+    {
+        $value = $this->factory->getConfigService()->getSetting('ENABLE_DAILY_AGENDA');
+        // Default to N if not set (opt-in feature)
+        return $value === 'Y';
+    }
+
+    /**
+     * @return array{enabled: bool, hour: int, skip_empty: bool}
+     */
+    private function getUserAgendaPrefs(string $login): array
+    {
+        $enabled = false;
+        $hour = 6; // Default: 06:00
+        $skipEmpty = true;
+
+        try {
+            $prefs = $this->factory->getUserRepository()->getPreferences($login);
+            foreach ($prefs as $pref) {
+                if ($pref->key() === 'daily_agenda_enabled' && $pref->value() === 'Y') {
+                    $enabled = true;
+                }
+                if ($pref->key() === 'daily_agenda_time') {
+                    // Parse HH:MM format — take the hour part
+                    $hour = (int) explode(':', $pref->value())[0];
+                }
+                if ($pref->key() === 'daily_agenda_skip_empty' && $pref->value() === 'N') {
+                    $skipEmpty = false;
+                }
+            }
+        } catch (\Throwable) {
+        }
+
+        return ['enabled' => $enabled, 'hour' => $hour, 'skip_empty' => $skipEmpty];
+    }
+
+    private function isAgendaSent(\PDO $pdo, string $login, string $date): bool
+    {
+        $stmt = $pdo->prepare('SELECT 1 FROM daily_agenda_sent WHERE user_login = :login AND agenda_date = :date');
+        $stmt->execute(['login' => $login, 'date' => $date]);
+        return $stmt->fetch() !== false;
+    }
+
+    private function markAgendaSent(\PDO $pdo, string $login, string $date): void
+    {
+        $pdo->prepare('INSERT INTO daily_agenda_sent (user_login, agenda_date, sent_at) VALUES (:login, :date, :now)')
+            ->execute(['login' => $login, 'date' => $date, 'now' => time()]);
+    }
+
+    private function ensureTrackingTable(\PDO $pdo): void
+    {
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS daily_agenda_sent (
+                user_login VARCHAR(60) NOT NULL,
+                agenda_date VARCHAR(10) NOT NULL,
+                sent_at INTEGER NOT NULL,
+                PRIMARY KEY (user_login, agenda_date)
+            )',
+        );
+    }
+
+    /**
+     * @param list<\WebCalendar\Core\Domain\Entity\Event> $events
+     */
+    private function renderAgendaEmail(array $events, string $date, string $displayName): string
+    {
+        $dateFormatted = (new \DateTimeImmutable($date))->format('l, F j, Y');
+        $safeDisplayName = htmlspecialchars($displayName, \ENT_QUOTES, 'UTF-8');
+
+        if (\count($events) === 0) {
+            return <<<HTML
+            <h2>{$safeDisplayName}'s Agenda — {$dateFormatted}</h2>
+            <p>No events scheduled for today.</p>
+            <p><a href="{$this->baseUrl}">Open Calendar</a></p>
+            HTML;
+        }
+
+        $eventListHtml = '';
+        foreach ($events as $event) {
+            $name = htmlspecialchars($event->name(), \ENT_QUOTES, 'UTF-8');
+            $time = $event->isAllDay() ? 'All day' : $event->start()->format('g:i A');
+            $loc = htmlspecialchars($event->location(), \ENT_QUOTES, 'UTF-8');
+            $locHtml = $loc !== '' ? " — {$loc}" : '';
+            $eventListHtml .= "<li><strong>{$time}</strong>: {$name}{$locHtml}</li>\n";
+        }
+
+        $count = \count($events);
+        $countLabel = $count === 1 ? '1 event' : "{$count} events";
+
+        return <<<HTML
+        <h2>{$safeDisplayName}'s Agenda — {$dateFormatted}</h2>
+        <p>{$countLabel} today:</p>
+        <ul>
+        {$eventListHtml}
+        </ul>
+        <p><a href="{$this->baseUrl}">Open Calendar</a></p>
+        HTML;
+    }
+}

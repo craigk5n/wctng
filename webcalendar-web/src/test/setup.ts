@@ -36,6 +36,7 @@ vi.mock('../hooks/useFeatureFlags', () => ({
     ENABLE_SEO_PAGES: 'N',
     ENABLE_GEOCODING: 'Y',
     ENABLE_EMAIL_REMINDERS: 'Y',
+    ENABLE_DAILY_AGENDA: 'N',
   }),
 }));
 

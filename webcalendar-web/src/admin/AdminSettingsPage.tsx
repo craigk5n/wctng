@@ -58,6 +58,12 @@ const FEATURES: FeatureToggle[] = [
     description: 'Send email reminders before events. Individual users can configure their reminder timing in preferences.',
     inverted: false,
   },
+  {
+    key: 'ENABLE_DAILY_AGENDA',
+    label: 'Daily Agenda Email',
+    description: 'Allow users to opt in to a daily email summarizing their events for the day.',
+    inverted: false,
+  },
 ];
 
 export function AdminSettingsPage() {

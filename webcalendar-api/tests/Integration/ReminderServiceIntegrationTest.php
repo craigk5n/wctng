@@ -11,25 +11,6 @@ use WebCalendar\Core\Domain\ValueObject\EventId;
 use WebCalendar\Core\Domain\ValueObject\EventType;
 use WebCalendar\Core\Domain\ValueObject\UserPreference;
 
-/**
- * Stub EmailService that captures sent emails instead of actually sending.
- */
-class StubEmailService extends \App\Service\EmailService
-{
-    /** @var list<array{to: string, subject: string}> */
-    public array $sent = [];
-
-    public function __construct()
-    {
-        // Skip parent constructor (needs MailerInterface)
-    }
-
-    public function send(string $to, string $subject, string $htmlBody, ?string $textBody = null): void
-    {
-        $this->sent[] = ['to' => $to, 'subject' => $subject];
-    }
-}
-
 final class ReminderServiceIntegrationTest extends IntegrationTestCase
 {
     private ReminderService $service;
