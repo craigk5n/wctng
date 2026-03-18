@@ -32,6 +32,7 @@ const TenantsPage = lazy(() => import('./control/TenantsPage').then(m => ({ defa
 const StatsPage = lazy(() => import('./control/StatsPage').then(m => ({ default: m.StatsPage })));
 const TenantDetailPage = lazy(() => import('./control/TenantDetailPage').then(m => ({ default: m.TenantDetailPage })));
 const SetupWizard = lazy(() => import('./setup/SetupWizard').then(m => ({ default: m.SetupWizard })));
+const PollVotingPage = lazy(() => import('./polls/PollVotingPage').then(m => ({ default: m.PollVotingPage })));
 const PublicCalendarPage = lazy(() => import('./public/PublicCalendarPage').then(m => ({ default: m.PublicCalendarPage })));
 const EmbedCalendarPage = lazy(() => import('./public/EmbedCalendarPage').then(m => ({ default: m.EmbedCalendarPage })));
 const BookingPage = lazy(() => import('./public/BookingPage').then(m => ({ default: m.BookingPage })));
@@ -212,6 +213,16 @@ export default function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <SubscriptionSettings />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/polls/:id"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <PollVotingPage />
                 </AppLayout>
               </ProtectedRoute>
             }

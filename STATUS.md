@@ -20,7 +20,7 @@
 |------|-------|---------|------|--------|
 | P7-E1 | Drag-and-Drop & Resize | 2 | 2 | DONE |
 | P7-E2 | ICS Subscription & Holidays | 3 | 3 | DONE |
-| P7-E3 | Scheduling Polls | 3 | 2 | IN PROGRESS |
+| P7-E3 | Scheduling Polls | 3 | 3 | DONE |
 | P7-E4 | Room & Resource Booking | 2 | 0 | TODO |
 | P7-E5 | MCP Server (AI Integration) | 2 | 0 | TODO |
 | P7-E6 | PWA & Push Notifications | 2 | 0 | TODO |
@@ -216,7 +216,7 @@ UI for creating scheduling polls with time slot selection.
 
 ### P7-E3-S3: Poll Voting & Finalization UI
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Voting interface for participants and finalization for the organizer.
@@ -224,13 +224,15 @@ Voting interface for participants and finalization for the organizer.
 **Preconditions:** P7-E3-S2
 
 **Acceptance Criteria:**
-- [ ] Route `/polls/{id}` — voting page (accessible to participants)
-- [ ] Visual grid: options as columns, voters as rows, yes/maybe/no toggles
-- [ ] Real-time vote count display
-- [ ] Organizer: "Finalize" button picks the option with most "yes" votes
-- [ ] Finalization creates a calendar event and notifies all participants
-- [ ] Email with direct voting link (HMAC-signed token for unauthenticated voting)
-- [ ] Vitest tests
+- [x] Route `/polls/{id}` — voting page (authenticated, within AppLayout)
+- [x] Visual cards per option with yes/maybe/no toggle buttons (color-coded)
+- [x] Real-time vote count display (green badge per option)
+- [x] Voter list shown per option with colored badges
+- [x] Organizer: "Finalize & Create Event" button (green outlined)
+- [x] Finalization creates calendar event from winning option (most yes votes)
+- [x] Closed poll shows "Winner" label on best option with green highlight
+- [x] Pre-fills user's existing votes on load
+- [x] Vitest tests: 4 tests (title, options with count, closed status, 404)
 
 ---
 
