@@ -11,49 +11,103 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
+    localStorage.getItem('wctng_sidebar_collapsed') === 'true',
+  );
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((prev) => {
+      localStorage.setItem('wctng_sidebar_collapsed', String(!prev));
+      return !prev;
+    });
+  };
   const { tenant } = useTenant();
 
-  const navItems = [
+  const mainNav = [
     { label: 'Calendar', href: '/', icon: '📅' },
     { label: 'Tasks', href: '/tasks', icon: '✅' },
     { label: 'Journals', href: '/journals', icon: '📓' },
     { label: 'Reports', href: '/reports', icon: '📊' },
-    { label: 'Settings', href: '/settings/preferences', icon: '⚙' },
-    { label: 'Profile', href: '/settings/profile', icon: '👤' },
-    { label: 'Access', href: '/settings/access', icon: '🔒' },
   ];
 
-  if (user?.is_admin) {
-    navItems.push({ label: 'Users', href: '/admin/users', icon: '👤' });
-    navItems.push({ label: 'Categories', href: '/admin/categories', icon: '🏷' });
-    navItems.push({ label: 'Groups', href: '/admin/groups', icon: '👥' });
-    navItems.push({ label: 'Webhooks', href: '/admin/webhooks', icon: '🔗' });
-    navItems.push({ label: 'Settings', href: '/admin/settings', icon: '🔧' });
-  }
+  const settingsNav = [
+    { label: 'Preferences', href: '/settings/preferences', icon: '⚙' },
+    { label: 'Profile', href: '/settings/profile', icon: '👤' },
+    { label: 'Notifications', href: '/settings/notifications', icon: '🔔' },
+    { label: 'Sharing', href: '/settings/sharing', icon: '🔗' },
+    { label: 'Subscriptions', href: '/settings/subscriptions', icon: '📡' },
+    { label: 'Assistants', href: '/settings/assistants', icon: '🤝' },
+    { label: 'Access', href: '/settings/access', icon: '🔒' },
+    { label: 'API Tokens', href: '/settings/api-tokens', icon: '🔑' },
+  ];
+
+  const adminNav = user?.is_admin ? [
+    { label: 'Users', href: '/admin/users', icon: '👤' },
+    { label: 'Categories', href: '/admin/categories', icon: '🏷' },
+    { label: 'Groups', href: '/admin/groups', icon: '👥' },
+    { label: 'Resources', href: '/admin/resources', icon: '🏢' },
+    { label: 'Custom Fields', href: '/admin/custom-fields', icon: '📝' },
+    { label: 'Webhooks', href: '/admin/webhooks', icon: '🔗' },
+    { label: 'Activity Log', href: '/admin/activity-log', icon: '📋' },
+    { label: 'Settings', href: '/admin/settings', icon: '🔧' },
+  ] : [];
+
+
+  const renderNavLinks = (items: typeof mainNav, onClick?: () => void, collapsed = false) =>
+    items.map((item) => (
+      <Link
+        key={item.href}
+        to={item.href}
+        onClick={onClick}
+        title={collapsed ? item.label : undefined}
+        className={cn(
+          'flex items-center rounded-md text-sm font-medium transition-colors',
+          collapsed ? 'justify-center px-2 py-2' : 'gap-2 px-3 py-1.5',
+          location.pathname === item.href
+            ? 'bg-accent text-accent-foreground'
+            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+        )}
+      >
+        <span className="text-xs">{item.icon}</span>
+        {!collapsed && item.label}
+      </Link>
+    ));
 
   return (
     <div className="flex h-screen bg-background">
       {/* Desktop Sidebar */}
-      <aside className="hidden w-56 flex-shrink-0 border-r border-border bg-card md:block">
-        <div className="flex h-14 items-center border-b border-border px-4">
-          <h1 className="text-lg font-semibold">{tenant ? tenant.name : 'WebCalendar'}</h1>
+      <aside className={cn(
+        'hidden flex-shrink-0 overflow-y-auto border-r border-border bg-card transition-all md:block',
+        sidebarCollapsed ? 'w-14' : 'w-56',
+      )}>
+        <div className="flex h-14 items-center justify-between border-b border-border px-3">
+          {!sidebarCollapsed && (
+            <h1 className="text-lg font-semibold truncate">{tenant ? tenant.name : 'WebCalendar'}</h1>
+          )}
+          <button
+            onClick={toggleSidebar}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {sidebarCollapsed ? '▶' : '◀'}
+          </button>
         </div>
-        <nav className="space-y-1 p-3">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              to={item.href}
-              className={cn(
-                'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                location.pathname === item.href
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-              )}
-            >
-              <span>{item.icon}</span>
-              {item.label}
-            </Link>
-          ))}
+        <nav className="space-y-1 p-2">
+          {renderNavLinks(mainNav, undefined, sidebarCollapsed)}
+          {!sidebarCollapsed && (
+            <div className="pt-2">
+              <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Settings</p>
+              {renderNavLinks(settingsNav, undefined, sidebarCollapsed)}
+            </div>
+          )}
+          {sidebarCollapsed && renderNavLinks(settingsNav, undefined, true)}
+          {adminNav.length > 0 && !sidebarCollapsed && (
+            <div className="pt-2">
+              <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Admin</p>
+              {renderNavLinks(adminNav, undefined, sidebarCollapsed)}
+            </div>
+          )}
+          {adminNav.length > 0 && sidebarCollapsed && renderNavLinks(adminNav, undefined, true)}
         </nav>
       </aside>
 
@@ -64,7 +118,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           onClick={() => setMobileMenuOpen(false)}
         >
           <aside
-            className="h-full w-64 bg-card shadow-lg"
+            className="h-full w-64 overflow-y-auto bg-card shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex h-14 items-center justify-between border-b border-border px-4">
@@ -78,22 +132,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </button>
             </div>
             <nav className="space-y-1 p-3">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={cn(
-                    'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                    location.pathname === item.href
-                      ? 'bg-accent text-accent-foreground'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                  )}
-                >
-                  <span>{item.icon}</span>
-                  {item.label}
-                </Link>
-              ))}
+              {renderNavLinks(mainNav, () => setMobileMenuOpen(false))}
+              <div className="pt-2">
+                <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Settings</p>
+                {renderNavLinks(settingsNav, () => setMobileMenuOpen(false))}
+              </div>
+              {adminNav.length > 0 && (
+                <div className="pt-2">
+                  <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Admin</p>
+                  {renderNavLinks(adminNav, () => setMobileMenuOpen(false))}
+                </div>
+              )}
             </nav>
             <div className="border-t border-border p-3">
               <button
