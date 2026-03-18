@@ -5,6 +5,7 @@ import { RichTextEditor } from '../components/editor/RichTextEditor';
 import { ConflictWarning, type ConflictInfo } from './ConflictWarning';
 import { CustomFieldsSection } from './CustomFieldsSection';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
+import { RecurrenceEditor } from './RecurrenceEditor';
 
 interface GroupSuggestion {
   id: number;
@@ -29,6 +30,7 @@ export interface EventFormData {
   participants?: string[];
   custom_fields?: Record<string, string>;
   resource?: string;
+  rrule?: string;
 }
 
 interface EventDialogProps {
@@ -80,6 +82,7 @@ export function EventDialog({
   const [groups, setGroups] = useState<GroupSuggestion[]>([]);
   const [showGroupSuggestions, setShowGroupSuggestions] = useState(false);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
+  const [rrule, setRrule] = useState(initialValues?.rrule ?? '');
   const [resources, setResources] = useState<Array<{ login: string; name: string }>>([]);
   const [selectedResource, setSelectedResource] = useState('');
   const [categorySearch, setCategorySearch] = useState('');
@@ -172,6 +175,7 @@ export function EventDialog({
         participants: participantLogins,
         custom_fields: Object.keys(customFieldValues).length > 0 ? customFieldValues : undefined,
         resource: selectedResource || undefined,
+        rrule: rrule || undefined,
       };
 
       if (!allDay && time) {
@@ -286,6 +290,9 @@ export function EventDialog({
               />
             </div>
           )}
+
+          {/* Recurrence */}
+          <RecurrenceEditor value={rrule} onChange={setRrule} />
 
           {/* Conflict warning inline below time fields */}
           {conflicts.length > 0 && !conflictsDismissed && (

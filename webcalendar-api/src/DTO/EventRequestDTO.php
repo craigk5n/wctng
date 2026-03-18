@@ -8,6 +8,8 @@ use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\EventId;
 use WebCalendar\Core\Domain\ValueObject\EventType;
+use WebCalendar\Core\Domain\ValueObject\Recurrence;
+use WebCalendar\Core\Domain\ValueObject\RecurrenceRule;
 
 /**
  * Maps JSON request data to webcalendar-core Event entities.
@@ -39,6 +41,11 @@ final class EventRequestDTO
         $start = self::parseStartDateTime($startDateStr, $startTimeStr);
         $access = AccessLevel::tryFrom($accessStr) ?? AccessLevel::PUBLIC;
         $type = EventType::tryFrom($typeStr) ?? EventType::EVENT;
+        $rruleStr = self::optionalString($data, 'rrule', '');
+        $recurrence = self::buildRecurrence($rruleStr);
+        if ($rruleStr !== '') {
+            $type = EventType::REPEATING_EVENT;
+        }
 
         return new Event(
             id: new EventId($id),
@@ -51,6 +58,7 @@ final class EventRequestDTO
             createdBy: $createdBy,
             type: $type,
             access: $access,
+            recurrence: $recurrence,
             allDay: $allDay,
         );
     }
@@ -93,9 +101,22 @@ final class EventRequestDTO
             createdBy: $event->createdBy(),
             type: EventType::tryFrom($typeStr) ?? $event->type(),
             access: AccessLevel::tryFrom($accessStr) ?? $event->access(),
+            recurrence: isset($data['rrule']) ? self::buildRecurrence(self::optionalString($data, 'rrule', '')) : $event->recurrence(),
             allDay: $allDay,
             sequence: $event->sequence() + 1,
         );
+    }
+
+    private static function buildRecurrence(string $rruleStr): Recurrence
+    {
+        if ($rruleStr === '') {
+            return new Recurrence();
+        }
+        try {
+            return new Recurrence(new RecurrenceRule($rruleStr));
+        } catch (\InvalidArgumentException) {
+            return new Recurrence();
+        }
     }
 
     private static function parseStartDateTime(string $dateStr, string $timeStr): \DateTimeImmutable

@@ -41,6 +41,7 @@ final class EventResponseDTO
             'all_day' => $allDay,
             'sequence' => $event->sequence(),
             'status' => $event->status(),
+            'rrule' => $event->recurrence()->rule() !== null ? $event->recurrence()->rule()->toString() : null,
             'categories' => $categoryIds,
         ];
     }

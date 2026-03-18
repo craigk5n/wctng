@@ -26,7 +26,8 @@
 | P7-E6 | PWA & Push Notifications | 2 | 2 | DONE |
 | P7-E7 | Saved Views & Private Categories | 2 | 0 | TODO |
 | P7-E8 | UX Quick Wins | 3 | 0 | TODO |
-| **Total** | | **19** | **0** | |
+| P7-E9 | Recurring Events UI | 2 | 1 | IN PROGRESS |
+| **Total** | | **21** | **15** | |
 
 ---
 
@@ -477,6 +478,52 @@ Parse natural language input like "Lunch with Sarah tomorrow at noon" into event
 - [ ] Pre-fill EventDialog with parsed values (user can review before saving)
 - [ ] Rule-based parser (chrono-node or similar) — no LLM dependency
 - [ ] Vitest tests for parsing accuracy
+
+---
+
+## Epic P7-E9: Recurring Events UI
+
+**Goal:** Add recurrence editor to the event create/edit dialog, supporting both simple presets and advanced RRULE configuration.
+
+### P7-E9-S1: Recurrence Editor Component
+
+**Status:** DONE
+
+**Description:**
+Recurrence picker with simple presets and advanced RRULE options in the EventDialog.
+
+**Preconditions:** Phase 6 complete
+
+**Acceptance Criteria:**
+- [x] Recurrence selector in EventDialog: None, Daily, Weekly, Monthly, Yearly, Custom
+- [x] Simple presets set RRULE automatically (FREQ=DAILY, FREQ=WEEKLY, etc.)
+- [x] Custom mode: frequency, interval, by-day checkboxes (Mon-Sun), end condition (never/count/until date)
+- [x] RRULE string generated and included in event create/update API call
+- [x] Edit mode: existing RRULE parsed and pre-selected in the editor
+- [x] Backend: EventRequestDTO accepts `rrule` field, builds Recurrence object, sets type=M for repeating
+- [x] EventResponseDTO returns `rrule` field for existing events
+- [x] rruleToHuman() utility for human-readable display
+- [x] Vitest tests: 8 tests (default, presets, custom, parse, clear)
+- [x] PHPStan level 9 passes
+
+---
+
+### P7-E9-S2: Recurring Event Display & Exception Dates
+
+**Status:** TODO
+
+**Description:**
+Display recurring event instances on the calendar and support exception dates (EXDATE).
+
+**Preconditions:** P7-E9-S1
+
+**Acceptance Criteria:**
+- [ ] Recurring events show on all occurrences in the calendar grid
+- [ ] Event detail dialog shows recurrence rule in human-readable format
+- [ ] "Delete this occurrence" option creates an EXDATE (vs "Delete all occurrences")
+- [ ] "Edit this occurrence" vs "Edit all occurrences" choice
+- [ ] Recurring indicator icon on event tiles
+- [ ] Vitest tests
 
 ---
 

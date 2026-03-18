@@ -180,6 +180,9 @@ export function CalendarPage() {
     if (!data.all_day && data.start_time) {
       body.start_time = data.start_time;
     }
+    if (data.rrule) {
+      body.rrule = data.rrule;
+    }
 
     const { data: created, error } = await apiFetch<{ id: number }>('/events', {
       method: 'POST',
