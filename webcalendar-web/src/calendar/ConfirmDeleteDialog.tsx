@@ -1,7 +1,9 @@
 interface ConfirmDeleteDialogProps {
   open: boolean;
   eventTitle: string;
+  isRecurring?: boolean;
   onConfirm: () => void;
+  onDeleteOccurrence?: () => void;
   onCancel: () => void;
   isDeleting: boolean;
 }
@@ -9,7 +11,9 @@ interface ConfirmDeleteDialogProps {
 export function ConfirmDeleteDialog({
   open,
   eventTitle,
+  isRecurring = false,
   onConfirm,
+  onDeleteOccurrence,
   onCancel,
   isDeleting,
 }: ConfirmDeleteDialogProps) {
@@ -28,25 +32,36 @@ export function ConfirmDeleteDialog({
       >
         <h2 className="text-lg font-semibold">Delete Event</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Are you sure you want to delete &ldquo;{eventTitle}&rdquo;? This action cannot be undone.
+          Are you sure you want to delete &ldquo;{eventTitle}&rdquo;?
+          {isRecurring && ' This is a recurring event.'}
         </p>
 
-        <div className="mt-6 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isDeleting}
-            className="inline-flex h-10 items-center rounded-md border border-input px-4 text-sm font-medium hover:bg-accent disabled:opacity-50"
-          >
-            Cancel
-          </button>
+        <div className="mt-6 flex flex-col gap-2">
+          {isRecurring && onDeleteOccurrence && (
+            <button
+              type="button"
+              onClick={onDeleteOccurrence}
+              disabled={isDeleting}
+              className="inline-flex h-10 w-full items-center justify-center rounded-md border border-destructive px-4 text-sm font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
+            >
+              Delete This Occurrence
+            </button>
+          )}
           <button
             type="button"
             onClick={onConfirm}
             disabled={isDeleting}
-            className="inline-flex h-10 items-center rounded-md bg-destructive px-4 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+            className="inline-flex h-10 w-full items-center justify-center rounded-md bg-destructive px-4 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
           >
-            {isDeleting ? 'Deleting...' : 'Delete'}
+            {isDeleting ? 'Deleting...' : isRecurring ? 'Delete All Occurrences' : 'Delete'}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="inline-flex h-10 w-full items-center justify-center rounded-md border border-input px-4 text-sm font-medium hover:bg-accent disabled:opacity-50"
+          >
+            Cancel
           </button>
         </div>
       </div>

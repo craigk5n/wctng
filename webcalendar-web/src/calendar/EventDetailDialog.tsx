@@ -4,6 +4,7 @@ import { ParticipantList } from './ParticipantList';
 import { ParticipantResponse } from './ParticipantResponse';
 import { RichTextDisplay } from '../components/editor/RichTextDisplay';
 import { AttachmentSection } from './AttachmentSection';
+import { rruleToHuman } from './RecurrenceEditor';
 
 const ACCESS_LABELS: Record<string, string> = {
   P: 'Public',
@@ -95,6 +96,16 @@ export function EventDetailDialog({
               )}
             </span>
           </div>
+
+          {event.rrule && (
+            <div className="flex gap-2">
+              <span className="font-medium text-muted-foreground">Repeats:</span>
+              <span className="flex items-center gap-1">
+                <span className="text-xs">🔁</span>
+                {rruleToHuman(event.rrule)}
+              </span>
+            </div>
+          )}
 
           {event.location && (
             <div className="flex gap-2">

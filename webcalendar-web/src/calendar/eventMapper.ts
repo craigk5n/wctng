@@ -20,6 +20,7 @@ export interface ApiEvent {
   uid?: string;
   sequence?: number;
   status?: string | null;
+  rrule?: string | null;
   categories?: number[];
   participants?: Array<{ login: string; status: string }>;
 }
@@ -57,9 +58,11 @@ export function mapApiEventToFullCalendar(event: ApiEvent): EventInput {
     }
   }
 
+  const isRecurring = event.type === 'M' || !!event.rrule;
+
   return {
     id: String(event.id),
-    title: event.title,
+    title: isRecurring ? `🔁 ${event.title}` : event.title,
     start,
     end,
     allDay: isAllDay,

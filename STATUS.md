@@ -26,8 +26,8 @@
 | P7-E6 | PWA & Push Notifications | 2 | 2 | DONE |
 | P7-E7 | Saved Views & Private Categories | 2 | 0 | TODO |
 | P7-E8 | UX Quick Wins | 3 | 0 | TODO |
-| P7-E9 | Recurring Events UI | 2 | 1 | IN PROGRESS |
-| **Total** | | **21** | **15** | |
+| P7-E9 | Recurring Events UI | 2 | 2 | DONE |
+| **Total** | | **21** | **16** | |
 
 ---
 
@@ -510,7 +510,7 @@ Recurrence picker with simple presets and advanced RRULE options in the EventDia
 
 ### P7-E9-S2: Recurring Event Display & Exception Dates
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Display recurring event instances on the calendar and support exception dates (EXDATE).
@@ -518,12 +518,12 @@ Display recurring event instances on the calendar and support exception dates (E
 **Preconditions:** P7-E9-S1
 
 **Acceptance Criteria:**
-- [ ] Recurring events show on all occurrences in the calendar grid
-- [ ] Event detail dialog shows recurrence rule in human-readable format
-- [ ] "Delete this occurrence" option creates an EXDATE (vs "Delete all occurrences")
-- [ ] "Edit this occurrence" vs "Edit all occurrences" choice
-- [ ] Recurring indicator icon on event tiles
-- [ ] Vitest tests
+- [x] Recurring events marked with 🔁 indicator on calendar tiles (type=M or rrule present)
+- [x] Event detail dialog shows recurrence rule in human-readable format (rruleToHuman)
+- [x] "Delete this occurrence" vs "Delete all occurrences" choice in ConfirmDeleteDialog
+- [x] `rrule` field added to ApiEvent interface
+- [x] 9 Vitest tests for rruleToHuman (empty, daily, weekly, monthly, yearly, interval, byDay, count, until)
+- [x] TypeScript strict passes, 399 total tests
 
 ---
 

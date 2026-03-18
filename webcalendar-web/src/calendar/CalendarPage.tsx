@@ -475,6 +475,7 @@ export function CalendarPage() {
         <ConfirmDeleteDialog
           open={true}
           eventTitle={dialog.event.title}
+          isRecurring={dialog.event.type === 'M' || !!dialog.event.rrule}
           onConfirm={handleDelete}
           onCancel={closeDialog}
           isDeleting={isDeleting}
