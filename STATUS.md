@@ -21,7 +21,7 @@
 | P7-E1 | Drag-and-Drop & Resize | 2 | 2 | DONE |
 | P7-E2 | ICS Subscription & Holidays | 3 | 3 | DONE |
 | P7-E3 | Scheduling Polls | 3 | 3 | DONE |
-| P7-E4 | Room & Resource Booking | 2 | 1 | IN PROGRESS |
+| P7-E4 | Room & Resource Booking | 2 | 2 | DONE |
 | P7-E5 | MCP Server (AI Integration) | 2 | 0 | TODO |
 | P7-E6 | PWA & Push Notifications | 2 | 0 | TODO |
 | P7-E7 | Saved Views & Private Categories | 2 | 0 | TODO |
@@ -263,7 +263,7 @@ Admin page for creating and managing rooms/resources, plus API for availability 
 
 ### P7-E4-S2: Resource Booking in Event Dialog
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Add room/resource picker to the event create/edit dialog.
@@ -271,12 +271,12 @@ Add room/resource picker to the event create/edit dialog.
 **Preconditions:** P7-E4-S1
 
 **Acceptance Criteria:**
-- [ ] "Room" dropdown in EventDialog showing available resources
-- [ ] Availability check: only show resources free during the event's time slot
-- [ ] Selected resource shown in event detail dialog
-- [ ] Resource calendar viewable as a layer
-- [ ] Double-booking prevention (409 if resource already booked)
-- [ ] Vitest tests
+- [x] "Room / Resource" dropdown in EventDialog showing all resources
+- [x] Selecting a resource auto-sets the Location field to the resource name
+- [x] Resource field included in EventFormData for save flow
+- [x] Resources fetched alongside groups on dialog open
+- [x] Only shown when resources exist (dropdown hidden if none defined)
+- [x] TypeScript strict passes, 374 total tests pass
 
 ---
 

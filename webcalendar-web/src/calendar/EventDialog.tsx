@@ -28,6 +28,7 @@ export interface EventFormData {
   categories?: number[];
   participants?: string[];
   custom_fields?: Record<string, string>;
+  resource?: string;
 }
 
 interface EventDialogProps {
@@ -79,6 +80,8 @@ export function EventDialog({
   const [groups, setGroups] = useState<GroupSuggestion[]>([]);
   const [showGroupSuggestions, setShowGroupSuggestions] = useState(false);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
+  const [resources, setResources] = useState<Array<{ login: string; name: string }>>([]);
+  const [selectedResource, setSelectedResource] = useState('');
   const [categorySearch, setCategorySearch] = useState('');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [conflicts, setConflicts] = useState<ConflictInfo[]>([]);
@@ -114,8 +117,12 @@ export function EventDialog({
 
   useEffect(() => {
     void (async () => {
-      const { data } = await apiFetch<GroupSuggestion[]>('/groups');
-      setGroups(data ?? []);
+      const [groupRes, resRes] = await Promise.all([
+        apiFetch<GroupSuggestion[]>('/groups'),
+        apiFetch<Array<{ login: string; name: string }>>('/admin/resources'),
+      ]);
+      setGroups(groupRes.data ?? []);
+      setResources(resRes.data ?? []);
     })();
   }, []);
 
@@ -164,6 +171,7 @@ export function EventDialog({
         categories: selectedCategories,
         participants: participantLogins,
         custom_fields: Object.keys(customFieldValues).length > 0 ? customFieldValues : undefined,
+        resource: selectedResource || undefined,
       };
 
       if (!allDay && time) {
@@ -301,6 +309,32 @@ export function EventDialog({
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 placeholder="Optional location"
               />
+            </div>
+          )}
+
+          {resources.length > 0 && (
+            <div className="space-y-2">
+              <label htmlFor="event-room" className="text-sm font-medium">
+                Room / Resource
+              </label>
+              <select
+                id="event-room"
+                value={selectedResource}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSelectedResource(val);
+                  if (val) {
+                    const res = resources.find((r) => r.login === val);
+                    if (res) setLocation(res.name);
+                  }
+                }}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">None</option>
+                {resources.map((r) => (
+                  <option key={r.login} value={r.login}>{r.name}</option>
+                ))}
+              </select>
             </div>
           )}
 
