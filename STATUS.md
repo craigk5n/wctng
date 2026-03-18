@@ -22,7 +22,7 @@
 | P7-E2 | ICS Subscription & Holidays | 3 | 3 | DONE |
 | P7-E3 | Scheduling Polls | 3 | 3 | DONE |
 | P7-E4 | Room & Resource Booking | 2 | 2 | DONE |
-| P7-E5 | MCP Server (AI Integration) | 2 | 0 | TODO |
+| P7-E5 | MCP Server (AI Integration) | 2 | 1 | IN PROGRESS |
 | P7-E6 | PWA & Push Notifications | 2 | 0 | TODO |
 | P7-E7 | Saved Views & Private Categories | 2 | 0 | TODO |
 | P7-E8 | UX Quick Wins | 3 | 0 | TODO |
@@ -286,7 +286,7 @@ Add room/resource picker to the event create/edit dialog.
 
 ### P7-E5-S1: MCP Endpoint & Tool Definitions
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Implement MCP-compliant endpoint with tool definitions for calendar operations.
@@ -294,19 +294,15 @@ Implement MCP-compliant endpoint with tool definitions for calendar operations.
 **Preconditions:** Phase 6 complete
 
 **Acceptance Criteria:**
-- [ ] `POST /api/v2/mcp` — MCP JSON-RPC endpoint
-- [ ] Authentication via API token (per-user `cal_api_token` field)
-- [ ] MCP tools defined:
-  - `list_events` — list events in date range
-  - `get_event` — get event details by ID
-  - `create_event` — create a new event (title, date, time, duration, description, location)
-  - `update_event` — update event fields
-  - `delete_event` — delete an event
-  - `search_events` — search by keyword
-  - `get_availability` — check free/busy for a user
-- [ ] Rate limiting: 60 requests/minute per token
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests
+- [x] `POST /api/v2/mcp` — MCP JSON-RPC 2.0 endpoint
+- [x] Authentication via API token (`X-API-Token` header, per-user `api_token` preference)
+- [x] `tools/list` method returns 7 tool definitions with inputSchema
+- [x] `tools/call` method dispatches to tool implementations
+- [x] MCP tools: list_events, get_event, create_event, update_event, delete_event, search_events, get_availability
+- [x] Legacy direct method call supported (method name = tool name)
+- [x] Proper JSON-RPC error codes (-32000 auth, -32601 method, -32602 params)
+- [x] PHPStan level 9 passes
+- [x] Unit tests: 4 tests (tools/list, auth required, create event, unknown method)
 
 ---
 

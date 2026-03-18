@@ -55,6 +55,12 @@ security:
             stateless: true
             security: false
 
+        # MCP endpoint uses its own API token auth
+        mcp:
+            pattern: ^/api/v2/mcp$
+            stateless: true
+            security: false
+
         config_features:
             pattern: ^/api/v2/config/features$
             stateless: true
@@ -75,4 +81,5 @@ security:
         - { path: ^/api/v2/i18n/, roles: PUBLIC_ACCESS }
         - { path: ^/api/v2/custom-fields$, roles: PUBLIC_ACCESS }
         - { path: ^/api/v2/config/features$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/v2/mcp$, roles: PUBLIC_ACCESS }
         - { path: ^/api/, roles: IS_AUTHENTICATED_FULLY }
