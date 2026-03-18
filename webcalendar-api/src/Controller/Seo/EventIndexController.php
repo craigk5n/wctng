@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Seo;
 
 use App\Service\CoreServiceFactory;
+use App\Service\CustomHtmlProvider;
 use App\Service\SeoEligibilityService;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -131,6 +132,12 @@ ITEM;
         $canonical = "/public/{$username}/events" . ($isMonthView ? "?month={$monthParam}" : '') . ($page > 1 ? "{$sep}page={$page}" : '');
         $metaDesc = htmlspecialchars("{$displayName}'s {$pageTitle} — {$total} events", \ENT_QUOTES, 'UTF-8');
 
+        // Custom HTML/CSS
+        $customHtml = new CustomHtmlProvider($this->factory);
+        $customCssTag = $customHtml->getCssStyleTag();
+        $customHeader = $customHtml->getHeaderHtml();
+        $customTrailer = $customHtml->getTrailerHtml();
+
         $html = <<<HTML
 <!DOCTYPE html>
 <html lang="en">
@@ -171,8 +178,10 @@ ITEM;
         .footer a { color: #3788d8; text-decoration: none; }
         @media (max-width: 640px) { .container { padding: 1rem; } h1 { font-size: 1.4rem; } }
     </style>
+    {$customCssTag}
 </head>
 <body>
+    {$customHeader}
     <div class="container">
         <nav class="breadcrumb">
             <a href="/public/{$username}">{$displayName}'s Calendar</a> › Events
@@ -185,6 +194,7 @@ ITEM;
             <a href="/public/{$username}">← Back to Calendar</a>
         </div>
     </div>
+    {$customTrailer}
 </body>
 </html>
 HTML;

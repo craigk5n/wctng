@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Seo;
 
 use App\Service\CoreServiceFactory;
+use App\Service\CustomHtmlProvider;
 use App\Service\DescriptionSanitizer;
 use App\Service\GeoRepository;
 use App\Service\JsonLdGenerator;
@@ -112,6 +113,12 @@ MAP;
         $canonicalUrl = "/public/{$username}/event/{$id}";
         $jsonLdBlock = $seoStatus['noindex'] ? '' : $this->jsonLd->generateEventJsonLd($event, $user, $canonicalUrl, $geo);
 
+        // Custom HTML/CSS
+        $customHtml = new CustomHtmlProvider($this->factory);
+        $customCssTag = $customHtml->getCssStyleTag();
+        $customHeader = $customHtml->getHeaderHtml();
+        $customTrailer = $customHtml->getTrailerHtml();
+
         $html = <<<HTML
 <!DOCTYPE html>
 <html lang="en">
@@ -147,8 +154,10 @@ MAP;
         {$mapStyle}
         @media (max-width: 640px) { .container { padding: 1rem; } h1 { font-size: 1.4rem; } }
     </style>
+    {$customCssTag}
 </head>
 <body>
+    {$customHeader}
     <div class="container">
         <nav class="breadcrumb">
             <a href="/public/{$username}">{$displayName}'s Calendar</a> › Event
@@ -166,6 +175,7 @@ MAP;
             <a href="/public/{$username}">← Back to {$displayName}'s Calendar</a>
         </div>
     </div>
+    {$customTrailer}
 </body>
 </html>
 HTML;

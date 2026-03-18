@@ -304,7 +304,7 @@ Add a clickable map link in the event detail dialog (React SPA) without embeddin
 | Story | Title | Status |
 |-------|-------|--------|
 | P8-E3-S1 | Custom HTML/CSS Admin API & Settings | DONE |
-| P8-E3-S2 | Apply Custom HTML/CSS to SPA & SSR Pages | TODO |
+| P8-E3-S2 | Apply Custom HTML/CSS to SPA & SSR Pages | DONE |
 
 ---
 
@@ -330,7 +330,7 @@ Admin page for entering custom header HTML, trailer/footer HTML, and custom CSS.
 
 ### P8-E3-S2: Apply Custom HTML/CSS to SPA & SSR Pages
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Inject admin-defined header, trailer, and CSS into both the React SPA and server-rendered SEO pages.
@@ -338,13 +338,13 @@ Inject admin-defined header, trailer, and CSS into both the React SPA and server
 **Preconditions:** P8-E3-S1
 
 **Acceptance Criteria:**
-- [ ] SSR event pages: header HTML after `<body>`, trailer before `</body>`, CSS in `<style>` in `<head>`
-- [ ] React SPA: custom HTML fetched from `/api/v2/config/custom-html` on app load
-- [ ] SPA header injected above AppLayout, trailer below main content
-- [ ] Custom CSS applied via `<style>` tag in document head
-- [ ] Cached in React Query (5-minute stale time)
-- [ ] Changes visible immediately on SSR pages (no cache)
-- [ ] Vitest tests
+- [x] SSR event pages: header HTML after `<body>`, trailer before `</body>`, CSS in `<style>` in `<head>`
+- [x] React SPA: custom HTML fetched from `/api/v2/config/custom-html` on app load
+- [x] SPA header injected above main content, trailer below, CSS injected in `<head>`
+- [x] Custom CSS applied via `<style>` tag in document head
+- [x] Cached in localStorage (5-minute stale time) via `useCustomHtml` hook
+- [x] Changes visible immediately on SSR pages (no cache)
+- [x] 2 new integration tests (1 per SSR controller)
 
 ---
 

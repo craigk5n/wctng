@@ -112,6 +112,22 @@ final class SeoEventIndexIntegrationTest extends IntegrationTestCase
         $this->assertStringContainsString('Alice Smith', $html);
     }
 
+    public function testIncludesCustomHtmlCss(): void
+    {
+        $this->factory->getConfigService()->updateSetting('CUSTOM_HEADER_HTML', '<div class="brand">My Brand</div>');
+        $this->factory->getConfigService()->updateSetting('CUSTOM_TRAILER_HTML', '<footer>2026</footer>');
+        $this->factory->getConfigService()->updateSetting('CUSTOM_CSS', '.brand { color: red; }');
+
+        $this->createEvents(1);
+        $request = Request::create('/public/alice/events');
+        $response = $this->controller->index('alice', $request);
+        $html = (string) $response->getContent();
+
+        $this->assertStringContainsString('My Brand', $html);
+        $this->assertStringContainsString('2026', $html);
+        $this->assertStringContainsString('.brand { color: red; }', $html);
+    }
+
     public function testHasOpenGraphTags(): void
     {
         $this->createEvents(1);

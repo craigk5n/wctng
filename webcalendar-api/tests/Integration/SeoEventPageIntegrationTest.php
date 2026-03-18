@@ -209,6 +209,23 @@ final class SeoEventPageIntegrationTest extends IntegrationTestCase
         $this->assertStringNotContainsString('leaflet', $html);
     }
 
+    public function testIncludesCustomHeaderTrailerCss(): void
+    {
+        $this->factory->getConfigService()->updateSetting('ENABLE_SEO_PAGES', 'Y');
+        $this->factory->getUserRepository()->savePreference('alice', new UserPreference('public_calendar_enabled', 'Y'));
+        $this->factory->getConfigService()->updateSetting('CUSTOM_HEADER_HTML', '<div class="site-header">My Calendar Site</div>');
+        $this->factory->getConfigService()->updateSetting('CUSTOM_TRAILER_HTML', '<footer>Copyright 2026</footer>');
+        $this->factory->getConfigService()->updateSetting('CUSTOM_CSS', '.site-header { background: blue; }');
+
+        $eventId = $this->createPublicEvent('Custom HTML Test');
+        $response = $this->controller->detail('alice', $eventId);
+        $html = (string) $response->getContent();
+
+        $this->assertStringContainsString('My Calendar Site', $html);
+        $this->assertStringContainsString('Copyright 2026', $html);
+        $this->assertStringContainsString('.site-header { background: blue; }', $html);
+    }
+
     public function testJsonLdIncludesGeoCoordinates(): void
     {
         $this->factory->getConfigService()->updateSetting('ENABLE_SEO_PAGES', 'Y');

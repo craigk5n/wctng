@@ -6,6 +6,7 @@ import { SearchBar } from '../search/SearchBar';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { LanguageSelector } from '../i18n/LanguageSelector';
 import { useTenant } from '../../hooks/useTenant';
+import { CustomHeader, CustomTrailer, CustomCssInjector } from './CustomHtmlInjector';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
@@ -195,8 +196,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
+        {/* Custom header */}
+        <CustomHeader />
+        <CustomCssInjector />
+
         {/* Page content */}
         <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
+
+        {/* Custom trailer */}
+        <CustomTrailer />
       </div>
     </div>
   );
