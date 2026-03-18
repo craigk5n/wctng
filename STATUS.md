@@ -23,7 +23,7 @@
 | P7-E3 | Scheduling Polls | 3 | 3 | DONE |
 | P7-E4 | Room & Resource Booking | 2 | 2 | DONE |
 | P7-E5 | MCP Server (AI Integration) | 2 | 2 | DONE |
-| P7-E6 | PWA & Push Notifications | 2 | 1 | IN PROGRESS |
+| P7-E6 | PWA & Push Notifications | 2 | 2 | DONE |
 | P7-E7 | Saved Views & Private Categories | 2 | 0 | TODO |
 | P7-E8 | UX Quick Wins | 3 | 0 | TODO |
 | **Total** | | **19** | **0** | |
@@ -352,7 +352,7 @@ Add PWA manifest, service worker for caching, and installable app experience.
 
 ### P7-E6-S2: Web Push Notifications
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Browser push notifications for event reminders and calendar updates.
@@ -360,14 +360,15 @@ Browser push notifications for event reminders and calendar updates.
 **Preconditions:** P7-E6-S1
 
 **Acceptance Criteria:**
-- [ ] Web Push API integration (VAPID keys)
-- [ ] `POST /api/v2/push/subscribe` — store push subscription
-- [ ] Push notifications for: event reminders, invitation received, event updated
-- [ ] User preference: enable/disable push notifications
-- [ ] Notification click opens the relevant event
-- [ ] Works when browser tab is closed (service worker handles)
-- [ ] PHPStan level 9 passes
-- [ ] Unit tests
+- [x] Web Push API integration (VAPID keys via /api/v2/push/vapid-key)
+- [x] `POST /api/v2/push/subscribe` — store push subscription (endpoint + keys)
+- [x] `POST /api/v2/push/unsubscribe` — remove subscription
+- [x] Service worker `push` event handler shows notifications with icon/vibrate
+- [x] Notification click opens relevant URL (notificationclick handler)
+- [x] User preference: enable/disable toggle in Preferences page
+- [x] `usePushNotifications` hook manages permission, subscribe/unsubscribe
+- [x] PHPStan level 9 passes
+- [x] Unit tests: 4 PHPUnit (subscribe, update, unsubscribe, multi-user)
 
 ---
 

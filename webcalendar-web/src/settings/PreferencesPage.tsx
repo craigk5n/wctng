@@ -3,6 +3,7 @@ import { apiFetch } from '../api/client';
 import { useToast } from '../components/toast/ToastProvider';
 import { useAuth } from '../auth/auth-context';
 import { changeLocale, getLocale } from '../i18n';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 interface Pref {
   key: string;
@@ -154,6 +155,8 @@ export function PreferencesPage() {
           </select>
         </div>
 
+        <PushNotificationToggle />
+
         <button
           onClick={handleSave}
           disabled={isSaving}
@@ -162,6 +165,36 @@ export function PreferencesPage() {
           {isSaving ? 'Saving...' : 'Save Preferences'}
         </button>
       </div>
+    </div>
+  );
+}
+
+function PushNotificationToggle() {
+  const { supported, subscribed, subscribe, unsubscribe } = usePushNotifications();
+
+  if (!supported) return null;
+
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-medium">Push Notifications</label>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => void (subscribed ? unsubscribe() : subscribe())}
+          className={`rounded px-4 py-1.5 text-sm font-medium ${
+            subscribed
+              ? 'border border-destructive text-destructive hover:bg-destructive/10'
+              : 'bg-primary text-primary-foreground hover:bg-primary/90'
+          }`}
+        >
+          {subscribed ? 'Disable Notifications' : 'Enable Notifications'}
+        </button>
+        {subscribed && (
+          <span className="text-xs text-green-600">Active</span>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Receive browser notifications for event reminders and calendar updates.
+      </p>
     </div>
   );
 }

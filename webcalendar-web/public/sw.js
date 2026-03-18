@@ -62,3 +62,46 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 });
+
+// Push notification handler
+self.addEventListener('push', (event) => {
+  let data = { title: 'WebCalendar', body: 'You have a notification', url: '/' };
+
+  if (event.data) {
+    try {
+      data = { ...data, ...event.data.json() };
+    } catch {
+      data.body = event.data.text();
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: '/icons/icon.svg',
+      badge: '/icons/icon.svg',
+      data: { url: data.url },
+      vibrate: [200, 100, 200],
+    })
+  );
+});
+
+// Notification click handler — open the relevant page
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const url = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window' }).then((clients) => {
+      // Focus existing tab if open
+      for (const client of clients) {
+        if (client.url.includes(url) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Open new tab
+      return self.clients.openWindow(url);
+    })
+  );
+});

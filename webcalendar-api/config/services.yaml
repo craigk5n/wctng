@@ -92,6 +92,11 @@ services:
             $pdo: '@pdo.connection'
             $appSecret: '%env(APP_SECRET)%'
 
+    # Push controller needs PDO for push_subscriptions table
+    App\Controller\Api\PushController:
+        arguments:
+            $pdo: '@pdo.connection'
+
     # Poll controller needs PDO for scheduling_polls tables
     App\Controller\Api\PollController:
         arguments:
