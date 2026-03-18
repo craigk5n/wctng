@@ -364,16 +364,21 @@ Inject admin-defined header, trailer, and CSS into both the React SPA and server
 **Status:** TODO
 
 **Description:**
-Analyze the Vite production bundle to identify oversized dependencies, unnecessary imports, and code-splitting opportunities. Optimize based on findings.
+Analyze the Vite production bundle to identify oversized dependencies, unnecessary imports, and code-splitting opportunities. Current baseline: ~519KB JS + 20KB CSS (unminified). No code splitting or dynamic imports are configured in `vite.config.ts`.
 
 **Acceptance Criteria:**
-- [ ] `vite-bundle-visualizer` added as dev dependency
-- [ ] NPM script `analyze` generates visual bundle report
-- [ ] Identify top 5 largest dependencies by size
-- [ ] Lazy-load any heavy libraries not needed at initial render (e.g., TipTap, Leaflet, rrule)
-- [ ] Tree-shake unused exports from large packages
-- [ ] Document bundle size before/after in commit message
-- [ ] Target: initial bundle < 300KB gzipped
+- [ ] Add `rollup-plugin-visualizer` as dev dependency
+- [ ] NPM script `"analyze": "vite build --mode production && npx vite-bundle-visualizer"` generates treemap
+- [ ] `vite.config.ts` — add `rollupOptions.output.manualChunks` to split vendor chunks:
+  - `fullcalendar` chunk (core + all view plugins) — only loaded on calendar page
+  - `tiptap` chunk (editor + extensions) — only loaded when editing event descriptions
+  - `chrono-node` chunk — only loaded for natural language input
+  - `i18n` chunk (react-i18next + locale data)
+- [ ] Lazy-load TipTap editor component via `React.lazy()` (only imported by EventDialog)
+- [ ] Lazy-load chrono-node via dynamic `import()` in QuickAdd (only needed on parse)
+- [ ] Document bundle size before/after (gzipped) in commit message
+- [ ] Target: initial page load bundle < 250KB gzipped (calendar page with FullCalendar)
+- [ ] Verify all existing vitest + tsc checks still pass
 
 ---
 
@@ -382,17 +387,21 @@ Analyze the Vite production bundle to identify oversized dependencies, unnecessa
 **Status:** TODO
 
 **Description:**
-Add appropriate `Cache-Control`, `ETag`, and `Last-Modified` headers to API responses to reduce redundant network requests and improve perceived performance.
+Add appropriate `Cache-Control`, `ETag`, and `Last-Modified` headers to API responses. Implement via a Symfony event listener so caching logic is centralized rather than scattered across controllers.
 
 **Acceptance Criteria:**
-- [ ] `GET /api/v2/events` — `Cache-Control: private, no-cache` + `ETag` based on latest `mod_date` in result set
-- [ ] `GET /api/v2/events/{id}` — `ETag` based on event `sequence` + `mod_date`
-- [ ] `GET /api/v2/config/features` — `Cache-Control: public, max-age=300` (5 min)
-- [ ] `GET /api/v2/config/custom-html` — `Cache-Control: public, max-age=300`
-- [ ] `GET /api/v2/categories` — `Cache-Control: private, max-age=60`
-- [ ] `304 Not Modified` responses when `If-None-Match` matches current ETag
-- [ ] Symfony `ResponseHeaderBag` or event listener approach (not per-controller)
-- [ ] PHPStan level 9 + unit tests
+- [ ] Create `App\EventSubscriber\CacheHeaderSubscriber` (kernel.response listener)
+- [ ] Route-based cache rules:
+  - `GET /api/v2/events` — `Cache-Control: private, no-cache` + `ETag` based on md5 of response body
+  - `GET /api/v2/events/{id}` — `Cache-Control: private, no-cache` + `ETag` based on event sequence + mod_date
+  - `GET /api/v2/config/features` — `Cache-Control: public, max-age=300`
+  - `GET /api/v2/config/custom-html` — `Cache-Control: public, max-age=300`
+  - `GET /api/v2/categories` — `Cache-Control: private, max-age=60`
+  - `GET /api/v2/users/me` — `Cache-Control: private, no-store`
+- [ ] `304 Not Modified` returned when request includes `If-None-Match` header matching current ETag
+- [ ] Non-GET requests always get `Cache-Control: no-store`
+- [ ] PHPStan level 9 + integration tests verifying headers on each route
+- [ ] Frontend: verify React Query still works correctly with 304 responses (no behavioral changes needed — `fetch` handles transparently)
 
 ---
 
@@ -401,15 +410,19 @@ Add appropriate `Cache-Control`, `ETag`, and `Last-Modified` headers to API resp
 **Status:** TODO
 
 **Description:**
-Audit slow queries, add missing indexes, and optimize the most frequently called repository methods.
+Audit query performance and add missing indexes. The webcalendar-core schema already defines primary keys but may lack composite indexes for common query patterns.
 
 **Acceptance Criteria:**
-- [ ] Audit: log slow queries (>100ms) during E2E test run
-- [ ] Add composite indexes for common query patterns (date range + user, access level filters)
-- [ ] Optimize `findByDateRange` to avoid loading full event objects when only IDs/dates needed
-- [ ] Review N+1 query patterns in EventController list endpoint
-- [ ] Before/after query count comparison for typical calendar page load
-- [ ] Schema migration SQL for new indexes
+- [ ] Enable PDO query logging: count queries per calendar page load (list endpoint with layers)
+- [ ] Identify N+1 patterns: EventController `list` already batch-loads categories and geo; verify no regressions
+- [ ] Add indexes to webcalendar-core schema (requires PR to craigk5n/webcalendar-core):
+  - `webcal_entry`: composite index on `(cal_create_by, cal_date, cal_time)` for user+date range queries
+  - `webcal_entry`: index on `(cal_access)` for public event filters (sitemap, SEO pages)
+  - `webcal_entry_user`: composite index on `(cal_login, cal_id)` for participant lookups
+  - `reminder_sent`: already has PRIMARY KEY (event_id, user_login)
+- [ ] Measure query count and total query time before/after on a test dataset (100+ events)
+- [ ] Document findings and optimizations in commit message
+- [ ] If core schema changes aren't feasible: add indexes via migration SQL in webcalendar-api
 
 ---
 
@@ -417,27 +430,40 @@ Audit slow queries, add missing indexes, and optimize the most frequently called
 
 | Story | Title | Status |
 |-------|-------|--------|
-| P9-E2-S1 | Event Reminder Emails | TODO |
+| P9-E2-S1 | Reminder Email Preferences UI & Hardening | TODO |
 | P9-E2-S2 | Daily Agenda Email | TODO |
-| P9-E2-S3 | Email Preferences & Unsubscribe | TODO |
+| P9-E2-S3 | Email Preferences Page & Unsubscribe | TODO |
+
+**Existing infrastructure:**
+- `ReminderService` — fully implemented: queries users, finds events in reminder window, sends emails, tracks in `reminder_sent` table
+- `SendRemindersCommand` (`webcalendar:send-reminders`) — CLI wrapper, ready for cron
+- `EmailService` — thin Symfony Mailer wrapper with `send()` and `sendTestEmail()`
+- `EventNotificationService` — participant notifications with HMAC tokens, opt-out support, ICS attachments
+- User preference key: `REMINDER_MINUTES` (read by ReminderService, default 30)
+- **Missing:** preferences UI for configuring reminder minutes, daily agenda feature, unsubscribe links
 
 ---
 
-### P9-E2-S1: Event Reminder Emails
+### P9-E2-S1: Reminder Email Preferences UI & Hardening
 
 **Status:** TODO
 
 **Description:**
-Send email reminders before events based on user preferences. Uses the existing Symfony Mailer + ReminderService infrastructure.
+Add UI for configuring email reminder preferences. The backend `ReminderService` and `SendRemindersCommand` already work — this story adds the user-facing settings and hardens edge cases.
+
+**Preconditions:** ReminderService, SendRemindersCommand, EmailService already exist
 
 **Acceptance Criteria:**
-- [ ] User preference: `email_reminder_minutes` (default: 15, options: 0/5/10/15/30/60/1440)
-- [ ] Symfony command `app:send-reminders` queries upcoming events and sends emails
-- [ ] Cron-friendly: runs every minute, idempotent (tracks sent reminders to avoid duplicates)
-- [ ] Email template: event name, date, time, location, link to calendar
-- [ ] Respects user timezone
-- [ ] Does not send for cancelled events or events the user declined
-- [ ] PHPStan level 9 + unit tests
+- [ ] Preferences page: "Email Reminder" dropdown (Off / 5 min / 10 min / 15 min / 30 min / 1 hour / 1 day)
+- [ ] Maps to existing `REMINDER_MINUTES` preference key (0 = off)
+- [ ] `PUT /api/v2/users/me/preferences` saves the value (existing endpoint)
+- [ ] ReminderService: skip events with status `cancelled` or `rejected`
+- [ ] ReminderService: skip events where user's participant status is `rejected`
+- [ ] ReminderService: escape HTML in email template (event name, location could contain HTML)
+- [ ] Admin feature flag: `ENABLE_EMAIL_REMINDERS` (Y/N, default Y) — when N, command exits immediately
+- [ ] Add to admin settings page toggle list
+- [ ] Integration tests for skip-cancelled and skip-rejected logic
+- [ ] Vitest test for preferences dropdown
 
 ---
 
@@ -446,32 +472,45 @@ Send email reminders before events based on user preferences. Uses the existing 
 **Status:** TODO
 
 **Description:**
-Optional daily email summarizing the user's events for the day. Sent at a user-configurable time.
+Optional daily email summarizing the user's events for the day. New Symfony command and service, following the same pattern as ReminderService.
+
+**Preconditions:** P9-E2-S1 (email infrastructure hardened)
 
 **Acceptance Criteria:**
+- [ ] `DailyAgendaService` — queries day's events for a user, renders HTML email
+- [ ] `webcalendar:send-daily-agenda` command — iterates users with agenda enabled
 - [ ] User preference: `daily_agenda_enabled` (Y/N, default N)
-- [ ] User preference: `daily_agenda_time` (default: 06:00)
-- [ ] Symfony command `app:send-daily-agenda` sends agenda emails
-- [ ] Email includes: date, list of events with times, locations, link to each event
-- [ ] Skips days with no events (configurable: always send or only when events exist)
-- [ ] PHPStan level 9 + unit tests
+- [ ] User preference: `daily_agenda_time` (HH:MM, default 06:00) — command only sends if current hour matches
+- [ ] Email template: date header, event list (time, title, location), link to calendar day view
+- [ ] Empty-day handling: configurable via `daily_agenda_skip_empty` (Y/N, default Y — skip empty days)
+- [ ] Tracking table `daily_agenda_sent` with (user_login, date) PK to prevent duplicates
+- [ ] Admin feature flag: `ENABLE_DAILY_AGENDA` (Y/N, default N)
+- [ ] PHPStan level 9 + integration tests
 
 ---
 
-### P9-E2-S3: Email Preferences & Unsubscribe
+### P9-E2-S3: Email Preferences Page & Unsubscribe
 
 **Status:** TODO
 
 **Description:**
-User settings page for email notification preferences with one-click unsubscribe link in emails.
+Dedicated email preferences section in the user settings page, plus CAN-SPAM compliant one-click unsubscribe in all automated emails.
+
+**Preconditions:** P9-E2-S1, P9-E2-S2
 
 **Acceptance Criteria:**
-- [ ] Preferences page section for email notifications (reminder, daily agenda)
-- [ ] One-click unsubscribe link in all automated emails
-- [ ] `GET /api/v2/unsubscribe/{token}` — disables email for that user (no auth required)
-- [ ] Unsubscribe tokens are HMAC-signed (not guessable)
-- [ ] Admin can disable all email notifications globally
-- [ ] Vitest tests for preferences UI
+- [ ] New "Email Notifications" section on preferences page with:
+  - Reminder dropdown (from S1)
+  - Daily agenda toggle + time picker (from S2)
+  - Event invitation emails toggle (maps to existing `EMAIL_INVITATION` pref)
+  - Event update emails toggle (maps to existing `EMAIL_UPDATE` pref)
+- [ ] All automated emails include footer: "Unsubscribe: [one-click link]"
+- [ ] `GET /api/v2/unsubscribe/{token}` — sets `REMINDER_MINUTES=0` and `daily_agenda_enabled=N`
+- [ ] Token format: HMAC-SHA256 of `user_login` with `APP_SECRET` — no expiry, deterministic per user
+- [ ] Endpoint returns simple HTML confirmation page (no auth required, SSR)
+- [ ] `List-Unsubscribe` and `List-Unsubscribe-Post` email headers for RFC 8058 compliance
+- [ ] Security firewall: `/api/v2/unsubscribe/` pattern has `security: false`
+- [ ] PHPStan level 9 + Vitest tests for preferences UI + integration test for unsubscribe endpoint
 
 ---
 
@@ -479,25 +518,39 @@ User settings page for email notification preferences with one-click unsubscribe
 
 | Story | Title | Status |
 |-------|-------|--------|
-| P9-E3-S1 | Structured Error Logging & Monitoring | TODO |
+| P9-E3-S1 | Request Correlation IDs & Error Logging | TODO |
 | P9-E3-S2 | Admin Dashboard & System Health | TODO |
 | P9-E3-S3 | Database Backup & Restore | TODO |
 
+**Existing infrastructure:**
+- Monolog already configured with JSON formatter in production (`config/packages/monolog.yaml`)
+- `HealthController` at `/api/v2/health` — checks DB, Mercure, Redis status
+- `ExceptionSubscriber` — catches exceptions and returns JSON error responses
+- `ActivityLogService` — logs event CRUD operations (separate from system logs)
+
 ---
 
-### P9-E3-S1: Structured Error Logging & Monitoring
+### P9-E3-S1: Request Correlation IDs & Error Logging
 
 **Status:** TODO
 
 **Description:**
-Structured JSON logging for API errors with correlation IDs, plus a simple error dashboard for admins.
+Add correlation IDs to every request for log tracing, and enhance error logging with request context. Monolog JSON formatting already exists; this adds the correlation ID and structured error context.
+
+**Preconditions:** Monolog JSON config exists
 
 **Acceptance Criteria:**
-- [ ] Monolog configured with JSON formatter for production
-- [ ] Each request gets a unique correlation ID (`X-Request-Id` header)
-- [ ] 4xx/5xx responses logged with correlation ID, user, endpoint, duration
-- [ ] Error counts exposed via `GET /api/v2/admin/health` (last 24h summary)
-- [ ] PHPStan level 9 + unit tests
+- [ ] `App\EventSubscriber\RequestIdSubscriber` — kernel.request listener
+  - Generates UUID v4 `X-Request-Id` if not present in incoming request
+  - Adds to response headers
+  - Pushes to Monolog processor context (all log lines include `request_id`)
+- [ ] `App\Monolog\RequestIdProcessor` — Monolog processor that adds `request_id` to every log record
+- [ ] ExceptionSubscriber: log 4xx/5xx with structured context: `{request_id, method, path, user, status, duration_ms}`
+- [ ] Request duration tracked via kernel.request → kernel.terminate timing
+- [ ] `GET /api/v2/admin/health` enhanced: include `recent_errors` count (last 24h) from a lightweight counter
+  - Counter stored in `system_metrics` table: `{metric_key, metric_value, updated_at}`
+  - Incremented by ExceptionSubscriber on 5xx responses
+- [ ] PHPStan level 9 + integration tests
 
 ---
 
@@ -506,14 +559,27 @@ Structured JSON logging for API errors with correlation IDs, plus a simple error
 **Status:** TODO
 
 **Description:**
-Admin-only dashboard page showing system health: user count, event count, storage usage, recent errors, uptime.
+Admin-only dashboard page showing system statistics and health at a glance. Backend API endpoint + React admin page.
 
 **Acceptance Criteria:**
-- [ ] `GET /api/v2/admin/dashboard` — returns system stats (admin only)
-- [ ] Stats: total users, active users (7d), total events, events created (7d), DB size
-- [ ] React admin page with stat cards and simple charts
-- [ ] Auto-refresh every 60 seconds
-- [ ] Vitest tests
+- [ ] `GET /api/v2/admin/dashboard` endpoint (admin only):
+  ```json
+  {
+    "users": {"total": 42, "active_7d": 15, "created_7d": 2},
+    "events": {"total": 1234, "created_7d": 56, "upcoming_7d": 23},
+    "system": {"db_size_mb": 45.2, "php_version": "8.2.30", "uptime": "15d 3h"},
+    "email": {"reminders_sent_7d": 89, "agenda_sent_7d": 12}
+  }
+  ```
+- [ ] DB size: `SELECT SUM(data_length + index_length) FROM information_schema.TABLES` (MySQL) or `PRAGMA page_count * page_size` (SQLite)
+- [ ] Active users: count distinct users with events or logins in last 7 days
+- [ ] React page at `/admin/dashboard`:
+  - Stat cards (4-column grid) with total users, events, active users, upcoming events
+  - Simple bar chart for events created per day (last 7 days) using lightweight inline SVG (no chart library)
+  - System info section: PHP version, DB driver, Mercure status, email status
+- [ ] Sidebar link: "Dashboard" as first item in Admin section
+- [ ] Auto-refresh every 60 seconds via React Query `refetchInterval`
+- [ ] Vitest tests for dashboard component
 
 ---
 
@@ -522,16 +588,28 @@ Admin-only dashboard page showing system health: user count, event count, storag
 **Status:** TODO
 
 **Description:**
-Admin-triggered database backup (SQL dump) and restore from backup file.
+Admin-triggered database export and import. For MySQL, wraps `mysqldump`/`mysql` commands. For SQLite, copies the database file. Restore is a destructive operation requiring explicit confirmation.
 
 **Acceptance Criteria:**
-- [ ] `POST /api/v2/admin/backup` — triggers SQL dump, returns download URL
-- [ ] `POST /api/v2/admin/restore` — accepts SQL dump upload, restores (with confirmation)
-- [ ] Backup includes all tables, excludes temporary/cache tables
-- [ ] Restore validates SQL before executing (basic sanity check)
-- [ ] Admin UI: backup button with download, restore with file upload
-- [ ] Safety: restore requires typing "RESTORE" to confirm
-- [ ] PHPStan level 9 + unit tests
+- [ ] `POST /api/v2/admin/backup` (admin only):
+  - MySQL: executes `mysqldump` via PHP `proc_open`, streams output to temp file
+  - SQLite: copies DB file
+  - Returns `{download_url, filename, size_bytes, created_at}`
+  - Backup file stored in `var/backups/` with timestamp filename
+- [ ] `GET /api/v2/admin/backup/{filename}` — downloads backup file (admin only, validates filename to prevent path traversal)
+- [ ] `POST /api/v2/admin/restore` (admin only):
+  - Accepts multipart file upload (.sql for MySQL, .db for SQLite)
+  - Requires `confirm: "RESTORE"` field in request body
+  - MySQL: pipes SQL through `mysql` command
+  - SQLite: replaces DB file (after backing up current)
+  - Returns `{status, tables_affected, duration_ms}`
+- [ ] Admin UI at `/admin/backup`:
+  - "Create Backup" button with progress indicator
+  - List of existing backups with download links and dates
+  - "Restore" section: file upload + text input requiring "RESTORE" + confirmation dialog
+- [ ] Security: backup files auto-deleted after 7 days (cleanup in backup command or cron)
+- [ ] Path traversal protection: filenames validated against `^[\w\-\.]+$`
+- [ ] PHPStan level 9 + integration tests
 
 ---
 
@@ -549,16 +627,26 @@ Admin-triggered database backup (SQL dump) and restore from backup file.
 **Status:** TODO
 
 **Description:**
-Import wizard that reads a legacy WebCalendar MySQL database and migrates users, events, categories, and preferences into WCTNG.
+Symfony command that connects to a legacy WebCalendar MySQL/PostgreSQL database and migrates data into WCTNG. The legacy schema uses the same table names (`webcal_entry`, `webcal_user`, etc.) but with different column conventions and no UID field on older versions.
 
 **Acceptance Criteria:**
-- [ ] Symfony command `app:import-legacy` connects to legacy DB via provided DSN
-- [ ] Imports: users, events (with recurrence), categories, user preferences
-- [ ] Maps legacy access levels to WCTNG access model
-- [ ] Generates import report: counts, skipped items, warnings
-- [ ] Idempotent: can re-run without duplicating data (uses UID matching)
-- [ ] Admin UI wizard with progress indicator (optional, command-line is primary)
-- [ ] PHPStan level 9 + unit tests
+- [ ] `webcalendar:import-legacy --dsn="mysql://user:pass@host/dbname"` command
+- [ ] Imports with mapping:
+  - `webcal_user` → WCTNG users (login, firstname, lastname, email, is_admin)
+  - `webcal_entry` → events (name, description, date, time, duration, access, location)
+  - `webcal_entry_repeats` → recurrence rules (mapped to RRULE strings)
+  - `webcal_categories` → categories (name, color)
+  - `webcal_entry_categories` → category assignments
+  - `webcal_user_pref` → user preferences (mapped to WCTNG preference keys)
+  - `webcal_entry_user` → participants with status
+- [ ] UID generation: legacy events lack UIDs — generate deterministic UIDs: `legacy-{cal_id}@{hostname}`
+- [ ] Idempotent: uses UID matching to skip already-imported events on re-run
+- [ ] Access level mapping: legacy `P`/`R`/`C` → WCTNG `PUBLIC`/`PRIVATE`/`CONFIDENTIAL`
+- [ ] Password handling: legacy uses MD5 — imported users get random passwords, must reset
+- [ ] Progress output: `SymfonyStyle` progress bar with counts per entity type
+- [ ] Summary report: `{users: {imported: N, skipped: N}, events: {imported: N, skipped: N, errors: N}, ...}`
+- [ ] Dry-run mode: `--dry-run` flag logs what would be imported without writing
+- [ ] PHPStan level 9 + integration test with mock legacy schema
 
 ---
 
@@ -567,16 +655,35 @@ Import wizard that reads a legacy WebCalendar MySQL database and migrates users,
 **Status:** TODO
 
 **Description:**
-Audit the SPA against WCAG 2.1 AA criteria and fix identified issues. Focus on keyboard navigation, screen reader support, and color contrast.
+Systematic accessibility audit of the SPA using axe-core, followed by fixing all critical and serious violations. Focus areas: keyboard navigation, screen reader support, color contrast, focus management in dialogs.
 
 **Acceptance Criteria:**
-- [ ] Run axe-core audit on main calendar page, event dialog, settings pages
-- [ ] Fix all "critical" and "serious" violations
-- [ ] All interactive elements keyboard-accessible (Tab, Enter, Escape)
-- [ ] ARIA labels on icon-only buttons and custom controls
-- [ ] Color contrast ratio ≥ 4.5:1 for text, ≥ 3:1 for large text
-- [ ] Focus management: dialogs trap focus, return focus on close
-- [ ] Playwright accessibility tests using `@axe-core/playwright`
+- [ ] Add `@axe-core/playwright` as dev dependency
+- [ ] Playwright test: run axe-core on 5 key pages:
+  1. Calendar page (month view with events)
+  2. Event create dialog
+  3. Event detail dialog
+  4. Settings/Preferences page
+  5. Admin settings page
+- [ ] Fix all "critical" severity violations (e.g., missing form labels, broken ARIA)
+- [ ] Fix all "serious" severity violations (e.g., color contrast, missing alt text)
+- [ ] Keyboard navigation audit:
+  - Tab order follows visual layout on all pages
+  - All buttons, links, inputs reachable via Tab
+  - Escape closes all dialogs and dropdowns
+  - Enter activates focused buttons/links
+- [ ] Dialog focus management:
+  - Focus moves to dialog on open (first focusable element)
+  - Focus trapped inside open dialog (Tab wraps)
+  - Focus returns to trigger element on close
+- [ ] ARIA improvements:
+  - `aria-label` on all icon-only buttons (close, menu, overflow)
+  - `role="dialog"` and `aria-modal="true"` on all dialogs (some already done)
+  - `aria-live="polite"` on toast notification container
+  - `aria-current="page"` on active sidebar link
+- [ ] Color contrast: verify 4.5:1 ratio for normal text, 3:1 for large text in both light and dark themes
+- [ ] axe-core Playwright tests run as part of `bin/ci e2e` suite
+- [ ] Target: zero critical/serious axe violations on all 5 audited pages
 
 ---
 
@@ -590,9 +697,22 @@ Audit the SPA against WCAG 2.1 AA criteria and fix identified issues. Focus on k
 | P9-E4 | Legacy Migration & Accessibility | 2 |
 | **Total** | | **11** |
 
+**Dependency graph:**
+```
+P9-E1 (Performance) — all independent, start anywhere
+P9-E2-S1 (Reminder UI) — independent (backend exists)
+P9-E2-S2 (Daily Agenda) → depends on P9-E2-S1
+P9-E2-S3 (Unsubscribe) → depends on P9-E2-S1 + P9-E2-S2
+P9-E3 (Production) — all independent
+P9-E4-S1 (Legacy Import) — independent
+P9-E4-S2 (Accessibility) — independent
+```
+
+**Recommended order:** E1-S1 → E1-S2 → E2-S1 → E2-S2 → E2-S3 → E3-S1 → E3-S2 → E1-S3 → E3-S3 → E4-S1 → E4-S2
+
 ---
 
-## Dependency Graph
+## Dependency Graph (Phase 7)
 
 ---
 
