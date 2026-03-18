@@ -15,11 +15,13 @@ final class JsonLdGenerator
     /**
      * Generates a JSON-LD script block for an event.
      *
+     * @param array{lat: float, lon: float}|null $geo Optional geo coordinates
+     *
      * @return string JSON-LD <script> tag ready for HTML insertion
      */
-    public function generateEventJsonLd(Event $event, User $user, string $canonicalUrl = ''): string
+    public function generateEventJsonLd(Event $event, User $user, string $canonicalUrl = '', ?array $geo = null): string
     {
-        $data = $this->buildEventData($event, $user, $canonicalUrl);
+        $data = $this->buildEventData($event, $user, $canonicalUrl, $geo);
         $json = json_encode($data, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE | \JSON_THROW_ON_ERROR);
 
         return '<script type="application/ld+json">' . $json . '</script>';
@@ -28,9 +30,11 @@ final class JsonLdGenerator
     /**
      * Builds the Schema.org Event data array.
      *
+     * @param array{lat: float, lon: float}|null $geo Optional geo coordinates
+     *
      * @return array<string, mixed>
      */
-    public function buildEventData(Event $event, User $user, string $canonicalUrl = ''): array
+    public function buildEventData(Event $event, User $user, string $canonicalUrl = '', ?array $geo = null): array
     {
         $data = [
             '@context' => 'https://schema.org',
@@ -50,7 +54,7 @@ final class JsonLdGenerator
 
         // Location
         if ($event->location() !== '') {
-            $data['location'] = $this->buildLocation($event);
+            $data['location'] = $this->buildLocation($event, $geo);
         }
 
         // Organizer
@@ -71,9 +75,11 @@ final class JsonLdGenerator
     }
 
     /**
-     * @return array<string, string>
+     * @param array{lat: float, lon: float}|null $geo
+     *
+     * @return array<string, mixed>
      */
-    private function buildLocation(Event $event): array
+    private function buildLocation(Event $event, ?array $geo = null): array
     {
         $loc = $event->location();
 
@@ -85,10 +91,20 @@ final class JsonLdGenerator
             ];
         }
 
-        return [
+        $place = [
             '@type' => 'Place',
             'name' => $loc,
         ];
+
+        if ($geo !== null) {
+            $place['geo'] = [
+                '@type' => 'GeoCoordinates',
+                'latitude' => $geo['lat'],
+                'longitude' => $geo['lon'],
+            ];
+        }
+
+        return $place;
     }
 
     private function mapEventStatus(?string $status): string

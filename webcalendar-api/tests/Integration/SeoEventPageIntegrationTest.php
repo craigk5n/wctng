@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration;
 
 use App\Controller\Seo\EventPageController;
+use App\Service\GeoRepository;
 use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\EventId;
@@ -168,5 +169,61 @@ final class SeoEventPageIntegrationTest extends IntegrationTestCase
 
         $this->assertStringContainsString('/public/alice', $html);
         $this->assertStringContainsString('Back to', $html);
+    }
+
+    public function testShowsMapWhenGeoAvailable(): void
+    {
+        $this->factory->getConfigService()->updateSetting('ENABLE_SEO_PAGES', 'Y');
+        $this->factory->getUserRepository()->savePreference('alice', new UserPreference('public_calendar_enabled', 'Y'));
+
+        $geoRepo = new GeoRepository($this->pdo);
+        $controller = new EventPageController($this->factory, $geoRepo);
+
+        $eventId = $this->createPublicEvent('Map Event');
+        $geoRepo->saveCoordinates($eventId, 40.7128, -74.006);
+
+        $response = $controller->detail('alice', $eventId);
+        $html = (string) $response->getContent();
+
+        $this->assertStringContainsString('id="event-map"', $html);
+        $this->assertStringContainsString('leaflet', $html);
+        $this->assertStringContainsString('openstreetmap.org', $html);
+        $this->assertStringContainsString('View larger map', $html);
+        $this->assertStringContainsString('40.7128', $html);
+    }
+
+    public function testNoMapWhenNoGeoCoordinates(): void
+    {
+        $this->factory->getConfigService()->updateSetting('ENABLE_SEO_PAGES', 'Y');
+        $this->factory->getUserRepository()->savePreference('alice', new UserPreference('public_calendar_enabled', 'Y'));
+
+        $geoRepo = new GeoRepository($this->pdo);
+        $controller = new EventPageController($this->factory, $geoRepo);
+
+        $eventId = $this->createPublicEvent('No Map Event');
+
+        $response = $controller->detail('alice', $eventId);
+        $html = (string) $response->getContent();
+
+        $this->assertStringNotContainsString('event-map', $html);
+        $this->assertStringNotContainsString('leaflet', $html);
+    }
+
+    public function testJsonLdIncludesGeoCoordinates(): void
+    {
+        $this->factory->getConfigService()->updateSetting('ENABLE_SEO_PAGES', 'Y');
+        $this->factory->getUserRepository()->savePreference('alice', new UserPreference('public_calendar_enabled', 'Y'));
+
+        $geoRepo = new GeoRepository($this->pdo);
+        $controller = new EventPageController($this->factory, $geoRepo);
+
+        $eventId = $this->createPublicEvent('Geo JSON-LD');
+        $geoRepo->saveCoordinates($eventId, 48.8566, 2.3522);
+
+        $response = $controller->detail('alice', $eventId);
+        $html = (string) $response->getContent();
+
+        $this->assertStringContainsString('GeoCoordinates', $html);
+        $this->assertStringContainsString('48.8566', $html);
     }
 }

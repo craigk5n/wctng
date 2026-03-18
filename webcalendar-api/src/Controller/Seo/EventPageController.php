@@ -6,6 +6,7 @@ namespace App\Controller\Seo;
 
 use App\Service\CoreServiceFactory;
 use App\Service\DescriptionSanitizer;
+use App\Service\GeoRepository;
 use App\Service\JsonLdGenerator;
 use App\Service\SeoEligibilityService;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,13 +22,16 @@ final class EventPageController
     private readonly SeoEligibilityService $seoService;
     private readonly DescriptionSanitizer $sanitizer;
     private readonly JsonLdGenerator $jsonLd;
+    private readonly ?GeoRepository $geoRepo;
 
     public function __construct(
         private readonly CoreServiceFactory $factory,
+        ?GeoRepository $geoRepo = null,
     ) {
         $this->seoService = new SeoEligibilityService($factory);
         $this->sanitizer = new DescriptionSanitizer();
         $this->jsonLd = new JsonLdGenerator();
+        $this->geoRepo = $geoRepo;
     }
 
     #[Route('/public/{username}/event/{id}', name: 'seo_event_detail', methods: ['GET'], requirements: ['id' => '\d+'])]
@@ -77,9 +81,36 @@ final class EventPageController
         $descriptionHtml = $description !== '' ? "<div class=\"description\">{$description}</div>" : '';
         $locationHtml = $location !== '' ? "<p class=\"meta\">📍 {$location}</p>" : '';
 
+        // Load geo coordinates
+        $geo = $this->geoRepo?->getCoordinates($id);
+        $mapHtml = '';
+        $mapHeadHtml = '';
+        $mapStyle = '';
+        if ($geo !== null) {
+            $lat = $geo['lat'];
+            $lon = $geo['lon'];
+            $osmUrl = "https://www.openstreetmap.org/?mlat={$lat}&mlon={$lon}#map=16/{$lat}/{$lon}";
+            $mapHeadHtml = '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">' . "\n"
+                . '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>';
+            $mapStyle = '#event-map { height: 250px; border-radius: 8px; margin-top: 1rem; } .map-link { display: block; text-align: center; margin-top: 0.5rem; font-size: 0.85rem; color: #3788d8; text-decoration: none; }';
+            $escapedName = htmlspecialchars($event->name(), \ENT_QUOTES, 'UTF-8');
+            $mapHtml = <<<MAP
+            <div id="event-map"></div>
+            <a href="{$osmUrl}" target="_blank" rel="noopener" class="map-link">View larger map on OpenStreetMap</a>
+            <script>
+                var map = L.map('event-map').setView([{$lat}, {$lon}], 15);
+                L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(map);
+                L.marker([{$lat}, {$lon}]).addTo(map).bindPopup('{$escapedName}');
+            </script>
+MAP;
+        }
+
         // Generate JSON-LD structured data
         $canonicalUrl = "/public/{$username}/event/{$id}";
-        $jsonLdBlock = $seoStatus['noindex'] ? '' : $this->jsonLd->generateEventJsonLd($event, $user, $canonicalUrl);
+        $jsonLdBlock = $seoStatus['noindex'] ? '' : $this->jsonLd->generateEventJsonLd($event, $user, $canonicalUrl, $geo);
 
         $html = <<<HTML
 <!DOCTYPE html>
@@ -98,6 +129,7 @@ final class EventPageController
     <meta name="twitter:description" content="{$metaDescription}">
     {$noindex}
     {$jsonLdBlock}
+    {$mapHeadHtml}
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a1a; background: #f8f9fa; line-height: 1.6; }
@@ -112,6 +144,7 @@ final class EventPageController
         .description p { margin: 0.5rem 0; }
         .footer { margin-top: 2rem; text-align: center; font-size: 0.8rem; color: #999; }
         .footer a { color: #3788d8; text-decoration: none; }
+        {$mapStyle}
         @media (max-width: 640px) { .container { padding: 1rem; } h1 { font-size: 1.4rem; } }
     </style>
 </head>
@@ -127,6 +160,7 @@ final class EventPageController
             {$locationHtml}
             {$rruleHuman}
             {$descriptionHtml}
+            {$mapHtml}
         </article>
         <div class="footer">
             <a href="/public/{$username}">← Back to {$displayName}'s Calendar</a>

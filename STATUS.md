@@ -211,7 +211,7 @@ This three-tier model (admin global → user public → user SEO) is consistent 
 | Story | Title | Status |
 |-------|-------|--------|
 | P8-E2-S1 | Location Geocoding Service | DONE |
-| P8-E2-S2 | Map on SSR Event Detail Page | TODO |
+| P8-E2-S2 | Map on SSR Event Detail Page | DONE |
 | P8-E2-S3 | Map Link in Event Detail Dialog | TODO |
 
 ---
@@ -237,7 +237,7 @@ Backend service that geocodes event location text to latitude/longitude coordina
 
 ### P8-E2-S2: Map on SSR Event Detail Page
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Embed an OpenStreetMap tile on the server-rendered event detail page when the event has geocoded coordinates. No JavaScript map library needed — use a static tile image or a Leaflet.js embed.
@@ -245,16 +245,16 @@ Embed an OpenStreetMap tile on the server-rendered event detail page when the ev
 **Preconditions:** P8-E1-S2 (SSR event page exists), P8-E2-S1 (geocoding available)
 
 **Acceptance Criteria:**
-- [ ] Map displayed on `/public/{username}/event/{id}` below the location field
-- [ ] Uses Leaflet.js (lightweight, open source) with OpenStreetMap tiles
-- [ ] Map centered on event coordinates with a marker
-- [ ] Map only shown when lat/lon are available (graceful fallback: no map, just text)
-- [ ] Map size: responsive, approximately 400x250px
-- [ ] "View larger map" link opens OpenStreetMap at the coordinates
-- [ ] No map API key required (OpenStreetMap tiles are free)
-- [ ] Tile attribution: "© OpenStreetMap contributors" (required by OSM license)
-- [ ] Schema.org `geo` property added to JSON-LD when coordinates exist
-- [ ] Vitest tests (verify map container renders when coordinates present)
+- [x] Map displayed on `/public/{username}/event/{id}` below the location field
+- [x] Uses Leaflet.js (lightweight, open source) with OpenStreetMap tiles
+- [x] Map centered on event coordinates with a marker
+- [x] Map only shown when lat/lon are available (graceful fallback: no map, just text)
+- [x] Map size: responsive, approximately 250px height with border-radius
+- [x] "View larger map" link opens OpenStreetMap at the coordinates
+- [x] No map API key required (OpenStreetMap tiles are free)
+- [x] Tile attribution: "© OpenStreetMap contributors" (required by OSM license)
+- [x] Schema.org `geo` property added to JSON-LD when coordinates exist
+- [x] 3 new integration tests (map shown, no map fallback, geo in JSON-LD)
 
 ---
 
