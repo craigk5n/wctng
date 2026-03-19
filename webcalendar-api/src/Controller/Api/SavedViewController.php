@@ -34,15 +34,23 @@ final class SavedViewController
     {
         if ($user === null) return ApiResponse::error(401, 'Authentication required');
 
-        /** @var array{name?: string, user_logins?: list<string>} $data */
+        /** @var array{name?: string, user_logins?: list<string>, is_global?: bool} $data */
         $data = json_decode((string) $request->getContent(), true) ?? [];
         $name = $data['name'] ?? '';
         if ($name === '') return ApiResponse::error(400, 'Missing required field: name');
 
-        $logins = $data['user_logins'] ?? [];
-        $id = $this->repo->create($user->getUserIdentifier(), $name, $logins);
+        // Only admins can create global views
+        $isGlobal = ($data['is_global'] ?? false) === true && $user->getCoreUser()->isAdmin();
 
-        return ApiResponse::success(['id' => $id, 'name' => $name, 'user_logins' => $logins], null, 201);
+        $logins = $data['user_logins'] ?? [];
+        $id = $this->repo->create($user->getUserIdentifier(), $name, $logins, $isGlobal);
+
+        return ApiResponse::success([
+            'id' => $id,
+            'name' => $name,
+            'user_logins' => $logins,
+            'is_global' => $isGlobal,
+        ], null, 201);
     }
 
     #[Route('/api/v2/views/{id}', name: 'api_views_delete', methods: ['DELETE'])]

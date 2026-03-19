@@ -26,6 +26,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const mainNav = [
     { label: 'Calendar', href: '/', icon: '📅' },
+    { label: 'Views', href: '/views', icon: '👁' },
     { label: 'Tasks', href: '/tasks', icon: '✅' },
     { label: 'Journals', href: '/journals', icon: '📓' },
     { label: 'Reports', href: '/reports', icon: '📊' },

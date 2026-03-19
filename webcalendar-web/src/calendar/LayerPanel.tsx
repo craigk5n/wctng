@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../api/client';
 import { useToast } from '../components/toast/ToastProvider';
 
@@ -7,6 +7,12 @@ interface ApiLayer {
   source_user: string;
   color: string;
   show_duplicates: boolean;
+}
+
+interface UserInfo {
+  login: string;
+  first_name: string;
+  last_name: string;
 }
 
 export interface LayerVisibility {
@@ -24,6 +30,7 @@ export function LayerPanel({ onLayersChange }: LayerPanelProps) {
   const [layers, setLayers] = useState<LayerVisibility[]>([]);
   const [newUser, setNewUser] = useState('');
   const [newColor, setNewColor] = useState('#3788d8');
+  const [allUsers, setAllUsers] = useState<UserInfo[]>([]);
   const { toast } = useToast();
 
   const fetchLayers = useCallback(async () => {
@@ -44,7 +51,17 @@ export function LayerPanel({ onLayersChange }: LayerPanelProps) {
 
   useEffect(() => {
     void fetchLayers();
+    void (async () => {
+      const { data } = await apiFetch<UserInfo[]>('/users');
+      if (data) setAllUsers(data);
+    })();
   }, [fetchLayers]);
+
+  // Filter out users already added as layers
+  const availableUsers = useMemo(() => {
+    const layerLogins = new Set(layers.map((l) => l.source_user));
+    return allUsers.filter((u) => !layerLogins.has(u.login));
+  }, [allUsers, layers]);
 
   // Notify parent whenever layers change
   useEffect(() => {
@@ -120,14 +137,19 @@ export function LayerPanel({ onLayersChange }: LayerPanelProps) {
 
       {/* Add layer form */}
       <form onSubmit={handleAdd} className="mt-2 flex items-center gap-1">
-        <input
-          type="text"
+        <select
           value={newUser}
           onChange={(e) => setNewUser(e.target.value)}
-          placeholder="Username"
-          aria-label="Username for new layer"
-          className="h-7 flex-1 rounded border border-input bg-background px-2 text-xs"
-        />
+          aria-label="Select user for new layer"
+          className="h-7 flex-1 rounded border border-input bg-background px-1 text-xs"
+        >
+          <option value="">Add user...</option>
+          {availableUsers.map((u) => (
+            <option key={u.login} value={u.login}>
+              {u.first_name} {u.last_name} ({u.login})
+            </option>
+          ))}
+        </select>
         <input
           type="color"
           value={newColor}

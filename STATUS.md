@@ -676,6 +676,18 @@ P9-E4-S2 (Accessibility) — independent
 
 ---
 
+## Phase 10: Multi-User Views & UX
+
+### Epic P10-E1: Custom Views & User Calendar Browsing (3 stories)
+
+| Story | Title | Status |
+|-------|-------|--------|
+| P10-E1-S1 | Saved Views UI | DONE |
+| P10-E1-S2 | Admin Global Views | DONE |
+| P10-E1-S3 | User Picker for Layers | DONE |
+
+---
+
 ## Dependency Graph (Phase 7)
 
 ---
