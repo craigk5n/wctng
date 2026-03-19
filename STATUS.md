@@ -1031,7 +1031,7 @@ Admin tool to merge duplicate categories (e.g., "Holiday" → "Holidays"). Reass
 |-------|-------|--------|
 | P11-E1-S1 | Data Seeder & Baseline Metrics | DONE |
 | P11-E1-S2 | Database Query Profiling & Optimization | DONE |
-| P11-E1-S3 | API Load Testing with k6 | TODO |
+| P11-E1-S3 | API Load Testing with k6 | DONE |
 | P11-E1-S4 | Frontend Rendering Performance | TODO |
 
 ---

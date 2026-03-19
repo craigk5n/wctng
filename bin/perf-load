@@ -1,0 +1,240 @@
+#!/usr/bin/env bash
+#
+# Simple concurrent load test for WCTNG (no external dependencies).
+#
+# Usage:
+#   bin/perf-load                      Run default load test (20 concurrent, 30s)
+#   bin/perf-load --concurrent=50      Set concurrent users
+#   bin/perf-load --duration=60        Set duration in seconds
+#   bin/perf-load --scenario=calendar  Run specific scenario
+#
+# Scenarios: calendar, search, crud, mixed, spike
+#
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_DIR"
+
+BASE_URL="${BASE_URL:-http://localhost:47180}"
+CONCURRENT="${CONCURRENT:-20}"
+DURATION="${DURATION:-30}"
+SCENARIO="${SCENARIO:-mixed}"
+
+# Parse args
+for arg in "$@"; do
+  case $arg in
+    --concurrent=*) CONCURRENT="${arg#*=}" ;;
+    --duration=*) DURATION="${arg#*=}" ;;
+    --scenario=*) SCENARIO="${arg#*=}" ;;
+  esac
+done
+
+# ── Auth ─────────────────────────────────────────────────────────────
+TOKEN=$(curl -s "$BASE_URL/api/v2/auth/login" \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"admin"}' | \
+  python3 -c "import sys,json; print(json.load(sys.stdin)['data']['token'])" 2>/dev/null || echo "")
+
+if [ -z "$TOKEN" ]; then
+  echo "ERROR: Cannot authenticate."
+  exit 1
+fi
+
+# ── Results dir ──────────────────────────────────────────────────────
+RESULTS_DIR="$PROJECT_DIR/tests/performance/results"
+mkdir -p "$RESULTS_DIR"
+RESULT_FILE="$RESULTS_DIR/load-${SCENARIO}-$(date +%Y%m%d-%H%M%S).log"
+
+# ── Worker function ──────────────────────────────────────────────────
+worker() {
+  local id=$1 end_time=$2
+  local successes=0 failures=0 total_ms=0 max_ms=0 requests=0
+
+  while [ "$(date +%s)" -lt "$end_time" ]; do
+    local url status time_ms
+
+    case "$SCENARIO" in
+      calendar)
+        local month=$(printf "%02d" $(( (RANDOM % 12) + 1 )))
+        url="$BASE_URL/api/v2/events?start=2026${month}01&end=2026${month}28"
+        ;;
+      search)
+        local terms=("meeting" "standup" "review" "lunch" "dentist" "call" "sprint")
+        local term=${terms[$(( RANDOM % ${#terms[@]} ))]}
+        url="$BASE_URL/api/v2/search/suggest?q=$term"
+        ;;
+      crud)
+        if (( RANDOM % 3 == 0 )); then
+          # Create
+          local day=$(printf "%02d" $(( (RANDOM % 28) + 1 )))
+          result=$(curl -s -o /dev/null -w "%{http_code} %{time_total}" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -X POST -d "{\"title\":\"LoadTest$RANDOM\",\"start_date\":\"202607$day\",\"start_time\":\"100000\",\"duration\":60}" \
+            "$BASE_URL/api/v2/events")
+          status=$(echo "$result" | awk '{print $1}')
+          time_ms=$(echo "$(echo "$result" | awk '{print $2}') * 1000" | bc)
+          requests=$((requests + 1))
+          total_ms=$(echo "$total_ms + $time_ms" | bc)
+          if [ "$status" = "201" ] || [ "$status" = "200" ]; then
+            successes=$((successes + 1))
+          else
+            failures=$((failures + 1))
+          fi
+          sleep 0.$(( RANDOM % 5 + 1 ))
+          continue
+        fi
+        local month=$(printf "%02d" $(( (RANDOM % 12) + 1 )))
+        url="$BASE_URL/api/v2/events?start=2026${month}01&end=2026${month}28"
+        ;;
+      mixed)
+        local roll=$(( RANDOM % 100 ))
+        if (( roll < 70 )); then
+          local month=$(printf "%02d" $(( (RANDOM % 12) + 1 )))
+          url="$BASE_URL/api/v2/events?start=2026${month}01&end=2026${month}28"
+        elif (( roll < 90 )); then
+          local terms=("meeting" "standup" "review")
+          local term=${terms[$(( RANDOM % ${#terms[@]} ))]}
+          url="$BASE_URL/api/v2/search/suggest?q=$term"
+        else
+          url="$BASE_URL/api/v2/categories"
+        fi
+        ;;
+      spike)
+        url="$BASE_URL/api/v2/events?start=20260301&end=20260331"
+        ;;
+    esac
+
+    result=$(curl -s -o /dev/null -w "%{http_code} %{time_total}" \
+      -H "Authorization: Bearer $TOKEN" "$url")
+    status=$(echo "$result" | awk '{print $1}')
+    time_ms=$(echo "$(echo "$result" | awk '{print $2}') * 1000" | bc)
+
+    requests=$((requests + 1))
+    total_ms=$(echo "$total_ms + $time_ms" | bc)
+
+    if (( $(echo "$time_ms > $max_ms" | bc -l) )); then
+      max_ms=$time_ms
+    fi
+
+    if [ "$status" = "200" ] || [ "$status" = "201" ]; then
+      successes=$((successes + 1))
+    else
+      failures=$((failures + 1))
+    fi
+
+    sleep 0.$(( RANDOM % 3 + 1 ))
+  done
+
+  local avg_ms=0
+  if [ "$requests" -gt 0 ]; then
+    avg_ms=$(echo "scale=1; $total_ms / $requests" | bc)
+  fi
+
+  echo "$id $requests $successes $failures $avg_ms $max_ms"
+}
+
+# ── Main ─────────────────────────────────────────────────────────────
+echo ""
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║              WCTNG Load Test: $SCENARIO"
+echo "╠══════════════════════════════════════════════════════════════╣"
+echo "║  Concurrent: $CONCURRENT workers"
+echo "║  Duration:   ${DURATION}s"
+echo "║  Base URL:   $BASE_URL"
+echo "╚══════════════════════════════════════════════════════════════╝"
+echo ""
+
+START_TIME=$(date +%s)
+END_TIME=$((START_TIME + DURATION))
+
+# Launch workers in background
+PIDS=()
+TMPDIR=$(mktemp -d)
+
+for i in $(seq 1 "$CONCURRENT"); do
+  worker "$i" "$END_TIME" > "$TMPDIR/worker_$i.out" &
+  PIDS+=($!)
+done
+
+echo "  Running $CONCURRENT workers for ${DURATION}s..."
+
+# Wait for all workers
+for pid in "${PIDS[@]}"; do
+  wait "$pid" 2>/dev/null || true
+done
+
+ACTUAL_DURATION=$(($(date +%s) - START_TIME))
+
+# Aggregate results
+TOTAL_REQUESTS=0
+TOTAL_SUCCESS=0
+TOTAL_FAILURES=0
+TOTAL_TIME=0
+GLOBAL_MAX=0
+
+for i in $(seq 1 "$CONCURRENT"); do
+  if [ -f "$TMPDIR/worker_$i.out" ]; then
+    read -r wid wreqs wsuc wfail wavg wmax < "$TMPDIR/worker_$i.out"
+    TOTAL_REQUESTS=$((TOTAL_REQUESTS + wreqs))
+    TOTAL_SUCCESS=$((TOTAL_SUCCESS + wsuc))
+    TOTAL_FAILURES=$((TOTAL_FAILURES + wfail))
+    TOTAL_TIME=$(echo "$TOTAL_TIME + ($wavg * $wreqs)" | bc)
+    if (( $(echo "$wmax > $GLOBAL_MAX" | bc -l) )); then
+      GLOBAL_MAX=$wmax
+    fi
+  fi
+done
+
+rm -rf "$TMPDIR"
+
+# Calculate metrics
+RPS=0
+AVG_MS=0
+ERROR_RATE=0
+
+if [ "$ACTUAL_DURATION" -gt 0 ]; then
+  RPS=$(echo "scale=1; $TOTAL_REQUESTS / $ACTUAL_DURATION" | bc)
+fi
+if [ "$TOTAL_REQUESTS" -gt 0 ]; then
+  AVG_MS=$(echo "scale=1; $TOTAL_TIME / $TOTAL_REQUESTS" | bc)
+  ERROR_RATE=$(echo "scale=2; $TOTAL_FAILURES * 100 / $TOTAL_REQUESTS" | bc)
+fi
+
+# Display results
+echo ""
+echo "── Results ──"
+echo ""
+printf "  %-25s %s\n" "Total Requests:" "$TOTAL_REQUESTS"
+printf "  %-25s %s\n" "Successful:" "$TOTAL_SUCCESS"
+printf "  %-25s %s\n" "Failed:" "$TOTAL_FAILURES"
+printf "  %-25s %s%%\n" "Error Rate:" "$ERROR_RATE"
+printf "  %-25s %s req/s\n" "Throughput:" "$RPS"
+printf "  %-25s %s ms\n" "Avg Response Time:" "$AVG_MS"
+printf "  %-25s %s ms\n" "Max Response Time:" "$GLOBAL_MAX"
+printf "  %-25s %s s\n" "Duration:" "$ACTUAL_DURATION"
+echo ""
+
+# Pass/Fail
+PASS=true
+if (( $(echo "$ERROR_RATE > 1" | bc -l) )); then
+  echo -e "  \033[0;31m✗ Error rate > 1%\033[0m"
+  PASS=false
+fi
+if (( $(echo "$AVG_MS > 500" | bc -l) )); then
+  echo -e "  \033[0;31m✗ Avg response > 500ms\033[0m"
+  PASS=false
+fi
+if $PASS; then
+  echo -e "  \033[0;32m✓ All thresholds passed\033[0m"
+fi
+echo ""
+
+# Save to log
+{
+  echo "scenario=$SCENARIO concurrent=$CONCURRENT duration=$DURATION"
+  echo "requests=$TOTAL_REQUESTS success=$TOTAL_SUCCESS failed=$TOTAL_FAILURES"
+  echo "rps=$RPS avg_ms=$AVG_MS max_ms=$GLOBAL_MAX error_rate=$ERROR_RATE"
+} > "$RESULT_FILE"
+echo "  Results saved to: $RESULT_FILE"
