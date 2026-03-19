@@ -688,6 +688,170 @@ P9-E4-S2 (Accessibility) — independent
 
 ---
 
+### Epic P10-E2: Silent Error Fixes & E2E Regression Suite (6 stories)
+
+| Story | Title | Status |
+|-------|-------|--------|
+| P10-E2-S1 | Fix Silent API Error Handling | TODO |
+| P10-E2-S2 | E2E: Admin CRUD Tests | TODO |
+| P10-E2-S3 | E2E: Settings Form Tests | TODO |
+| P10-E2-S4 | E2E: Multi-User & Collaboration Tests | TODO |
+| P10-E2-S5 | E2E: Import, Export, Search & Poll Tests | TODO |
+| P10-E2-S6 | E2E: Error Handling & Edge Case Tests | TODO |
+
+---
+
+### P10-E2-S1: Fix Silent API Error Handling
+
+**Status:** TODO
+
+**Description:**
+21+ API calls in frontend components silently swallow errors. Users perform operations that fail without any feedback. Fix all silent failures to show toast notifications.
+
+**Files to fix:**
+- `ResourceManagement.tsx` — create and delete have zero error handling
+- `WebhookManagement.tsx` — toggle lacks error check
+- `SavedViewsPage.tsx` — handleActivate deletes/creates layers without error checks
+- `ShareSettings.tsx` — delete has no error check
+- `AssistantSettings.tsx` — create and delete have no error checks
+- `CustomFieldsPage.tsx` — delete has no error check
+- `AttachmentSection.tsx` — delete has no error check
+- `usePushNotifications.ts` — subscribe/unsubscribe don't check errors
+
+**Acceptance Criteria:**
+- [ ] Every `apiFetch()` call destructures `{ error }` and shows toast on failure
+- [ ] No fire-and-forget API calls without error feedback
+- [ ] Toast messages include the server error message for debugging
+- [ ] Vitest tests updated where mocks changed
+- [ ] Manual smoke test: disconnect API, verify errors appear
+
+---
+
+### P10-E2-S2: E2E: Admin CRUD Tests
+
+**Status:** TODO
+
+**Description:**
+`tests/e2e/admin-crud.spec.ts` — Full CRUD coverage for all admin pages.
+
+**Test cases (14):**
+- [ ] Create user → appears in user list
+- [ ] Edit user name → change persists on reload
+- [ ] Disable user → shows disabled indicator
+- [ ] Create category with name + color → appears in list
+- [ ] Edit category color → persists
+- [ ] Delete category → removed from list
+- [ ] Create group → add members → verify member list
+- [ ] Dashboard loads → shows stat cards with numbers
+- [ ] Dashboard shows system info (PHP version, DB driver)
+- [ ] Create backup → appears in backup list with download link
+- [ ] Custom HTML → enter header → preview renders it
+- [ ] Toggle feature flag → reload → toggle persists
+- [ ] Disable Tasks flag → Tasks link hidden from sidebar
+- [ ] Activity log → create event → log entry appears with filter
+
+---
+
+### P10-E2-S3: E2E: Settings Form Tests
+
+**Status:** TODO
+
+**Description:**
+`tests/e2e/settings-forms.spec.ts` — Verify settings pages save and reload correctly.
+
+**Test cases (10):**
+- [ ] Preferences: change default view → save → reload → value persists
+- [ ] Preferences: change timezone → save → verify
+- [ ] Preferences: set email reminder to 15 min → save → reload → dropdown shows 15 min
+- [ ] Preferences: enable daily agenda → time picker appears → save
+- [ ] Access: grant view permission to user → appears in access list
+- [ ] Access: revoke permission → removed from list
+- [ ] API Tokens: generate token → token string displayed → copy works
+- [ ] Profile: change first/last name → save → header shows new name
+- [ ] Profile: change password → logout → re-login with new password succeeds
+- [ ] Profile: wrong current password → error message shown
+
+---
+
+### P10-E2-S4: E2E: Multi-User & Collaboration Tests
+
+**Status:** TODO
+
+**Description:**
+`tests/e2e/multi-user.spec.ts` — Cross-user flows requiring two user accounts.
+
+**Preconditions:** Tests create a second user via API, then test interactions.
+
+**Test cases (8):**
+- [ ] User A grants view access → User B adds layer → User B sees A's events
+- [ ] User A has private event → User B cannot see it via layer
+- [ ] Admin creates global view → non-admin user sees it on Views page
+- [ ] Create event with participant → participant sees event in their calendar
+- [ ] Confidential event: granted user sees "Busy" for time-only access
+- [ ] Public calendar page shows only public events (no private/confidential)
+- [ ] SSR event detail page renders with correct meta tags
+- [ ] Unsubscribe endpoint disables all email preferences
+
+---
+
+### P10-E2-S5: E2E: Import, Export, Search & Poll Tests
+
+**Status:** TODO
+
+**Description:**
+`tests/e2e/data-flows.spec.ts` — Data import/export, search, and poll voting.
+
+**Test cases (10):**
+- [ ] Export calendar → download starts (verify Content-Disposition header)
+- [ ] Search for event by title → dropdown shows result → click navigates to date
+- [ ] Search with no matches → "No results" message shown
+- [ ] Quick add "Lunch tomorrow at noon" → dialog opens with parsed date/time
+- [ ] Quick add "Meeting with alice" → dialog opens with participant
+- [ ] Create poll with 3 time slots → share link → open as voter → vote → results update
+- [ ] Create recurring daily event → verify it appears on next 3 days
+- [ ] Create recurring weekly event → verify it appears next week
+- [ ] Journal CRUD: create → edit title → delete → verify removed
+- [ ] Import dialog opens → shows drag zone → file input accessible
+
+---
+
+### P10-E2-S6: E2E: Error Handling & Edge Case Tests
+
+**Status:** TODO
+
+**Description:**
+`tests/e2e/error-handling.spec.ts` — Verify graceful error handling and edge cases.
+
+**Test cases (8):**
+- [ ] Create event with empty title → validation error shown
+- [ ] Navigate to non-existent route → 404 page displayed
+- [ ] Access admin page as non-admin → redirect or error
+- [ ] Create duplicate username → error message shown
+- [ ] Very long event title (200+ chars) → handled gracefully
+- [ ] Create event in the past → allowed (no spurious error)
+- [ ] Delete last category → succeeds or shows meaningful error
+- [ ] Session expired → redirect to login with message
+
+---
+
+### E2E Plan Summary
+
+| Story | Tests | Focus |
+|-------|-------|-------|
+| S1 | — | Fix 21+ silent error points (prerequisite) |
+| S2 | 14 | Admin CRUD pages |
+| S3 | 10 | Settings form persistence |
+| S4 | 8 | Multi-user collaboration |
+| S5 | 10 | Data flows (import/export/search/polls) |
+| S6 | 8 | Error handling & edge cases |
+| **Total** | **50** | |
+
+**Combined with existing ~80 tests = ~130 E2E tests**
+
+**Execution order:** S1 first (error handling fixes enable proper E2E assertions), then S2–S6 in any order. S4 is the most complex (requires multi-user setup).
+
+---
+
 ## Dependency Graph (Phase 7)
 
 ---
