@@ -64,6 +64,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         to={item.href}
         onClick={onClick}
         title={collapsed ? item.label : undefined}
+        aria-current={location.pathname === item.href ? 'page' : undefined}
         className={cn(
           'flex items-center rounded-md text-sm font-medium transition-colors',
           collapsed ? 'justify-center px-2 py-2' : 'gap-2 px-3 py-1.5',
@@ -91,7 +92,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <button
             onClick={toggleSidebar}
             className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
-            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {sidebarCollapsed ? '▶' : '◀'}
           </button>

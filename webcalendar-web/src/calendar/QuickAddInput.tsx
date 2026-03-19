@@ -50,12 +50,13 @@ export function QuickAddInput({ onParsed }: QuickAddInputProps) {
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder="Quick add: &quot;Lunch with Bob tomorrow at noon&quot;"
+        aria-label="Quick add event using natural language"
         className="flex h-9 w-64 rounded-md border border-input bg-background px-3 text-xs"
       />
       <button
         type="submit"
         disabled={!text.trim()}
-        title="Parse and create event"
+        aria-label="Parse and create event"
         className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-input text-sm hover:bg-accent disabled:opacity-50"
       >
         ✨

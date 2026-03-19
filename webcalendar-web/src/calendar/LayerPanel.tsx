@@ -125,12 +125,14 @@ export function LayerPanel({ onLayersChange }: LayerPanelProps) {
           value={newUser}
           onChange={(e) => setNewUser(e.target.value)}
           placeholder="Username"
+          aria-label="Username for new layer"
           className="h-7 flex-1 rounded border border-input bg-background px-2 text-xs"
         />
         <input
           type="color"
           value={newColor}
           onChange={(e) => setNewColor(e.target.value)}
+          aria-label="Color for new layer"
           className="h-7 w-7 cursor-pointer rounded border border-input"
         />
         <button

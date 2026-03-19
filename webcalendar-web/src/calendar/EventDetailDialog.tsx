@@ -69,6 +69,7 @@ export function EventDetailDialog({
           <button
             onClick={onClose}
             aria-label="Close"
+            autoFocus
             className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           >
             ✕

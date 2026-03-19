@@ -79,9 +79,12 @@ export function ImportDialog({ open, onClose, onImported }: ImportDialogProps) {
         ) : (
           <div className="mt-4 space-y-4">
             <div
-              className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors ${
+              className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors cursor-pointer ${
                 isDragging ? 'border-primary bg-primary/5' : 'border-border'
               }`}
+              role="button"
+              tabIndex={0}
+              aria-label="Drop ICS file here or click to browse"
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
               onDragLeave={() => setIsDragging(false)}
               onDrop={(e) => {
@@ -91,6 +94,7 @@ export function ImportDialog({ open, onClose, onImported }: ImportDialogProps) {
                 if (dropped) setFile(dropped);
               }}
               onClick={() => inputRef.current?.click()}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inputRef.current?.click(); } }}
             >
               <input
                 ref={inputRef}

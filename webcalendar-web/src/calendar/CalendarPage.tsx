@@ -363,7 +363,7 @@ export function CalendarPage() {
         <button
           onClick={() => setShowShortcuts(true)}
           className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-input text-sm text-muted-foreground hover:bg-accent"
-          title="Keyboard shortcuts (?)"
+          aria-label="Keyboard shortcuts"
         >
           ?
         </button>
@@ -406,9 +406,10 @@ export function CalendarPage() {
               });
             }}
             className="mb-1 flex w-full items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-accent"
+            aria-expanded={showLayers}
           >
             <span>Layers</span>
-            <span>{showLayers ? '▼' : '▶'}</span>
+            <span aria-hidden="true">{showLayers ? '▼' : '▶'}</span>
           </button>
           {showLayers && (
             <div className="w-56 rounded-lg border border-border bg-card">

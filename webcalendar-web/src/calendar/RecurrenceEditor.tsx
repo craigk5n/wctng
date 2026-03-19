@@ -131,8 +131,9 @@ export function RecurrenceEditor({ value, onChange }: RecurrenceEditorProps) {
         <div className="space-y-3 rounded-md border bg-muted/30 p-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs font-medium">Frequency</label>
+              <label htmlFor="recurrence-freq" className="text-xs font-medium">Frequency</label>
               <select
+                id="recurrence-freq"
                 value={freq}
                 onChange={(e) => setFreq(e.target.value)}
                 className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-sm"
@@ -200,6 +201,7 @@ export function RecurrenceEditor({ value, onChange }: RecurrenceEditorProps) {
               value={count}
               onChange={(e) => setCount(parseInt(e.target.value, 10) || 1)}
               className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-sm"
+              aria-label="Number of occurrences"
               placeholder="Number of occurrences"
             />
           )}
@@ -210,6 +212,7 @@ export function RecurrenceEditor({ value, onChange }: RecurrenceEditorProps) {
               value={until}
               onChange={(e) => setUntil(e.target.value)}
               className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-sm"
+              aria-label="End date for recurrence"
             />
           )}
 

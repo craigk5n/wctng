@@ -7,12 +7,12 @@ describe('QuickAddInput', () => {
   it('renders input and button', () => {
     render(<QuickAddInput onParsed={vi.fn()} />);
     expect(screen.getByPlaceholderText(/quick add/i)).toBeInTheDocument();
-    expect(screen.getByTitle(/parse/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /parse/i })).toBeInTheDocument();
   });
 
   it('button is disabled when input is empty', () => {
     render(<QuickAddInput onParsed={vi.fn()} />);
-    expect(screen.getByTitle(/parse/i)).toBeDisabled();
+    expect(screen.getByRole('button', { name: /parse/i })).toBeDisabled();
   });
 
   it('calls onParsed with parsed data on submit', async () => {
@@ -21,7 +21,7 @@ describe('QuickAddInput', () => {
     render(<QuickAddInput onParsed={onParsed} />);
 
     await user.type(screen.getByPlaceholderText(/quick add/i), 'Team meeting');
-    await user.click(screen.getByTitle(/parse/i));
+    await user.click(screen.getByRole('button', { name: /parse/i }));
 
     await waitFor(() => {
       expect(onParsed).toHaveBeenCalledOnce();
@@ -36,7 +36,7 @@ describe('QuickAddInput', () => {
 
     const input = screen.getByPlaceholderText(/quick add/i) as HTMLInputElement;
     await user.type(input, 'Lunch');
-    await user.click(screen.getByTitle(/parse/i));
+    await user.click(screen.getByRole('button', { name: /parse/i }));
 
     await waitFor(() => {
       expect(input.value).toBe('');
