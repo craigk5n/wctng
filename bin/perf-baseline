@@ -1,0 +1,172 @@
+#!/usr/bin/env bash
+#
+# Performance baseline measurement tool for WCTNG.
+#
+# Usage:
+#   bin/perf-baseline              Run all benchmarks
+#   bin/perf-baseline --json       Output JSON report
+#
+# Requires: curl, bc, jq (optional for JSON formatting)
+#
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+BASE_URL="${BASE_URL:-http://localhost:47180}"
+ITERATIONS="${ITERATIONS:-10}"
+
+# ── Auth ─────────────────────────────────────────────────────────────
+get_token() {
+  curl -s "$BASE_URL/api/v2/auth/login" \
+    -H 'Content-Type: application/json' \
+    -d '{"username":"admin","password":"admin"}' | \
+    python3 -c "import sys,json; print(json.load(sys.stdin)['data']['token'])" 2>/dev/null || echo ""
+}
+
+TOKEN=$(get_token)
+if [ -z "$TOKEN" ]; then
+  echo "ERROR: Cannot authenticate. Is the app running at $BASE_URL?"
+  exit 1
+fi
+
+AUTH="Authorization: Bearer $TOKEN"
+
+# ── Measurement ──────────────────────────────────────────────────────
+# Returns: avg_ms p95_ms max_ms status_code
+measure_endpoint() {
+  local name="$1"
+  local url="$2"
+  local method="${3:-GET}"
+  local body="${4:-}"
+  local times=()
+
+  for i in $(seq 1 "$ITERATIONS"); do
+    if [ "$method" = "GET" ]; then
+      result=$(curl -s -o /dev/null -w "%{http_code} %{time_total}" \
+        -H "$AUTH" "$url")
+    else
+      result=$(curl -s -o /dev/null -w "%{http_code} %{time_total}" \
+        -H "$AUTH" -H "Content-Type: application/json" \
+        -X "$method" -d "$body" "$url")
+    fi
+    status=$(echo "$result" | awk '{print $1}')
+    time_s=$(echo "$result" | awk '{print $2}')
+    time_ms=$(echo "$time_s * 1000" | bc 2>/dev/null || echo "0")
+    times+=("$time_ms")
+  done
+
+  # Calculate stats
+  sorted=($(printf '%s\n' "${times[@]}" | sort -n))
+  count=${#sorted[@]}
+  sum=0
+  for t in "${sorted[@]}"; do
+    sum=$(echo "$sum + $t" | bc)
+  done
+  avg=$(echo "scale=1; $sum / $count" | bc)
+  p95_idx=$(echo "($count * 95 / 100)" | bc)
+  p95_idx=$((p95_idx > 0 ? p95_idx - 1 : 0))
+  p95=${sorted[$p95_idx]}
+  max=${sorted[$((count - 1))]}
+
+  echo "$name|$avg|$p95|$max|$status"
+}
+
+# ── Formatting ───────────────────────────────────────────────────────
+JSON_MODE=false
+if [[ "${1:-}" == "--json" ]]; then
+  JSON_MODE=true
+fi
+
+echo ""
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║           WCTNG Performance Baseline Report                ║"
+echo "╠══════════════════════════════════════════════════════════════╣"
+echo "║  Base URL:    $BASE_URL"
+echo "║  Iterations:  $ITERATIONS per endpoint"
+echo "║  Date:        $(date '+%Y-%m-%d %H:%M:%S')"
+echo "╚══════════════════════════════════════════════════════════════╝"
+echo ""
+
+# Get DB stats
+echo "── Database Stats ──"
+EVENT_COUNT=$(curl -s -H "$AUTH" "$BASE_URL/api/v2/admin/dashboard" | \
+  python3 -c "import sys,json; print(json.load(sys.stdin)['data']['events']['total'])" 2>/dev/null || echo "?")
+USER_COUNT=$(curl -s -H "$AUTH" "$BASE_URL/api/v2/admin/dashboard" | \
+  python3 -c "import sys,json; print(json.load(sys.stdin)['data']['users']['total'])" 2>/dev/null || echo "?")
+echo "  Events: $EVENT_COUNT"
+echo "  Users:  $USER_COUNT"
+echo ""
+
+# ── Benchmarks ───────────────────────────────────────────────────────
+# Date range: current month
+MONTH_START=$(date '+%Y%m01')
+MONTH_END=$(date -d '+1 month' '+%Y%m01' 2>/dev/null || date -v+1m '+%Y%m01' 2>/dev/null || echo "20260401")
+
+RESULTS=()
+
+echo "── Running Benchmarks ──"
+echo ""
+printf "%-40s %8s %8s %8s %6s\n" "Endpoint" "Avg(ms)" "P95(ms)" "Max(ms)" "Status"
+printf "%-40s %8s %8s %8s %6s\n" "────────" "───────" "───────" "───────" "──────"
+
+endpoints=(
+  "Events (1 month)|$BASE_URL/api/v2/events?start=$MONTH_START&end=$MONTH_END"
+  "Events + layers|$BASE_URL/api/v2/events?start=$MONTH_START&end=$MONTH_END&layers=1"
+  "Single event|$BASE_URL/api/v2/events/1"
+  "Categories list|$BASE_URL/api/v2/categories"
+  "Search suggest|$BASE_URL/api/v2/search/suggest?q=meeting"
+  "Users list|$BASE_URL/api/v2/users"
+  "Health check|$BASE_URL/api/v2/health"
+  "Dashboard stats|$BASE_URL/api/v2/admin/dashboard"
+  "Config features|$BASE_URL/api/v2/config/features"
+  "Sitemap XML|$BASE_URL/sitemap.xml"
+)
+
+for entry in "${endpoints[@]}"; do
+  name="${entry%%|*}"
+  url="${entry#*|}"
+  result=$(measure_endpoint "$name" "$url")
+
+  IFS='|' read -r rname ravg rp95 rmax rstatus <<< "$result"
+  RESULTS+=("$result")
+
+  # Color coding
+  if (( $(echo "$ravg > 500" | bc -l) )); then
+    COLOR='\033[0;31m' # Red
+  elif (( $(echo "$ravg > 200" | bc -l) )); then
+    COLOR='\033[0;33m' # Yellow
+  else
+    COLOR='\033[0;32m' # Green
+  fi
+  RESET='\033[0m'
+
+  printf "%-40s ${COLOR}%8s %8s %8s${RESET} %6s\n" "$rname" "$ravg" "$rp95" "$rmax" "$rstatus"
+done
+
+echo ""
+echo "── Legend ──"
+echo -e "  \033[0;32mGreen\033[0m: < 200ms avg  \033[0;33mYellow\033[0m: 200-500ms  \033[0;31mRed\033[0m: > 500ms"
+echo ""
+
+# ── JSON output ──────────────────────────────────────────────────────
+if $JSON_MODE; then
+  REPORT_FILE="$PROJECT_DIR/ci-logs/perf-baseline-$(date +%Y%m%d-%H%M%S).json"
+  echo "{"
+  echo "  \"date\": \"$(date -Iseconds)\","
+  echo "  \"base_url\": \"$BASE_URL\","
+  echo "  \"iterations\": $ITERATIONS,"
+  echo "  \"events\": $EVENT_COUNT,"
+  echo "  \"users\": $USER_COUNT,"
+  echo "  \"results\": ["
+  first=true
+  for r in "${RESULTS[@]}"; do
+    IFS='|' read -r rn ra rp rm rs <<< "$r"
+    if $first; then first=false; else echo ","; fi
+    printf '    {"name": "%s", "avg_ms": %s, "p95_ms": %s, "max_ms": %s, "status": %s}' \
+      "$rn" "$ra" "$rp" "$rm" "$rs"
+  done
+  echo ""
+  echo "  ]"
+  echo "}"
+fi
