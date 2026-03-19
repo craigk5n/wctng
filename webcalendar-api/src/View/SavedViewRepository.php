@@ -11,7 +11,7 @@ final readonly class SavedViewRepository
             id INTEGER PRIMARY KEY AUTO_INCREMENT,
             owner_login VARCHAR(60) NOT NULL,
             name VARCHAR(100) NOT NULL,
-            user_logins TEXT NOT NULL DEFAULT '[]',
+            user_logins TEXT NOT NULL,
             is_global CHAR(1) NOT NULL DEFAULT 'N'
         )
     SQL;
