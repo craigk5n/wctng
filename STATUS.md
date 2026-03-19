@@ -860,7 +860,7 @@ P9-E4-S2 (Accessibility) — independent
 | P10-E3-S2 | Category Filter in Saved Views | DONE |
 | P10-E3-S3 | Auto-Create Categories on Import | DONE |
 | P10-E3-S4 | Promote Category to Global | DONE |
-| P10-E3-S5 | Merge Categories | TODO |
+| P10-E3-S5 | Merge Categories | DONE |
 
 ---
 

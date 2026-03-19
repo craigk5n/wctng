@@ -24,6 +24,9 @@ export function CategoryManagement() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState('');
+  const [showMerge, setShowMerge] = useState(false);
+  const [mergeSource, setMergeSource] = useState(0);
+  const [mergeTarget, setMergeTarget] = useState(0);
   const { toast } = useToast();
 
   const fetchCategories = useCallback(async () => {
@@ -72,6 +75,25 @@ export function CategoryManagement() {
     }
   };
 
+  const handleMerge = async () => {
+    if (mergeSource <= 0 || mergeTarget <= 0 || mergeSource === mergeTarget) return;
+
+    const { data, error } = await apiFetch<{ merged_events: number; source: string; target: string }>('/admin/categories/merge', {
+      method: 'POST',
+      body: JSON.stringify({ source_id: mergeSource, target_id: mergeTarget }),
+    });
+
+    if (error) {
+      toast({ title: error.message ?? 'Merge failed', variant: 'error' });
+      return;
+    }
+    toast({ title: `Merged "${data?.source}" into "${data?.target}" (${data?.merged_events} events)`, variant: 'success' });
+    setShowMerge(false);
+    setMergeSource(0);
+    setMergeTarget(0);
+    void fetchCategories();
+  };
+
   const handleToggleGlobal = async (cat: Category) => {
     const { error } = await apiFetch(`/categories/${cat.id}`, {
       method: 'PUT',
@@ -112,13 +134,61 @@ export function CategoryManagement() {
     <div>
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Categories</h2>
-        <button
-          onClick={() => setShowCreateForm(!showCreateForm)}
-          className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          {showCreateForm ? 'Cancel' : '+ New Category'}
-        </button>
+        <div className="flex gap-2">
+          {isAdmin && (
+            <button
+              onClick={() => setShowMerge(!showMerge)}
+              className="inline-flex h-10 items-center rounded-md border border-input px-4 text-sm font-medium hover:bg-accent"
+            >
+              {showMerge ? 'Cancel Merge' : 'Merge'}
+            </button>
+          )}
+          <button
+            onClick={() => setShowCreateForm(!showCreateForm)}
+            className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            {showCreateForm ? 'Cancel' : '+ New Category'}
+          </button>
+        </div>
       </div>
+
+      {/* Merge Dialog */}
+      {showMerge && (
+        <div className="mt-4 rounded-lg border border-border p-4 space-y-3">
+          <h3 className="text-sm font-semibold">Merge Categories</h3>
+          <p className="text-xs text-muted-foreground">All events from the source category will be reassigned to the target. The source will be deleted.</p>
+          <div className="flex items-end gap-3">
+            <div className="flex-1 space-y-1">
+              <label htmlFor="merge-source" className="text-xs font-medium">Source (will be deleted)</label>
+              <select id="merge-source" value={mergeSource} onChange={(e) => setMergeSource(Number(e.target.value))}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+                <option value={0}>Select source...</option>
+                {categories.filter(c => c.id !== mergeTarget).map(c => (
+                  <option key={c.id} value={c.id}>{c.name} ({c.is_global ? 'Global' : 'Personal'})</option>
+                ))}
+              </select>
+            </div>
+            <div className="px-2 text-muted-foreground">into</div>
+            <div className="flex-1 space-y-1">
+              <label htmlFor="merge-target" className="text-xs font-medium">Target (will be kept)</label>
+              <select id="merge-target" value={mergeTarget} onChange={(e) => setMergeTarget(Number(e.target.value))}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+                <option value={0}>Select target...</option>
+                {categories.filter(c => c.id !== mergeSource).map(c => (
+                  <option key={c.id} value={c.id}>{c.name} ({c.is_global ? 'Global' : 'Personal'})</option>
+                ))}
+              </select>
+            </div>
+            <button
+              onClick={() => void handleMerge()}
+              disabled={mergeSource <= 0 || mergeTarget <= 0 || mergeSource === mergeTarget}
+              className="inline-flex h-9 items-center rounded-md bg-destructive px-4 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+            >
+              Merge
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Create Form */}
       {showCreateForm && (

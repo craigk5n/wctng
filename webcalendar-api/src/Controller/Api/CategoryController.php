@@ -163,6 +163,61 @@ final class CategoryController
         return ApiResponse::noContent();
     }
 
+    #[Route('/api/v2/admin/categories/merge', name: 'api_admin_categories_merge', methods: ['POST'])]
+    public function merge(Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
+    {
+        if ($user === null || !$user->getCoreUser()->isAdmin()) {
+            return ApiResponse::error(403, 'Admin access required');
+        }
+
+        $decoded = json_decode($request->getContent(), true);
+        if (!\is_array($decoded)) {
+            return ApiResponse::error(400, 'Invalid JSON body');
+        }
+
+        /** @var array{source_id?: int, target_id?: int} $data */
+        $data = $decoded;
+        $sourceId = $data['source_id'] ?? 0;
+        $targetId = $data['target_id'] ?? 0;
+
+        if ($sourceId <= 0 || $targetId <= 0) {
+            return ApiResponse::error(400, 'Missing required fields: source_id, target_id');
+        }
+
+        if ($sourceId === $targetId) {
+            return ApiResponse::error(400, 'Cannot merge a category into itself');
+        }
+
+        $source = $this->coreServiceFactory->getCategoryRepository()->findById($sourceId);
+        $target = $this->coreServiceFactory->getCategoryRepository()->findById($targetId);
+
+        if ($source === null) {
+            return ApiResponse::error(404, 'Source category not found');
+        }
+        if ($target === null) {
+            return ApiResponse::error(404, 'Target category not found');
+        }
+
+        // Count events that will be reassigned
+        $eventCount = $this->coreServiceFactory->getCategoryRepository()->getEventCount($sourceId);
+
+        // Reassign events from source to target
+        $this->coreServiceFactory->getCategoryRepository()->reassignEvents(
+            $sourceId,
+            $targetId,
+            $user->getUserIdentifier(),
+        );
+
+        // Delete source category
+        $this->coreServiceFactory->getCategoryRepository()->delete($sourceId);
+
+        return ApiResponse::success([
+            'merged_events' => $eventCount,
+            'source' => $source->name(),
+            'target' => $target->name(),
+        ]);
+    }
+
     /**
      * @return array<string, mixed>
      */
