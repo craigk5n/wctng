@@ -98,6 +98,8 @@ final class CommentController
             'now' => $now,
         ]);
 
+        $commentId = (int) $this->pdo->lastInsertId();
+
         // Also log to activity log
         try {
             $this->factory->getActivityLogService()->log(
@@ -111,7 +113,7 @@ final class CommentController
         }
 
         return ApiResponse::success([
-            'id' => (int) $this->pdo->lastInsertId(),
+            'id' => $commentId,
             'event_id' => $eventId,
             'user_login' => $login,
             'text' => $text,
@@ -155,14 +157,27 @@ final class CommentController
 
     private function ensureTable(): void
     {
-        $this->pdo->exec(
-            'CREATE TABLE IF NOT EXISTS event_comments (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                event_id INTEGER NOT NULL,
-                user_login VARCHAR(60) NOT NULL,
-                comment_text TEXT NOT NULL,
-                created_at INTEGER NOT NULL
-            )',
-        );
+        $driver = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        if ($driver === 'sqlite') {
+            $this->pdo->exec(
+                'CREATE TABLE IF NOT EXISTS event_comments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    event_id INTEGER NOT NULL,
+                    user_login VARCHAR(60) NOT NULL,
+                    comment_text TEXT NOT NULL,
+                    created_at INTEGER NOT NULL
+                )',
+            );
+        } else {
+            $this->pdo->exec(
+                'CREATE TABLE IF NOT EXISTS event_comments (
+                    id INTEGER PRIMARY KEY AUTO_INCREMENT,
+                    event_id INTEGER NOT NULL,
+                    user_login VARCHAR(60) NOT NULL,
+                    comment_text TEXT NOT NULL,
+                    created_at INTEGER NOT NULL
+                )',
+            );
+        }
     }
 }
