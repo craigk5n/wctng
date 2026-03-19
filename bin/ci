@@ -88,7 +88,7 @@ cmd_test() {
   echo "Running PHPUnit Unit Tests..."
   php vendor/bin/phpunit tests/Unit/ --no-progress "$@"
   echo ""
-  echo "Running PHPUnit Integration Tests..."
+  echo "Running PHPUnit Integration Tests (SQLite-based)..."
   php vendor/bin/phpunit \
     tests/Integration/EventCrudIntegrationTest.php \
     tests/Integration/PublicCalendarIntegrationTest.php \
@@ -99,10 +99,27 @@ cmd_test() {
     tests/Integration/ActivityLogIntegrationTest.php \
     tests/Integration/AuthFlowIntegrationTest.php \
     tests/Integration/CategoryIntegrationTest.php \
+    tests/Integration/CategoryMergeIntegrationTest.php \
+    tests/Integration/CategoryPromoteIntegrationTest.php \
     tests/Integration/TaskJournalIntegrationTest.php \
     tests/Integration/SearchIntegrationTest.php \
     tests/Integration/PollIntegrationTest.php \
     tests/Integration/RecurrenceIntegrationTest.php \
+    tests/Integration/SeoEligibilityIntegrationTest.php \
+    tests/Integration/SeoEventPageIntegrationTest.php \
+    tests/Integration/SeoEventIndexIntegrationTest.php \
+    tests/Integration/SeoSitemapIntegrationTest.php \
+    tests/Integration/CustomHtmlControllerIntegrationTest.php \
+    tests/Integration/GeoRepositoryIntegrationTest.php \
+    tests/Integration/ReminderServiceIntegrationTest.php \
+    tests/Integration/DailyAgendaServiceIntegrationTest.php \
+    tests/Integration/UnsubscribeControllerIntegrationTest.php \
+    tests/Integration/ErrorMetricsServiceIntegrationTest.php \
+    tests/Integration/BackupServiceIntegrationTest.php \
+    tests/Integration/LegacyImportIntegrationTest.php \
+    tests/Integration/ImportCategoryIntegrationTest.php \
+    tests/Integration/QueryPerformanceIntegrationTest.php \
+    tests/Integration/CommentControllerIntegrationTest.php \
     --no-progress
 }
 

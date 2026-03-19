@@ -1,6 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
-import { ToastProvider, useToast } from '../ToastProvider';
+
+// Use the real ToastProvider (not the global mock)
+vi.unmock('../ToastProvider');
+const { ToastProvider, useToast } = await import('../ToastProvider');
 
 function TestConsumer() {
   const { toast } = useToast();

@@ -12,32 +12,48 @@ use Symfony\Component\Mailer\MailerInterface;
 
 final class ReminderServiceTest extends TestCase
 {
-    public function testSendRemindersReturnsZeroWithNoUsers(): void
+    private function createServiceWithSchema(): array
     {
         $pdo = new \PDO('sqlite::memory:');
         $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+        // Load schema so webcal_config etc. exist
+        $schemaPath = realpath(__DIR__ . '/../../../vendor/craigk5n/webcalendar-core/src/Infrastructure/Persistence/sqlite-schema.sql');
+        if ($schemaPath !== false) {
+            $schema = file_get_contents($schemaPath);
+            if ($schema !== false) {
+                $clean = (string) preg_replace('/--[^\n]*/', '', $schema);
+                /** @var string[] $statements */
+                $statements = preg_split('/;\s*\n/', $clean) ?? [];
+                foreach ($statements as $stmt) {
+                    $stmt = trim($stmt);
+                    if ($stmt !== '') {
+                        try { $pdo->exec($stmt); } catch (\PDOException) {}
+                    }
+                }
+            }
+        }
+
         $factory = new CoreServiceFactory($pdo, 'test');
         $mailer = $this->createMock(MailerInterface::class);
         $emailService = new EmailService($mailer, 'from@test.com', 'WebCal');
-
         $service = new ReminderService($factory, $emailService, 'http://localhost');
-        $count = $service->sendReminders();
 
+        return [$pdo, $factory, $service];
+    }
+
+    public function testSendRemindersReturnsZeroWithNoUsers(): void
+    {
+        [, , $service] = $this->createServiceWithSchema();
+        $count = $service->sendReminders();
         $this->assertSame(0, $count);
     }
 
     public function testTrackingTableCreatedAutomatically(): void
     {
-        $pdo = new \PDO('sqlite::memory:');
-        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-        $factory = new CoreServiceFactory($pdo, 'test');
-        $mailer = $this->createMock(MailerInterface::class);
-        $emailService = new EmailService($mailer, 'from@test.com', 'WebCal');
-
-        $service = new ReminderService($factory, $emailService, 'http://localhost');
+        [$pdo, , $service] = $this->createServiceWithSchema();
         $service->sendReminders();
 
-        // Table should exist now
         $stmt = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='reminder_sent'");
         $this->assertNotFalse($stmt);
         $this->assertNotFalse($stmt->fetch());
@@ -45,19 +61,11 @@ final class ReminderServiceTest extends TestCase
 
     public function testDuplicateReminderNotSent(): void
     {
-        $pdo = new \PDO('sqlite::memory:');
-        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        [$pdo, , $service] = $this->createServiceWithSchema();
 
-        // Create tracking table and insert a record
-        $pdo->exec('CREATE TABLE reminder_sent (event_id INTEGER, user_login VARCHAR(60), sent_at INTEGER, PRIMARY KEY(event_id, user_login))');
+        $pdo->exec('CREATE TABLE IF NOT EXISTS reminder_sent (event_id INTEGER, user_login VARCHAR(60), sent_at INTEGER, PRIMARY KEY(event_id, user_login))');
         $pdo->exec("INSERT INTO reminder_sent VALUES (1, 'alice', " . time() . ')');
 
-        // Verify duplicate check works via reflection
-        $factory = new CoreServiceFactory($pdo, 'test');
-        $mailer = $this->createMock(MailerInterface::class);
-        $emailService = new EmailService($mailer, 'from@test.com', 'WebCal');
-
-        $service = new ReminderService($factory, $emailService, 'http://localhost');
         $method = new \ReflectionMethod($service, 'isReminderSent');
         $this->assertTrue($method->invoke($service, $pdo, 1, 'alice'));
         $this->assertFalse($method->invoke($service, $pdo, 2, 'alice'));
@@ -65,14 +73,10 @@ final class ReminderServiceTest extends TestCase
 
     public function testRenderReminderEmailContainsTitle(): void
     {
-        $pdo = new \PDO('sqlite::memory:');
-        $factory = new CoreServiceFactory($pdo, 'test');
-        $mailer = $this->createMock(MailerInterface::class);
-        $emailService = new EmailService($mailer, 'from@test.com', 'WebCal');
+        [, , $service] = $this->createServiceWithSchema();
 
-        $service = new ReminderService($factory, $emailService, 'http://localhost');
         $method = new \ReflectionMethod($service, 'renderReminderEmail');
-        $html = $method->invoke($service, 'Team Standup', '2026-03-17', '09:00', 'Room A');
+        $html = $method->invoke($service, 'Team Standup', '2026-03-17', '09:00', 'Room A', 'admin');
 
         $this->assertStringContainsString('Team Standup', $html);
         $this->assertStringContainsString('2026-03-17', $html);

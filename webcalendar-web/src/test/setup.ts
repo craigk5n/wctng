@@ -25,6 +25,12 @@ vi.mock('../i18n', () => ({
   getLocale: () => 'en',
 }));
 
+// Mock useToast globally so components don't need ToastProvider in tests
+vi.mock('../components/toast/ToastProvider', () => ({
+  useToast: () => ({ toast: vi.fn() }),
+  ToastProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 // Mock useFeatureFlags globally
 vi.mock('../hooks/useFeatureFlags', () => ({
   useFeatureFlags: () => ({

@@ -108,7 +108,7 @@ describe('LayerPanel', () => {
 
     render(<LayerPanel onLayersChange={() => {}} />, { wrapper: createWrapper() });
 
-    expect(screen.getByPlaceholderText(/username/i)).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /select user/i })).toBeInTheDocument();
   });
 
   it('has remove button for each layer', async () => {
