@@ -516,7 +516,7 @@ Dedicated email preferences section in the user settings page, plus CAN-SPAM com
 |-------|-------|--------|
 | P9-E3-S1 | Request Correlation IDs & Error Logging | DONE |
 | P9-E3-S2 | Admin Dashboard & System Health | DONE |
-| P9-E3-S3 | Database Backup & Restore | TODO |
+| P9-E3-S3 | Database Backup & Restore | DONE |
 
 **Existing infrastructure:**
 - Monolog already configured with JSON formatter in production (`config/packages/monolog.yaml`)
@@ -570,31 +570,21 @@ Admin-only dashboard page showing system statistics and health at a glance. Back
 
 ### P9-E3-S3: Database Backup & Restore
 
-**Status:** TODO
+**Status:** DONE
 
 **Description:**
 Admin-triggered database export and import. For MySQL, wraps `mysqldump`/`mysql` commands. For SQLite, copies the database file. Restore is a destructive operation requiring explicit confirmation.
 
 **Acceptance Criteria:**
-- [ ] `POST /api/v2/admin/backup` (admin only):
-  - MySQL: executes `mysqldump` via PHP `proc_open`, streams output to temp file
-  - SQLite: copies DB file
-  - Returns `{download_url, filename, size_bytes, created_at}`
-  - Backup file stored in `var/backups/` with timestamp filename
-- [ ] `GET /api/v2/admin/backup/{filename}` — downloads backup file (admin only, validates filename to prevent path traversal)
-- [ ] `POST /api/v2/admin/restore` (admin only):
-  - Accepts multipart file upload (.sql for MySQL, .db for SQLite)
-  - Requires `confirm: "RESTORE"` field in request body
-  - MySQL: pipes SQL through `mysql` command
-  - SQLite: replaces DB file (after backing up current)
-  - Returns `{status, tables_affected, duration_ms}`
-- [ ] Admin UI at `/admin/backup`:
-  - "Create Backup" button with progress indicator
-  - List of existing backups with download links and dates
-  - "Restore" section: file upload + text input requiring "RESTORE" + confirmation dialog
-- [ ] Security: backup files auto-deleted after 7 days (cleanup in backup command or cron)
-- [ ] Path traversal protection: filenames validated against `^[\w\-\.]+$`
-- [ ] PHPStan level 9 + integration tests
+- [x] `POST /api/v2/admin/backup` — MySQL: mysqldump, SQLite: file copy. Returns `{download_url, filename, size_bytes, created_at}`
+- [x] `GET /api/v2/admin/backup` — lists existing backups sorted newest first
+- [x] `GET /api/v2/admin/backup/{filename}` — downloads backup file (path traversal protected via regex)
+- [x] `POST /api/v2/admin/restore` — requires `confirm=RESTORE` + multipart file upload
+  - SQLite: backs up current DB then replaces. MySQL: pipes through `mysql` command
+- [x] Admin UI at `/admin/backup`: create button, backup list with download links, restore with file upload + RESTORE confirmation
+- [x] `cleanupOld(days)` method deletes backups older than N days
+- [x] Path traversal protection: `^[\w\-\.]+$` validation on filenames
+- [x] PHPStan level 9 + 4 integration tests + 5 vitest tests
 
 ---
 

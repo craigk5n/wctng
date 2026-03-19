@@ -153,6 +153,13 @@ services:
         arguments:
             $appSecret: '%env(APP_SECRET)%'
 
+    # Backup service
+    App\Service\BackupService:
+        arguments:
+            $pdo: '@pdo.connection'
+            $databaseUrl: '%env(DATABASE_URL)%'
+            $projectDir: '%kernel.project_dir%'
+
     # Dashboard controller needs PDO for stats queries
     App\Controller\Api\DashboardController:
         arguments:
