@@ -136,12 +136,12 @@ export function LayerPanel({ onLayersChange }: LayerPanelProps) {
       </div>
 
       {/* Add layer form */}
-      <form onSubmit={handleAdd} className="mt-2 flex items-center gap-1">
+      <form onSubmit={handleAdd} className="mt-2 space-y-1">
         <select
           value={newUser}
           onChange={(e) => setNewUser(e.target.value)}
           aria-label="Select user for new layer"
-          className="h-7 flex-1 rounded border border-input bg-background px-1 text-xs"
+          className="h-7 w-full rounded border border-input bg-background px-1 text-xs"
         >
           <option value="">Add user...</option>
           {availableUsers.map((u) => (
@@ -150,19 +150,21 @@ export function LayerPanel({ onLayersChange }: LayerPanelProps) {
             </option>
           ))}
         </select>
-        <input
-          type="color"
-          value={newColor}
-          onChange={(e) => setNewColor(e.target.value)}
-          aria-label="Color for new layer"
-          className="h-7 w-7 cursor-pointer rounded border border-input"
-        />
-        <button
-          type="submit"
-          className="h-7 rounded bg-primary px-2 text-xs text-primary-foreground hover:bg-primary/90"
-        >
-          Add
-        </button>
+        <div className="flex items-center gap-1">
+          <input
+            type="color"
+            value={newColor}
+            onChange={(e) => setNewColor(e.target.value)}
+            aria-label="Color for new layer"
+            className="h-7 w-7 flex-shrink-0 cursor-pointer rounded border border-input"
+          />
+          <button
+            type="submit"
+            className="h-7 flex-1 rounded bg-primary px-2 text-xs text-primary-foreground hover:bg-primary/90"
+          >
+            Add
+          </button>
+        </div>
       </form>
     </div>
   );
