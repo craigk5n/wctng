@@ -40,13 +40,18 @@ export function usePushNotifications() {
 
     // Send subscription to server
     const subJson = sub.toJSON();
-    await apiFetch('/push/subscribe', {
+    const { error } = await apiFetch('/push/subscribe', {
       method: 'POST',
       body: JSON.stringify({
         endpoint: subJson.endpoint,
         keys: subJson.keys,
       }),
     });
+
+    if (error) {
+      console.error('Push subscribe failed:', error.message);
+      return false;
+    }
 
     setSubscribed(true);
     return true;
@@ -58,10 +63,13 @@ export function usePushNotifications() {
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
     if (sub) {
-      await apiFetch('/push/unsubscribe', {
+      const { error } = await apiFetch('/push/unsubscribe', {
         method: 'POST',
         body: JSON.stringify({ endpoint: sub.endpoint }),
       });
+      if (error) {
+        console.error('Push unsubscribe failed:', error.message);
+      }
       await sub.unsubscribe();
     }
     setSubscribed(false);

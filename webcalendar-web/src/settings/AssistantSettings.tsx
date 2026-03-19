@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../api/client';
 import { useAuth } from '../auth/auth-context';
+import { useToast } from '../components/toast/ToastProvider';
 
 interface AssistantData {
   assistants: Array<{ login: string }>;
@@ -14,6 +15,7 @@ export function AssistantSettings() {
   const [data, setData] = useState<AssistantData>({ assistants: [], bosses: [] });
   const [loading, setLoading] = useState(true);
   const [newAssistant, setNewAssistant] = useState('');
+  const { toast } = useToast();
 
   const fetchData = useCallback(async () => {
     if (!login) return;
@@ -31,18 +33,28 @@ export function AssistantSettings() {
     const asst = newAssistant.trim();
     if (!asst || !login) return;
 
-    await apiFetch(`/users/${login}/assistants`, {
+    const { error } = await apiFetch(`/users/${login}/assistants`, {
       method: 'POST',
       body: JSON.stringify({ assistant: asst }),
     });
 
+    if (error) {
+      toast({ title: error.message ?? 'Failed to add assistant', variant: 'error' });
+      return;
+    }
+    toast({ title: `${asst} added as assistant`, variant: 'success' });
     setNewAssistant('');
     void fetchData();
   };
 
   const handleRemove = async (assistant: string) => {
     if (!login) return;
-    await apiFetch(`/users/${login}/assistants/${assistant}`, { method: 'DELETE' });
+    const { error } = await apiFetch(`/users/${login}/assistants/${assistant}`, { method: 'DELETE' });
+    if (error) {
+      toast({ title: error.message ?? 'Failed to remove assistant', variant: 'error' });
+      return;
+    }
+    toast({ title: `${assistant} removed`, variant: 'success' });
     void fetchData();
   };
 

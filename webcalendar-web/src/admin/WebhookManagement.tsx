@@ -49,10 +49,14 @@ export function WebhookManagement() {
   };
 
   const handleToggle = async (webhook: Webhook) => {
-    await apiFetch(`/admin/webhooks/${webhook.id}`, {
+    const { error } = await apiFetch(`/admin/webhooks/${webhook.id}`, {
       method: 'PUT',
       body: JSON.stringify({ enabled: !webhook.enabled }),
     });
+    if (error) {
+      toast({ title: error.message ?? 'Failed to update webhook', variant: 'error' });
+      return;
+    }
     void fetchWebhooks();
   };
 

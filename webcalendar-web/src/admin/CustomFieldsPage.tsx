@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../api/client';
+import { useToast } from '../components/toast/ToastProvider';
 
 interface CustomField {
   id: number;
@@ -20,6 +21,7 @@ export function CustomFieldsPage() {
   const [newType, setNewType] = useState('text');
   const [newRequired, setNewRequired] = useState(false);
   const [newOptions, setNewOptions] = useState('');
+  const { toast } = useToast();
   const [saving, setSaving] = useState(false);
 
   const fetchFields = useCallback(async () => {
@@ -66,7 +68,12 @@ export function CustomFieldsPage() {
 
   const handleDelete = async (id: number, name: string) => {
     if (!confirm(`Delete custom field "${name}"? This will remove all stored values for this field.`)) return;
-    await apiFetch(`/admin/custom-fields/${id}`, { method: 'DELETE' });
+    const { error } = await apiFetch(`/admin/custom-fields/${id}`, { method: 'DELETE' });
+    if (error) {
+      toast({ title: error.message ?? 'Failed to delete field', variant: 'error' });
+      return;
+    }
+    toast({ title: `Field "${name}" deleted`, variant: 'success' });
     void fetchFields();
   };
 

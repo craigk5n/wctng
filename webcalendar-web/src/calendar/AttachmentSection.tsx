@@ -93,7 +93,11 @@ export function AttachmentSection({ eventId, currentUserLogin, eventOwner }: Att
   }, [handleUpload]);
 
   const handleDelete = useCallback(async (attachmentId: number) => {
-    await apiFetch(`/events/${eventId}/attachments/${attachmentId}`, { method: 'DELETE' });
+    const { error } = await apiFetch(`/events/${eventId}/attachments/${attachmentId}`, { method: 'DELETE' });
+    if (error) {
+      setUploadError(error.message ?? 'Failed to delete attachment');
+      return;
+    }
     void fetchAttachments();
   }, [eventId, fetchAttachments]);
 

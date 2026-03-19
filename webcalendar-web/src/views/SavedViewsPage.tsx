@@ -76,26 +76,33 @@ export function SavedViewsPage() {
   }, [toast, fetchViews]);
 
   const handleActivate = useCallback(async (view: SavedView) => {
-    // Remove existing layers and add the view's users as layers
-    // First get current layers
+    let failed = false;
+
+    // Remove existing layers
     const { data: currentLayers } = await apiFetch<Array<{ id: number }>>('/layers');
     if (currentLayers) {
-      // Delete all existing layers
       for (const layer of currentLayers) {
-        await apiFetch(`/layers/${layer.id}`, { method: 'DELETE' });
+        const { error } = await apiFetch(`/layers/${layer.id}`, { method: 'DELETE' });
+        if (error) failed = true;
       }
     }
 
     // Add view's users as layers
     const colors = ['#3788d8', '#e53935', '#43a047', '#fb8c00', '#8e24aa', '#00acc1', '#6d4c41', '#546e7a'];
     for (let i = 0; i < view.user_logins.length; i++) {
-      await apiFetch('/layers', {
+      const { error } = await apiFetch('/layers', {
         method: 'POST',
         body: JSON.stringify({
           source_user: view.user_logins[i],
           color: colors[i % colors.length],
         }),
       });
+      if (error) failed = true;
+    }
+
+    if (failed) {
+      toast({ title: 'Some layers failed to update', variant: 'error' });
+      return;
     }
 
     toast({ title: `View "${view.name}" activated — reload calendar to see changes`, variant: 'success' });

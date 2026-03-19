@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../api/client';
+import { useToast } from '../components/toast/ToastProvider';
 
 interface Resource {
   login: string;
@@ -17,6 +18,7 @@ export function ResourceManagement() {
   const [newName, setNewName] = useState('');
   const [newPublic, setNewPublic] = useState(false);
   const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
 
   const fetchResources = useCallback(async () => {
     const { data } = await apiFetch<Resource[]>('/admin/resources');
@@ -33,7 +35,7 @@ export function ResourceManagement() {
     if (!newLogin.trim() || !newName.trim()) return;
     setSaving(true);
 
-    await apiFetch('/admin/resources', {
+    const { error } = await apiFetch('/admin/resources', {
       method: 'POST',
       body: JSON.stringify({
         login: newLogin.trim().toLowerCase().replace(/\s+/g, '-'),
@@ -43,6 +45,11 @@ export function ResourceManagement() {
     });
 
     setSaving(false);
+    if (error) {
+      toast({ title: error.message ?? 'Failed to create resource', variant: 'error' });
+      return;
+    }
+    toast({ title: 'Resource created', variant: 'success' });
     setNewLogin('');
     setNewName('');
     setNewPublic(false);
@@ -52,7 +59,12 @@ export function ResourceManagement() {
 
   const handleDelete = async (login: string) => {
     if (!confirm(`Delete resource "${login}"?`)) return;
-    await apiFetch(`/admin/resources/${login}`, { method: 'DELETE' });
+    const { error } = await apiFetch(`/admin/resources/${login}`, { method: 'DELETE' });
+    if (error) {
+      toast({ title: error.message ?? 'Failed to delete resource', variant: 'error' });
+      return;
+    }
+    toast({ title: 'Resource deleted', variant: 'success' });
     void fetchResources();
   };
 

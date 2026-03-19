@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../api/client';
+import { useToast } from '../components/toast/ToastProvider';
 
 interface ShareToken {
   id: number;
@@ -13,6 +14,7 @@ export function ShareSettings() {
   const [tokens, setTokens] = useState<ShareToken[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const fetchTokens = useCallback(async () => {
     const result = await apiFetch<ShareToken[]>('/calendars/share');
@@ -27,17 +29,25 @@ export function ShareSettings() {
   }, [fetchTokens]);
 
   const handleCreate = async () => {
-    const result = await apiFetch<ShareToken>('/calendars/share', {
+    const { data, error } = await apiFetch<ShareToken>('/calendars/share', {
       method: 'POST',
       body: JSON.stringify({}),
     });
-    if (result.data) {
-      void fetchTokens();
+    if (error || !data) {
+      toast({ title: error?.message ?? 'Failed to create share link', variant: 'error' });
+      return;
     }
+    toast({ title: 'Share link created', variant: 'success' });
+    void fetchTokens();
   };
 
   const handleDelete = async (token: string) => {
-    await apiFetch(`/calendars/share/${token}`, { method: 'DELETE' });
+    const { error } = await apiFetch(`/calendars/share/${token}`, { method: 'DELETE' });
+    if (error) {
+      toast({ title: error.message ?? 'Failed to revoke share link', variant: 'error' });
+      return;
+    }
+    toast({ title: 'Share link revoked', variant: 'success' });
     void fetchTokens();
   };
 
