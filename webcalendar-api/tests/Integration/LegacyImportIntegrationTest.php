@@ -308,6 +308,70 @@ final class LegacyImportIntegrationTest extends IntegrationTestCase
         $this->assertContains('cal_transp', $columnMap['webcal_entry']);
     }
 
+    public function testImports190SchemaWithoutCatStatus(): void
+    {
+        // v1.9.0 has categories WITHOUT cat_status, cat_icon_mime (added in 1.9.11)
+        // and users WITHOUT cal_api_token (added in 1.9.13)
+        $v190Pdo = new \PDO('sqlite::memory:');
+        $v190Pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+        $v190Pdo->exec('CREATE TABLE webcal_user (cal_login VARCHAR(60) PRIMARY KEY, cal_passwd VARCHAR(255), cal_firstname VARCHAR(60), cal_lastname VARCHAR(60), cal_email VARCHAR(75), cal_is_admin CHAR(1) DEFAULT "N", cal_enabled CHAR(1) DEFAULT "Y")');
+        $v190Pdo->exec('CREATE TABLE webcal_entry (cal_id INTEGER PRIMARY KEY AUTOINCREMENT, cal_create_by VARCHAR(60) NOT NULL, cal_date INT NOT NULL, cal_time INT DEFAULT -1, cal_duration INT DEFAULT 0, cal_name VARCHAR(80) NOT NULL, cal_description TEXT, cal_location VARCHAR(100), cal_url VARCHAR(100), cal_access CHAR(1) DEFAULT "P", cal_type CHAR(1) DEFAULT "E", cal_uid VARCHAR(255))');
+        $v190Pdo->exec('CREATE TABLE webcal_categories (cat_id INTEGER PRIMARY KEY AUTOINCREMENT, cat_name VARCHAR(80) NOT NULL, cat_color VARCHAR(8), cat_owner VARCHAR(25))');
+        $v190Pdo->exec('CREATE TABLE webcal_entry_user (cal_id INT, cal_login VARCHAR(60), cal_status CHAR(1), PRIMARY KEY (cal_id, cal_login))');
+        $v190Pdo->exec('CREATE TABLE webcal_user_pref (cal_login VARCHAR(60), cal_setting VARCHAR(50), cal_value VARCHAR(100), PRIMARY KEY (cal_login, cal_setting))');
+        $v190Pdo->exec('CREATE TABLE webcal_entry_repeats (cal_id INT PRIMARY KEY, cal_type VARCHAR(20))');
+        $v190Pdo->exec('CREATE TABLE webcal_entry_categories (cal_id INT, cat_id INT, cat_order INT, cat_owner VARCHAR(25), PRIMARY KEY (cal_id, cat_id, cat_order, cat_owner))');
+
+        $v190Pdo->exec("INSERT INTO webcal_user VALUES ('alice190', '\$2y\$10\$hash', 'Alice', 'V190', 'alice190@example.com', 'N', 'Y')");
+        $v190Pdo->exec("INSERT INTO webcal_entry (cal_create_by, cal_date, cal_time, cal_duration, cal_name, cal_url) VALUES ('alice190', 20260801, 90000, 30, 'v1.9.0 Event', 'http://example.com')");
+        // Note: no cat_status column — should not fail
+        $v190Pdo->exec("INSERT INTO webcal_categories VALUES (1, 'Meetings', '#FF0000', 'alice190')");
+
+        $stats = $this->service->import($v190Pdo);
+        $this->assertSame(1, $stats['users']['imported']);
+        $this->assertSame(1, $stats['events']['imported']);
+        $this->assertSame(1, $stats['categories']['imported']);
+
+        // Verify cat_status was NOT in the schema probe
+        $columnMap = $this->service->getColumnMap();
+        $this->assertNotContains('cat_status', $columnMap['webcal_categories']);
+        // Verify cal_api_token was NOT in the schema probe
+        $this->assertNotContains('cal_api_token', $columnMap['webcal_user']);
+    }
+
+    public function testImports1911SchemaWithCatStatus(): void
+    {
+        // v1.9.11+ added cat_status, cat_icon_mime, cat_icon_blob to webcal_categories
+        $v1911Pdo = new \PDO('sqlite::memory:');
+        $v1911Pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+        $v1911Pdo->exec('CREATE TABLE webcal_user (cal_login VARCHAR(60) PRIMARY KEY, cal_passwd VARCHAR(255), cal_firstname VARCHAR(60), cal_lastname VARCHAR(60), cal_email VARCHAR(75), cal_is_admin CHAR(1) DEFAULT "N", cal_enabled CHAR(1) DEFAULT "Y")');
+        $v1911Pdo->exec('CREATE TABLE webcal_entry (cal_id INTEGER PRIMARY KEY AUTOINCREMENT, cal_create_by VARCHAR(60) NOT NULL, cal_date INT NOT NULL, cal_time INT DEFAULT -1, cal_duration INT DEFAULT 0, cal_name VARCHAR(80) NOT NULL, cal_description TEXT, cal_location VARCHAR(100), cal_url VARCHAR(255), cal_access CHAR(1) DEFAULT "P", cal_type CHAR(1) DEFAULT "E", cal_uid VARCHAR(255), cal_status VARCHAR(20))');
+        $v1911Pdo->exec('CREATE TABLE webcal_categories (cat_id INTEGER PRIMARY KEY AUTOINCREMENT, cat_name VARCHAR(80) NOT NULL, cat_color VARCHAR(8), cat_owner VARCHAR(25) NOT NULL DEFAULT "", cat_status CHAR(1) DEFAULT "A", cat_icon_mime VARCHAR(32), cat_icon_blob BLOB)');
+        $v1911Pdo->exec('CREATE TABLE webcal_entry_user (cal_id INT, cal_login VARCHAR(60), cal_status CHAR(1), PRIMARY KEY (cal_id, cal_login))');
+        $v1911Pdo->exec('CREATE TABLE webcal_user_pref (cal_login VARCHAR(60), cal_setting VARCHAR(50), cal_value VARCHAR(100), PRIMARY KEY (cal_login, cal_setting))');
+        $v1911Pdo->exec('CREATE TABLE webcal_entry_repeats (cal_id INT PRIMARY KEY, cal_type VARCHAR(20))');
+        $v1911Pdo->exec('CREATE TABLE webcal_entry_categories (cal_id INT, cat_id INT, cat_order INT, cat_owner VARCHAR(25), PRIMARY KEY (cal_id, cat_id, cat_order, cat_owner))');
+
+        $v1911Pdo->exec("INSERT INTO webcal_user VALUES ('bob1911', '\$2y\$10\$hash', 'Bob', 'V1911', 'bob1911@example.com', 'N', 'Y')");
+        $v1911Pdo->exec("INSERT INTO webcal_entry (cal_create_by, cal_date, cal_time, cal_duration, cal_name) VALUES ('bob1911', 20260901, 100000, 60, 'v1.9.11 Event')");
+        // Active category
+        $v1911Pdo->exec("INSERT INTO webcal_categories (cat_name, cat_color, cat_owner, cat_status) VALUES ('Active Cat', '#00FF00', '', 'A')");
+        // Disabled category
+        $v1911Pdo->exec("INSERT INTO webcal_categories (cat_name, cat_color, cat_owner, cat_status) VALUES ('Disabled Cat', '#999999', '', 'D')");
+
+        $stats = $this->service->import($v1911Pdo);
+        $this->assertSame(1, $stats['users']['imported']);
+        $this->assertSame(1, $stats['events']['imported']);
+        // Both categories imported (disabled one too, with enabled=false)
+        $this->assertSame(2, $stats['categories']['imported']);
+
+        // Verify cat_status WAS detected
+        $columnMap = $this->service->getColumnMap();
+        $this->assertContains('cat_status', $columnMap['webcal_categories']);
+    }
+
     public function testHandlesMinimalSchema(): void
     {
         // Create a minimal legacy DB without optional columns

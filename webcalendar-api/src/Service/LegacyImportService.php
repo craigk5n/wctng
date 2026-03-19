@@ -213,6 +213,12 @@ final class LegacyImportService
         if ($this->hasColumn('webcal_categories', 'cat_color')) {
             $columns[] = 'cat_color';
         }
+        if ($this->hasColumn('webcal_categories', 'cat_owner')) {
+            $columns[] = 'cat_owner';
+        }
+        if ($this->hasColumn('webcal_categories', 'cat_status')) {
+            $columns[] = 'cat_status';
+        }
 
         try {
             $stmt = $legacyPdo->query('SELECT ' . implode(', ', $columns) . ' FROM webcal_categories');
@@ -245,7 +251,10 @@ final class LegacyImportService
 
             try {
                 $color = isset($row['cat_color']) && \is_string($row['cat_color']) && $row['cat_color'] !== '' ? $row['cat_color'] : null;
-                $category = new \WebCalendar\Core\Domain\Entity\Category(0, null, $name, $color);
+                $owner = isset($row['cat_owner']) && \is_string($row['cat_owner']) && $row['cat_owner'] !== '' ? $row['cat_owner'] : null;
+                // cat_status: 'A' = active (default), anything else = disabled (added in 1.9.11)
+                $enabled = !isset($row['cat_status']) || $row['cat_status'] === 'A';
+                $category = new \WebCalendar\Core\Domain\Entity\Category(0, $owner, $name, $color, $enabled);
                 $catService->createCategory($category, $adminUser);
                 $this->stats['categories']['imported']++;
             } catch (\Throwable $e) {
