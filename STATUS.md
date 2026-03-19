@@ -696,7 +696,7 @@ P9-E4-S2 (Accessibility) — independent
 | P10-E2-S2 | E2E: Admin CRUD Tests | DONE |
 | P10-E2-S3 | E2E: Settings Form Tests | DONE |
 | P10-E2-S4 | E2E: Multi-User & Collaboration Tests | DONE |
-| P10-E2-S5 | E2E: Import, Export, Search & Poll Tests | TODO |
+| P10-E2-S5 | E2E: Import, Export, Search & Poll Tests | DONE |
 | P10-E2-S6 | E2E: Error Handling & Edge Case Tests | TODO |
 
 ---
