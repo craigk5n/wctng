@@ -31,21 +31,34 @@ export function WorkingLocationWidget() {
   }, [login, today]);
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="group relative flex items-center gap-1" role="radiogroup" aria-label="Working location for today">
       {LOCATIONS.map((loc) => (
         <button
           key={loc.value}
           onClick={() => void handleChange(loc.value)}
-          title={loc.label}
-          className={`rounded px-1.5 py-0.5 text-xs transition-colors ${
+          role="radio"
+          aria-checked={location === loc.value}
+          aria-label={loc.label}
+          className={`relative rounded px-1.5 py-0.5 text-xs transition-colors ${
             location === loc.value
-              ? 'bg-primary/10 text-primary font-medium'
+              ? 'bg-primary/10 text-primary font-medium ring-1 ring-primary/30'
               : 'text-muted-foreground hover:bg-accent'
           }`}
         >
           {loc.icon}
+          {/* Tooltip */}
+          <span className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-popover px-2 py-1 text-[11px] font-normal text-popover-foreground shadow-md border border-border opacity-0 transition-opacity group-hover:opacity-0 hover:!opacity-100 peer-hover:opacity-0"
+            style={{ opacity: 0 }}
+            aria-hidden="true"
+          />
         </button>
       ))}
+      {/* Group-level tooltip showing current + explanation */}
+      <span className="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-popover px-2 py-1 text-[11px] text-popover-foreground shadow-md border border-border opacity-0 transition-opacity group-hover:opacity-100"
+        aria-hidden="true"
+      >
+        Working location: {LOCATIONS.find((l) => l.value === location)?.label ?? 'Office'}
+      </span>
     </div>
   );
 }

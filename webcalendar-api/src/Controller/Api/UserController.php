@@ -280,6 +280,59 @@ final class UserController
         return ApiResponse::success(['message' => 'Preferences saved']);
     }
 
+    #[Route('/api/v2/users/{login}/location', name: 'api_users_get_location', methods: ['GET'])]
+    public function getLocation(string $login, Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
+    {
+        if ($user === null) {
+            return ApiResponse::error(401, 'Authentication required');
+        }
+
+        $date = $request->query->getString('date', date('Y-m-d'));
+        $prefKey = "working_location_{$date}";
+
+        $prefs = $this->coreServiceFactory->getUserRepository()->getPreferences($login);
+        $location = 'office'; // default
+        foreach ($prefs as $pref) {
+            if ($pref->key() === $prefKey) {
+                $location = $pref->value();
+                break;
+            }
+        }
+
+        return ApiResponse::success(['location' => $location, 'date' => $date]);
+    }
+
+    #[Route('/api/v2/users/{login}/location', name: 'api_users_set_location', methods: ['PUT'])]
+    public function setLocation(string $login, Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
+    {
+        if ($user === null) {
+            return ApiResponse::error(401, 'Authentication required');
+        }
+
+        // Only own location
+        if ($user->getUserIdentifier() !== $login && !$user->getCoreUser()->isAdmin()) {
+            return ApiResponse::error(403, 'Cannot set another user\'s location');
+        }
+
+        $decoded = json_decode($request->getContent(), true);
+        if (!\is_array($decoded)) {
+            return ApiResponse::error(400, 'Invalid JSON body');
+        }
+
+        /** @var array{date?: string, location?: string} $data */
+        $data = $decoded;
+        $date = $data['date'] ?? date('Y-m-d');
+        $location = $data['location'] ?? 'office';
+
+        $prefKey = "working_location_{$date}";
+        $this->coreServiceFactory->getUserRepository()->savePreference(
+            $login,
+            new \WebCalendar\Core\Domain\ValueObject\UserPreference($prefKey, $location),
+        );
+
+        return ApiResponse::success(['location' => $location, 'date' => $date]);
+    }
+
     /**
      * @return array<string, mixed>
      */

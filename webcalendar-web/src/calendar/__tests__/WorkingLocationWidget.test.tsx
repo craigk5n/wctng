@@ -19,13 +19,13 @@ describe('WorkingLocationWidget', () => {
     });
   });
 
-  it('renders location toggle buttons', async () => {
+  it('renders location toggle buttons with labels', async () => {
     render(<WorkingLocationWidget />);
 
     await waitFor(() => {
-      expect(screen.getByTitle('Office')).toBeInTheDocument();
-      expect(screen.getByTitle('Remote')).toBeInTheDocument();
-      expect(screen.getByTitle('Traveling')).toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: 'Office' })).toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: 'Remote' })).toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: 'Traveling' })).toBeInTheDocument();
     });
   });
 
@@ -33,8 +33,16 @@ describe('WorkingLocationWidget', () => {
     render(<WorkingLocationWidget />);
 
     await waitFor(() => {
-      const officeBtn = screen.getByTitle('Office');
-      expect(officeBtn.className).toContain('text-primary');
+      const officeBtn = screen.getByRole('radio', { name: 'Office' });
+      expect(officeBtn).toHaveAttribute('aria-checked', 'true');
+    });
+  });
+
+  it('shows tooltip on hover', async () => {
+    render(<WorkingLocationWidget />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/working location/i)).toBeInTheDocument();
     });
   });
 
@@ -42,11 +50,10 @@ describe('WorkingLocationWidget', () => {
     const user = userEvent.setup();
     render(<WorkingLocationWidget />);
 
-    await waitFor(() => expect(screen.getByTitle('Remote')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Remote' })).toBeInTheDocument());
 
-    await user.click(screen.getByTitle('Remote'));
+    await user.click(screen.getByRole('radio', { name: 'Remote' }));
 
-    // Should have made PUT call
     const putCalls = mockFetch.mock.calls.filter(
       (c) => typeof c[0] === 'string' && c[0].includes('location') && c[1]?.method === 'PUT'
     );
