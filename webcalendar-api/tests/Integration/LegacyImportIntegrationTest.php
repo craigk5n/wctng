@@ -223,6 +223,91 @@ final class LegacyImportIntegrationTest extends IntegrationTestCase
         $this->assertContains('cal_uid', $columnMap['webcal_entry']);
     }
 
+    public function testImports19xSchemaWithAllColumns(): void
+    {
+        // Simulate a 1.9.x schema which has ALL columns including cal_uid, cal_url, cal_sequence, etc.
+        $v19Pdo = new \PDO('sqlite::memory:');
+        $v19Pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+        $v19Pdo->exec('
+            CREATE TABLE webcal_user (
+                cal_login VARCHAR(60) PRIMARY KEY,
+                cal_passwd VARCHAR(255),
+                cal_firstname VARCHAR(60),
+                cal_lastname VARCHAR(60),
+                cal_email VARCHAR(75),
+                cal_is_admin CHAR(1) DEFAULT "N",
+                cal_enabled CHAR(1) DEFAULT "Y",
+                cal_telephone VARCHAR(60),
+                cal_address VARCHAR(75),
+                cal_title VARCHAR(75),
+                cal_birthday INT,
+                cal_last_login INT
+            )
+        ');
+
+        $v19Pdo->exec('
+            CREATE TABLE webcal_entry (
+                cal_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cal_group_id INT,
+                cal_ext_for_id INT,
+                cal_create_by VARCHAR(60) NOT NULL,
+                cal_date INT NOT NULL,
+                cal_time INT DEFAULT -1,
+                cal_mod_date INT,
+                cal_mod_time INT,
+                cal_duration INT DEFAULT 0,
+                cal_due_date INT,
+                cal_due_time INT,
+                cal_location VARCHAR(100),
+                cal_url VARCHAR(255),
+                cal_completed INT,
+                cal_priority INT DEFAULT 5,
+                cal_type CHAR(1) DEFAULT "E",
+                cal_access CHAR(1) DEFAULT "P",
+                cal_name VARCHAR(80) NOT NULL,
+                cal_description TEXT,
+                cal_uid VARCHAR(255),
+                cal_sequence INT DEFAULT 0,
+                cal_transp VARCHAR(11) DEFAULT "OPAQUE",
+                cal_status VARCHAR(20)
+            )
+        ');
+
+        $v19Pdo->exec('CREATE TABLE webcal_entry_user (cal_id INT, cal_login VARCHAR(60), cal_status CHAR(1), PRIMARY KEY (cal_id, cal_login))');
+        $v19Pdo->exec('CREATE TABLE webcal_categories (cat_id INTEGER PRIMARY KEY AUTOINCREMENT, cat_name VARCHAR(80), cat_color VARCHAR(16), cat_owner VARCHAR(60))');
+        $v19Pdo->exec('CREATE TABLE webcal_entry_categories (cal_id INT, cat_id INT, cat_order INT, cat_owner VARCHAR(60), PRIMARY KEY (cal_id, cat_id, cat_order, cat_owner))');
+        $v19Pdo->exec('CREATE TABLE webcal_user_pref (cal_login VARCHAR(60), cal_setting VARCHAR(50), cal_value VARCHAR(100), PRIMARY KEY (cal_login, cal_setting))');
+        $v19Pdo->exec('CREATE TABLE webcal_entry_repeats (cal_id INT PRIMARY KEY, cal_type VARCHAR(20), cal_frequency INT, cal_end INT, cal_byday VARCHAR(100), cal_bymonth VARCHAR(50), cal_bymonthday VARCHAR(100), cal_count INT)');
+
+        // Seed with 1.9.x-style data
+        $v19Pdo->exec("INSERT INTO webcal_user VALUES ('craig', '\$2y\$10\$hash', 'Craig', 'Knudsen', 'craig@example.com', 'Y', 'Y', '', '', '', NULL, NULL)");
+        $v19Pdo->exec("INSERT INTO webcal_entry (cal_create_by, cal_date, cal_time, cal_duration, cal_name, cal_description, cal_location, cal_url, cal_access, cal_type, cal_uid, cal_sequence, cal_status) VALUES ('craig', 20260701, 140000, 60, 'v1.9 Meeting', 'Full 1.9.x event', 'Conference Room B', 'https://meet.example.com', 'P', 'E', 'v19-meeting@webcalendar', 3, NULL)");
+        $v19Pdo->exec("INSERT INTO webcal_categories VALUES (1, 'Business', '#0066cc', NULL)");
+        $v19Pdo->exec("INSERT INTO webcal_user_pref VALUES ('craig', 'STARTVIEW', 'month')");
+
+        $stats = $this->service->import($v19Pdo);
+
+        $this->assertSame(1, $stats['users']['imported']);
+        $this->assertSame(1, $stats['events']['imported']);
+        $this->assertSame(1, $stats['categories']['imported']);
+
+        // Verify the event preserved its UID
+        $event = $this->factory->getEventRepository()->findByUid('v19-meeting@webcalendar');
+        $this->assertNotNull($event);
+        $this->assertSame('v1.9 Meeting', $event->name());
+        $this->assertSame('Conference Room B', $event->location());
+        $this->assertSame('Full 1.9.x event', $event->description());
+
+        // Verify schema detected all columns
+        $columnMap = $this->service->getColumnMap();
+        $this->assertContains('cal_uid', $columnMap['webcal_entry']);
+        $this->assertContains('cal_url', $columnMap['webcal_entry']);
+        $this->assertContains('cal_sequence', $columnMap['webcal_entry']);
+        $this->assertContains('cal_status', $columnMap['webcal_entry']);
+        $this->assertContains('cal_transp', $columnMap['webcal_entry']);
+    }
+
     public function testHandlesMinimalSchema(): void
     {
         // Create a minimal legacy DB without optional columns

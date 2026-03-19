@@ -259,7 +259,8 @@ final class LegacyImportService
     {
         // Build SELECT with available columns
         $columns = ['cal_id', 'cal_name', 'cal_date', 'cal_create_by', 'cal_duration'];
-        $optional = ['cal_time', 'cal_description', 'cal_location', 'cal_access', 'cal_type', 'cal_uid', 'cal_priority', 'cal_status'];
+        $optional = ['cal_time', 'cal_description', 'cal_location', 'cal_access', 'cal_type', 'cal_uid',
+            'cal_priority', 'cal_status', 'cal_url', 'cal_sequence', 'cal_mod_date', 'cal_mod_time'];
 
         foreach ($optional as $col) {
             if ($this->hasColumn('webcal_entry', $col)) {
