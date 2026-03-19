@@ -3,6 +3,9 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CategoryFilter } from '../CategoryFilter';
 
+// Note: CategoryFilter is the inline component used by CategoryFilterPopover internally.
+// CategoryFilterPopover wraps it with open/close behavior and is used in the toolbar.
+
 const mockCategories = [
   { id: 1, name: 'Work', color: '#3788d8', is_global: true, owner: null },
   { id: 2, name: 'Personal', color: '#43a047', is_global: false, owner: 'admin' },

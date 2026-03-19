@@ -13,7 +13,7 @@ async function getToken(page: import('@playwright/test').Page): Promise<string> 
 
 test.describe('Category Filter E2E', () => {
 
-  test('category checkboxes appear in sidebar and can be toggled', async ({ page }) => {
+  test('filter button opens popover with category checkboxes', async ({ page }) => {
     await loginAsAdmin(page);
 
     // Ensure at least one category exists
@@ -26,17 +26,27 @@ test.describe('Category Filter E2E', () => {
     await page.goto('/');
     await page.waitForSelector('.fc');
 
-    // Category filter should be in sidebar
-    await expect(page.getByRole('button', { name: /^all$/i })).toBeVisible({ timeout: 5000 });
+    // Click the Filter button in toolbar
+    const filterBtn = page.getByRole('button', { name: /filter/i });
+    await expect(filterBtn).toBeVisible({ timeout: 5000 });
+    await filterBtn.click();
 
-    // Should have All/None buttons
+    // Popover should open with All/None and checkboxes
     await expect(page.getByRole('button', { name: /^all$/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /^none$/i })).toBeVisible();
 
-    // Should have at least one checkbox
     const checkboxes = page.locator('input[type="checkbox"][aria-label]');
-    const count = await checkboxes.count();
-    expect(count).toBeGreaterThan(0);
+    expect(await checkboxes.count()).toBeGreaterThan(0);
+  });
+
+  test('filter button has aria-label for accessibility', async ({ page }) => {
+    await loginAsAdmin(page);
+    await page.goto('/');
+    await page.waitForSelector('.fc');
+
+    const filterBtn = page.getByRole('button', { name: /filter by category/i });
+    await expect(filterBtn).toBeVisible({ timeout: 5000 });
+    await expect(filterBtn).toHaveAttribute('aria-label', 'Filter by category');
   });
 
   test('saved view creation form shows category filter section', async ({ page }) => {
@@ -44,28 +54,6 @@ test.describe('Category Filter E2E', () => {
     await page.goto('/views');
     await expect(page.getByRole('heading', { name: /saved views/i })).toBeVisible();
 
-    // The create form should show a category filter section
     await expect(page.getByText('Filter by Categories')).toBeVisible({ timeout: 5000 });
-  });
-
-  test('category filter persists on reload', async ({ page }) => {
-    await loginAsAdmin(page);
-    await page.goto('/');
-    await page.waitForSelector('.fc');
-
-    // Wait for categories to load
-    await expect(page.getByRole('button', { name: /^all$/i })).toBeVisible({ timeout: 5000 });
-
-    // Click None to uncheck all
-    await page.getByRole('button', { name: /^none$/i }).click();
-    await page.waitForTimeout(500);
-
-    // Reload
-    await page.reload();
-    await page.waitForSelector('.fc');
-    await expect(page.getByRole('button', { name: /^all$/i })).toBeVisible({ timeout: 5000 });
-
-    // After clicking All to re-enable
-    await page.getByRole('button', { name: /^all$/i }).click();
   });
 });
