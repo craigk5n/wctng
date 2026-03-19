@@ -693,7 +693,7 @@ P9-E4-S2 (Accessibility) — independent
 | Story | Title | Status |
 |-------|-------|--------|
 | P10-E2-S1 | Fix Silent API Error Handling | DONE |
-| P10-E2-S2 | E2E: Admin CRUD Tests | TODO |
+| P10-E2-S2 | E2E: Admin CRUD Tests | DONE |
 | P10-E2-S3 | E2E: Settings Form Tests | TODO |
 | P10-E2-S4 | E2E: Multi-User & Collaboration Tests | TODO |
 | P10-E2-S5 | E2E: Import, Export, Search & Poll Tests | TODO |
