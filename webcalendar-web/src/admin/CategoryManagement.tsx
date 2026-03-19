@@ -72,6 +72,19 @@ export function CategoryManagement() {
     }
   };
 
+  const handleToggleGlobal = async (cat: Category) => {
+    const { error } = await apiFetch(`/categories/${cat.id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ is_global: !cat.is_global }),
+    });
+    if (error) {
+      toast({ title: error.message ?? 'Failed to update', variant: 'error' });
+      return;
+    }
+    toast({ title: cat.is_global ? 'Category is now personal' : 'Category is now global', variant: 'success' });
+    void fetchCategories();
+  };
+
   const startEditing = (cat: Category) => {
     setEditingId(cat.id);
     setEditName(cat.name);
@@ -220,6 +233,14 @@ export function CategoryManagement() {
 
               {editingId !== cat.id && (
                 <div className="flex gap-1">
+                  {isAdmin && (
+                    <button
+                      onClick={() => void handleToggleGlobal(cat)}
+                      className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                    >
+                      {cat.is_global ? 'Make Personal' : 'Make Global'}
+                    </button>
+                  )}
                   <button
                     onClick={() => startEditing(cat)}
                     className="rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground"

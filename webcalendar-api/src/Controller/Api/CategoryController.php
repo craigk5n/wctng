@@ -111,8 +111,26 @@ final class CategoryController
         /** @var array<string, mixed> $data */
         $data = $decoded;
 
+        $coreUser = $user->getCoreUser();
         $name = isset($data['name']) && \is_string($data['name']) ? $data['name'] : $existing->name();
         $color = isset($data['color']) && \is_string($data['color']) ? $data['color'] : $existing->color();
+
+        // Handle is_global promotion/demotion (admin only)
+        if (isset($data['is_global'])) {
+            if (!$coreUser->isAdmin()) {
+                return ApiResponse::error(403, 'Only admins can change category visibility');
+            }
+
+            $newOwner = $data['is_global'] === true ? null : $coreUser->login();
+
+            if ($newOwner !== $existing->owner()) {
+                // Owner change requires delete + re-create (core uses composite key cat_id + cat_owner)
+                $this->coreServiceFactory->getCategoryRepository()->delete($id);
+                $promoted = new Category($id, $newOwner, $name, $color, $existing->isEnabled());
+                $this->coreServiceFactory->getCategoryRepository()->save($promoted);
+                return ApiResponse::success(self::categoryToArray($promoted));
+            }
+        }
 
         $updated = new Category(
             id: $id,
@@ -122,7 +140,6 @@ final class CategoryController
             enabled: $existing->isEnabled(),
         );
 
-        $coreUser = $user->getCoreUser();
         $this->coreServiceFactory->getCategoryService()->updateCategory($updated, $coreUser);
 
         return ApiResponse::success(self::categoryToArray($updated));
