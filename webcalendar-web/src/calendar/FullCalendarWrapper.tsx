@@ -38,10 +38,11 @@ interface FullCalendarWrapperProps {
   onEventDrop?: (info: EventDropInfo) => void;
   onEventResize?: (info: EventDropInfo) => void;
   activeLayers?: LayerVisibility[];
+  activeCategoryIds?: number[] | null;
 }
 
 export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCalendarWrapperProps>(
-  function FullCalendarWrapper({ initialView = 'dayGridMonth', currentUserLogin, onEventClick, onTaskClick, onJournalClick, onDateSelect, onEventDrop, onEventResize, activeLayers }, ref) {
+  function FullCalendarWrapper({ initialView = 'dayGridMonth', currentUserLogin, onEventClick, onTaskClick, onJournalClick, onDateSelect, onEventDrop, onEventResize, activeLayers, activeCategoryIds }, ref) {
   const [events, setEvents] = useState<EventInput[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const calendarRef = useRef<FullCalendar>(null);
@@ -208,15 +209,21 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
         return { ...event, backgroundColor: color, borderColor: color };
       });
 
-      const filtered: EventInput[] = [];
-      for (const e of coloredEvents) {
-        if (e !== null) filtered.push(e);
+      // Apply category filter
+      let filtered: EventInput[] = coloredEvents.filter((e) => e !== null) as EventInput[];
+      if (activeCategoryIds !== null && activeCategoryIds !== undefined) {
+        const activeSet = new Set(activeCategoryIds);
+        filtered = filtered.filter((e) => {
+          const catIds = (e.extendedProps?.categories as number[]) ?? [];
+          // Show uncategorized events (no categories) always, or if any category matches
+          return catIds.length === 0 || catIds.some((id) => activeSet.has(id));
+        });
       }
       setEvents(filtered);
     } finally {
       setIsLoading(false);
     }
-  }, [categories, hasVisibleLayers, layerColorMap]);
+  }, [categories, hasVisibleLayers, layerColorMap, activeCategoryIds]);
 
   useImperativeHandle(ref, () => ({
     refetchEvents: () => {

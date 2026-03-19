@@ -41,6 +41,7 @@ export function CalendarPage() {
   );
   const [defaultView, setDefaultView] = useState('dayGridMonth');
   const [activeLayers, setActiveLayers] = useState<LayerVisibility[]>([]);
+  const [activeCategoryIds, setActiveCategoryIds] = useState<number[] | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -57,6 +58,26 @@ export function CalendarPage() {
       }
     })();
   }, [user?.login]);
+
+  // Listen for category filter changes from sidebar
+  useEffect(() => {
+    const handler = () => {
+      const stored = localStorage.getItem('wctng_category_filter');
+      if (stored) {
+        try {
+          setActiveCategoryIds(JSON.parse(stored) as number[]);
+        } catch { /* ignore */ }
+      }
+      calendarRef.current?.refetchEvents();
+    };
+    window.addEventListener('category-filter-change', handler);
+    // Load initial filter
+    const stored = localStorage.getItem('wctng_category_filter');
+    if (stored) {
+      try { setActiveCategoryIds(JSON.parse(stored) as number[]); } catch { /* ignore */ }
+    }
+    return () => window.removeEventListener('category-filter-change', handler);
+  }, []);
 
   // Handle URL search params (from search bar navigation)
   useEffect(() => {
@@ -393,6 +414,7 @@ export function CalendarPage() {
             onEventDrop={handleEventDrop}
             onEventResize={handleEventDrop}
             activeLayers={activeLayers}
+            activeCategoryIds={activeCategoryIds}
           />
         </div>
         <div className="hidden flex-shrink-0 md:block">

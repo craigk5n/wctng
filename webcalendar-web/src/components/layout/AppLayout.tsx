@@ -8,6 +8,7 @@ import { LanguageSelector } from '../i18n/LanguageSelector';
 import { useTenant } from '../../hooks/useTenant';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { CustomHeader, CustomTrailer, CustomCssInjector } from './CustomHtmlInjector';
+import { CategoryFilter } from '../../calendar/CategoryFilter';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
@@ -103,6 +104,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
         <nav className="space-y-1 p-2">
           {renderNavLinks(mainNav, undefined, sidebarCollapsed)}
+          {!sidebarCollapsed && (
+            <div className="pt-2 px-2">
+              <CategoryFilter onChange={() => {
+                // Dispatch custom event so CalendarPage can react
+                window.dispatchEvent(new CustomEvent('category-filter-change'));
+              }} />
+            </div>
+          )}
           {!sidebarCollapsed && (
             <div className="pt-2">
               <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Settings</p>

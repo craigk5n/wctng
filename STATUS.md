@@ -856,7 +856,7 @@ P9-E4-S2 (Accessibility) — independent
 
 | Story | Title | Status |
 |-------|-------|--------|
-| P10-E3-S1 | Category Sidebar Filter | TODO |
+| P10-E3-S1 | Category Sidebar Filter | DONE |
 | P10-E3-S2 | Category Filter in Saved Views | TODO |
 | P10-E3-S3 | Auto-Create Categories on Import | TODO |
 | P10-E3-S4 | Promote Category to Global | TODO |
