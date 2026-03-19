@@ -4,6 +4,7 @@ import { ParticipantList } from './ParticipantList';
 import { ParticipantResponse } from './ParticipantResponse';
 import { RichTextDisplay } from '../components/editor/RichTextDisplay';
 import { AttachmentSection } from './AttachmentSection';
+import { CommentSection } from './CommentSection';
 import { rruleToHuman } from './RecurrenceEditor';
 
 const ACCESS_LABELS: Record<string, string> = {
@@ -179,6 +180,9 @@ export function EventDetailDialog({
             eventOwner={event.created_by}
           />
         </div>
+
+        {/* Comments */}
+        <CommentSection eventId={event.id} currentUserLogin={currentUserLogin} />
 
         {/* Participant response (Accept/Reject) */}
         {currentUserParticipant && onAccept && onReject && (

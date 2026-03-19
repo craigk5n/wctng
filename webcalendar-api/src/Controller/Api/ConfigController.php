@@ -23,6 +23,8 @@ final class ConfigController
         'DISABLE_PARTICIPANTS_FIELD' => 'N',
         'DISABLE_TASKS' => 'N',
         'DISABLE_JOURNALS' => 'N',
+        'DISABLE_ATTACHMENTS' => 'N',
+        'DISABLE_COMMENTS' => 'N',
         'ENABLE_SEO_PAGES' => 'N',
         'ENABLE_GEOCODING' => 'Y',
         'ENABLE_EMAIL_REMINDERS' => 'Y',

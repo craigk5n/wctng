@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiFetch, getApiBaseUrl, getAuthHeaders } from '../api/client';
+import { useFeatureFlags } from '../hooks/useFeatureFlags';
 
 interface Attachment {
   id: number;
@@ -27,6 +28,7 @@ function isImage(mimeType: string): boolean {
 }
 
 export function AttachmentSection({ eventId, currentUserLogin, eventOwner }: AttachmentSectionProps) {
+  const flags = useFeatureFlags();
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -101,6 +103,7 @@ export function AttachmentSection({ eventId, currentUserLogin, eventOwner }: Att
     void fetchAttachments();
   }, [eventId, fetchAttachments]);
 
+  if (flags.DISABLE_ATTACHMENTS === 'Y') return null;
   if (loading) return null;
 
   return (

@@ -59,6 +59,18 @@ const FEATURES: FeatureToggle[] = [
     inverted: false,
   },
   {
+    key: 'DISABLE_ATTACHMENTS',
+    label: 'Event Attachments',
+    description: 'Allow users to attach files to events.',
+    inverted: true,
+  },
+  {
+    key: 'DISABLE_COMMENTS',
+    label: 'Event Comments',
+    description: 'Allow participants to add comments to events.',
+    inverted: true,
+  },
+  {
     key: 'ENABLE_GEOCODING',
     label: 'Location Geocoding',
     description: 'Automatically geocode event locations to show maps on public event pages.',

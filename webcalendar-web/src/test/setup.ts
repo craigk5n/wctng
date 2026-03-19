@@ -37,6 +37,8 @@ vi.mock('../hooks/useFeatureFlags', () => ({
     ENABLE_GEOCODING: 'Y',
     DISABLE_TASKS: 'N',
     DISABLE_JOURNALS: 'N',
+    DISABLE_ATTACHMENTS: 'N',
+    DISABLE_COMMENTS: 'N',
     ENABLE_EMAIL_REMINDERS: 'Y',
     ENABLE_DAILY_AGENDA: 'N',
   }),

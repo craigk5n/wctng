@@ -167,6 +167,11 @@ services:
             $appSecret: '%env(APP_SECRET)%'
             $environment: '%kernel.environment%'
 
+    # Comment controller needs PDO
+    App\Controller\Api\CommentController:
+        arguments:
+            $pdo: '@pdo.connection'
+
     # Dashboard controller needs PDO for stats queries
     App\Controller\Api\DashboardController:
         arguments:
