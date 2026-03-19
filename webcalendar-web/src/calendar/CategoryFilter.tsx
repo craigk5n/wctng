@@ -45,11 +45,12 @@ export function CategoryFilter({ onChange }: CategoryFilterProps) {
   }, []);
 
   // Notify parent when filter changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- onChange excluded to prevent infinite loops
   useEffect(() => {
     if (loaded) {
       onChange(Array.from(activeIds));
     }
-  }, [activeIds, loaded, onChange]);
+  }, [activeIds, loaded]);
 
   // Persist to localStorage
   const persist = useCallback((ids: Set<number>) => {

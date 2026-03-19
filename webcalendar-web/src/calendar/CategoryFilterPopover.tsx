@@ -42,9 +42,10 @@ export function CategoryFilterPopover({ onChange }: CategoryFilterPopoverProps) 
   }, []);
 
   // Notify parent
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- onChange is stable via useCallback, excluding to prevent infinite loops
   useEffect(() => {
     if (loaded) onChange(Array.from(activeIds));
-  }, [activeIds, loaded, onChange]);
+  }, [activeIds, loaded]);
 
   // Close on outside click
   useEffect(() => {

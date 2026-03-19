@@ -223,7 +223,8 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
     } finally {
       setIsLoading(false);
     }
-  }, [categories, hasVisibleLayers, layerColorMap, activeCategoryIds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- serialize array to avoid reference-equality loops
+  }, [categories, hasVisibleLayers, layerColorMap, JSON.stringify(activeCategoryIds)]);
 
   useImperativeHandle(ref, () => ({
     refetchEvents: () => {

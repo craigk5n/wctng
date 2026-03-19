@@ -323,6 +323,16 @@ export function CalendarPage() {
     }
   }, [toast]);
 
+  const handleCategoryFilterChange = useCallback((ids: number[]) => {
+    setActiveCategoryIds((prev) => {
+      // Only update if actually changed (avoid re-render loops)
+      if (prev !== null && prev.length === ids.length && prev.every((id, i) => id === ids[i])) {
+        return prev;
+      }
+      return ids;
+    });
+  }, []);
+
   const handleLayersChange = useCallback((layers: LayerVisibility[]) => {
     setActiveLayers((prev) => {
       // Only trigger refetch if visibility actually changed
@@ -352,10 +362,7 @@ export function CalendarPage() {
         <ViewSwitcher onViewChange={() => {
           calendarRef.current?.refetchEvents();
         }} />
-        <CategoryFilterPopover onChange={(ids) => {
-          setActiveCategoryIds(ids);
-          calendarRef.current?.refetchEvents();
-        }} />
+        <CategoryFilterPopover onChange={handleCategoryFilterChange} />
         <PrintButton />
         <ExportButton />
         <button
