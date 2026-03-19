@@ -39,6 +39,15 @@ test.describe('Category Filter E2E', () => {
     expect(count).toBeGreaterThan(0);
   });
 
+  test('saved view creation form shows category filter section', async ({ page }) => {
+    await loginAsAdmin(page);
+    await page.goto('/views');
+    await expect(page.getByRole('heading', { name: /saved views/i })).toBeVisible();
+
+    // The create form should show a category filter section
+    await expect(page.getByText('Filter by Categories')).toBeVisible({ timeout: 5000 });
+  });
+
   test('category filter persists on reload', async ({ page }) => {
     await loginAsAdmin(page);
     await page.goto('/');

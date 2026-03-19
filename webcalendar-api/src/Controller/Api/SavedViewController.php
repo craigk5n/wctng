@@ -34,7 +34,7 @@ final class SavedViewController
     {
         if ($user === null) return ApiResponse::error(401, 'Authentication required');
 
-        /** @var array{name?: string, user_logins?: list<string>, is_global?: bool} $data */
+        /** @var array{name?: string, user_logins?: list<string>, is_global?: bool, category_ids?: list<int>} $data */
         $data = json_decode((string) $request->getContent(), true) ?? [];
         $name = $data['name'] ?? '';
         if ($name === '') return ApiResponse::error(400, 'Missing required field: name');
@@ -43,13 +43,15 @@ final class SavedViewController
         $isGlobal = ($data['is_global'] ?? false) === true && $user->getCoreUser()->isAdmin();
 
         $logins = $data['user_logins'] ?? [];
-        $id = $this->repo->create($user->getUserIdentifier(), $name, $logins, $isGlobal);
+        $categoryIds = $data['category_ids'] ?? [];
+        $id = $this->repo->create($user->getUserIdentifier(), $name, $logins, $isGlobal, $categoryIds);
 
         return ApiResponse::success([
             'id' => $id,
             'name' => $name,
             'user_logins' => $logins,
             'is_global' => $isGlobal,
+            'category_ids' => $categoryIds,
         ], null, 201);
     }
 

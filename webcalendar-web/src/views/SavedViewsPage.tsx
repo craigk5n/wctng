@@ -9,6 +9,7 @@ interface SavedView {
   user_logins: string[];
   is_global?: boolean;
   owner?: string;
+  category_ids?: number[];
 }
 
 interface UserOption {
@@ -16,11 +17,19 @@ interface UserOption {
   fullName: string;
 }
 
+interface CategoryOption {
+  id: number;
+  name: string;
+  color: string | null;
+}
+
 export function SavedViewsPage() {
   const [views, setViews] = useState<SavedView[]>([]);
   const [users, setUsers] = useState<UserOption[]>([]);
   const [newName, setNewName] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [allCategories, setAllCategories] = useState<CategoryOption[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [isGlobal, setIsGlobal] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -43,6 +52,8 @@ export function SavedViewsPage() {
           fullName: `${u.firstname} ${u.lastname}`.trim() || u.login,
         })));
       }
+      const { data: cats } = await apiFetch<CategoryOption[]>('/categories');
+      if (cats) setAllCategories(cats);
     })();
   }, [fetchViews]);
 
@@ -51,13 +62,14 @@ export function SavedViewsPage() {
 
     const { error } = await apiFetch('/views', {
       method: 'POST',
-      body: JSON.stringify({ name: newName.trim(), user_logins: selectedUsers, is_global: isGlobal }),
+      body: JSON.stringify({ name: newName.trim(), user_logins: selectedUsers, is_global: isGlobal, category_ids: selectedCategoryIds }),
     });
 
     if (!error) {
       toast({ title: `View "${newName}" created`, variant: 'success' });
       setNewName('');
       setSelectedUsers([]);
+      setSelectedCategoryIds([]);
       setIsGlobal(false);
       void fetchViews();
     } else {
@@ -105,6 +117,12 @@ export function SavedViewsPage() {
       return;
     }
 
+    // Apply category filter if view has one
+    if (view.category_ids && view.category_ids.length > 0) {
+      localStorage.setItem('wctng_category_filter', JSON.stringify(view.category_ids));
+      window.dispatchEvent(new CustomEvent('category-filter-change'));
+    }
+
     toast({ title: `View "${view.name}" activated — reload calendar to see changes`, variant: 'success' });
   }, [toast]);
 
@@ -142,6 +160,11 @@ export function SavedViewsPage() {
                 </span>
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {view.user_logins.length} user{view.user_logins.length !== 1 ? 's' : ''}: {view.user_logins.join(', ')}
+                  {view.category_ids && view.category_ids.length > 0 && (
+                    <span className="ml-2 text-blue-600 dark:text-blue-400">
+                      + {view.category_ids.length} category filter{view.category_ids.length !== 1 ? 's' : ''}
+                    </span>
+                  )}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -200,6 +223,34 @@ export function SavedViewsPage() {
               <p className="text-xs text-muted-foreground">{selectedUsers.length} selected</p>
             )}
           </div>
+
+          {allCategories.length > 0 && (
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Filter by Categories (optional)</label>
+              <div className="max-h-32 overflow-y-auto rounded-md border p-2 space-y-1">
+                {allCategories.map((cat) => (
+                  <label key={cat.id} className="flex items-center gap-2 cursor-pointer rounded px-2 py-0.5 hover:bg-accent/50">
+                    <input
+                      type="checkbox"
+                      checked={selectedCategoryIds.includes(cat.id)}
+                      onChange={() => setSelectedCategoryIds((prev) =>
+                        prev.includes(cat.id) ? prev.filter((id) => id !== cat.id) : [...prev, cat.id]
+                      )}
+                      className="h-4 w-4 rounded border-input"
+                    />
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: cat.color ?? '#888' }}
+                    />
+                    <span className="text-sm">{cat.name}</span>
+                  </label>
+                ))}
+              </div>
+              {selectedCategoryIds.length > 0 && (
+                <p className="text-xs text-muted-foreground">{selectedCategoryIds.length} category filter(s)</p>
+              )}
+            </div>
+          )}
 
           {isAdmin && (
             <div className="flex items-center gap-2">

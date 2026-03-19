@@ -22,7 +22,8 @@ final readonly class SavedViewRepository
             owner_login VARCHAR(60) NOT NULL,
             name VARCHAR(100) NOT NULL,
             user_logins TEXT NOT NULL DEFAULT '[]',
-            is_global CHAR(1) NOT NULL DEFAULT 'N'
+            is_global CHAR(1) NOT NULL DEFAULT 'N',
+            category_ids TEXT NOT NULL DEFAULT '[]'
         )
     SQL;
 
@@ -30,7 +31,7 @@ final readonly class SavedViewRepository
     {
     }
 
-    /** @return list<array{id: int, name: string, user_logins: list<string>, is_global: bool, owner: string}> */
+    /** @return list<array{id: int, name: string, user_logins: list<string>, is_global: bool, owner: string, category_ids: list<int>}> */
     public function findByOwner(string $login): array
     {
         $this->ensureTable();
@@ -43,7 +44,7 @@ final readonly class SavedViewRepository
         return $this->mapRows($stmt);
     }
 
-    /** @return list<array{id: int, name: string, user_logins: list<string>, is_global: bool, owner: string}> */
+    /** @return list<array{id: int, name: string, user_logins: list<string>, is_global: bool, owner: string, category_ids: list<int>}> */
     public function findGlobal(): array
     {
         $this->ensureTable();
@@ -53,17 +54,21 @@ final readonly class SavedViewRepository
         return $this->mapRows($stmt);
     }
 
-    /** @param list<string> $userLogins */
-    public function create(string $owner, string $name, array $userLogins, bool $isGlobal = false): int
+    /**
+     * @param list<string> $userLogins
+     * @param list<int>    $categoryIds
+     */
+    public function create(string $owner, string $name, array $userLogins, bool $isGlobal = false, array $categoryIds = []): int
     {
         $this->ensureTable();
         $this->pdo->prepare(
-            'INSERT INTO saved_views (owner_login, name, user_logins, is_global) VALUES (:owner, :name, :logins, :global)',
+            'INSERT INTO saved_views (owner_login, name, user_logins, is_global, category_ids) VALUES (:owner, :name, :logins, :global, :cats)',
         )->execute([
             'owner' => $owner,
             'name' => $name,
             'logins' => json_encode($userLogins, \JSON_THROW_ON_ERROR),
             'global' => $isGlobal ? 'Y' : 'N',
+            'cats' => json_encode($categoryIds, \JSON_THROW_ON_ERROR),
         ]);
         return (int) $this->pdo->lastInsertId();
     }
@@ -76,7 +81,7 @@ final readonly class SavedViewRepository
     }
 
     /**
-     * @return list<array{id: int, name: string, user_logins: list<string>, is_global: bool, owner: string}>
+     * @return list<array{id: int, name: string, user_logins: list<string>, is_global: bool, owner: string, category_ids: list<int>}>
      */
     private function mapRows(\PDOStatement $stmt): array
     {
@@ -90,6 +95,7 @@ final readonly class SavedViewRepository
                 'user_logins' => $this->decodeLogins($row['user_logins'] ?? '[]'),
                 'is_global' => ($row['is_global'] ?? 'N') === 'Y',
                 'owner' => \is_string($row['owner_login'] ?? null) ? $row['owner_login'] : '',
+                'category_ids' => $this->decodeCategoryIds($row['category_ids'] ?? '[]'),
             ];
             /** @var array<string, string|int|null>|false $row */
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -109,7 +115,16 @@ final readonly class SavedViewRepository
             try {
                 $this->pdo->exec("ALTER TABLE saved_views ADD COLUMN is_global CHAR(1) DEFAULT 'N'");
             } catch (\PDOException) {
-                // Column may already exist on some drivers
+            }
+        }
+
+        // Add category_ids column if it doesn't exist
+        try {
+            $this->pdo->query('SELECT category_ids FROM saved_views LIMIT 1');
+        } catch (\PDOException) {
+            try {
+                $this->pdo->exec("ALTER TABLE saved_views ADD COLUMN category_ids TEXT DEFAULT '[]'");
+            } catch (\PDOException) {
             }
         }
     }
@@ -121,5 +136,21 @@ final readonly class SavedViewRepository
         /** @var mixed $decoded */
         $decoded = json_decode($value, true);
         return \is_array($decoded) ? array_values(array_filter($decoded, '\is_string')) : [];
+    }
+
+    /** @return list<int> */
+    private function decodeCategoryIds(string|int|null $value): array
+    {
+        if (!\is_string($value)) return [];
+        /** @var mixed $decoded */
+        $decoded = json_decode($value, true);
+        if (!\is_array($decoded)) return [];
+        $result = [];
+        foreach ($decoded as $v) {
+            if (is_numeric($v)) {
+                $result[] = (int) $v;
+            }
+        }
+        return $result;
     }
 }

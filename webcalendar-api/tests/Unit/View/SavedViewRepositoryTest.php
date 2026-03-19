@@ -52,4 +52,36 @@ final class SavedViewRepositoryTest extends TestCase
         $this->assertFalse($this->repo->delete($id, 'bob'));
         $this->assertCount(1, $this->repo->findByOwner('alice'));
     }
+
+    public function testCreateWithCategoryIds(): void
+    {
+        $id = $this->repo->create('alice', 'Filtered View', ['alice'], false, [1, 3, 5]);
+        $this->assertGreaterThan(0, $id);
+
+        $views = $this->repo->findByOwner('alice');
+        $this->assertCount(1, $views);
+        $this->assertSame([1, 3, 5], $views[0]['category_ids']);
+    }
+
+    public function testCreateWithoutCategoryIdsDefaultsToEmpty(): void
+    {
+        $id = $this->repo->create('alice', 'No Filter', ['alice']);
+        $views = $this->repo->findByOwner('alice');
+        $this->assertSame([], $views[0]['category_ids']);
+    }
+
+    public function testCategoryIdsRoundTrip(): void
+    {
+        $this->repo->create('alice', 'View A', ['alice'], false, [10, 20]);
+        $this->repo->create('alice', 'View B', ['bob'], false, []);
+
+        $views = $this->repo->findByOwner('alice');
+        $this->assertCount(2, $views);
+
+        $viewA = $views[0]['name'] === 'View A' ? $views[0] : $views[1];
+        $viewB = $views[0]['name'] === 'View B' ? $views[0] : $views[1];
+
+        $this->assertSame([10, 20], $viewA['category_ids']);
+        $this->assertSame([], $viewB['category_ids']);
+    }
 }
