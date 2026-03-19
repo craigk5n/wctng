@@ -160,6 +160,13 @@ services:
             $databaseUrl: '%env(DATABASE_URL)%'
             $projectDir: '%kernel.project_dir%'
 
+    # Security audit controller
+    App\Controller\Api\SecurityAuditController:
+        arguments:
+            $pdo: '@pdo.connection'
+            $appSecret: '%env(APP_SECRET)%'
+            $environment: '%kernel.environment%'
+
     # Dashboard controller needs PDO for stats queries
     App\Controller\Api\DashboardController:
         arguments:
