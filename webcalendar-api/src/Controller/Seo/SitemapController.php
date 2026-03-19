@@ -36,9 +36,12 @@ final class SitemapController
             return new Response('Not Found', 404);
         }
 
-        // Serve from file cache if fresh
+        // Serve from file cache if fresh (skip for SQLite/testing)
+        $driver = $this->factory->getPdo()->getAttribute(\PDO::ATTR_DRIVER_NAME);
         $cacheFile = \dirname(__DIR__, 3) . '/var/cache/sitemap.xml';
-        if (file_exists($cacheFile) && (time() - (int) filemtime($cacheFile)) < self::CACHE_TTL) {
+        $useCache = $driver !== 'sqlite';
+
+        if ($useCache && file_exists($cacheFile) && (time() - (int) filemtime($cacheFile)) < self::CACHE_TTL) {
             $cached = file_get_contents($cacheFile);
             if ($cached !== false) {
                 return new Response($cached, 200, [
@@ -108,12 +111,14 @@ final class SitemapController
 
         $xml = $this->renderSitemap($urls);
 
-        // Write to file cache
-        $cacheDir = \dirname($cacheFile);
-        if (!is_dir($cacheDir)) {
-            @mkdir($cacheDir, 0o755, true);
+        // Write to file cache (production only)
+        if ($useCache) {
+            $cacheDir = \dirname($cacheFile);
+            if (!is_dir($cacheDir)) {
+                @mkdir($cacheDir, 0o755, true);
+            }
+            @file_put_contents($cacheFile, $xml);
         }
-        @file_put_contents($cacheFile, $xml);
 
         return new Response($xml, 200, [
             'Content-Type' => 'application/xml; charset=UTF-8',
