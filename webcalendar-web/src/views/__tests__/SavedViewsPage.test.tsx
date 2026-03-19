@@ -11,9 +11,9 @@ const viewsData = [
 ];
 
 const usersData = [
-  { login: 'alice', first_name: 'Alice', last_name: 'Smith' },
-  { login: 'bob', first_name: 'Bob', last_name: 'Jones' },
-  { login: 'carol', first_name: 'Carol', last_name: 'Lee' },
+  { login: 'alice', firstname: 'Alice', lastname: 'Smith' },
+  { login: 'bob', firstname: 'Bob', lastname: 'Jones' },
+  { login: 'carol', firstname: 'Carol', lastname: 'Lee' },
 ];
 
 function renderPage() {

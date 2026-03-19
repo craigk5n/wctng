@@ -36,11 +36,11 @@ export function SavedViewsPage() {
   useEffect(() => {
     void fetchViews();
     void (async () => {
-      const { data } = await apiFetch<Array<{ login: string; first_name: string; last_name: string }>>('/users');
+      const { data } = await apiFetch<Array<{ login: string; firstname: string; lastname: string }>>('/users');
       if (data) {
         setUsers(data.map((u) => ({
           login: u.login,
-          fullName: `${u.first_name} ${u.last_name}`.trim() || u.login,
+          fullName: `${u.firstname} ${u.lastname}`.trim() || u.login,
         })));
       }
     })();

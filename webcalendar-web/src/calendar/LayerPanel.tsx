@@ -11,8 +11,8 @@ interface ApiLayer {
 
 interface UserInfo {
   login: string;
-  first_name: string;
-  last_name: string;
+  firstname: string;
+  lastname: string;
 }
 
 export interface LayerVisibility {
@@ -146,7 +146,7 @@ export function LayerPanel({ onLayersChange }: LayerPanelProps) {
           <option value="">Add user...</option>
           {availableUsers.map((u) => (
             <option key={u.login} value={u.login}>
-              {u.first_name} {u.last_name} ({u.login})
+              {u.firstname} {u.lastname} ({u.login})
             </option>
           ))}
         </select>

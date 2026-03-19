@@ -106,7 +106,11 @@ final readonly class SavedViewRepository
         try {
             $this->pdo->query('SELECT is_global FROM saved_views LIMIT 1');
         } catch (\PDOException) {
-            $this->pdo->exec('ALTER TABLE saved_views ADD COLUMN is_global CHAR(1) NOT NULL DEFAULT \'N\'');
+            try {
+                $this->pdo->exec("ALTER TABLE saved_views ADD COLUMN is_global CHAR(1) DEFAULT 'N'");
+            } catch (\PDOException) {
+                // Column may already exist on some drivers
+            }
         }
     }
 
