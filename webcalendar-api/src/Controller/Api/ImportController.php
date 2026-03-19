@@ -45,14 +45,23 @@ final class ImportController
         }
 
         try {
+            // Count categories before import to detect new ones
+            $catsBefore = \count($this->coreServiceFactory->getCategoryService()
+                ->getCategoriesForUser($user->getUserIdentifier()));
+
             $result = $this->coreServiceFactory->getImportService()->importIcal(
                 $content,
                 $user->getCoreUser(),
             );
 
+            $catsAfter = \count($this->coreServiceFactory->getCategoryService()
+                ->getCategoriesForUser($user->getUserIdentifier()));
+            $newCategories = max(0, $catsAfter - $catsBefore);
+
             return ApiResponse::success([
                 'imported' => $result->importedCount,
                 'skipped' => $result->skippedCount,
+                'new_categories' => $newCategories,
                 'warnings' => $result->warnings,
             ]);
         } catch (\Throwable $e) {

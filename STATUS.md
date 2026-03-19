@@ -858,7 +858,7 @@ P9-E4-S2 (Accessibility) — independent
 |-------|-------|--------|
 | P10-E3-S1 | Category Sidebar Filter | DONE |
 | P10-E3-S2 | Category Filter in Saved Views | DONE |
-| P10-E3-S3 | Auto-Create Categories on Import | TODO |
+| P10-E3-S3 | Auto-Create Categories on Import | DONE |
 | P10-E3-S4 | Promote Category to Global | TODO |
 | P10-E3-S5 | Merge Categories | TODO |
 
