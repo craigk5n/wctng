@@ -54,7 +54,7 @@ final readonly class SearchIndexService
         }
 
         // User filter
-        $where[] = "e.cal_create_by = :user";
+        $where[] = 'e.cal_create_by = :user';
         $params['user'] = $userLogin;
 
         // Type filter

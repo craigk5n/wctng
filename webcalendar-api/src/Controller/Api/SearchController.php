@@ -40,10 +40,18 @@ final class SearchController
         $end = $request->query->getString('end', '');
         $categoryId = $request->query->getString('category_id', '');
         $participant = $request->query->getString('participant', '');
-        if ($start !== '') { $filters['start'] = $start; }
-        if ($end !== '') { $filters['end'] = $end; }
-        if ($categoryId !== '') { $filters['category_id'] = $categoryId; }
-        if ($participant !== '') { $filters['participant'] = $participant; }
+        if ($start !== '') {
+            $filters['start'] = $start;
+        }
+        if ($end !== '') {
+            $filters['end'] = $end;
+        }
+        if ($categoryId !== '') {
+            $filters['category_id'] = $categoryId;
+        }
+        if ($participant !== '') {
+            $filters['participant'] = $participant;
+        }
 
         $result = $this->searchService->search(
             $keyword,

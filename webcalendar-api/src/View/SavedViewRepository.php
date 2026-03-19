@@ -132,7 +132,9 @@ final readonly class SavedViewRepository
     /** @return list<string> */
     private function decodeLogins(string|int|null $value): array
     {
-        if (!\is_string($value)) return [];
+        if (!\is_string($value)) {
+            return [];
+        }
         /** @var mixed $decoded */
         $decoded = json_decode($value, true);
         return \is_array($decoded) ? array_values(array_filter($decoded, '\is_string')) : [];
@@ -141,10 +143,14 @@ final readonly class SavedViewRepository
     /** @return list<int> */
     private function decodeCategoryIds(string|int|null $value): array
     {
-        if (!\is_string($value)) return [];
+        if (!\is_string($value)) {
+            return [];
+        }
         /** @var mixed $decoded */
         $decoded = json_decode($value, true);
-        if (!\is_array($decoded)) return [];
+        if (!\is_array($decoded)) {
+            return [];
+        }
         $result = [];
         foreach ($decoded as $v) {
             if (is_numeric($v)) {

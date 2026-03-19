@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Tenant\TenantContext;
+use App\Tenant\TenantDatabaseManager;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use WebCalendar\Core\Application\Contract\AuthServiceInterface;
@@ -38,7 +40,6 @@ use WebCalendar\Core\Infrastructure\Email\LogEmailProvider;
 use WebCalendar\Core\Infrastructure\ICal\EventMapper;
 use WebCalendar\Core\Infrastructure\Persistence\PdoActivityLogRepository;
 use WebCalendar\Core\Infrastructure\Persistence\PdoAssistantRepository;
-use WebCalendar\Core\Infrastructure\Persistence\PdoReminderRepository;
 use WebCalendar\Core\Infrastructure\Persistence\PdoBlobRepository;
 use WebCalendar\Core\Infrastructure\Persistence\PdoCategoryRepository;
 use WebCalendar\Core\Infrastructure\Persistence\PdoConfigRepository;
@@ -47,6 +48,7 @@ use WebCalendar\Core\Infrastructure\Persistence\PdoGroupRepository;
 use WebCalendar\Core\Infrastructure\Persistence\PdoJournalRepository;
 use WebCalendar\Core\Infrastructure\Persistence\PdoLayerRepository;
 use WebCalendar\Core\Infrastructure\Persistence\PdoPermissionRepository;
+use WebCalendar\Core\Infrastructure\Persistence\PdoReminderRepository;
 use WebCalendar\Core\Infrastructure\Persistence\PdoReportRepository;
 use WebCalendar\Core\Infrastructure\Persistence\PdoResourceRepository;
 use WebCalendar\Core\Infrastructure\Persistence\PdoSiteExtraRepository;
@@ -57,8 +59,6 @@ use WebCalendar\Core\Infrastructure\Persistence\PdoUserRepository;
 use WebCalendar\Core\Infrastructure\Persistence\PdoViewRepository;
 use WebCalendar\Core\Infrastructure\Security\DatabaseAuthService;
 use WebCalendar\Core\Infrastructure\Security\PdoRateLimiter;
-use App\Tenant\TenantContext;
-use App\Tenant\TenantDatabaseManager;
 use WebCalendar\Core\Infrastructure\Webhook\LogWebhookProvider;
 
 /**

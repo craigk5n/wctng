@@ -7,7 +7,6 @@ namespace App\Service;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
-use WebCalendar\Core\Domain\ValueObject\UserPreference;
 
 /**
  * Sends daily agenda emails to opted-in users.

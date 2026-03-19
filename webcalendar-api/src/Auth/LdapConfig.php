@@ -21,14 +21,38 @@ final readonly class LdapConfig
     ) {
     }
 
-    public function host(): string { return $this->host; }
-    public function port(): int { return $this->port; }
-    public function baseDn(): string { return $this->baseDn; }
-    public function bindDn(): string { return $this->bindDn; }
-    public function bindPassword(): string { return $this->bindPassword; }
-    public function userFilter(): string { return $this->userFilter; }
-    public function useTls(): bool { return $this->useTls; }
-    public function isEnabled(): bool { return $this->enabled; }
+    public function host(): string
+    {
+        return $this->host;
+    }
+    public function port(): int
+    {
+        return $this->port;
+    }
+    public function baseDn(): string
+    {
+        return $this->baseDn;
+    }
+    public function bindDn(): string
+    {
+        return $this->bindDn;
+    }
+    public function bindPassword(): string
+    {
+        return $this->bindPassword;
+    }
+    public function userFilter(): string
+    {
+        return $this->userFilter;
+    }
+    public function useTls(): bool
+    {
+        return $this->useTls;
+    }
+    public function isEnabled(): bool
+    {
+        return $this->enabled;
+    }
 
     /**
      * @return array<string, mixed>

@@ -28,7 +28,10 @@ final class ReminderServiceTest extends TestCase
                 foreach ($statements as $stmt) {
                     $stmt = trim($stmt);
                     if ($stmt !== '') {
-                        try { $pdo->exec($stmt); } catch (\PDOException) {}
+                        try {
+                            $pdo->exec($stmt);
+                        } catch (\PDOException) {
+                        }
                     }
                 }
             }

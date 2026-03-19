@@ -42,7 +42,7 @@ final class TenantDeleteCommand extends Command
         $slug = $input->getArgument('slug');
 
         if (!$input->getOption('force')) {
-            $io->error("Deleting a tenant is destructive. Use --force to confirm.");
+            $io->error('Deleting a tenant is destructive. Use --force to confirm.');
             return Command::FAILURE;
         }
 

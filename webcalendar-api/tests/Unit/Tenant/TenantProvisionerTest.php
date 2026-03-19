@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Tenant;
 
-use App\Tenant\Tenant;
 use App\Tenant\TenantDatabaseManager;
 use App\Tenant\TenantProvisioner;
 use App\Tenant\TenantRepository;

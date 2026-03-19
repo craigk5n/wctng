@@ -39,7 +39,7 @@ final class UnsubscribeController
 
         return $this->renderPage(
             'Unsubscribed',
-            "You have been unsubscribed from all WebCalendar email notifications. You can re-enable them in your preferences.",
+            'You have been unsubscribed from all WebCalendar email notifications. You can re-enable them in your preferences.',
             true,
         );
     }

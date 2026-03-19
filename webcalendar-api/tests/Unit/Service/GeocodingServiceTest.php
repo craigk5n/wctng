@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Service;
 
-use App\Service\CoreServiceFactory;
 use App\Service\GeocodingService;
 use App\Service\GeoRepository;
 use App\Tests\Integration\IntegrationTestCase;

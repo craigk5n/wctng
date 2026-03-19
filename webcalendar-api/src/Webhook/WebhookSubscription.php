@@ -18,11 +18,26 @@ final readonly class WebhookSubscription
     ) {
     }
 
-    public function id(): int { return $this->id; }
-    public function url(): string { return $this->url; }
-    public function events(): string { return $this->events; }
-    public function secret(): string { return $this->secret; }
-    public function isEnabled(): bool { return $this->enabled; }
+    public function id(): int
+    {
+        return $this->id;
+    }
+    public function url(): string
+    {
+        return $this->url;
+    }
+    public function events(): string
+    {
+        return $this->events;
+    }
+    public function secret(): string
+    {
+        return $this->secret;
+    }
+    public function isEnabled(): bool
+    {
+        return $this->enabled;
+    }
 
     /**
      * @return list<string>

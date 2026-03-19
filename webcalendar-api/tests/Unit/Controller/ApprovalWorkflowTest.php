@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Controller;
 
 use App\Controller\Api\ApprovalController;
-use App\Share\ShareTokenRepository;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -16,7 +15,6 @@ use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\EventId;
 use WebCalendar\Core\Domain\ValueObject\EventType;
-use WebCalendar\Core\Domain\ValueObject\Recurrence;
 
 final class ApprovalWorkflowTest extends TestCase
 {

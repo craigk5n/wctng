@@ -88,7 +88,9 @@ final readonly class PollRepository
         $stmt->execute(['id' => $id]);
         /** @var array<string, string|int|null>|false $poll */
         $poll = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if (!\is_array($poll)) return null;
+        if (!\is_array($poll)) {
+            return null;
+        }
 
         $optStmt = $this->pdo->prepare('SELECT * FROM scheduling_poll_options WHERE poll_id = :poll ORDER BY start_datetime');
         $optStmt->execute(['poll' => $id]);

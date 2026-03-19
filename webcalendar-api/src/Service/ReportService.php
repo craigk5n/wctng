@@ -55,10 +55,10 @@ final readonly class ReportService
 
         // cal_time is stored as HHMMSS integer (e.g., 140000 = 14:00:00)
         $stmt = $pdo->prepare(
-            "SELECT (cal_time / 10000) AS hour, COUNT(*) AS cnt FROM webcal_entry
+            'SELECT (cal_time / 10000) AS hour, COUNT(*) AS cnt FROM webcal_entry
              WHERE cal_create_by = :user AND cal_date >= :s AND cal_date <= :e
              AND cal_time > 0
-             GROUP BY (cal_time / 10000) ORDER BY hour",
+             GROUP BY (cal_time / 10000) ORDER BY hour',
         );
         $stmt->execute(['user' => $userLogin, 's' => $start, 'e' => $end]);
 
@@ -87,12 +87,12 @@ final readonly class ReportService
         $pdo = $this->coreServiceFactory->getPdo();
 
         $stmt = $pdo->prepare(
-            "SELECT c.cat_id, c.cat_name, COUNT(*) AS cnt
+            'SELECT c.cat_id, c.cat_name, COUNT(*) AS cnt
              FROM webcal_entry e
              INNER JOIN webcal_entry_categories ec ON ec.cal_id = e.cal_id
              INNER JOIN webcal_categories c ON c.cat_id = ec.cat_id
              WHERE e.cal_create_by = :user AND e.cal_date >= :s AND e.cal_date <= :e
-             GROUP BY c.cat_id, c.cat_name ORDER BY cnt DESC",
+             GROUP BY c.cat_id, c.cat_name ORDER BY cnt DESC',
         );
         $stmt->execute(['user' => $userLogin, 's' => $start, 'e' => $end]);
 
@@ -124,9 +124,9 @@ final readonly class ReportService
         $endDate = (int) date('Ymd', strtotime("+{$days} days") ?: null);
 
         $stmt = $pdo->prepare(
-            "SELECT cal_id, cal_name, cal_date, cal_type FROM webcal_entry
+            'SELECT cal_id, cal_name, cal_date, cal_type FROM webcal_entry
              WHERE cal_create_by = :user AND cal_date >= :today AND cal_date <= :end
-             ORDER BY cal_date, cal_time LIMIT 50",
+             ORDER BY cal_date, cal_time LIMIT 50',
         );
         $stmt->execute(['user' => $userLogin, 'today' => $today, 'end' => $endDate]);
 

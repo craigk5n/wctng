@@ -53,7 +53,7 @@ final class ReportExportController
     private function activityCsv(string $login, string $start, string $end): string
     {
         $data = $this->reportService->activityReport($login, $start, $end);
-        $lines = ["Date,Event Count"];
+        $lines = ['Date,Event Count'];
         foreach ($data as $row) {
             $lines[] = "{$row['date']},{$row['count']}";
         }
@@ -64,7 +64,7 @@ final class ReportExportController
     private function categoriesCsv(string $login, string $start, string $end): string
     {
         $data = $this->reportService->categoriesReport($login, $start, $end);
-        $lines = ["Category,Event Count"];
+        $lines = ['Category,Event Count'];
         foreach ($data as $row) {
             $name = str_replace('"', '""', $row['category_name']);
             $lines[] = "\"{$name}\",{$row['count']}";
@@ -76,7 +76,7 @@ final class ReportExportController
     private function upcomingCsv(string $login): string
     {
         $data = $this->reportService->upcomingReport($login, 30);
-        $lines = ["ID,Title,Date,Type"];
+        $lines = ['ID,Title,Date,Type'];
         foreach ($data as $row) {
             $title = str_replace('"', '""', $row['title']);
             $lines[] = "{$row['id']},\"{$title}\",{$row['start_date']},{$row['type']}";

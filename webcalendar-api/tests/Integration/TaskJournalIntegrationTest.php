@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration;
 
-use WebCalendar\Core\Domain\Entity\Task;
 use WebCalendar\Core\Domain\Entity\Journal;
+use WebCalendar\Core\Domain\Entity\Task;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 use WebCalendar\Core\Domain\ValueObject\EventId;

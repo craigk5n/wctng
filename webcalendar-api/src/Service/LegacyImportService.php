@@ -73,8 +73,8 @@ final class LegacyImportService
                         while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                             if (\is_array($row) && isset($row['name'])) {
                                 /** @var string $colName */
-                    $colName = $row['name'];
-                    $columns[] = $colName;
+                                $colName = $row['name'];
+                                $columns[] = $colName;
                             }
                         }
                     }
@@ -85,8 +85,8 @@ final class LegacyImportService
                         while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
                             if (\is_array($row) && isset($row['Field'])) {
                                 /** @var string $colName */
-                    $colName = $row['Field'];
-                    $columns[] = $colName;
+                                $colName = $row['Field'];
+                                $columns[] = $colName;
                             }
                         }
                     }

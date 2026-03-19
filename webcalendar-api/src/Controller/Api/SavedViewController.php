@@ -25,19 +25,25 @@ final class SavedViewController
     #[Route('/api/v2/views', name: 'api_views_list', methods: ['GET'])]
     public function list(#[CurrentUser] ?WebCalendarUser $user): JsonResponse
     {
-        if ($user === null) return ApiResponse::error(401, 'Authentication required');
+        if ($user === null) {
+            return ApiResponse::error(401, 'Authentication required');
+        }
         return ApiResponse::success($this->repo->findByOwner($user->getUserIdentifier()));
     }
 
     #[Route('/api/v2/views', name: 'api_views_create', methods: ['POST'])]
     public function create(Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
     {
-        if ($user === null) return ApiResponse::error(401, 'Authentication required');
+        if ($user === null) {
+            return ApiResponse::error(401, 'Authentication required');
+        }
 
         /** @var array{name?: string, user_logins?: list<string>, is_global?: bool, category_ids?: list<int>} $data */
         $data = json_decode((string) $request->getContent(), true) ?? [];
         $name = $data['name'] ?? '';
-        if ($name === '') return ApiResponse::error(400, 'Missing required field: name');
+        if ($name === '') {
+            return ApiResponse::error(400, 'Missing required field: name');
+        }
 
         // Only admins can create global views
         $isGlobal = ($data['is_global'] ?? false) === true && $user->getCoreUser()->isAdmin();
@@ -58,7 +64,9 @@ final class SavedViewController
     #[Route('/api/v2/views/{id}', name: 'api_views_delete', methods: ['DELETE'])]
     public function delete(int $id, #[CurrentUser] ?WebCalendarUser $user): Response
     {
-        if ($user === null) return ApiResponse::error(401, 'Authentication required');
+        if ($user === null) {
+            return ApiResponse::error(401, 'Authentication required');
+        }
         if (!$this->repo->delete($id, $user->getUserIdentifier())) {
             return ApiResponse::error(404, 'View not found');
         }

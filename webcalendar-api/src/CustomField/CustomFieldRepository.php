@@ -38,7 +38,9 @@ final readonly class CustomFieldRepository
     {
         $this->ensureTable();
         $stmt = $this->pdo->query('SELECT * FROM custom_field_definitions ORDER BY sort_order, id');
-        if ($stmt === false) return [];
+        if ($stmt === false) {
+            return [];
+        }
 
         $items = [];
         /** @var array<string, mixed>|false $row */

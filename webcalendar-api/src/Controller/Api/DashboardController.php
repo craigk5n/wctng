@@ -128,7 +128,7 @@ final class DashboardController
         try {
             if ($driver === 'mysql') {
                 $stmt = $this->pdo->query(
-                    "SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 1) FROM information_schema.TABLES WHERE table_schema = DATABASE()",
+                    'SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 1) FROM information_schema.TABLES WHERE table_schema = DATABASE()',
                 );
                 if ($stmt !== false) {
                     /** @var numeric-string|false $val */

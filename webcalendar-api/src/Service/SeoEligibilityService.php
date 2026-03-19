@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Service;
 
-use WebCalendar\Core\Domain\ValueObject\UserPreference;
-
 /**
  * Determines whether SEO pages should be rendered for a given user.
  *

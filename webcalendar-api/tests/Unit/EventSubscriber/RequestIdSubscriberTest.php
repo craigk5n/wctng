@@ -73,11 +73,14 @@ final class RequestIdSubscriberTest extends TestCase
 
         // Use a logger that captures messages
         $logged = [];
-        $logger = new class($logged) extends NullLogger {
+        $logger = new class ($logged) extends NullLogger {
             /** @param array<mixed> $logged */
-            public function __construct(private array &$logged) {}
+            public function __construct(private array &$logged)
+            {
+            }
             /** @param array<mixed> $context */
-            public function info(string|\Stringable $message, array $context = []): void {
+            public function info(string|\Stringable $message, array $context = []): void
+            {
                 $this->logged[] = $context;
             }
         };

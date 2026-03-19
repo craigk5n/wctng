@@ -7,7 +7,6 @@ namespace App\Tests\Unit\Controller;
 use App\Controller\Api\AttachmentController;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use WebCalendar\Core\Domain\Entity\Blob;
 use WebCalendar\Core\Domain\Entity\Event;

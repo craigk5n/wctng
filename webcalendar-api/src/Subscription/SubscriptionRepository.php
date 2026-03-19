@@ -72,7 +72,9 @@ final readonly class SubscriptionRepository
         $stmt = $this->pdo->query(
             "SELECT * FROM calendar_subscriptions WHERE last_fetched IS NULL OR last_fetched < datetime('now', '-' || refresh_interval || ' seconds')"
         );
-        if ($stmt === false) return [];
+        if ($stmt === false) {
+            return [];
+        }
 
         $items = [];
         /** @var array<string, mixed>|false $row */

@@ -84,7 +84,7 @@ final readonly class TenantExportService
 
     private function exportEventsAsIcs(\PDO $pdo): string
     {
-        $lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//WebCalendar//WCTNG Export//EN"];
+        $lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//WebCalendar//WCTNG Export//EN'];
 
         try {
             $stmt = $pdo->query('SELECT * FROM webcal_entry');

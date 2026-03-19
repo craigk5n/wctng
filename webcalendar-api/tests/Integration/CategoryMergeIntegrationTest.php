@@ -23,10 +23,16 @@ final class CategoryMergeIntegrationTest extends IntegrationTestCase
     private function createEvent(string $title): int
     {
         $event = new Event(
-            id: new EventId(0), uid: 'merge-' . bin2hex(random_bytes(4)) . '@test',
-            name: $title, description: '', location: '',
+            id: new EventId(0),
+            uid: 'merge-' . bin2hex(random_bytes(4)) . '@test',
+            name: $title,
+            description: '',
+            location: '',
             start: new \DateTimeImmutable('2026-07-01 10:00:00'),
-            duration: 60, createdBy: 'admin', type: EventType::EVENT, access: AccessLevel::PUBLIC,
+            duration: 60,
+            createdBy: 'admin',
+            type: EventType::EVENT,
+            access: AccessLevel::PUBLIC,
         );
         $this->factory->getEventService()->createEvent($event, $this->adminUser);
         $created = $this->factory->getEventRepository()->findByUid($event->uid());

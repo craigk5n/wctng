@@ -33,7 +33,10 @@ final class McpControllerTest extends TestCase
                 foreach ($stmts as $s) {
                     $s = trim($s);
                     if ($s !== '') {
-                        try { $this->pdo->exec($s); } catch (\PDOException) {}
+                        try {
+                            $this->pdo->exec($s);
+                        } catch (\PDOException) {
+                        }
                     }
                 }
             }

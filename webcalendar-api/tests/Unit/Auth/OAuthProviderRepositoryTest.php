@@ -24,11 +24,16 @@ final class OAuthProviderRepositoryTest extends TestCase
     public function testSaveAndFindById(): void
     {
         $provider = new OAuthProvider(
-            0, 'Google', 'oidc', 'google-client-id', 'google-secret',
+            0,
+            'Google',
+            'oidc',
+            'google-client-id',
+            'google-secret',
             'https://accounts.google.com/o/oauth2/auth',
             'https://oauth2.googleapis.com/token',
             'https://openidconnect.googleapis.com/v1/userinfo',
-            'openid email profile', true,
+            'openid email profile',
+            true,
         );
 
         $id = $this->repo->save($provider);

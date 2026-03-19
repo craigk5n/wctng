@@ -23,16 +23,46 @@ final readonly class OAuthProvider
     ) {
     }
 
-    public function id(): int { return $this->id; }
-    public function name(): string { return $this->name; }
-    public function type(): string { return $this->type; }
-    public function clientId(): string { return $this->clientId; }
-    public function clientSecret(): string { return $this->clientSecret; }
-    public function authUrl(): string { return $this->authUrl; }
-    public function tokenUrl(): string { return $this->tokenUrl; }
-    public function userinfoUrl(): string { return $this->userinfoUrl; }
-    public function scopes(): string { return $this->scopes; }
-    public function isEnabled(): bool { return $this->enabled; }
+    public function id(): int
+    {
+        return $this->id;
+    }
+    public function name(): string
+    {
+        return $this->name;
+    }
+    public function type(): string
+    {
+        return $this->type;
+    }
+    public function clientId(): string
+    {
+        return $this->clientId;
+    }
+    public function clientSecret(): string
+    {
+        return $this->clientSecret;
+    }
+    public function authUrl(): string
+    {
+        return $this->authUrl;
+    }
+    public function tokenUrl(): string
+    {
+        return $this->tokenUrl;
+    }
+    public function userinfoUrl(): string
+    {
+        return $this->userinfoUrl;
+    }
+    public function scopes(): string
+    {
+        return $this->scopes;
+    }
+    public function isEnabled(): bool
+    {
+        return $this->enabled;
+    }
 
     /**
      * @return array<string, mixed>

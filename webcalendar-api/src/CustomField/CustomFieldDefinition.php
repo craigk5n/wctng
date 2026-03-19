@@ -16,12 +16,30 @@ final readonly class CustomFieldDefinition
     ) {
     }
 
-    public function id(): int { return $this->id; }
-    public function name(): string { return $this->name; }
-    public function fieldType(): string { return $this->fieldType; }
-    public function isRequired(): bool { return $this->required; }
-    public function sortOrder(): int { return $this->sortOrder; }
-    public function options(): string { return $this->options; }
+    public function id(): int
+    {
+        return $this->id;
+    }
+    public function name(): string
+    {
+        return $this->name;
+    }
+    public function fieldType(): string
+    {
+        return $this->fieldType;
+    }
+    public function isRequired(): bool
+    {
+        return $this->required;
+    }
+    public function sortOrder(): int
+    {
+        return $this->sortOrder;
+    }
+    public function options(): string
+    {
+        return $this->options;
+    }
 
     /** @return array<string, mixed> */
     public function toArray(): array

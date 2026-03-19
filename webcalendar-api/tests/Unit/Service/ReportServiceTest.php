@@ -26,8 +26,8 @@ final class ReportServiceTest extends TestCase
             cal_mod_date INTEGER DEFAULT 0, cal_mod_time INTEGER DEFAULT 0,
             cal_access CHAR(1) DEFAULT 'P'
         )");
-        $pdo->exec("CREATE TABLE webcal_entry_categories (cal_id INTEGER, cat_id INTEGER)");
-        $pdo->exec("CREATE TABLE webcal_categories (cat_id INTEGER PRIMARY KEY, cat_name VARCHAR(100), cat_owner VARCHAR(60))");
+        $pdo->exec('CREATE TABLE webcal_entry_categories (cal_id INTEGER, cat_id INTEGER)');
+        $pdo->exec('CREATE TABLE webcal_categories (cat_id INTEGER PRIMARY KEY, cat_name VARCHAR(100), cat_owner VARCHAR(60))');
 
         // Seed data
         $pdo->exec("INSERT INTO webcal_entry VALUES (1, 'Morning Standup', '', 20260315, 90000, 'E', 'admin', 15, 0, 0, 'P')");
@@ -35,8 +35,8 @@ final class ReportServiceTest extends TestCase
         $pdo->exec("INSERT INTO webcal_entry VALUES (3, 'Review', '', 20260316, 140000, 'E', 'admin', 30, 0, 0, 'P')");
         $pdo->exec("INSERT INTO webcal_entry VALUES (4, 'Future Event', '', 20260401, 100000, 'E', 'admin', 60, 0, 0, 'P')");
         $pdo->exec("INSERT INTO webcal_categories VALUES (1, 'Work', 'admin')");
-        $pdo->exec("INSERT INTO webcal_entry_categories VALUES (1, 1)");
-        $pdo->exec("INSERT INTO webcal_entry_categories VALUES (2, 1)");
+        $pdo->exec('INSERT INTO webcal_entry_categories VALUES (1, 1)');
+        $pdo->exec('INSERT INTO webcal_entry_categories VALUES (2, 1)');
 
         $factory = new CoreServiceFactory($pdo, 'test');
         $this->service = new ReportService($factory);

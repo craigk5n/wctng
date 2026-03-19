@@ -9,7 +9,6 @@ use App\DTO\EventResponseDTO;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Service\ConflictDetectionService;
-use WebCalendar\Core\Domain\ValueObject\ActivityLogType;
 use App\Service\CoreServiceFactory;
 use App\Service\DescriptionSanitizer;
 use App\Service\EventNotificationService;
@@ -22,6 +21,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Domain\ValueObject\ActivityLogType;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 use WebCalendar\Core\Domain\ValueObject\EventId;
 

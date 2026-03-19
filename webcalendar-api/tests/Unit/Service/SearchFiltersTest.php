@@ -26,13 +26,13 @@ final class SearchFiltersTest extends TestCase
             cal_mod_date INTEGER DEFAULT 0, cal_mod_time INTEGER DEFAULT 0,
             cal_access CHAR(1) DEFAULT 'P'
         )");
-        $pdo->exec("CREATE TABLE webcal_entry_categories (cal_id INTEGER, cat_id INTEGER)");
+        $pdo->exec('CREATE TABLE webcal_entry_categories (cal_id INTEGER, cat_id INTEGER)');
         $pdo->exec("CREATE TABLE webcal_entry_user (cal_id INTEGER, cal_login VARCHAR(60), cal_status CHAR(1) DEFAULT 'W')");
 
         $pdo->exec("INSERT INTO webcal_entry VALUES (1, 'January Meeting', '', 20260115, 0, 'E', 'admin', 60, 0, 0, 'P')");
         $pdo->exec("INSERT INTO webcal_entry VALUES (2, 'March Meeting', '', 20260315, 0, 'E', 'admin', 60, 0, 0, 'P')");
         $pdo->exec("INSERT INTO webcal_entry VALUES (3, 'Buy Supplies', '', 20260201, 0, 'T', 'admin', 0, 0, 0, 'P')");
-        $pdo->exec("INSERT INTO webcal_entry_categories VALUES (1, 5)");
+        $pdo->exec('INSERT INTO webcal_entry_categories VALUES (1, 5)');
         $pdo->exec("INSERT INTO webcal_entry_user VALUES (2, 'alice', 'A')");
 
         $factory = new CoreServiceFactory($pdo, 'test');

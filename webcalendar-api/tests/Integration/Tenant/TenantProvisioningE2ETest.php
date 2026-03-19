@@ -81,7 +81,7 @@ final class TenantProvisioningE2ETest extends TestCase
         $pdo->exec("INSERT INTO webcal_entry (cal_id, cal_create_by, cal_date, cal_time, cal_mod_date, cal_mod_time, cal_duration, cal_type, cal_access, cal_name)
                      VALUES (1, 'admin', 20260401, 100000, 20260316, 120000, 60, 'E', 'P', 'Tenant Event')");
 
-        $stmt = $pdo->query("SELECT cal_name FROM webcal_entry WHERE cal_id = 1");
+        $stmt = $pdo->query('SELECT cal_name FROM webcal_entry WHERE cal_id = 1');
         $this->assertNotFalse($stmt);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
         $this->assertIsArray($row);
@@ -130,9 +130,15 @@ final class TenantProvisioningE2ETest extends TestCase
 
         // Update status to suspended
         $suspended = new Tenant(
-            $tenant->id(), $tenant->slug(), $tenant->name(),
-            $tenant->dbHost(), $tenant->dbName(), $tenant->dbUser(), $tenant->dbPassword(),
-            $tenant->plan(), 'suspended',
+            $tenant->id(),
+            $tenant->slug(),
+            $tenant->name(),
+            $tenant->dbHost(),
+            $tenant->dbName(),
+            $tenant->dbUser(),
+            $tenant->dbPassword(),
+            $tenant->plan(),
+            'suspended',
         );
         $this->repo->save($suspended);
 

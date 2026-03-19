@@ -134,7 +134,7 @@ final class EventNotificationService
             }
 
             $html = "<h2>Event Cancelled: {$title}</h2>"
-                . "<p>This event has been cancelled by the organizer.</p>";
+                . '<p>This event has been cancelled by the organizer.</p>';
 
             $this->sendEmail($user->email(), "Event Cancelled: {$title}", $html);
         }
@@ -169,7 +169,12 @@ final class EventNotificationService
             $prefs = $this->coreServiceFactory->getUserService()->getPreferences(
                 $login,
                 $this->coreServiceFactory->getUserService()->getUserByLogin($login) ?? new \WebCalendar\Core\Domain\Entity\User(
-                    login: $login, firstName: '', lastName: '', email: '', isAdmin: false, isEnabled: true,
+                    login: $login,
+                    firstName: '',
+                    lastName: '',
+                    email: '',
+                    isAdmin: false,
+                    isEnabled: true,
                 ),
             );
 

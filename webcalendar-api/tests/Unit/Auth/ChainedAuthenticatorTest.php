@@ -55,11 +55,11 @@ final class ChainedAuthenticatorTest extends TestCase
             cal_enabled CHAR(1) DEFAULT 'Y',
             cal_passwd VARCHAR(255) DEFAULT ''
         )");
-        $pdo->exec("CREATE TABLE IF NOT EXISTS webcal_rate_limit (
+        $pdo->exec('CREATE TABLE IF NOT EXISTS webcal_rate_limit (
             cal_key VARCHAR(255) PRIMARY KEY,
             cal_attempts INTEGER DEFAULT 0,
             cal_last_attempt INTEGER DEFAULT 0
-        )");
+        )');
 
         $hash = password_hash('correct', PASSWORD_BCRYPT);
         $pdo->prepare("INSERT INTO webcal_user VALUES ('testuser', 'Test', 'User', 'test@test.com', 'N', 'Y', :hash)")

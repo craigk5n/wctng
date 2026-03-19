@@ -142,7 +142,7 @@ final class SecurityAuditController
             'name' => 'JWT token lifetime',
             'status' => $tooLong ? 'warn' : 'pass',
             'detail' => $tooLong
-                ? "JWT_TTL is {$ttl} seconds (" . round($ttl / 3600, 1) . " hours). Consider reducing to 1-4 hours."
+                ? "JWT_TTL is {$ttl} seconds (" . round($ttl / 3600, 1) . ' hours). Consider reducing to 1-4 hours.'
                 : "JWT_TTL is {$ttl} seconds (" . round($ttl / 3600, 1) . ' hours).',
         ];
     }

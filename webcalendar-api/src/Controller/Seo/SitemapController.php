@@ -10,7 +10,6 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
-use WebCalendar\Core\Domain\ValueObject\UserPreference;
 
 /**
  * Auto-generated sitemap.xml for search engine discovery.

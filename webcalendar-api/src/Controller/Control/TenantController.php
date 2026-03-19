@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Controller\Control;
 
 use App\Response\ApiResponse;
-use App\Tenant\Tenant;
 use App\Tenant\ControlPlaneWebhook;
+use App\Tenant\Tenant;
 use App\Tenant\TenantDatabaseManager;
 use App\Tenant\TenantExportService;
 use App\Tenant\TenantProvisioner;

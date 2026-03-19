@@ -73,7 +73,7 @@ final class SeoEventPageIntegrationTest extends IntegrationTestCase
         $this->assertStringContainsString('SEO Visible Event', $html);
         $this->assertStringContainsString('<h1>', $html);
         $this->assertStringContainsString('Room 42', $html);
-        $this->assertStringContainsString("<title>SEO Visible Event", $html);
+        $this->assertStringContainsString('<title>SEO Visible Event', $html);
         $this->assertStringContainsString('<meta name="description"', $html);
         $this->assertStringNotContainsString('noindex', $html);
     }

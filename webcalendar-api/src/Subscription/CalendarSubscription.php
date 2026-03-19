@@ -18,14 +18,38 @@ final readonly class CalendarSubscription
     ) {
     }
 
-    public function id(): int { return $this->id; }
-    public function userLogin(): string { return $this->userLogin; }
-    public function url(): string { return $this->url; }
-    public function name(): string { return $this->name; }
-    public function color(): string { return $this->color; }
-    public function refreshInterval(): int { return $this->refreshInterval; }
-    public function lastFetched(): ?string { return $this->lastFetched; }
-    public function etag(): ?string { return $this->etag; }
+    public function id(): int
+    {
+        return $this->id;
+    }
+    public function userLogin(): string
+    {
+        return $this->userLogin;
+    }
+    public function url(): string
+    {
+        return $this->url;
+    }
+    public function name(): string
+    {
+        return $this->name;
+    }
+    public function color(): string
+    {
+        return $this->color;
+    }
+    public function refreshInterval(): int
+    {
+        return $this->refreshInterval;
+    }
+    public function lastFetched(): ?string
+    {
+        return $this->lastFetched;
+    }
+    public function etag(): ?string
+    {
+        return $this->etag;
+    }
 
     /** @return array<string, mixed> */
     public function toArray(): array

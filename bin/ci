@@ -129,6 +129,18 @@ cmd_phpstan() {
   php vendor/bin/phpstan analyse --no-progress --memory-limit=512M "$@"
 }
 
+cmd_phpcs() {
+  cd "$API_DIR"
+  echo "Running PHP_CodeSniffer (PSR-12)..."
+  php vendor/bin/phpcs --report=summary -n "$@"
+}
+
+cmd_csfix() {
+  cd "$API_DIR"
+  echo "Running php-cs-fixer (dry-run)..."
+  php vendor/bin/php-cs-fixer fix --dry-run --diff "$@"
+}
+
 cmd_vitest() {
   cd "$WEB_DIR"
   echo "Running Vitest..."
@@ -157,6 +169,7 @@ cmd_mcp() {
 
 cmd_quick() {
   run_step "PHPStan"          cmd_phpstan
+  run_step "PHPCS"            cmd_phpcs
   run_step "PHPUnit"          cmd_test
   run_step "TypeScript"       cmd_tsc
   run_step "Vitest"           cmd_vitest
@@ -165,6 +178,7 @@ cmd_quick() {
 
 cmd_all() {
   run_step "PHPStan"          cmd_phpstan
+  run_step "PHPCS"            cmd_phpcs
   run_step "PHPUnit"          cmd_test
   run_step "TypeScript"       cmd_tsc
   run_step "Vitest"           cmd_vitest
@@ -188,6 +202,8 @@ fi
 case "$CMD" in
   test)       cmd_test "$@" ;;
   phpstan)    cmd_phpstan "$@" ;;
+  phpcs)      cmd_phpcs "$@" ;;
+  csfix)      cmd_csfix "$@" ;;
   vitest)     cmd_vitest "$@" ;;
   tsc)        cmd_tsc "$@" ;;
   e2e)        cmd_e2e "$@" ;;

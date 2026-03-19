@@ -6,7 +6,6 @@ namespace App\Tests\Unit\Auth;
 
 use App\Auth\OAuthProvider;
 use App\Auth\OAuthProviderRepository;
-use App\Controller\Api\OAuthController;
 use PHPUnit\Framework\TestCase;
 
 final class OAuthFlowTest extends TestCase
@@ -15,11 +14,16 @@ final class OAuthFlowTest extends TestCase
     {
         // Verify the provider entity has the necessary fields for redirect
         $provider = new OAuthProvider(
-            1, 'Google', 'oidc', 'client-id', 'client-secret',
+            1,
+            'Google',
+            'oidc',
+            'client-id',
+            'client-secret',
             'https://accounts.google.com/o/oauth2/auth',
             'https://oauth2.googleapis.com/token',
             'https://openidconnect.googleapis.com/v1/userinfo',
-            'openid email profile', true,
+            'openid email profile',
+            true,
         );
 
         $this->assertSame('https://accounts.google.com/o/oauth2/auth', $provider->authUrl());
@@ -62,7 +66,16 @@ final class OAuthFlowTest extends TestCase
     public function testProviderDisabledRejectsFlow(): void
     {
         $provider = new OAuthProvider(
-            1, 'Disabled', 'oauth2', 'id', 'secret', '', '', '', '', false,
+            1,
+            'Disabled',
+            'oauth2',
+            'id',
+            'secret',
+            '',
+            '',
+            '',
+            '',
+            false,
         );
 
         $this->assertFalse($provider->isEnabled());

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
+use App\Auth\LdapAuthenticator;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Auth\LdapAuthenticator;
 use App\Service\CoreServiceFactory;
 use App\Tenant\TenantContext;
 use Lexik\Bundle\JWTAuthenticationBundle\Encoder\JWTEncoderInterface;

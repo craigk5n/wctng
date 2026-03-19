@@ -26,10 +26,10 @@ final class QueryOptimizationTest extends TestCase
         $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
         // Create minimal tables
-        $pdo->exec("CREATE TABLE webcal_entry (cal_id INTEGER PRIMARY KEY, cal_date INTEGER, cal_create_by VARCHAR(60), cal_type CHAR(1))");
-        $pdo->exec("CREATE TABLE webcal_entry_user (cal_id INTEGER, cal_login VARCHAR(60))");
-        $pdo->exec("CREATE TABLE webcal_entry_categories (cal_id INTEGER, cat_id INTEGER)");
-        $pdo->exec("CREATE TABLE webcal_user_layers (cal_layerid INTEGER, cal_login VARCHAR(60))");
+        $pdo->exec('CREATE TABLE webcal_entry (cal_id INTEGER PRIMARY KEY, cal_date INTEGER, cal_create_by VARCHAR(60), cal_type CHAR(1))');
+        $pdo->exec('CREATE TABLE webcal_entry_user (cal_id INTEGER, cal_login VARCHAR(60))');
+        $pdo->exec('CREATE TABLE webcal_entry_categories (cal_id INTEGER, cat_id INTEGER)');
+        $pdo->exec('CREATE TABLE webcal_user_layers (cal_layerid INTEGER, cal_login VARCHAR(60))');
 
         // Apply indexes
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_entry_date ON webcal_entry (cal_date)');
