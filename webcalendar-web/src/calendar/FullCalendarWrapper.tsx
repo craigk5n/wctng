@@ -303,6 +303,7 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
         snapDuration="00:15:00"
         eventMinHeight={15}
         dayMaxEvents={true}
+        lazyFetching={true}
         weekends={true}
         height="auto"
         locale={i18nInstance.language}
