@@ -43,7 +43,7 @@ interface FullCalendarWrapperProps {
 
 export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCalendarWrapperProps>(
   function FullCalendarWrapper({ initialView = 'dayGridMonth', currentUserLogin, onEventClick, onTaskClick, onJournalClick, onDateSelect, onEventDrop, onEventResize, activeLayers, activeCategoryIds }, ref) {
-  const [events, setEvents] = useState<EventInput[]>([]);
+  const [rawEvents, setRawEvents] = useState<EventInput[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const calendarRef = useRef<FullCalendar>(null);
   const { categories } = useCategories();
@@ -209,23 +209,27 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
         return { ...event, backgroundColor: color, borderColor: color };
       });
 
-      // Apply category filter (-1 = uncategorized sentinel)
-      let filtered: EventInput[] = coloredEvents.filter((e) => e !== null) as EventInput[];
-      if (activeCategoryIds !== null && activeCategoryIds !== undefined) {
-        const activeSet = new Set(activeCategoryIds);
-        const showUncategorized = activeSet.has(-1);
-        filtered = filtered.filter((e) => {
-          const catIds = (e.extendedProps?.categories as number[]) ?? [];
-          if (catIds.length === 0) return showUncategorized;
-          return catIds.some((id) => activeSet.has(id));
-        });
-      }
-      setEvents(filtered);
+      const filtered: EventInput[] = coloredEvents.filter((e) => e !== null) as EventInput[];
+      setRawEvents(filtered);
     } finally {
       setIsLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- serialize array to avoid reference-equality loops
-  }, [categories, hasVisibleLayers, layerColorMap, JSON.stringify(activeCategoryIds)]);
+  }, [categories, hasVisibleLayers, layerColorMap]);
+
+  // Derive filtered events reactively when raw events or category filter changes
+  const events = useMemo(() => {
+    if (activeCategoryIds === null || activeCategoryIds === undefined) {
+      return rawEvents;
+    }
+    const activeSet = new Set(activeCategoryIds);
+    const showUncategorized = activeSet.has(-1);
+    return rawEvents.filter((e) => {
+      const catIds = (e.extendedProps?.categories as number[]) ?? [];
+      if (catIds.length === 0) return showUncategorized;
+      return catIds.some((id) => activeSet.has(id));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- serialize to avoid ref loops
+  }, [rawEvents, JSON.stringify(activeCategoryIds)]);
 
   useImperativeHandle(ref, () => ({
     refetchEvents: () => {

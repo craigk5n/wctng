@@ -49,6 +49,31 @@ test.describe('Category Filter E2E', () => {
     await expect(filterBtn).toHaveAttribute('aria-label', 'Filter by category');
   });
 
+  test('clicking None then All toggles filter state', async ({ page }) => {
+    await loginAsAdmin(page);
+    await page.evaluate(() => localStorage.removeItem('wctng_category_filter'));
+
+    await page.goto('/');
+    await page.waitForSelector('.fc');
+
+    // Open filter popover
+    const filterBtn = page.getByRole('button', { name: /filter by category/i });
+    await expect(filterBtn).toBeVisible({ timeout: 5000 });
+    await filterBtn.click();
+
+    // Click None — all checkboxes should uncheck
+    await page.getByRole('button', { name: /^none$/i }).click();
+    await page.waitForTimeout(300);
+
+    const uncategorizedCheckbox = page.locator('input[aria-label="Uncategorized"]');
+    await expect(uncategorizedCheckbox).not.toBeChecked();
+
+    // Click All — all checkboxes should recheck
+    await page.getByRole('button', { name: /^all$/i }).click();
+    await page.waitForTimeout(300);
+    await expect(uncategorizedCheckbox).toBeChecked();
+  });
+
   test('saved view creation form shows category filter section', async ({ page }) => {
     await loginAsAdmin(page);
     await page.goto('/views');
