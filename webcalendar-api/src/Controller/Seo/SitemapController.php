@@ -27,11 +27,26 @@ final class SitemapController
         $this->seoService = new SeoEligibilityService($factory);
     }
 
+    private const CACHE_TTL = 3600; // 1 hour
+
     #[Route('/sitemap.xml', name: 'seo_sitemap', methods: ['GET'])]
     public function sitemap(): Response
     {
         if (!$this->seoService->isSeoEnabledGlobally()) {
             return new Response('Not Found', 404);
+        }
+
+        // Serve from file cache if fresh
+        $cacheFile = \dirname(__DIR__, 3) . '/var/cache/sitemap.xml';
+        if (file_exists($cacheFile) && (time() - (int) filemtime($cacheFile)) < self::CACHE_TTL) {
+            $cached = file_get_contents($cacheFile);
+            if ($cached !== false) {
+                return new Response($cached, 200, [
+                    'Content-Type' => 'application/xml; charset=UTF-8',
+                    'Cache-Control' => 'public, max-age=3600',
+                    'X-Cache' => 'HIT',
+                ]);
+            }
         }
 
         $eligibleUsers = $this->getEligibleUsers();
@@ -93,9 +108,17 @@ final class SitemapController
 
         $xml = $this->renderSitemap($urls);
 
+        // Write to file cache
+        $cacheDir = \dirname($cacheFile);
+        if (!is_dir($cacheDir)) {
+            @mkdir($cacheDir, 0o755, true);
+        }
+        @file_put_contents($cacheFile, $xml);
+
         return new Response($xml, 200, [
             'Content-Type' => 'application/xml; charset=UTF-8',
             'Cache-Control' => 'public, max-age=3600',
+            'X-Cache' => 'MISS',
         ]);
     }
 

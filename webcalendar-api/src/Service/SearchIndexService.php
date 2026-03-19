@@ -44,9 +44,14 @@ final readonly class SearchIndexService
 
         $params = [];
         $joins = '';
-        $where = ['(e.cal_name LIKE :q1 OR e.cal_description LIKE :q2)'];
-        $params['q1'] = '%' . $query . '%';
-        $params['q2'] = '%' . $query . '%';
+        if ($this->hasFulltext($pdo)) {
+            $where = ['MATCH(e.cal_name, e.cal_description) AGAINST(:q1 IN BOOLEAN MODE)'];
+            $params['q1'] = $query . '*';
+        } else {
+            $where = ['(e.cal_name LIKE :q1 OR e.cal_description LIKE :q2)'];
+            $params['q1'] = '%' . $query . '%';
+            $params['q2'] = '%' . $query . '%';
+        }
 
         // User filter
         $where[] = "e.cal_create_by = :user";
@@ -145,19 +150,25 @@ final readonly class SearchIndexService
         $pdo = $this->coreServiceFactory->getPdo();
 
         $limitInt = (int) $limit;
-        $sql = "SELECT e.cal_id, e.cal_name, e.cal_date, e.cal_type
-                FROM webcal_entry e
-                WHERE (e.cal_name LIKE :q1 OR e.cal_description LIKE :q2)
-                AND e.cal_create_by = :user
-                ORDER BY e.cal_date DESC
-                LIMIT {$limitInt}";
-
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([
-            'q1' => $prefix . '%',
-            'q2' => $prefix . '%',
-            'user' => $userLogin,
-        ]);
+        if ($this->hasFulltext($pdo)) {
+            $sql = "SELECT e.cal_id, e.cal_name, e.cal_date, e.cal_type
+                    FROM webcal_entry e
+                    WHERE MATCH(e.cal_name, e.cal_description) AGAINST(:q1 IN BOOLEAN MODE)
+                    AND e.cal_create_by = :user
+                    ORDER BY e.cal_date DESC
+                    LIMIT {$limitInt}";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(['q1' => $prefix . '*', 'user' => $userLogin]);
+        } else {
+            $sql = "SELECT e.cal_id, e.cal_name, e.cal_date, e.cal_type
+                    FROM webcal_entry e
+                    WHERE (e.cal_name LIKE :q1 OR e.cal_description LIKE :q2)
+                    AND e.cal_create_by = :user
+                    ORDER BY e.cal_date DESC
+                    LIMIT {$limitInt}";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(['q1' => $prefix . '%', 'q2' => $prefix . '%', 'user' => $userLogin]);
+        }
 
         $results = [];
         /** @var array<string, mixed>|false $row */
@@ -222,5 +233,24 @@ final readonly class SearchIndexService
         );
 
         return $highlighted ?? $snippet;
+    }
+
+    /**
+     * Check if the database supports FULLTEXT indexes (MySQL/MariaDB).
+     */
+    private function hasFulltext(\PDO $pdo): bool
+    {
+        $driver = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        if ($driver !== 'mysql') {
+            return false;
+        }
+
+        // Check if the FULLTEXT index exists
+        try {
+            $stmt = $pdo->query("SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'webcal_entry' AND index_name = 'idx_entry_fulltext'");
+            return $stmt !== false && (int) $stmt->fetchColumn() > 0;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }
