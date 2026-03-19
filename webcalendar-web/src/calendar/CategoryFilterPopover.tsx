@@ -12,6 +12,8 @@ interface CategoryFilterPopoverProps {
 }
 
 const STORAGE_KEY = 'wctng_category_filter';
+/** Sentinel ID representing uncategorized events in the filter set */
+export const UNCATEGORIZED_ID = -1;
 
 export function CategoryFilterPopover({ onChange }: CategoryFilterPopoverProps) {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -31,10 +33,10 @@ export function CategoryFilterPopover({ onChange }: CategoryFilterPopoverProps) 
           try {
             setActiveIds(new Set(JSON.parse(stored) as number[]));
           } catch {
-            setActiveIds(new Set(data.map((c) => c.id)));
+            setActiveIds(new Set([UNCATEGORIZED_ID, ...data.map((c) => c.id)]));
           }
         } else {
-          setActiveIds(new Set(data.map((c) => c.id)));
+          setActiveIds(new Set([UNCATEGORIZED_ID, ...data.map((c) => c.id)]));
         }
         setLoaded(true);
       }
@@ -72,7 +74,7 @@ export function CategoryFilterPopover({ onChange }: CategoryFilterPopoverProps) 
   }, [persist]);
 
   const selectAll = useCallback(() => {
-    const all = new Set(categories.map((c) => c.id));
+    const all = new Set([UNCATEGORIZED_ID, ...categories.map((c) => c.id)]);
     setActiveIds(all);
     persist(all);
   }, [categories, persist]);
@@ -85,7 +87,9 @@ export function CategoryFilterPopover({ onChange }: CategoryFilterPopoverProps) 
 
   if (categories.length === 0) return null;
 
-  const isFiltering = activeIds.size < categories.length;
+  // +1 for the uncategorized sentinel
+  const totalOptions = categories.length + 1;
+  const isFiltering = activeIds.size < totalOptions;
 
   return (
     <div className="relative" ref={ref}>
@@ -99,7 +103,7 @@ export function CategoryFilterPopover({ onChange }: CategoryFilterPopoverProps) 
         }`}
       >
         <FilterIcon />
-        {isFiltering ? `${activeIds.size}/${categories.length}` : 'Filter'}
+        {isFiltering ? `${activeIds.size}/${totalOptions}` : 'Filter'}
       </button>
 
       {open && (
@@ -112,6 +116,17 @@ export function CategoryFilterPopover({ onChange }: CategoryFilterPopoverProps) 
             </div>
           </div>
           <div className="max-h-64 overflow-y-auto py-1">
+            <label className="flex items-center gap-2 cursor-pointer px-3 py-1.5 hover:bg-accent/50 border-b border-border/50 mb-1">
+              <input
+                type="checkbox"
+                checked={activeIds.has(UNCATEGORIZED_ID)}
+                onChange={() => toggle(UNCATEGORIZED_ID)}
+                className="h-3.5 w-3.5 rounded border-input"
+                aria-label="Uncategorized"
+              />
+              <span className="h-2.5 w-2.5 rounded-full flex-shrink-0 border border-dashed border-muted-foreground/40" />
+              <span className="truncate text-sm italic text-muted-foreground">Uncategorized</span>
+            </label>
             {categories.map((cat) => (
               <label key={cat.id} className="flex items-center gap-2 cursor-pointer px-3 py-1.5 hover:bg-accent/50">
                 <input

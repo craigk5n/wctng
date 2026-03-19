@@ -209,14 +209,15 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
         return { ...event, backgroundColor: color, borderColor: color };
       });
 
-      // Apply category filter
+      // Apply category filter (-1 = uncategorized sentinel)
       let filtered: EventInput[] = coloredEvents.filter((e) => e !== null) as EventInput[];
       if (activeCategoryIds !== null && activeCategoryIds !== undefined) {
         const activeSet = new Set(activeCategoryIds);
+        const showUncategorized = activeSet.has(-1);
         filtered = filtered.filter((e) => {
           const catIds = (e.extendedProps?.categories as number[]) ?? [];
-          // Show uncategorized events (no categories) always, or if any category matches
-          return catIds.length === 0 || catIds.some((id) => activeSet.has(id));
+          if (catIds.length === 0) return showUncategorized;
+          return catIds.some((id) => activeSet.has(id));
         });
       }
       setEvents(filtered);
