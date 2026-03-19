@@ -21,6 +21,8 @@ final class ConfigController
         'DISABLE_URL_FIELD' => 'N',
         'DISABLE_PRIORITY_FIELD' => 'N',
         'DISABLE_PARTICIPANTS_FIELD' => 'N',
+        'DISABLE_TASKS' => 'N',
+        'DISABLE_JOURNALS' => 'N',
         'ENABLE_SEO_PAGES' => 'N',
         'ENABLE_GEOCODING' => 'Y',
         'ENABLE_EMAIL_REMINDERS' => 'Y',

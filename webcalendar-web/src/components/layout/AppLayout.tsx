@@ -6,6 +6,7 @@ import { SearchBar } from '../search/SearchBar';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { LanguageSelector } from '../i18n/LanguageSelector';
 import { useTenant } from '../../hooks/useTenant';
+import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { CustomHeader, CustomTrailer, CustomCssInjector } from './CustomHtmlInjector';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -23,12 +24,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     });
   };
   const { tenant } = useTenant();
+  const flags = useFeatureFlags();
 
   const mainNav = [
     { label: 'Calendar', href: '/', icon: '📅' },
     { label: 'Views', href: '/views', icon: '👁' },
-    { label: 'Tasks', href: '/tasks', icon: '✅' },
-    { label: 'Journals', href: '/journals', icon: '📓' },
+    ...(flags.DISABLE_TASKS !== 'Y' ? [{ label: 'Tasks', href: '/tasks', icon: '✅' }] : []),
+    ...(flags.DISABLE_JOURNALS !== 'Y' ? [{ label: 'Journals', href: '/journals', icon: '📓' }] : []),
     { label: 'Reports', href: '/reports', icon: '📊' },
   ];
 

@@ -41,6 +41,18 @@ const FEATURES: FeatureToggle[] = [
     inverted: true,
   },
   {
+    key: 'DISABLE_TASKS',
+    label: 'Tasks',
+    description: 'Enable the Tasks module for tracking to-dos with due dates and completion status.',
+    inverted: true,
+  },
+  {
+    key: 'DISABLE_JOURNALS',
+    label: 'Journals',
+    description: 'Enable the Journals module for daily notes and entries.',
+    inverted: true,
+  },
+  {
     key: 'ENABLE_SEO_PAGES',
     label: 'Public Event Pages for Search Engines',
     description: 'Enable server-rendered event detail pages that search engines can crawl. Individual users can opt out in their preferences.',

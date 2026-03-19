@@ -7,6 +7,8 @@ export interface FeatureFlags {
   DISABLE_URL_FIELD: string;
   DISABLE_PRIORITY_FIELD: string;
   DISABLE_PARTICIPANTS_FIELD: string;
+  DISABLE_TASKS: string;
+  DISABLE_JOURNALS: string;
   ENABLE_SEO_PAGES: string;
   ENABLE_GEOCODING: string;
 }
@@ -17,6 +19,8 @@ const DEFAULTS: FeatureFlags = {
   DISABLE_URL_FIELD: 'N',
   DISABLE_PRIORITY_FIELD: 'N',
   DISABLE_PARTICIPANTS_FIELD: 'N',
+  DISABLE_TASKS: 'N',
+  DISABLE_JOURNALS: 'N',
   ENABLE_SEO_PAGES: 'N',
   ENABLE_GEOCODING: 'Y',
 };
