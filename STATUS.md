@@ -852,6 +852,160 @@ P9-E4-S2 (Accessibility) — independent
 
 ---
 
+### Epic P10-E3: Category Filtering, Import & Management (5 stories)
+
+| Story | Title | Status |
+|-------|-------|--------|
+| P10-E3-S1 | Category Sidebar Filter | TODO |
+| P10-E3-S2 | Category Filter in Saved Views | TODO |
+| P10-E3-S3 | Auto-Create Categories on Import | TODO |
+| P10-E3-S4 | Promote Category to Global | TODO |
+| P10-E3-S5 | Merge Categories | TODO |
+
+---
+
+### P10-E3-S1: Category Sidebar Filter
+
+**Status:** TODO
+
+**Description:**
+Add a collapsible "Categories" section to the left sidebar with checkboxes per category. Checking/unchecking filters events on the calendar view client-side. Multi-select (Google Calendar model).
+
+**TDD Tests (write first):**
+- Vitest: `CategoryFilter` component — renders categories with checkboxes, toggle hides/shows, "select all/none" buttons, persists to localStorage, uncategorized events toggle
+- E2E: check a category → only its events visible; uncheck → hidden; reload → filter persists
+
+**Acceptance Criteria:**
+- [ ] `CategoryFilter` component in left sidebar below navigation, collapsible
+- [ ] Fetches categories from `GET /api/v2/categories` on mount
+- [ ] Each category: checkbox + color dot + name + event count
+- [ ] "All" / "None" toggle buttons at top
+- [ ] Uncategorized events have their own toggle (always shown by default)
+- [ ] Filter applied client-side via FullCalendar `eventDisplay` callback (hide non-matching)
+- [ ] Filter state persisted to localStorage (`wctng_category_filter`)
+- [ ] Vitest: 6 tests (render, toggle, all/none, persist, uncategorized, color dots)
+- [ ] E2E: 2 tests (filter hides events, filter persists on reload)
+
+---
+
+### P10-E3-S2: Category Filter in Saved Views
+
+**Status:** TODO
+
+**Description:**
+Extend saved views to store a category filter. Activating a view sets both layers and category filter.
+
+**Preconditions:** P10-E3-S1
+
+**TDD Tests (write first):**
+- PHPUnit: SavedViewRepository — create with category_ids, findByOwner returns category_ids, null/empty handled
+- Vitest: SavedViewsPage — category checkboxes in create form, view shows category badge
+- E2E: create view with category filter → activate → only filtered categories shown
+
+**Acceptance Criteria:**
+- [ ] `saved_views` table: add `category_ids` TEXT column (JSON array, default '[]')
+- [ ] `SavedViewRepository::create()` accepts optional `categoryIds` parameter
+- [ ] `findByOwner()` returns `category_ids` in response
+- [ ] SavedViewsPage create form: category checklist (like user checklist)
+- [ ] Activating a view applies category filter to sidebar checkboxes
+- [ ] PHPUnit: 3 tests (create with categories, round-trip, empty default)
+- [ ] Vitest: 2 tests (category checkboxes in form, badge on view)
+- [ ] E2E: 1 test (create view with category, activate, verify filter)
+
+---
+
+### P10-E3-S3: Auto-Create Categories on Import
+
+**Status:** TODO
+
+**Description:**
+When importing ICS events with CATEGORIES that don't exist, auto-create them as personal (non-global) categories. Applies to ICS file import and CalDAV sync.
+
+**TDD Tests (write first):**
+- PHPUnit: import event with unknown category → category created as personal (owner = user), not global
+- PHPUnit: import event with existing category → no duplicate created
+- PHPUnit: import with multiple unknown categories → all created
+- PHPUnit: re-import same event → categories not duplicated
+
+**Acceptance Criteria:**
+- [ ] ICS import: parse CATEGORIES field, lookup by name for user, create if missing
+- [ ] Created categories: owner = importing user (personal, not global), default color
+- [ ] Import summary: "N new categories created" count
+- [ ] CalDAV sync: same logic when receiving VCALENDAR with CATEGORIES
+- [ ] PHPUnit: 4 integration tests
+- [ ] No frontend changes needed
+
+---
+
+### P10-E3-S4: Promote Category to Global
+
+**Status:** TODO
+
+**Description:**
+Allow admins to promote a personal category to global (visible to all users). Admin categories page shows owner indicator and "Make Global" action.
+
+**TDD Tests (write first):**
+- PHPUnit: `PUT /api/v2/categories/{id}` with `is_global: true` sets owner to null
+- PHPUnit: non-admin cannot promote (403)
+- PHPUnit: already-global category returns success (idempotent)
+- Vitest: CategoryManagement shows "Personal" badge with "Make Global" button for personal categories
+- E2E: promote personal category → reload → shows as "Global"
+
+**Acceptance Criteria:**
+- [ ] `PUT /api/v2/categories/{id}` accepts `is_global` boolean field
+- [ ] When `is_global: true` and user is admin: set category owner to null
+- [ ] When `is_global: false` and user is admin: set category owner to admin login
+- [ ] Non-admin: 403 if trying to change is_global
+- [ ] Admin categories page: "Make Global" button for personal categories, "Make Personal" for global
+- [ ] PHPUnit: 3 integration tests
+- [ ] Vitest: 1 test (button renders conditionally)
+- [ ] E2E: 1 test (promote and verify)
+
+---
+
+### P10-E3-S5: Merge Categories
+
+**Status:** TODO
+
+**Description:**
+Admin tool to merge duplicate categories (e.g., "Holiday" → "Holidays"). Reassigns all event associations from source to target, then deletes source.
+
+**TDD Tests (write first):**
+- PHPUnit: merge reassigns all webcal_entry_categories rows from source to target
+- PHPUnit: merge deletes source category after reassignment
+- PHPUnit: merge same category into itself → error
+- PHPUnit: merge preserves target category name and color
+- Vitest: merge dialog renders with source/target dropdowns
+- E2E: create two categories with events → merge → events retain under survivor
+
+**Acceptance Criteria:**
+- [ ] `POST /api/v2/admin/categories/merge` — accepts `source_id` and `target_id`
+- [ ] Reassigns all `webcal_entry_categories` rows: `UPDATE ... SET cat_id = :target WHERE cat_id = :source`
+- [ ] Deletes source category after reassignment
+- [ ] Returns `{merged_events: N}` count
+- [ ] Self-merge rejected (400)
+- [ ] Admin categories page: "Merge" button opens dialog with two dropdowns
+- [ ] PHPUnit: 4 integration tests
+- [ ] Vitest: 1 test (dialog renders)
+- [ ] E2E: 1 test (merge and verify)
+
+---
+
+### P10-E3 Summary
+
+| Story | Backend Tests | Frontend Tests | E2E Tests |
+|-------|--------------|----------------|-----------|
+| S1 Category Filter | — | 6 Vitest | 2 E2E |
+| S2 Views + Categories | 3 PHPUnit | 2 Vitest | 1 E2E |
+| S3 Auto-Create Import | 4 PHPUnit | — | — |
+| S4 Promote to Global | 3 PHPUnit | 1 Vitest | 1 E2E |
+| S5 Merge Categories | 4 PHPUnit | 1 Vitest | 1 E2E |
+| **Total** | **14** | **10** | **5** |
+
+**Execution order:** S1 → S2 → S3 → S4 → S5 (S1 is prerequisite for S2; S3–S5 independent)
+
+---
+
 ## Dependency Graph (Phase 7)
 
 ---
