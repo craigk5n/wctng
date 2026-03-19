@@ -1006,6 +1006,149 @@ Admin tool to merge duplicate categories (e.g., "Holiday" → "Holidays"). Reass
 
 ---
 
+## Phase 11: Performance & Scalability
+
+> **Target:** Support 100k–1M events and 1000+ users with sub-500ms API response times.
+
+### Architecture Notes
+
+**Recurrence handling is already efficient:**
+- php-icalendar-core's `RecurrenceExpander` handles all RFC 5545 RRULE expansion
+- API returns base events with RRULE strings — FullCalendar expands client-side
+- `RecurrenceService` exists for server-side expansion when needed (conflict detection, SSR, sitemap)
+- DB "over-fetch" strategy is conservative: only grabs recurring events that might extend into the requested date range
+- This is the same approach the WordPress plugin uses
+
+**Real bottlenecks at scale:**
+- `findByDateRange` date scan on 1M rows (indexes help but BETWEEN on large tables is inherently O(n))
+- Search `LIKE '%query%'` — cannot use B-tree indexes, needs FULLTEXT
+- Sitemap generation iterating all users × all events (needs caching/pagination)
+- PHP memory when hydrating thousands of Event objects (lightweight DTOs mitigate)
+
+### Epic P11-E1: Performance & Scalability Testing (4 stories)
+
+| Story | Title | Status |
+|-------|-------|--------|
+| P11-E1-S1 | Data Seeder & Baseline Metrics | TODO |
+| P11-E1-S2 | Database Query Profiling & Optimization | TODO |
+| P11-E1-S3 | API Load Testing with k6 | TODO |
+| P11-E1-S4 | Frontend Rendering Performance | TODO |
+
+---
+
+### P11-E1-S1: Data Seeder & Baseline Metrics
+
+**Status:** TODO
+
+**Description:**
+Symfony command that generates realistic large-scale test data. Baseline measurement script captures response times, query counts, and memory for key endpoints.
+
+**Acceptance Criteria:**
+- [ ] `webcalendar:seed-test-data --users=N --events=N --categories=N` command
+- [ ] Realistic distribution: 80% one-time events, 15% daily/weekly recurring, 5% with 3+ participants
+- [ ] Events spread across 2 years (past 1 year + future 1 year)
+- [ ] Categories: 50 global + 5 personal per user
+- [ ] Users: varied roles (5% admin, 95% regular), realistic names/emails
+- [ ] Baseline script `bin/perf-baseline` measures and reports:
+  - GET /api/v2/events (1-month range): avg, p95, p99 ms
+  - GET /api/v2/events with layers=1: avg, p95, p99 ms
+  - GET /api/v2/search/suggest?q=term: avg, p95 ms
+  - GET /sitemap.xml: total time
+  - PHP memory per request (via response headers or Xdebug)
+  - Query count per request (via QueryLogger)
+- [ ] Output: JSON report + human-readable summary table
+- [ ] `--cleanup` flag to remove seeded data
+- [ ] PHPStan level 9
+
+---
+
+### P11-E1-S2: Database Query Profiling & Optimization
+
+**Status:** TODO
+
+**Preconditions:** P11-E1-S1 (need data to profile against)
+
+**Description:**
+Profile the 5 hottest queries against 100k+ rows, add indexes and query optimizations based on EXPLAIN ANALYZE results.
+
+**Acceptance Criteria:**
+- [ ] Enable MySQL slow query log (>100ms threshold)
+- [ ] Run EXPLAIN ANALYZE on:
+  1. `findByDateRange` with 1-month range + single user
+  2. `findByDateRange` with layers (5 users)
+  3. Search `LIKE '%term%'` on cal_name + cal_description
+  4. `getForEventsBatch` with 100 event IDs
+  5. Sitemap: all public events query
+- [ ] For search: add MySQL FULLTEXT index on `(cal_name, cal_description)`, use `MATCH ... AGAINST` when available
+- [ ] For date range: evaluate composite index effectiveness, consider partitioning by year if needed
+- [ ] For sitemap: add result caching (store generated XML, regenerate on schedule)
+- [ ] Before/after comparison table in commit message
+- [ ] Target: all key queries < 200ms with 100k events, < 500ms with 1M
+- [ ] Migration SQL for new indexes
+
+---
+
+### P11-E1-S3: API Load Testing with k6
+
+**Status:** TODO
+
+**Preconditions:** P11-E1-S2 (optimize before load testing)
+
+**Description:**
+HTTP load testing using k6 to verify the system handles concurrent users at scale.
+
+**Acceptance Criteria:**
+- [ ] k6 test scripts in `tests/performance/`:
+  1. `calendar-load.js` — GET events with 1-month range, ramp 10→100 concurrent users over 2 min
+  2. `crud-load.js` — POST/PUT/DELETE events, 20 concurrent users, 1 min sustained
+  3. `search-load.js` — GET search/suggest with varied queries, 30 concurrent
+  4. `mixed-workload.js` — 70% reads, 20% creates, 10% updates, 50 concurrent, 5 min sustained
+  5. `spike.js` — 200 concurrent users hitting event list, 30 seconds
+- [ ] Results captured in `tests/performance/results/` with timestamps
+- [ ] Pass criteria:
+  - Calendar list: > 200 req/s, p95 < 500ms
+  - Event create: > 100 req/s, p95 < 300ms
+  - Search: > 150 req/s, p95 < 500ms
+  - Mixed: < 1% error rate sustained
+  - Spike: graceful degradation (no 500s, p99 < 2s)
+- [ ] Identify: PHP-FPM worker count needed, MySQL connection limits, memory per worker
+
+---
+
+### P11-E1-S4: Frontend Rendering Performance
+
+**Status:** TODO
+
+**Description:**
+Verify FullCalendar and React SPA perform well with large event counts and complex category filtering.
+
+**Acceptance Criteria:**
+- [ ] Lighthouse CI scores on calendar page with 500+ visible events:
+  - Performance score > 70
+  - Time to Interactive < 3s
+  - Largest Contentful Paint < 2.5s
+- [ ] FullCalendar month view: measure render time with 100, 500, 1000 events
+  - If > 500ms at 500 events: add `dayMaxEvents` limit ("+N more" link)
+- [ ] Category filter useMemo: verify < 10ms derivation with 1000 events
+- [ ] List view: add pagination if > 200 events (virtual scrolling or "Load more")
+- [ ] Bundle size: verify no regression from performance baseline (202KB gzipped initial)
+- [ ] Chrome DevTools Performance recording: no layout thrashing, no jank > 50ms
+
+---
+
+### P11-E1 Summary
+
+| Story | Focus | Key Deliverable |
+|-------|-------|-----------------|
+| S1 | Data generation | Seeder command + baseline script |
+| S2 | Database | EXPLAIN-driven index optimization + FULLTEXT search |
+| S3 | API concurrency | k6 load test suite with pass/fail criteria |
+| S4 | Frontend | Lighthouse CI + FullCalendar rendering limits |
+
+**Execution order:** S1 → S2 → S3 → S4 (each depends on the previous)
+
+---
+
 ## Dependency Graph (Phase 7)
 
 ---
