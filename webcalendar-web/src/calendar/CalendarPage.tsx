@@ -18,7 +18,6 @@ import { exportEventAsIcs } from './exportEventIcs';
 import { LayerPanel, type LayerVisibility } from './LayerPanel';
 import { PollDialog } from './PollDialog';
 import { ViewSwitcher } from './ViewSwitcher';
-import { WorkingLocationWidget } from './WorkingLocationWidget';
 import { QuickAddInput } from './QuickAddInput';
 import { useMercure, type MercureMessage } from '../hooks/useMercure';
 
@@ -348,7 +347,6 @@ export function CalendarPage() {
             initialValues: parsed as Record<string, unknown>,
           });
         }} />
-        <WorkingLocationWidget />
         <ViewSwitcher onViewChange={() => {
           calendarRef.current?.refetchEvents();
         }} />
