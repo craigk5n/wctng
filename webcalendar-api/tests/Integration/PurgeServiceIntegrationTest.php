@@ -5,19 +5,41 @@ declare(strict_types=1);
 namespace App\Tests\Integration;
 
 use App\Service\PurgeService;
+use App\Webhook\WebhookDispatcherInterface;
 use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\EventId;
 use WebCalendar\Core\Domain\ValueObject\EventType;
 
+/**
+ * Recording double for WebhookDispatcherInterface: captures dispatch()
+ * calls without making HTTP requests.
+ */
+final class RecordingWebhookDispatcher implements WebhookDispatcherInterface
+{
+    /** @var list<array{event:string,data:array<string,mixed>}> */
+    public array $calls = [];
+
+    public function dispatch(string $eventType, array $data): void
+    {
+        $this->calls[] = ['event' => $eventType, 'data' => $data];
+    }
+}
+
 final class PurgeServiceIntegrationTest extends IntegrationTestCase
 {
     private PurgeService $purge;
+    private RecordingWebhookDispatcher $webhooks;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->purge = new PurgeService($this->pdo, $this->factory->getActivityLogRepository());
+        $this->webhooks = new RecordingWebhookDispatcher();
+        $this->purge = new PurgeService(
+            $this->pdo,
+            $this->factory->getActivityLogRepository(),
+            $this->webhooks,
+        );
     }
 
     /** @return list<array<string,mixed>> */
@@ -241,6 +263,73 @@ final class PurgeServiceIntegrationTest extends IntegrationTestCase
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM webcal_entry_repeats WHERE cal_id = :id');
         $stmt->execute(['id' => $repeatingId]);
         $this->assertSame(0, (int) $stmt->fetchColumn());
+    }
+
+    public function testLiveRunDispatchesPurgedWebhook(): void
+    {
+        $this->createEvent('old-1@test', '2020-01-15');
+        $this->createEvent('old-2@test', '2020-02-15');
+
+        $this->purge->purge(
+            beforeDate: new \DateTimeImmutable('2025-01-01'),
+            actor: 'admin',
+            dryRun: false,
+            confirmCount: 2,
+        );
+
+        $this->assertCount(1, $this->webhooks->calls, 'Exactly one bulk webhook should fire');
+        $call = $this->webhooks->calls[0];
+        $this->assertSame('events.purged', $call['event']);
+        $this->assertSame(2, $call['data']['count']);
+        $this->assertSame('2025-01-01', $call['data']['before_date']);
+        $this->assertNull($call['data']['user_login']);
+        $this->assertSame('admin', $call['data']['actor']);
+        $this->assertFalse($call['data']['include_repeating']);
+    }
+
+    public function testDryRunDoesNotDispatch(): void
+    {
+        $this->createEvent('old@test', '2020-01-15');
+
+        $this->purge->purge(
+            beforeDate: new \DateTimeImmutable('2025-01-01'),
+            actor: 'admin',
+            dryRun: true,
+        );
+
+        $this->assertSame([], $this->webhooks->calls);
+    }
+
+    public function testZeroCountDoesNotDispatch(): void
+    {
+        // Webhook subscribers care about state changes; an empty purge
+        // has none. (The activity log still records the attempt.)
+        $this->createEvent('future@test', '2030-01-01');
+
+        $this->purge->purge(
+            beforeDate: new \DateTimeImmutable('2025-01-01'),
+            actor: 'admin',
+            dryRun: false,
+            confirmCount: 0,
+        );
+
+        $this->assertSame([], $this->webhooks->calls);
+    }
+
+    public function testWebhookPayloadIncludesUserScope(): void
+    {
+        $this->createEvent('alice-old@test', '2020-01-15', 'alice');
+
+        $this->purge->purge(
+            beforeDate: new \DateTimeImmutable('2025-01-01'),
+            userLogin: 'alice',
+            actor: 'admin',
+            dryRun: false,
+            confirmCount: 1,
+        );
+
+        $this->assertCount(1, $this->webhooks->calls);
+        $this->assertSame('alice', $this->webhooks->calls[0]['data']['user_login']);
     }
 
     public function testLiveRunWritesActivityLogEntry(): void

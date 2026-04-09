@@ -13,7 +13,7 @@ use Psr\Log\NullLogger;
  * Fire-and-forget with retry on failure (3 attempts, exponential backoff).
  * Logs delivery results for audit trail.
  */
-final class WebhookDispatcher
+final class WebhookDispatcher implements WebhookDispatcherInterface
 {
     private const MAX_RETRIES = 3;
     private const RETRY_DELAYS = [1, 5, 30]; // seconds

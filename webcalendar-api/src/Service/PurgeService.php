@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Webhook\WebhookDispatcherInterface;
 use WebCalendar\Core\Domain\Entity\ActivityLogEntry;
 use WebCalendar\Core\Domain\Repository\ActivityLogRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\ActivityLogType;
@@ -44,6 +45,7 @@ final class PurgeService
     public function __construct(
         private readonly \PDO $pdo,
         private readonly ?ActivityLogRepositoryInterface $activityLog = null,
+        private readonly ?WebhookDispatcherInterface $webhookDispatcher = null,
     ) {
     }
 
@@ -80,6 +82,23 @@ final class PurgeService
         }
 
         $this->writeAuditLog($actor, $beforeDate, $userLogin, $includeRepeating, $count);
+
+        // Fire a single bulk webhook for non-empty purges. Per-event delete
+        // webhooks are not emitted because the raw SQL delete bypasses
+        // EventService (no suppression plumbing required — it's by design).
+        if ($count > 0 && $this->webhookDispatcher !== null) {
+            try {
+                $this->webhookDispatcher->dispatch('events.purged', [
+                    'count' => $count,
+                    'before_date' => $beforeDate->format('Y-m-d'),
+                    'user_login' => $userLogin,
+                    'include_repeating' => $includeRepeating,
+                    'actor' => $actor,
+                ]);
+            } catch (\Throwable) {
+                // Webhook dispatch is best-effort — never unwind a successful purge.
+            }
+        }
 
         return new PurgeResult(count: $count, dryRun: false, beforeDate: $beforeDate, userLogin: $userLogin);
     }
