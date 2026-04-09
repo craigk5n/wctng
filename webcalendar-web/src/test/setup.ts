@@ -1,6 +1,26 @@
 import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 
+// Polyfill ResizeObserver for Radix primitives (Tooltip, Popover, etc.)
+// which use it via @radix-ui/react-use-size. jsdom does not ship it.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class {
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+  } as unknown as typeof ResizeObserver;
+}
+
+// Radix Tooltip calls these on triggers; jsdom doesn't implement them.
+if (typeof Element !== 'undefined') {
+  if (!Element.prototype.hasPointerCapture) {
+    Element.prototype.hasPointerCapture = () => false;
+  }
+  if (!Element.prototype.scrollIntoView) {
+    Element.prototype.scrollIntoView = () => {};
+  }
+}
+
 // Mock react-i18next globally so all components render untranslated keys as-is
 vi.mock('react-i18next', async () => {
   const actual = await vi.importActual<typeof import('react-i18next')>('react-i18next');

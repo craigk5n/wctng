@@ -7,8 +7,10 @@ import interactionPlugin from '@fullcalendar/interaction';
 import multiMonthPlugin from '@fullcalendar/multimonth';
 import type { DatesSetArg, EventClickArg, DateSelectArg, EventInput, EventDropArg, AllowFunc } from '@fullcalendar/core';
 import type { EventResizeDoneArg } from '@fullcalendar/interaction';
+import * as Tooltip from '@radix-ui/react-tooltip';
 import { fetchCalendarEvents } from './useCalendarEvents';
 import { buildEventTooltip } from './eventTooltip';
+import { EventTooltip } from './EventTooltip';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
 import { useCategories, getEventColor, getEventIcon } from './useCategories';
 import { useTranslation } from 'react-i18next';
@@ -281,17 +283,18 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
   }, []);
 
   return (
-    <div
-      className="relative"
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-    >
-      {isLoading && (
-        <div className="absolute right-2 top-2 z-10 rounded bg-primary px-2 py-1 text-xs text-primary-foreground">
-          Loading...
-        </div>
-      )}
-      <FullCalendar
+    <Tooltip.Provider delayDuration={200} skipDelayDuration={500}>
+      <div
+        className="relative"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {isLoading && (
+          <div className="absolute right-2 top-2 z-10 rounded bg-primary px-2 py-1 text-xs text-primary-foreground">
+            Loading...
+          </div>
+        )}
+        <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin, multiMonthPlugin]}
         initialView={initialView}
@@ -318,7 +321,32 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
         height="auto"
         locale={i18nInstance.language}
         nowIndicator={true}
+        eventContent={(arg) => (
+          <EventTooltip
+            event={{
+              title: arg.event.title,
+              start: arg.event.start,
+              end: arg.event.end,
+              allDay: arg.event.allDay,
+              location: (arg.event.extendedProps?.location as string | undefined) ?? undefined,
+              description: (arg.event.extendedProps?.description as string | undefined) ?? undefined,
+              categoryIds: (arg.event.extendedProps?.categories as number[] | undefined) ?? [],
+            }}
+            categories={categories}
+          >
+            <div className="fc-event-main-frame">
+              {arg.timeText && <div className="fc-event-time">{arg.timeText}</div>}
+              <div className="fc-event-title-container">
+                <div className="fc-event-title fc-sticky">
+                  {arg.event.title || <>&nbsp;</>}
+                </div>
+              </div>
+            </div>
+          </EventTooltip>
+        )}
         eventDidMount={(info) => {
+          // Keep an aria-label for screen readers (Radix handles hover + focus
+          // visual tooltip, but the SR-friendly aria-label still helps).
           const tip = buildEventTooltip({
             title: info.event.title,
             start: info.event.start,
@@ -328,12 +356,12 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
             description: (info.event.extendedProps?.description as string | undefined) ?? undefined,
           });
           if (tip) {
-            info.el.setAttribute('title', tip);
             info.el.setAttribute('aria-label', tip);
           }
         }}
-      />
-    </div>
+        />
+      </div>
+    </Tooltip.Provider>
   );
   },
 );
