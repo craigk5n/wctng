@@ -5,7 +5,7 @@
     "license": "MIT",
     "require": {
         "php": ">=8.2",
-        "craigk5n/webcalendar-core": "dev-main",
+        "craigk5n/webcalendar-core": "^4.1",
         "lexik/jwt-authentication-bundle": "^3.1",
         "nelmio/cors-bundle": "^2.4",
         "sabre/dav": "^4.7",

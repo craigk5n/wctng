@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4bf757358709574604bd239453bb2af9",
+    "content-hash": "86880daeb939d0346834087184915310",
     "packages": [
         {
             "name": "craigk5n/php-icalendar-core",
@@ -57,7 +57,7 @@
         },
         {
             "name": "craigk5n/webcalendar-core",
-            "version": "dev-main",
+            "version": "v4.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/craigk5n/webcalendar-core.git",
@@ -82,7 +82,6 @@
                 "squizlabs/php_codesniffer": "^3.7",
                 "vimeo/psalm": "^6.15"
             },
-            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
@@ -138,7 +137,7 @@
                 "webcalendar"
             ],
             "support": {
-                "source": "https://github.com/craigk5n/webcalendar-core/tree/main",
+                "source": "https://github.com/craigk5n/webcalendar-core/tree/v4.1.0",
                 "issues": "https://github.com/craigk5n/webcalendar-core/issues"
             },
             "time": "2026-04-09T16:25:29+00:00"
@@ -11469,9 +11468,7 @@
     ],
     "aliases": [],
     "minimum-stability": "dev",
-    "stability-flags": {
-        "craigk5n/webcalendar-core": 20
-    },
+    "stability-flags": [],
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
