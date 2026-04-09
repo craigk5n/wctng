@@ -49,7 +49,14 @@
 
 ---
 
-### Story DEL-S2: Dev Event Reset (non-prod CLI)
+### Story DEL-S2: Dev Event Reset (non-prod CLI) — DONE
+
+**Landed (2026-04-08):**
+- `src/Command/ResetEventsCommand.php` — `webcalendar:dev:reset-events`, triple-gated (env ∈ {dev,test} + `--force` + `WCTNG_ALLOW_DESTRUCTIVE_RESET=1`), interactive confirm unless `-n`, per-table row-count summary, graceful missing-table handling
+- `config/services.yaml` — wires `$pdo` + `$appEnv` from kernel
+- `tests/Integration/Command/ResetEventsCommandTest.php` — 8 tests (no --force, no env var, prod env refused, test env allowed, truncates all tables, output format, missing table, non-interactive). All passing, PHPStan clean.
+
+
 
 **Acceptance criteria:**
 - [ ] Symfony console command: `bin/console webcalendar:dev:reset-events`

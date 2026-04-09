@@ -243,6 +243,12 @@ services:
         arguments:
             $databaseUrl: '%env(DATABASE_URL)%'
 
+    # Dev reset command needs raw PDO + kernel environment for guards
+    App\Command\ResetEventsCommand:
+        arguments:
+            $pdo: '@pdo.connection'
+            $appEnv: '%kernel.environment%'
+
     # Exception subscriber needs kernel environment
     App\EventSubscriber\ExceptionSubscriber:
         arguments:
