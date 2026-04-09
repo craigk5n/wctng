@@ -10,7 +10,7 @@ import type { EventResizeDoneArg } from '@fullcalendar/interaction';
 import { fetchCalendarEvents } from './useCalendarEvents';
 import { buildEventTooltip } from './eventTooltip';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
-import { useCategories, getEventColor } from './useCategories';
+import { useCategories, getEventColor, getEventIcon } from './useCategories';
 import { useTranslation } from 'react-i18next';
 
 export interface FullCalendarWrapperHandle {
@@ -207,7 +207,16 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
         }
         const catIds = (event.extendedProps?.categories as number[]) ?? [];
         const color = getEventColor(catIds, categories);
-        return { ...event, backgroundColor: color, borderColor: color };
+        const icon = getEventIcon(catIds, categories);
+        const titleWithIcon = icon && typeof event.title === 'string'
+          ? `${icon} ${event.title}`
+          : event.title;
+        return {
+          ...event,
+          title: titleWithIcon,
+          backgroundColor: color,
+          borderColor: color,
+        };
       });
 
       const filtered: EventInput[] = coloredEvents.filter((e) => e !== null) as EventInput[];

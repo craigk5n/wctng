@@ -7,6 +7,7 @@ export interface ApiCategory {
   id: number;
   name: string;
   color: string | null;
+  icon: string | null;
   is_global: boolean;
   owner: string | null;
 }
@@ -37,4 +38,19 @@ export function getEventColor(categoryIds: number[], categories: ApiCategory[]):
   if (categoryIds.length === 0) return DEFAULT_EVENT_COLOR;
   const category = categories.find((c) => c.id === categoryIds[0]);
   return category?.color ?? DEFAULT_EVENT_COLOR;
+}
+
+/**
+ * Returns the first non-null emoji icon among the event's categories, or null.
+ * Categories are searched in the order provided, so the "primary" category
+ * (first id on the event) wins when multiple categories have icons.
+ */
+export function getEventIcon(categoryIds: number[], categories: ApiCategory[]): string | null {
+  for (const id of categoryIds) {
+    const cat = categories.find((c) => c.id === id);
+    if (cat?.icon) {
+      return cat.icon;
+    }
+  }
+  return null;
 }
