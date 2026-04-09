@@ -369,8 +369,27 @@ final class EventController
             return ApiResponse::error(404, 'Event not found');
         }
 
+        // Load category ids for this event. Previously this was
+        // hardcoded to `[]`, which meant every GET /events/{id}
+        // response reported the event as uncategorized even when
+        // categories were assigned in the database — the Edit dialog
+        // then showed no selected categories, making it look like
+        // selecting a category in the dialog did nothing.
+        $categoryIds = [];
+        try {
+            $categories = $this->coreServiceFactory->getCategoryRepository()->getForEvent(
+                new EventId($id),
+                $user->getUserIdentifier(),
+            );
+            foreach ($categories as $cat) {
+                $categoryIds[] = $cat->id();
+            }
+        } catch (\Throwable) {
+            // fall through — degrade to empty rather than 500
+        }
+
         $geo = $this->geoRepository->getCoordinates($id);
-        $response = EventResponseDTO::fromEntity($event, [], $geo);
+        $response = EventResponseDTO::fromEntity($event, $categoryIds, $geo);
 
         // Include participants
         /** @var array<string, string> $participants */
