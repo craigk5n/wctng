@@ -68,6 +68,11 @@ final class CalDavController
         $server->addPlugin(new DAVACL\Plugin());
         $server->addPlugin(new CalDAV\Plugin());
         $server->addPlugin(new CalDAV\Schedule\Plugin());
+        // Exposes sync-collection REPORT over HTTP so clients can use
+        // CoreCalendarBackend's SyncSupport. Without this plugin clients
+        // get ReportNotSupported and fall back to full resyncs, which
+        // also means the DEL-S1 sync-token bump cannot take effect.
+        $server->addPlugin(new DAV\Sync\Plugin());
         $server->addPlugin(new DAV\Browser\Plugin());
 
         // Run
