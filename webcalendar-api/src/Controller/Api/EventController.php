@@ -12,6 +12,8 @@ use App\Service\ConflictDetectionService;
 use App\Service\CoreServiceFactory;
 use App\Service\DescriptionSanitizer;
 use App\Service\EventNotificationService;
+use App\Service\ExtParticipantRepository;
+use App\Service\ExtParticipantValidator;
 use App\Service\GeocodingService;
 use App\Service\GeoRepository;
 use App\Service\MercurePublisher;
@@ -28,6 +30,8 @@ use WebCalendar\Core\Domain\ValueObject\EventId;
 final class EventController
 {
     private readonly GeoRepository $geoRepository;
+    private readonly ExtParticipantRepository $extParticipants;
+    private readonly ExtParticipantValidator $extParticipantValidator;
 
     public function __construct(
         private readonly CoreServiceFactory $coreServiceFactory,
@@ -40,6 +44,8 @@ final class EventController
         private readonly ?GeocodingService $geocodingService = null,
     ) {
         $this->geoRepository = new GeoRepository($pdo);
+        $this->extParticipants = new ExtParticipantRepository($pdo);
+        $this->extParticipantValidator = new ExtParticipantValidator();
     }
 
     #[Route('/api/v2/events', name: 'api_events_list', methods: ['GET'])]
@@ -231,6 +237,12 @@ final class EventController
             return ApiResponse::error(400, $e->getMessage());
         }
 
+        try {
+            $extParticipants = $this->extParticipantValidator->parse($data['ext_participants'] ?? null);
+        } catch (\InvalidArgumentException $e) {
+            return ApiResponse::error(400, $e->getMessage());
+        }
+
         $coreUser = $user->getCoreUser();
 
         // Check for conflicts
@@ -291,6 +303,11 @@ final class EventController
             );
         }
 
+        // Persist external (email-only) participants if provided
+        if ($extParticipants !== []) {
+            $this->extParticipants->saveForEvent($created->id()->value(), $extParticipants);
+        }
+
         // Geocode location in background
         $geo = null;
         try {
@@ -302,6 +319,7 @@ final class EventController
         }
 
         $responseData = EventResponseDTO::fromEntity($created, $categoryIds, $geo);
+        $responseData['ext_participants'] = $extParticipants;
 
         try {
             $this->mercure->publishEventCreated($created->id()->value(), $responseData);
@@ -353,6 +371,9 @@ final class EventController
             $response['participants'][] = ['login' => $login, 'status' => $status];
         }
 
+        // Include external (email-only) participants
+        $response['ext_participants'] = $this->extParticipants->findForEvent($id);
+
         return ApiResponse::success($response);
     }
 
@@ -395,6 +416,16 @@ final class EventController
             return ApiResponse::error(400, $e->getMessage());
         }
 
+        // Parse ext_participants if present; undefined = leave alone, [] = clear
+        $extParticipantsUpdate = null;
+        if (\array_key_exists('ext_participants', $data)) {
+            try {
+                $extParticipantsUpdate = $this->extParticipantValidator->parse($data['ext_participants']);
+            } catch (\InvalidArgumentException $e) {
+                return ApiResponse::error(400, $e->getMessage());
+            }
+        }
+
         // Check for conflicts
         $conflictMode = $this->getConflictMode($user->getUserIdentifier());
         $conflictList = [];
@@ -426,6 +457,11 @@ final class EventController
             );
         }
 
+        // Apply ext_participants update now that the event row is saved.
+        if ($extParticipantsUpdate !== null) {
+            $this->extParticipants->saveForEvent($id, $extParticipantsUpdate);
+        }
+
         // Re-fetch to return the saved state
         $saved = $this->coreServiceFactory->getEventService()->getEventById(new EventId($id));
 
@@ -444,6 +480,7 @@ final class EventController
         }
 
         $responseData = EventResponseDTO::fromEntity($saved, $categoryIds, $geo);
+        $responseData['ext_participants'] = $this->extParticipants->findForEvent($id);
 
         try {
             $this->mercure->publishEventUpdated($id, $responseData);
@@ -515,6 +552,10 @@ final class EventController
         }
 
         $this->coreServiceFactory->getEventService()->deleteEvent(new EventId($id), $coreUser);
+
+        // Core EventRepository::delete() does not cascade to
+        // webcal_entry_ext_user — clean it up here so rows don't orphan.
+        $this->extParticipants->deleteForEvent($id);
 
         try {
             $this->mercure->publishEventDeleted($id);
