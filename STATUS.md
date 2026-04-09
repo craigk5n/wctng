@@ -4,6 +4,57 @@
 
 ---
 
+## New Story (2026-04-08): Event Title Tooltips & Truncation Polish
+
+**Problem:** In month view, event titles are truncated because day cells are narrow. Users can't see the full title without clicking into the event. Week view has the same issue for narrow time slots and long titles. Day view has more room but long titles can still overflow — and consistency across views is valuable.
+
+**Goal:** Unified hover/focus tooltip across month, week, and day views, with clean CSS truncation and accessible keyboard/mobile behavior.
+
+### Acceptance criteria
+
+**Tooltip content (all three views):**
+- [ ] Full event title
+- [ ] Start–end time (or "All day")
+- [ ] Location if set
+- [ ] First ~120 chars of description (plain text, stripped of HTML)
+- [ ] Category color dot + emoji icon (once emoji icons ship to frontend)
+
+**Trigger behavior:**
+- [ ] Show on `mouseenter` after a short delay (~200ms) to avoid flicker
+- [ ] Show on keyboard focus (Tab onto an event chip)
+- [ ] Hide on `mouseleave` / blur / Escape
+- [ ] Dismiss on scroll to avoid sticky tooltips
+- [ ] No tooltip on touch devices — tap opens the event dialog instead (standard mobile pattern; avoid double-tap-to-open confusion)
+
+**Truncation (CSS):**
+- [ ] Month view: single-line truncation with `text-overflow: ellipsis`, `overflow: hidden`, `white-space: nowrap`
+- [ ] Week view: same for time-grid events shorter than 2 rows; allow 2-line clamp for events ≥ 2 rows via `-webkit-line-clamp: 2`
+- [ ] Day view: single-line ellipsis in all-day band; no truncation in time grid (enough width)
+
+**Accessibility:**
+- [ ] Tooltip content duplicated in `aria-label` on the event element so screen readers get it without the tooltip widget
+- [ ] Tooltip rendered in a portal with `role="tooltip"` and `aria-describedby` pointing from the event
+- [ ] `prefers-reduced-motion` respected — no fade animation when enabled
+- [ ] Tooltip never traps focus; Escape always dismisses
+
+**Implementation notes:**
+- Use `@floating-ui/react` (already a common shadcn/ui dep) or Radix `Tooltip` for correct positioning, collision detection, and portal rendering. Do not hand-roll tooltip positioning.
+- FullCalendar's `eventDidMount` hook is the integration point: attach the trigger and build the content from `info.event`.
+- Reuse one `EventTooltip` component across all three views — do not fork per-view.
+- Test on narrow mobile (375px) to verify touch behavior falls through to open-event.
+
+**Tests:**
+- Vitest: `EventTooltip` renders title/time/location/description; hides on Escape; no render on touch pointer type; `aria-label` mirrors content
+- E2E (Playwright): hover an event in month view → tooltip appears with full title; Tab to event → tooltip appears on focus; click/tap → opens event dialog (tooltip does not block)
+- E2E: verify ellipsis in month view cell (computed `textOverflow === 'ellipsis'`)
+- Accessibility: axe scan on open tooltip
+
+**Out of scope:**
+- Rich preview (attachments, participants avatars) — keep tooltip lightweight
+- Inline edit from tooltip — click through to dialog remains the edit path
+
+---
+
 ## New Epic (2026-04-08): Event Deletion & Purge
 
 **Goal:** Replace ad-hoc SQL truncation with two supported deletion paths — a production admin purge and a dev-only reset — both TDD-first.
@@ -22,7 +73,7 @@
 - Webhook `events.purged` event type + per-event suppression
 - Mercure `calendar.purged` message
 - Recurring series UNTIL-truncate mode (currently skip-or-delete-whole-series only)
-- Activity log entry per purge
+- ~~Activity log entry per purge~~ **DONE 2026-04-08** (PurgeService writes via ActivityLogRepository, type=EXTRA, best-effort, 4 new tests)
 - Admin UI (Settings → Data Management page with typed confirmation)
 
 

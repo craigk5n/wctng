@@ -17,7 +17,16 @@ final class PurgeServiceIntegrationTest extends IntegrationTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->purge = new PurgeService($this->pdo);
+        $this->purge = new PurgeService($this->pdo, $this->factory->getActivityLogRepository());
+    }
+
+    /** @return list<array<string,mixed>> */
+    private function fetchPurgeLogEntries(): array
+    {
+        $rows = $this->pdo->query(
+            "SELECT cal_login, cal_type, cal_text FROM webcal_entry_log WHERE cal_entry_id = 0 ORDER BY cal_log_id"
+        )->fetchAll(\PDO::FETCH_ASSOC);
+        return \is_array($rows) ? array_values($rows) : [];
     }
 
     private function createEvent(
@@ -232,6 +241,71 @@ final class PurgeServiceIntegrationTest extends IntegrationTestCase
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM webcal_entry_repeats WHERE cal_id = :id');
         $stmt->execute(['id' => $repeatingId]);
         $this->assertSame(0, (int) $stmt->fetchColumn());
+    }
+
+    public function testLiveRunWritesActivityLogEntry(): void
+    {
+        $this->createEvent('old@test', '2020-01-15');
+
+        $this->purge->purge(
+            beforeDate: new \DateTimeImmutable('2025-01-01'),
+            actor: 'admin',
+            dryRun: false,
+            confirmCount: 1,
+        );
+
+        $entries = $this->fetchPurgeLogEntries();
+        $this->assertCount(1, $entries);
+        $this->assertSame('admin', $entries[0]['cal_login']);
+        $this->assertStringContainsString('purge', strtolower((string) $entries[0]['cal_text']));
+        $this->assertStringContainsString('count=1', (string) $entries[0]['cal_text']);
+        $this->assertStringContainsString('before=2025-01-01', (string) $entries[0]['cal_text']);
+    }
+
+    public function testLiveRunLogsUserScope(): void
+    {
+        $this->createEvent('alice-old@test', '2020-01-15', 'alice');
+        $this->purge->purge(
+            beforeDate: new \DateTimeImmutable('2025-01-01'),
+            userLogin: 'alice',
+            actor: 'admin',
+            dryRun: false,
+            confirmCount: 1,
+        );
+
+        $entries = $this->fetchPurgeLogEntries();
+        $this->assertCount(1, $entries);
+        $this->assertStringContainsString('user=alice', (string) $entries[0]['cal_text']);
+    }
+
+    public function testDryRunDoesNotLog(): void
+    {
+        $this->createEvent('old@test', '2020-01-15');
+
+        $this->purge->purge(
+            beforeDate: new \DateTimeImmutable('2025-01-01'),
+            actor: 'admin',
+            dryRun: true,
+        );
+
+        $this->assertCount(0, $this->fetchPurgeLogEntries());
+    }
+
+    public function testEmptyPurgeStillLogs(): void
+    {
+        // Even a zero-count live run is worth auditing (someone tried).
+        $this->createEvent('future@test', '2030-01-01');
+
+        $this->purge->purge(
+            beforeDate: new \DateTimeImmutable('2025-01-01'),
+            actor: 'admin',
+            dryRun: false,
+            confirmCount: 0,
+        );
+
+        $entries = $this->fetchPurgeLogEntries();
+        $this->assertCount(1, $entries);
+        $this->assertStringContainsString('count=0', (string) $entries[0]['cal_text']);
     }
 
     public function testPurgeEmptyNoOp(): void

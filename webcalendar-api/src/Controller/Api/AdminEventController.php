@@ -63,6 +63,7 @@ final class AdminEventController
                 includeRepeating: $includeRepeating,
                 dryRun: $dryRun,
                 confirmCount: $confirmCount,
+                actor: $user->getCoreUser()->login(),
             );
         } catch (\DomainException $e) {
             return ApiResponse::error(422, $e->getMessage());

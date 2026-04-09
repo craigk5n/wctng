@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use WebCalendar\Core\Domain\Entity\ActivityLogEntry;
+use WebCalendar\Core\Domain\Repository\ActivityLogRepositoryInterface;
+use WebCalendar\Core\Domain\ValueObject\ActivityLogType;
+
 /**
  * Admin event purge service.
  *
@@ -39,6 +43,7 @@ final class PurgeService
 
     public function __construct(
         private readonly \PDO $pdo,
+        private readonly ?ActivityLogRepositoryInterface $activityLog = null,
     ) {
     }
 
@@ -48,6 +53,7 @@ final class PurgeService
         bool $includeRepeating = false,
         bool $dryRun = true,
         ?int $confirmCount = null,
+        ?string $actor = null,
     ): PurgeResult {
         $cutoff = (int) $beforeDate->format('Ymd');
 
@@ -69,13 +75,47 @@ final class PurgeService
             );
         }
 
-        if ($count === 0) {
-            return new PurgeResult(count: 0, dryRun: false, beforeDate: $beforeDate, userLogin: $userLogin);
+        if ($count > 0) {
+            $this->deleteEventIds($targetIds);
         }
 
-        $this->deleteEventIds($targetIds);
+        $this->writeAuditLog($actor, $beforeDate, $userLogin, $includeRepeating, $count);
 
         return new PurgeResult(count: $count, dryRun: false, beforeDate: $beforeDate, userLogin: $userLogin);
+    }
+
+    private function writeAuditLog(
+        ?string $actor,
+        \DateTimeImmutable $beforeDate,
+        ?string $userLogin,
+        bool $includeRepeating,
+        int $count,
+    ): void {
+        if ($this->activityLog === null || $actor === null || $actor === '') {
+            return;
+        }
+
+        $text = sprintf(
+            'admin event purge: count=%d before=%s user=%s include_repeating=%s',
+            $count,
+            $beforeDate->format('Y-m-d'),
+            $userLogin ?? 'all',
+            $includeRepeating ? 'yes' : 'no',
+        );
+
+        try {
+            $this->activityLog->save(new ActivityLogEntry(
+                id: 0,
+                entryId: 0,
+                login: $actor,
+                userCal: $userLogin,
+                type: ActivityLogType::EXTRA,
+                date: new \DateTimeImmutable(),
+                text: $text,
+            ));
+        } catch (\Throwable) {
+            // Audit logging is best-effort — never block the purge on a log failure.
+        }
     }
 
     /**

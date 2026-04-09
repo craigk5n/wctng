@@ -249,6 +249,12 @@ services:
             $pdo: '@pdo.connection'
             $appEnv: '%kernel.environment%'
 
+    # Purge service needs raw PDO + activity log repository for audit trail
+    App\Service\PurgeService:
+        arguments:
+            $pdo: '@pdo.connection'
+            $activityLog: '@WebCalendar\Core\Infrastructure\Persistence\PdoActivityLogRepository'
+
     # Exception subscriber needs kernel environment
     App\EventSubscriber\ExceptionSubscriber:
         arguments:
