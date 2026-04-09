@@ -23,6 +23,7 @@ export interface ApiEvent {
   rrule?: string | null;
   categories?: number[];
   participants?: Array<{ login: string; status: string }>;
+  ext_participants?: Array<{ name: string; email: string | null }>;
   latitude?: number;
   longitude?: number;
 }

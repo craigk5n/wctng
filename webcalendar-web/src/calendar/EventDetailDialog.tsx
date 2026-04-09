@@ -170,6 +170,30 @@ export function EventDetailDialog({
               </div>
             </div>
           )}
+
+          {event.ext_participants && event.ext_participants.length > 0 && (
+            <div>
+              <span className="font-medium text-muted-foreground">External participants:</span>
+              <ul className="mt-1 flex flex-wrap gap-1.5">
+                {event.ext_participants.map((p) => (
+                  <li
+                    key={p.name}
+                    className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium"
+                  >
+                    <span>✉️ {p.name}</span>
+                    {p.email && (
+                      <a
+                        href={`mailto:${p.email}`}
+                        className="text-muted-foreground hover:underline"
+                      >
+                        &lt;{p.email}&gt;
+                      </a>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Attachments */}

@@ -242,6 +242,9 @@ final class EventController
         } catch (\InvalidArgumentException $e) {
             return ApiResponse::error(400, $e->getMessage());
         }
+        if ($extParticipants !== [] && $this->isExtParticipantsDisabled()) {
+            return ApiResponse::error(403, 'External participants are disabled by the administrator');
+        }
 
         $coreUser = $user->getCoreUser();
 
@@ -423,6 +426,9 @@ final class EventController
                 $extParticipantsUpdate = $this->extParticipantValidator->parse($data['ext_participants']);
             } catch (\InvalidArgumentException $e) {
                 return ApiResponse::error(400, $e->getMessage());
+            }
+            if ($extParticipantsUpdate !== [] && $this->isExtParticipantsDisabled()) {
+                return ApiResponse::error(403, 'External participants are disabled by the administrator');
             }
         }
 
@@ -674,6 +680,21 @@ final class EventController
         }
 
         return $result;
+    }
+
+    /**
+     * Server-side enforcement of the DISABLE_EXT_PARTICIPANTS_FIELD feature
+     * flag. The frontend hides the input when disabled, but we re-check here
+     * so a direct API call can't bypass it.
+     */
+    private function isExtParticipantsDisabled(): bool
+    {
+        try {
+            $value = $this->coreServiceFactory->getConfigService()->getSetting('DISABLE_EXT_PARTICIPANTS_FIELD', 'N');
+            return $value === 'Y';
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     /**

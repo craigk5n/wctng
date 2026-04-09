@@ -59,6 +59,7 @@ vi.mock('../hooks/useFeatureFlags', () => ({
     DISABLE_URL_FIELD: 'N',
     DISABLE_PRIORITY_FIELD: 'N',
     DISABLE_PARTICIPANTS_FIELD: 'N',
+    DISABLE_EXT_PARTICIPANTS_FIELD: 'N',
     ENABLE_SEO_PAGES: 'N',
     ENABLE_GEOCODING: 'Y',
     DISABLE_TASKS: 'N',

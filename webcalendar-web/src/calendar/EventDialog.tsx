@@ -6,6 +6,7 @@ import { ConflictWarning, type ConflictInfo } from './ConflictWarning';
 import { CustomFieldsSection } from './CustomFieldsSection';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { RecurrenceEditor } from './RecurrenceEditor';
+import { ExtParticipantInput, type ExtParticipant } from './ExtParticipantInput';
 
 interface GroupSuggestion {
   id: number;
@@ -28,6 +29,7 @@ export interface EventFormData {
   all_day: boolean;
   categories?: number[];
   participants?: string[];
+  ext_participants?: ExtParticipant[];
   custom_fields?: Record<string, string>;
   resource?: string;
   rrule?: string;
@@ -77,6 +79,7 @@ export function EventDialog({
   const [selectedCategories, setSelectedCategories] = useState<number[]>(initialValues?.categories ?? []);
   const [participantLogins, setParticipantLogins] = useState<string[]>(initialValues?.participants ?? []);
   const [newParticipant, setNewParticipant] = useState('');
+  const [extParticipants, setExtParticipants] = useState<ExtParticipant[]>(initialValues?.ext_participants ?? []);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { categories: availableCategories } = useCategories();
@@ -177,6 +180,7 @@ export function EventDialog({
         all_day: allDay,
         categories: selectedCategories,
         participants: participantLogins,
+        ext_participants: extParticipants,
         custom_fields: Object.keys(customFieldValues).length > 0 ? customFieldValues : undefined,
         resource: selectedResource || undefined,
         rrule: rrule || undefined,
@@ -608,6 +612,11 @@ export function EventDialog({
               </div>
             )}
           </div>
+          )}
+
+          {/* External (email-only) participants */}
+          {flags.DISABLE_EXT_PARTICIPANTS_FIELD !== 'Y' && (
+            <ExtParticipantInput value={extParticipants} onChange={setExtParticipants} />
           )}
 
           <div className="flex justify-end gap-2 pt-2">

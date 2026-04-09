@@ -21,6 +21,7 @@ final class ConfigController
         'DISABLE_URL_FIELD' => 'N',
         'DISABLE_PRIORITY_FIELD' => 'N',
         'DISABLE_PARTICIPANTS_FIELD' => 'N',
+        'DISABLE_EXT_PARTICIPANTS_FIELD' => 'N',
         'DISABLE_TASKS' => 'N',
         'DISABLE_JOURNALS' => 'N',
         'DISABLE_ATTACHMENTS' => 'N',

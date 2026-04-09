@@ -41,6 +41,12 @@ const FEATURES: FeatureToggle[] = [
     inverted: true,
   },
   {
+    key: 'DISABLE_EXT_PARTICIPANTS_FIELD',
+    label: 'External Participants',
+    description: 'Allow inviting email-only external guests (customers, vendors, etc.) who do not have user accounts.',
+    inverted: true,
+  },
+  {
     key: 'DISABLE_TASKS',
     label: 'Tasks',
     description: 'Enable the Tasks module for tracking to-dos with due dates and completion status.',
