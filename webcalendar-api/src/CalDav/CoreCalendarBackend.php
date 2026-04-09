@@ -302,6 +302,14 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
 
             $this->bumpSyncToken($username);
 
+            // ETag must match what getCalendarObject() will return on a
+            // subsequent read (the backend regenerates ICS from the domain
+            // entity, so hashing the client's upload would give a different
+            // value and break If-Match optimistic concurrency).
+            $saved = $this->coreServiceFactory->getEventRepository()->findByUid($event->uid());
+            if ($saved !== null) {
+                return '"' . md5($this->eventToIcs($saved)) . '"';
+            }
             return '"' . md5($icsString) . '"';
         } catch (\Throwable) {
             return null;
@@ -349,6 +357,13 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
 
             $this->bumpSyncToken($username);
 
+            // Return the ETag computed from the regenerated ICS so it
+            // matches what a subsequent GET sees (see createCalendarObject
+            // for the rationale).
+            $saved = $this->coreServiceFactory->getEventService()->getEventById(new EventId($eventId));
+            if ($saved !== null) {
+                return '"' . md5($this->eventToIcs($saved)) . '"';
+            }
             return '"' . md5($icsString) . '"';
         } catch (\Throwable) {
             return null;
