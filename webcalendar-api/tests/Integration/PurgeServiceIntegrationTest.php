@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration;
 
+use App\Service\CalendarPublisherInterface;
 use App\Service\PurgeService;
 use App\Webhook\WebhookDispatcherInterface;
 use WebCalendar\Core\Domain\Entity\Event;
@@ -26,19 +27,33 @@ final class RecordingWebhookDispatcher implements WebhookDispatcherInterface
     }
 }
 
+final class RecordingCalendarPublisher implements CalendarPublisherInterface
+{
+    /** @var list<array<string,mixed>> */
+    public array $purgedCalls = [];
+
+    public function publishCalendarPurged(array $payload): void
+    {
+        $this->purgedCalls[] = $payload;
+    }
+}
+
 final class PurgeServiceIntegrationTest extends IntegrationTestCase
 {
     private PurgeService $purge;
     private RecordingWebhookDispatcher $webhooks;
+    private RecordingCalendarPublisher $mercure;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->webhooks = new RecordingWebhookDispatcher();
+        $this->mercure = new RecordingCalendarPublisher();
         $this->purge = new PurgeService(
             $this->pdo,
             $this->factory->getActivityLogRepository(),
             $this->webhooks,
+            $this->mercure,
         );
     }
 
@@ -263,6 +278,52 @@ final class PurgeServiceIntegrationTest extends IntegrationTestCase
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM webcal_entry_repeats WHERE cal_id = :id');
         $stmt->execute(['id' => $repeatingId]);
         $this->assertSame(0, (int) $stmt->fetchColumn());
+    }
+
+    public function testLiveRunPublishesMercurePurged(): void
+    {
+        $this->createEvent('old-1@test', '2020-01-15');
+        $this->createEvent('old-2@test', '2020-02-15');
+
+        $this->purge->purge(
+            beforeDate: new \DateTimeImmutable('2025-01-01'),
+            actor: 'admin',
+            dryRun: false,
+            confirmCount: 2,
+        );
+
+        $this->assertCount(1, $this->mercure->purgedCalls, 'Exactly one Mercure calendar.purged message');
+        $payload = $this->mercure->purgedCalls[0];
+        $this->assertSame(2, $payload['count']);
+        $this->assertSame('2025-01-01', $payload['before_date']);
+        $this->assertSame('admin', $payload['actor']);
+    }
+
+    public function testMercureDryRunSilent(): void
+    {
+        $this->createEvent('old@test', '2020-01-15');
+
+        $this->purge->purge(
+            beforeDate: new \DateTimeImmutable('2025-01-01'),
+            actor: 'admin',
+            dryRun: true,
+        );
+
+        $this->assertSame([], $this->mercure->purgedCalls);
+    }
+
+    public function testMercureZeroCountSilent(): void
+    {
+        $this->createEvent('future@test', '2030-01-01');
+
+        $this->purge->purge(
+            beforeDate: new \DateTimeImmutable('2025-01-01'),
+            actor: 'admin',
+            dryRun: false,
+            confirmCount: 0,
+        );
+
+        $this->assertSame([], $this->mercure->purgedCalls);
     }
 
     public function testLiveRunDispatchesPurgedWebhook(): void

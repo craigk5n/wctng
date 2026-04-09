@@ -71,7 +71,7 @@
 **Deferred to follow-up stories:**
 - CalDAV sync-token bump (needs CalDAV integration wiring)
 - ~~Webhook `events.purged` event type + per-event suppression~~ **DONE 2026-04-08** — PurgeService fires one `events.purged` webhook with `{count, before_date, user_login, include_repeating, actor}` after a successful non-empty live run. Per-event `event.deleted` suppression is automatic because the bulk delete bypasses EventService. Dry runs and zero-count runs do NOT dispatch. Extracted `WebhookDispatcherInterface` so services can depend on a narrow contract and be tested with a lightweight double. 4 new integration tests.
-- Mercure `calendar.purged` message
+- ~~Mercure `calendar.purged` message~~ **DONE 2026-04-08** — MercurePublisher gained `publishCalendarPurged()`; PurgeService publishes to `/calendars/purged` + global `/calendars/events` topics after a successful non-empty live run. Extracted `CalendarPublisherInterface` so PurgeService depends on a narrow contract and can be tested with a fake. Dry runs and zero-count runs silent. Best-effort: publish failure never unwinds the purge. 3 new integration tests.
 - Recurring series UNTIL-truncate mode (currently skip-or-delete-whole-series only)
 - ~~Activity log entry per purge~~ **DONE 2026-04-08** (PurgeService writes via ActivityLogRepository, type=EXTRA, best-effort, 4 new tests)
 - Admin UI (Settings → Data Management page with typed confirmation)

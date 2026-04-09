@@ -16,7 +16,7 @@ use Symfony\Component\Mercure\Update;
  * In standalone mode:
  *   /calendars/events/{eventId}
  */
-final class MercurePublisher
+final class MercurePublisher implements CalendarPublisherInterface
 {
     public function __construct(
         private readonly HubInterface $hub,
@@ -64,6 +64,30 @@ final class MercurePublisher
             'eventId' => $eventId,
             'data' => $data,
         ]);
+    }
+
+    /**
+     * Publishes a single bulk "calendar.purged" message for admin purges.
+     * Subscribers should treat this as a signal to invalidate any cached
+     * event lists rather than trying to reconcile per-event deltas.
+     *
+     * @param array<string, mixed> $payload
+     */
+    public function publishCalendarPurged(array $payload): void
+    {
+        $prefix = $this->getTopicPrefix();
+        $topic = "{$prefix}/calendars/purged";
+        $globalTopic = "{$prefix}/calendars/events";
+
+        $json = json_encode([
+            'type' => 'calendar.purged',
+            'data' => $payload,
+        ], JSON_THROW_ON_ERROR);
+
+        $this->hub->publish(new Update(
+            topics: [$topic, $globalTopic],
+            data: $json,
+        ));
     }
 
     /**

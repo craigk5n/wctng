@@ -255,6 +255,7 @@ services:
             $pdo: '@pdo.connection'
             $activityLog: '@WebCalendar\Core\Infrastructure\Persistence\PdoActivityLogRepository'
             $webhookDispatcher: '@App\Webhook\WebhookDispatcher'
+            $calendarPublisher: '@App\Service\MercurePublisher'
 
     # Exception subscriber needs kernel environment
     App\EventSubscriber\ExceptionSubscriber:

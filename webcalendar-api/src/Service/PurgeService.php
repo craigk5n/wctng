@@ -46,6 +46,7 @@ final class PurgeService
         private readonly \PDO $pdo,
         private readonly ?ActivityLogRepositoryInterface $activityLog = null,
         private readonly ?WebhookDispatcherInterface $webhookDispatcher = null,
+        private readonly ?CalendarPublisherInterface $calendarPublisher = null,
     ) {
     }
 
@@ -86,17 +87,29 @@ final class PurgeService
         // Fire a single bulk webhook for non-empty purges. Per-event delete
         // webhooks are not emitted because the raw SQL delete bypasses
         // EventService (no suppression plumbing required — it's by design).
-        if ($count > 0 && $this->webhookDispatcher !== null) {
-            try {
-                $this->webhookDispatcher->dispatch('events.purged', [
-                    'count' => $count,
-                    'before_date' => $beforeDate->format('Y-m-d'),
-                    'user_login' => $userLogin,
-                    'include_repeating' => $includeRepeating,
-                    'actor' => $actor,
-                ]);
-            } catch (\Throwable) {
-                // Webhook dispatch is best-effort — never unwind a successful purge.
+        if ($count > 0) {
+            $payload = [
+                'count' => $count,
+                'before_date' => $beforeDate->format('Y-m-d'),
+                'user_login' => $userLogin,
+                'include_repeating' => $includeRepeating,
+                'actor' => $actor,
+            ];
+
+            if ($this->webhookDispatcher !== null) {
+                try {
+                    $this->webhookDispatcher->dispatch('events.purged', $payload);
+                } catch (\Throwable) {
+                    // Webhook dispatch is best-effort — never unwind a successful purge.
+                }
+            }
+
+            if ($this->calendarPublisher !== null) {
+                try {
+                    $this->calendarPublisher->publishCalendarPurged($payload);
+                } catch (\Throwable) {
+                    // Mercure publish is best-effort — never unwind a successful purge.
+                }
             }
         }
 
