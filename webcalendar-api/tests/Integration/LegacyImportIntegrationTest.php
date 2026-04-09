@@ -372,6 +372,60 @@ final class LegacyImportIntegrationTest extends IntegrationTestCase
         $this->assertContains('cat_status', $columnMap['webcal_categories']);
     }
 
+    public function testLegacyCategoryIconBlobsAreDroppedOnImport(): void
+    {
+        // Legacy v1.9.11+ stored category icons as MIME-typed blobs.
+        // The rewrite uses single-emoji icons instead, so the blobs must
+        // be dropped silently with a count reported in the stats so the
+        // admin knows to re-pick icons in the Category admin page.
+        $legacy = new \PDO('sqlite::memory:');
+        $legacy->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+        $legacy->exec('CREATE TABLE webcal_user (cal_login VARCHAR(60) PRIMARY KEY, cal_passwd VARCHAR(255), cal_firstname VARCHAR(60), cal_lastname VARCHAR(60), cal_email VARCHAR(75), cal_is_admin CHAR(1) DEFAULT "N", cal_enabled CHAR(1) DEFAULT "Y")');
+        $legacy->exec('CREATE TABLE webcal_entry (cal_id INTEGER PRIMARY KEY AUTOINCREMENT, cal_create_by VARCHAR(60) NOT NULL, cal_date INT NOT NULL, cal_time INT DEFAULT -1, cal_duration INT DEFAULT 0, cal_name VARCHAR(80) NOT NULL)');
+        $legacy->exec('CREATE TABLE webcal_categories (cat_id INTEGER PRIMARY KEY AUTOINCREMENT, cat_name VARCHAR(80) NOT NULL, cat_color VARCHAR(8), cat_owner VARCHAR(25) NOT NULL DEFAULT "", cat_status CHAR(1) DEFAULT "A", cat_icon_mime VARCHAR(32), cat_icon_blob BLOB)');
+        $legacy->exec('CREATE TABLE webcal_entry_user (cal_id INT, cal_login VARCHAR(60), cal_status CHAR(1), PRIMARY KEY (cal_id, cal_login))');
+        $legacy->exec('CREATE TABLE webcal_user_pref (cal_login VARCHAR(60), cal_setting VARCHAR(50), cal_value VARCHAR(100), PRIMARY KEY (cal_login, cal_setting))');
+        $legacy->exec('CREATE TABLE webcal_entry_repeats (cal_id INT PRIMARY KEY, cal_type VARCHAR(20))');
+        $legacy->exec('CREATE TABLE webcal_entry_categories (cal_id INT, cat_id INT, cat_order INT, cat_owner VARCHAR(25), PRIMARY KEY (cal_id, cat_id, cat_order, cat_owner))');
+
+        $legacy->exec("INSERT INTO webcal_user VALUES ('icon_user', '\$2y\$10\$hash', 'Icon', 'User', 'iconuser@example.com', 'N', 'Y')");
+
+        // Two categories have icon blobs, one doesn't.
+        $legacy->exec("INSERT INTO webcal_categories (cat_name, cat_color, cat_owner, cat_status, cat_icon_mime, cat_icon_blob) VALUES ('Birthday', '#ff0000', '', 'A', 'image/png', 'FAKE_PNG_BYTES')");
+        $legacy->exec("INSERT INTO webcal_categories (cat_name, cat_color, cat_owner, cat_status, cat_icon_mime, cat_icon_blob) VALUES ('Holiday', '#00ff00', '', 'A', 'image/gif', 'FAKE_GIF_BYTES')");
+        $legacy->exec("INSERT INTO webcal_categories (cat_name, cat_color, cat_owner, cat_status) VALUES ('Meeting', '#0000ff', '', 'A')");
+
+        $stats = $this->service->import($legacy);
+
+        $this->assertSame(3, $stats['categories']['imported']);
+        $this->assertSame(2, $stats['categories']['icons_dropped']);
+    }
+
+    public function testImportWithoutIconColumnsReportsZeroDropped(): void
+    {
+        // Legacy schemas predating v1.9.11 have no cat_icon_* columns; the
+        // import must not count anything as dropped and must not error.
+        $legacy = new \PDO('sqlite::memory:');
+        $legacy->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+        $legacy->exec('CREATE TABLE webcal_user (cal_login VARCHAR(60) PRIMARY KEY, cal_passwd VARCHAR(255), cal_firstname VARCHAR(60), cal_lastname VARCHAR(60), cal_email VARCHAR(75), cal_is_admin CHAR(1) DEFAULT "N", cal_enabled CHAR(1) DEFAULT "Y")');
+        $legacy->exec('CREATE TABLE webcal_entry (cal_id INTEGER PRIMARY KEY AUTOINCREMENT, cal_create_by VARCHAR(60) NOT NULL, cal_date INT NOT NULL, cal_duration INT DEFAULT 0, cal_name VARCHAR(80) NOT NULL)');
+        $legacy->exec('CREATE TABLE webcal_categories (cat_id INTEGER PRIMARY KEY AUTOINCREMENT, cat_name VARCHAR(80) NOT NULL, cat_color VARCHAR(8), cat_owner VARCHAR(25))');
+        $legacy->exec('CREATE TABLE webcal_entry_user (cal_id INT, cal_login VARCHAR(60), cal_status CHAR(1), PRIMARY KEY (cal_id, cal_login))');
+        $legacy->exec('CREATE TABLE webcal_user_pref (cal_login VARCHAR(60), cal_setting VARCHAR(50), cal_value VARCHAR(100), PRIMARY KEY (cal_login, cal_setting))');
+        $legacy->exec('CREATE TABLE webcal_entry_repeats (cal_id INT PRIMARY KEY, cal_type VARCHAR(20))');
+        $legacy->exec('CREATE TABLE webcal_entry_categories (cal_id INT, cat_id INT, cat_order INT, cat_owner VARCHAR(25), PRIMARY KEY (cal_id, cat_id, cat_order, cat_owner))');
+
+        $legacy->exec("INSERT INTO webcal_user VALUES ('olduser', '\$2y\$10\$hash', 'Old', 'User', 'olduser@example.com', 'N', 'Y')");
+        $legacy->exec("INSERT INTO webcal_categories VALUES (1, 'Plain', '#ff0000', 'olduser')");
+
+        $stats = $this->service->import($legacy);
+
+        $this->assertSame(1, $stats['categories']['imported']);
+        $this->assertSame(0, $stats['categories']['icons_dropped']);
+    }
+
     public function testHandlesMinimalSchema(): void
     {
         // Create a minimal legacy DB without optional columns

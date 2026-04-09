@@ -209,6 +209,27 @@ final class LegacyImportService
             return;
         }
 
+        // Legacy v1.9.11+ stored category icons as MIME-typed blobs in
+        // cat_icon_blob/cat_icon_mime. The rewrite replaced that with
+        // single-emoji icons (see STATUS.md plan change 2026-04-08), so
+        // legacy blobs are silently dropped on import. Count them and
+        // log a notice so the admin knows to expect re-picking icons.
+        if ($this->hasColumn('webcal_categories', 'cat_icon_blob')) {
+            try {
+                $countStmt = $legacyPdo->query('SELECT COUNT(*) FROM webcal_categories WHERE cat_icon_blob IS NOT NULL');
+                $dropped = ($countStmt !== false) ? (int) $countStmt->fetchColumn() : 0;
+                if ($dropped > 0) {
+                    $this->stats['categories']['icons_dropped'] = $dropped;
+                    $this->logger->notice(
+                        "Legacy category icon blobs detected ({$dropped}) — not imported. "
+                        . 'Users should pick new emoji icons in the Category admin page.'
+                    );
+                }
+            } catch (\Throwable) {
+                // Count failure is non-fatal — we just won't report the number.
+            }
+        }
+
         $columns = ['cat_id', 'cat_name'];
         if ($this->hasColumn('webcal_categories', 'cat_color')) {
             $columns[] = 'cat_color';
@@ -533,7 +554,7 @@ final class LegacyImportService
         $this->stats = [
             'users' => ['imported' => 0, 'skipped' => 0, 'errors' => 0],
             'events' => ['imported' => 0, 'skipped' => 0, 'errors' => 0],
-            'categories' => ['imported' => 0, 'skipped' => 0],
+            'categories' => ['imported' => 0, 'skipped' => 0, 'icons_dropped' => 0],
             'participants' => ['imported' => 0, 'skipped' => 0],
             'preferences' => ['imported' => 0, 'skipped' => 0],
         ];
