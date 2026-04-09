@@ -141,6 +141,96 @@ XML;
     }
 
     /**
+     * Convenience helper: PUT an .ics payload to create or update an event.
+     */
+    public function putIcs(string $uri, string $ics): Response
+    {
+        return $this->invoke('PUT', $uri, $ics, [
+            'Content-Type' => 'text/calendar; charset=utf-8',
+        ]);
+    }
+
+    /**
+     * Convenience helper: GET an .ics payload.
+     */
+    public function get(string $uri): Response
+    {
+        return $this->invoke('GET', $uri);
+    }
+
+    /**
+     * Convenience helper: DELETE a resource.
+     */
+    public function delete(string $uri): Response
+    {
+        return $this->invoke('DELETE', $uri);
+    }
+
+    /**
+     * Convenience helper: OPTIONS request for capability discovery.
+     */
+    public function options(string $uri = '/dav/'): Response
+    {
+        return $this->invoke('OPTIONS', $uri);
+    }
+
+    /**
+     * Convenience helper: REPORT calendar-query with a time-range filter.
+     * Returns events whose DTSTART falls in [start, end).
+     */
+    public function calendarQuery(string $uri, string $start, string $end): Response
+    {
+        $body = <<<XML
+<?xml version="1.0" encoding="utf-8"?>
+<c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+  <d:prop>
+    <d:getetag/>
+    <c:calendar-data/>
+  </d:prop>
+  <c:filter>
+    <c:comp-filter name="VCALENDAR">
+      <c:comp-filter name="VEVENT">
+        <c:time-range start="{$start}" end="{$end}"/>
+      </c:comp-filter>
+    </c:comp-filter>
+  </c:filter>
+</c:calendar-query>
+XML;
+        return $this->invoke('REPORT', $uri, $body, [
+            'Depth' => '1',
+            'Content-Type' => 'application/xml',
+        ]);
+    }
+
+    /**
+     * Convenience helper: REPORT calendar-multiget for fetching several
+     * specific events by href in one round trip.
+     *
+     * @param list<string> $hrefs
+     */
+    public function calendarMultiget(string $uri, array $hrefs): Response
+    {
+        $hrefXml = '';
+        foreach ($hrefs as $href) {
+            $hrefXml .= "<d:href>{$href}</d:href>\n  ";
+        }
+        $body = <<<XML
+<?xml version="1.0" encoding="utf-8"?>
+<c:calendar-multiget xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+  <d:prop>
+    <d:getetag/>
+    <c:calendar-data/>
+  </d:prop>
+  {$hrefXml}
+</c:calendar-multiget>
+XML;
+        return $this->invoke('REPORT', $uri, $body, [
+            'Depth' => '1',
+            'Content-Type' => 'application/xml',
+        ]);
+    }
+
+    /**
      * Convenience helper: sync-collection REPORT.
      */
     public function syncCollection(string $uri, ?string $syncToken = null): Response

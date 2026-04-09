@@ -300,6 +300,8 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             // Extract and save VALARM reminders
             $this->saveValarmsForEvent($vevent, $event);
 
+            $this->bumpSyncToken($username);
+
             return '"' . md5($icsString) . '"';
         } catch (\Throwable) {
             return null;
@@ -345,6 +347,8 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             $updated = $this->vEventToEntity($vevent, $username, $eventId);
             $this->coreServiceFactory->getEventService()->updateEvent($updated, $user);
 
+            $this->bumpSyncToken($username);
+
             return '"' . md5($icsString) . '"';
         } catch (\Throwable) {
             return null;
@@ -371,8 +375,29 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             }
 
             $this->coreServiceFactory->getEventService()->deleteEvent(new EventId($eventId), $user);
+            $this->bumpSyncToken($username);
         } catch (\Throwable) {
             // Silently ignore delete failures
+        }
+    }
+
+    /**
+     * Bumps the user's CalDAV sync-token override so clients notice the
+     * change on their next sync. This is the same mechanism PurgeService
+     * uses (see CalDavSyncTokenRepository / DEL-S1).
+     *
+     * We write the override on every mutation because the vendor
+     * repository does not populate webcal_entry.cal_mod_date/cal_mod_time,
+     * which means the computed `MAX(cal_mod_date * 1e6 + cal_mod_time)`
+     * token never advances on create/update/delete — without an override,
+     * CalDAV clients would observe a stale token and skip a pull cycle.
+     */
+    private function bumpSyncToken(string $username): void
+    {
+        try {
+            $this->getSyncTokenRepo()->bumpForUsers([$username]);
+        } catch (\Throwable) {
+            // Best-effort — never block a successful mutation on a sync bump.
         }
     }
 
@@ -495,18 +520,49 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
         return 'sync-' . $token;
     }
 
+    /**
+     * Resolves a client-provided CalDAV object URI (e.g. "abc-123.ics") to
+     * an internal event id.
+     *
+     * Two forms are supported, in priority order:
+     *
+     *   1. Numeric filename (`42.ics`) — treated as the event's primary key.
+     *      This is the form we synthesise when listing objects, so clients
+     *      that remember the server-assigned URI will hit this path.
+     *
+     *   2. UID filename (`abc-123-def.ics`) — matched against
+     *      `webcal_entry.cal_uid`. Every real CalDAV client (Apple Calendar,
+     *      Thunderbird, DAVx5, iCloud, Fastmail) uses the iCalendar UID as
+     *      the resource filename per RFC 4791 §5.3.2, so without this path
+     *      interop is broken: events can be created via PUT but not fetched
+     *      back, updated, or deleted at the client's chosen URI.
+     */
     private function extractEventId(string $objectUri): ?int
     {
         if (!str_ends_with($objectUri, '.ics')) {
             return null;
         }
 
-        $idStr = substr($objectUri, 0, -4);
-        if (!ctype_digit($idStr)) {
+        $key = substr($objectUri, 0, -4);
+        if ($key === '') {
             return null;
         }
 
-        return (int) $idStr;
+        if (ctype_digit($key)) {
+            return (int) $key;
+        }
+
+        // Fall back to UID lookup for client-chosen filenames.
+        try {
+            $event = $this->coreServiceFactory->getEventRepository()->findByUid($key);
+            if ($event !== null) {
+                return $event->id()->value();
+            }
+        } catch (\Throwable) {
+            // fall through
+        }
+
+        return null;
     }
 
     private function eventToIcs(Event $event): string
