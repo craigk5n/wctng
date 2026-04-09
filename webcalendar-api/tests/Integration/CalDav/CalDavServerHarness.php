@@ -85,8 +85,12 @@ final class CalDavServerHarness
      */
     public function invoke(string $method, string $uri, string $body = '', array $headers = []): Response
     {
-        // Always authenticate as the test user via Basic auth.
-        $headers['Authorization'] = 'Basic ' . base64_encode($this->currentUser . ':test');
+        // Default to authenticating as the test user via Basic auth.
+        // Callers may override by passing their own Authorization header
+        // (e.g. to simulate a different user or an invalid credential).
+        if (!isset($headers['Authorization'])) {
+            $headers['Authorization'] = 'Basic ' . base64_encode($this->currentUser . ':test');
+        }
 
         $request = new Request($method, $uri, $headers, $body !== '' ? $body : null);
         $response = new Response();
