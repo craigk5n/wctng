@@ -8,7 +8,24 @@
 
 **Goal:** Replace ad-hoc SQL truncation with two supported deletion paths — a production admin purge and a dev-only reset — both TDD-first.
 
-### Story DEL-S1: Admin Event Purge (production)
+### Story DEL-S1: Admin Event Purge (production) — BACKEND DONE
+
+**Backend landed (2026-04-08):**
+- `src/Service/PurgeService.php` — dry-run + confirm-count + user scope + recurring skip/include, transactional cascade across 7 child tables, chunked for large purges, graceful missing-table handling
+- `src/Service/PurgeResult.php` — immutable result DTO
+- `src/Controller/Api/AdminEventController.php` — `POST /api/v2/admin/events/purge`, admin-only, validates `before_date`, maps `DomainException` → 422
+- `tests/Integration/PurgeServiceIntegrationTest.php` — 9 tests (dry-run, live, confirm_count mismatch, confirm_count required, user scope, cascade across all child tables, repeating skip default, include_repeating, empty no-op). All passing. PHPStan clean.
+- `tests/Functional/Controller/Api/AdminEventControllerTest.php` — 6 HTTP tests authored (blocked in this sandbox by pre-existing MySQL-unavailable functional test env, same as sibling controllers).
+
+**Deferred to follow-up stories:**
+- CalDAV sync-token bump (needs CalDAV integration wiring)
+- Webhook `events.purged` event type + per-event suppression
+- Mercure `calendar.purged` message
+- Recurring series UNTIL-truncate mode (currently skip-or-delete-whole-series only)
+- Activity log entry per purge
+- Admin UI (Settings → Data Management page with typed confirmation)
+
+
 
 **Acceptance criteria:**
 - [ ] `POST /api/v2/admin/events/purge` — admin-only (`ROLE_ADMIN`), tenant-scoped
