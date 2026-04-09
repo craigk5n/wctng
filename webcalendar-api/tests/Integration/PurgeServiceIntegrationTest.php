@@ -189,7 +189,8 @@ final class PurgeServiceIntegrationTest extends IntegrationTestCase
         // Add child rows across all cascade tables that exist in the schema.
         $this->pdo->exec("INSERT INTO webcal_entry_user (cal_id, cal_login, cal_status) VALUES ({$eventId}, 'alice', 'A')");
         $this->pdo->exec("INSERT INTO webcal_entry_categories (cal_id, cat_id, cat_order, cat_owner) VALUES ({$eventId}, 1, 0, 'admin')");
-        $this->pdo->exec("INSERT INTO webcal_entry_repeats (cal_id, cal_type, cal_frequency) VALUES ({$eventId}, 'daily', 1)");
+        // cal_end in the past → already-ended series → deleted (not truncated)
+        $this->pdo->exec("INSERT INTO webcal_entry_repeats (cal_id, cal_type, cal_frequency, cal_end) VALUES ({$eventId}, 'daily', 1, 20200201)");
         $this->pdo->exec("INSERT INTO webcal_entry_repeats_not (cal_id, cal_date, cal_exdate) VALUES ({$eventId}, 20200116, 1)");
         $this->pdo->exec("INSERT INTO webcal_entry_ext_user (cal_id, cal_fullname, cal_email) VALUES ({$eventId}, 'Bob Ext', 'bob@ext.com')");
         $this->pdo->exec("INSERT INTO webcal_reminders (cal_id, cal_date, cal_offset) VALUES ({$eventId}, 20200115, 15)");
@@ -253,10 +254,42 @@ final class PurgeServiceIntegrationTest extends IntegrationTestCase
         $this->assertNotNull($this->factory->getEventRepository()->findByUid('repeating@test'));
     }
 
-    public function testIncludeRepeatingDeletesRecurringSeries(): void
+    public function testIncludeRepeatingTruncatesActiveSeriesWithUntil(): void
     {
-        $repeatingId = $this->createEvent('repeating@test', '2020-01-15');
-        $this->pdo->exec("INSERT INTO webcal_entry_repeats (cal_id, cal_type, cal_frequency) VALUES ({$repeatingId}, 'weekly', 1)");
+        // Active series: started 2020, no end date → still recurring past cutoff.
+        // Should be TRUNCATED (cal_end set to cutoff - 1), not deleted, so
+        // historical occurrences are preserved.
+        $repeatingId = $this->createEvent('active-series@test', '2020-01-15');
+        $this->pdo->exec("INSERT INTO webcal_entry_repeats (cal_id, cal_type, cal_frequency, cal_end) VALUES ({$repeatingId}, 'weekly', 1, NULL)");
+
+        $dry = $this->purge->purge(
+            beforeDate: new \DateTimeImmutable('2025-01-01'),
+            includeRepeating: true,
+            dryRun: true,
+        );
+        $this->assertSame(1, $dry->count, 'Truncated series still counts as affected');
+
+        $this->purge->purge(
+            beforeDate: new \DateTimeImmutable('2025-01-01'),
+            includeRepeating: true,
+            dryRun: false,
+            confirmCount: 1,
+        );
+
+        // Entry still exists (history preserved)
+        $this->assertNotNull($this->factory->getEventRepository()->findByUid('active-series@test'));
+
+        // Repeat row's cal_end is now set to cutoff - 1 day = 20241231
+        $stmt = $this->pdo->prepare('SELECT cal_end FROM webcal_entry_repeats WHERE cal_id = :id');
+        $stmt->execute(['id' => $repeatingId]);
+        $this->assertSame(20241231, (int) $stmt->fetchColumn());
+    }
+
+    public function testIncludeRepeatingDeletesAlreadyEndedSeries(): void
+    {
+        // Series that already ended before the cutoff → fully delete.
+        $endedId = $this->createEvent('ended-series@test', '2020-01-15');
+        $this->pdo->exec("INSERT INTO webcal_entry_repeats (cal_id, cal_type, cal_frequency, cal_end) VALUES ({$endedId}, 'weekly', 1, 20220101)");
 
         $dry = $this->purge->purge(
             beforeDate: new \DateTimeImmutable('2025-01-01'),
@@ -272,12 +305,37 @@ final class PurgeServiceIntegrationTest extends IntegrationTestCase
             confirmCount: 1,
         );
 
-        $this->assertNull($this->factory->getEventRepository()->findByUid('repeating@test'));
+        $this->assertNull($this->factory->getEventRepository()->findByUid('ended-series@test'));
 
-        // webcal_entry_repeats cascade also purged
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM webcal_entry_repeats WHERE cal_id = :id');
-        $stmt->execute(['id' => $repeatingId]);
+        $stmt->execute(['id' => $endedId]);
         $this->assertSame(0, (int) $stmt->fetchColumn());
+    }
+
+    public function testIncludeRepeatingMixedBatch(): void
+    {
+        // Three events: one non-recurring (delete), one active series (truncate),
+        // one ended series (delete). All three are "affected".
+        $plainId = $this->createEvent('plain@test', '2020-01-15');
+        $activeId = $this->createEvent('active@test', '2020-01-15');
+        $this->pdo->exec("INSERT INTO webcal_entry_repeats (cal_id, cal_type, cal_frequency) VALUES ({$activeId}, 'weekly', 1)");
+        $endedId = $this->createEvent('ended@test', '2020-01-15');
+        $this->pdo->exec("INSERT INTO webcal_entry_repeats (cal_id, cal_type, cal_frequency, cal_end) VALUES ({$endedId}, 'weekly', 1, 20210101)");
+
+        $this->purge->purge(
+            beforeDate: new \DateTimeImmutable('2025-01-01'),
+            includeRepeating: true,
+            dryRun: false,
+            confirmCount: 3,
+        );
+
+        $this->assertNull($this->factory->getEventRepository()->findByUid('plain@test'));
+        $this->assertNull($this->factory->getEventRepository()->findByUid('ended@test'));
+        $this->assertNotNull($this->factory->getEventRepository()->findByUid('active@test'));
+
+        $stmt = $this->pdo->prepare('SELECT cal_end FROM webcal_entry_repeats WHERE cal_id = :id');
+        $stmt->execute(['id' => $activeId]);
+        $this->assertSame(20241231, (int) $stmt->fetchColumn());
     }
 
     public function testLiveRunPublishesMercurePurged(): void

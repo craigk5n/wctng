@@ -61,7 +61,18 @@ final class PurgeService
         $cutoff = (int) $beforeDate->format('Ymd');
 
         $targetIds = $this->findTargetEventIds($cutoff, $userLogin, $includeRepeating);
-        $count = \count($targetIds);
+
+        // When include_repeating=true, split the target set into events that
+        // should be DELETED (non-recurring or already-ended series) vs
+        // TRUNCATED (active series with cal_end NULL or ≥ cutoff). Truncating
+        // preserves historical occurrences by capping the series' UNTIL.
+        $truncateIds = [];
+        $deleteIds = $targetIds;
+        if ($includeRepeating && $targetIds !== []) {
+            [$deleteIds, $truncateIds] = $this->partitionForTruncation($targetIds, $cutoff);
+        }
+
+        $count = \count($deleteIds) + \count($truncateIds);
 
         if ($dryRun) {
             return new PurgeResult(count: $count, dryRun: true, beforeDate: $beforeDate, userLogin: $userLogin);
@@ -78,8 +89,12 @@ final class PurgeService
             );
         }
 
-        if ($count > 0) {
-            $this->deleteEventIds($targetIds);
+        if ($deleteIds !== []) {
+            $this->deleteEventIds($deleteIds);
+        }
+        if ($truncateIds !== []) {
+            $untilYmd = (int) $beforeDate->modify('-1 day')->format('Ymd');
+            $this->truncateSeries($truncateIds, $untilYmd);
         }
 
         $this->writeAuditLog($actor, $beforeDate, $userLogin, $includeRepeating, $count);
@@ -178,6 +193,82 @@ final class PurgeService
             }
         }
         return $ids;
+    }
+
+    /**
+     * Splits candidate event ids into those that should be fully deleted vs
+     * those whose recurrence should be truncated with an UNTIL at the cutoff.
+     *
+     * Active series (no cal_end, or cal_end at or after the cutoff) go to the
+     * truncate bucket. Non-recurring events and series whose cal_end is
+     * already before the cutoff go to the delete bucket.
+     *
+     * @param list<int> $ids
+     * @return array{0: list<int>, 1: list<int>} [deleteIds, truncateIds]
+     */
+    private function partitionForTruncation(array $ids, int $cutoffYmd): array
+    {
+        $placeholders = implode(',', array_fill(0, \count($ids), '?'));
+        $sql = "SELECT cal_id, cal_end FROM webcal_entry_repeats "
+            . "WHERE cal_id IN ({$placeholders})";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($ids);
+
+        /** @var array<int,?int> $repeatEnds */
+        $repeatEnds = [];
+        while (($row = $stmt->fetch(\PDO::FETCH_ASSOC)) !== false) {
+            if (!\is_array($row) || !isset($row['cal_id'])) {
+                continue;
+            }
+            $rawId = $row['cal_id'];
+            if (!\is_int($rawId) && !\is_string($rawId)) {
+                continue;
+            }
+            $rid = (int) $rawId;
+            $end = $row['cal_end'] ?? null;
+            if ($end === null || $end === '') {
+                $repeatEnds[$rid] = null;
+            } elseif (\is_int($end) || \is_string($end)) {
+                $repeatEnds[$rid] = (int) $end;
+            } else {
+                $repeatEnds[$rid] = null;
+            }
+        }
+
+        $deleteIds = [];
+        $truncateIds = [];
+        foreach ($ids as $id) {
+            if (!\array_key_exists($id, $repeatEnds)) {
+                // No repeats row — plain event, delete normally.
+                $deleteIds[] = $id;
+                continue;
+            }
+            $end = $repeatEnds[$id];
+            if ($end === null || $end >= $cutoffYmd) {
+                // Active series → truncate
+                $truncateIds[] = $id;
+            } else {
+                // Series already ended before cutoff → delete
+                $deleteIds[] = $id;
+            }
+        }
+
+        return [$deleteIds, $truncateIds];
+    }
+
+    /**
+     * @param list<int> $ids
+     */
+    private function truncateSeries(array $ids, int $untilYmd): void
+    {
+        $chunks = array_chunk($ids, 500);
+        foreach ($chunks as $chunk) {
+            $placeholders = implode(',', array_fill(0, \count($chunk), '?'));
+            $stmt = $this->pdo->prepare(
+                "UPDATE webcal_entry_repeats SET cal_end = ? WHERE cal_id IN ({$placeholders})"
+            );
+            $stmt->execute(array_merge([$untilYmd], $chunk));
+        }
     }
 
     /**
