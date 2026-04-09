@@ -209,13 +209,11 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
         }
         const catIds = (event.extendedProps?.categories as number[]) ?? [];
         const color = getEventColor(catIds, categories);
-        const icon = getEventIcon(catIds, categories);
-        const titleWithIcon = icon && typeof event.title === 'string'
-          ? `${icon} ${event.title}`
-          : event.title;
+        // Emoji is computed at render time in eventContent below so
+        // that categories loading AFTER the initial event fetch still
+        // take effect without requiring a refetch.
         return {
           ...event,
-          title: titleWithIcon,
           backgroundColor: color,
           borderColor: color,
         };
@@ -321,29 +319,36 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
         height="auto"
         locale={i18nInstance.language}
         nowIndicator={true}
-        eventContent={(arg) => (
-          <EventTooltip
-            event={{
-              title: arg.event.title,
-              start: arg.event.start,
-              end: arg.event.end,
-              allDay: arg.event.allDay,
-              location: (arg.event.extendedProps?.location as string | undefined) ?? undefined,
-              description: (arg.event.extendedProps?.description as string | undefined) ?? undefined,
-              categoryIds: (arg.event.extendedProps?.categories as number[] | undefined) ?? [],
-            }}
-            categories={categories}
-          >
-            <div className="fc-event-main-frame">
-              {arg.timeText && <div className="fc-event-time">{arg.timeText}</div>}
-              <div className="fc-event-title-container">
-                <div className="fc-event-title fc-sticky">
-                  {arg.event.title || <>&nbsp;</>}
+        eventContent={(arg) => {
+          const catIds = (arg.event.extendedProps?.categories as number[] | undefined) ?? [];
+          // Compute the emoji at render time so categories loading AFTER
+          // the initial event fetch still display without a refetch.
+          const icon = getEventIcon(catIds, categories);
+          return (
+            <EventTooltip
+              event={{
+                title: arg.event.title,
+                start: arg.event.start,
+                end: arg.event.end,
+                allDay: arg.event.allDay,
+                location: (arg.event.extendedProps?.location as string | undefined) ?? undefined,
+                description: (arg.event.extendedProps?.description as string | undefined) ?? undefined,
+                categoryIds: catIds,
+              }}
+              categories={categories}
+            >
+              <div className="fc-event-main-frame">
+                {arg.timeText && <div className="fc-event-time">{arg.timeText}</div>}
+                <div className="fc-event-title-container">
+                  <div className="fc-event-title fc-sticky">
+                    {icon && <span aria-hidden="true">{icon} </span>}
+                    {arg.event.title || <>&nbsp;</>}
+                  </div>
                 </div>
               </div>
-            </div>
-          </EventTooltip>
-        )}
+            </EventTooltip>
+          );
+        }}
         eventDidMount={(info) => {
           // Keep an aria-label for screen readers (Radix handles hover + focus
           // visual tooltip, but the SR-friendly aria-label still helps).

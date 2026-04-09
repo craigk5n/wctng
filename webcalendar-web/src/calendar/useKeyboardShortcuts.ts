@@ -12,9 +12,17 @@ interface KeyboardHandlers {
  * Exported for unit testing.
  */
 export function handleCalendarKeydown(event: KeyboardEvent, handlers: KeyboardHandlers): void {
-  // Don't handle shortcuts when typing in form fields
+  // Don't handle shortcuts when typing in form fields. Includes
+  // contenteditable elements because rich-text editors (TipTap,
+  // ProseMirror, CKEditor) render the edit surface as
+  // `<div contenteditable>`, not a textarea — without this guard,
+  // typing a "d" in a description field would trigger the global
+  // "switch to day view" shortcut.
   const target = event.target;
   if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {
+    return;
+  }
+  if (target instanceof HTMLElement && target.isContentEditable) {
     return;
   }
 

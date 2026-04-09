@@ -59,4 +59,31 @@ describe('Calendar Keyboard Shortcuts', () => {
     handleCalendarKeydown(event, handlers);
     expect(handlers.onToday).not.toHaveBeenCalled();
   });
+
+  it('does not handle shortcuts when typing in a contenteditable div (rich text editors)', () => {
+    const handlers = {
+      onPrev: vi.fn(),
+      onNext: vi.fn(),
+      onToday: vi.fn(),
+      onViewChange: vi.fn(),
+    };
+
+    // TipTap / ProseMirror / CKEditor all render their edit surface
+    // as `<div contenteditable>`, not a textarea — the guard must
+    // recognise this or else typing "d" in an event-description field
+    // will switch the underlying calendar to day view.
+    const editable = document.createElement('div');
+    editable.setAttribute('contenteditable', 'true');
+    // jsdom doesn't compute isContentEditable from the attribute; shim it.
+    Object.defineProperty(editable, 'isContentEditable', { value: true });
+
+    for (const key of ['d', 'm', 'w', 'y', 't']) {
+      const event = new KeyboardEvent('keydown', { key });
+      Object.defineProperty(event, 'target', { value: editable });
+      handleCalendarKeydown(event, handlers);
+    }
+
+    expect(handlers.onViewChange).not.toHaveBeenCalled();
+    expect(handlers.onToday).not.toHaveBeenCalled();
+  });
 });
