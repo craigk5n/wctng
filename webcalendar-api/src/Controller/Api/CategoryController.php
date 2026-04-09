@@ -6,7 +6,9 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
+use App\Service\CategoryIconRepository;
 use App\Service\CoreServiceFactory;
+use App\Service\EmojiValidator;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,7 +20,25 @@ final class CategoryController
 {
     public function __construct(
         private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly CategoryIconRepository $icons,
+        private readonly EmojiValidator $emojiValidator = new EmojiValidator(),
     ) {
+        $this->icons->ensureSchema();
+    }
+
+    /**
+     * @param array<string,mixed> $data
+     */
+    private function extractIcon(array $data): ?string
+    {
+        if (!\array_key_exists('icon', $data)) {
+            return null;
+        }
+        $raw = $data['icon'];
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+        return \is_string($raw) ? $raw : null;
     }
 
     #[Route('/api/v2/categories', name: 'api_categories_list', methods: ['GET'])]
@@ -31,9 +51,39 @@ final class CategoryController
         $categories = $this->coreServiceFactory->getCategoryService()
             ->getCategoriesForUser($user->getUserIdentifier());
 
-        $items = array_map(self::categoryToArray(...), $categories);
+        $iconMap = $this->loadIconsForCategories(array_values($categories));
+
+        $items = array_map(
+            fn (Category $c) => self::categoryToArray($c, $iconMap[self::iconKey($c)] ?? null),
+            $categories,
+        );
 
         return ApiResponse::success(array_values($items));
+    }
+
+    /**
+     * @param list<Category> $categories
+     * @return array<string,string>
+     */
+    private function loadIconsForCategories(array $categories): array
+    {
+        $byOwner = [];
+        foreach ($categories as $c) {
+            $byOwner[$c->owner() ?? ''][] = $c->id();
+        }
+        $result = [];
+        foreach ($byOwner as $owner => $ids) {
+            $ownerKey = $owner === '' ? null : $owner;
+            foreach ($this->icons->getBatchForOwner($ids, $ownerKey) as $id => $icon) {
+                $result[$id . '|' . $owner] = $icon;
+            }
+        }
+        return $result;
+    }
+
+    private static function iconKey(Category $c): string
+    {
+        return $c->id() . '|' . ($c->owner() ?? '');
     }
 
     #[Route('/api/v2/categories/{id}', name: 'api_categories_get', methods: ['GET'])]
@@ -49,7 +99,8 @@ final class CategoryController
             return ApiResponse::error(404, 'Category not found');
         }
 
-        return ApiResponse::success(self::categoryToArray($category));
+        $icon = $this->icons->get($category->id(), $category->owner());
+        return ApiResponse::success(self::categoryToArray($category, $icon));
     }
 
     #[Route('/api/v2/categories', name: 'api_categories_create', methods: ['POST'])]
@@ -75,6 +126,11 @@ final class CategoryController
         $color = isset($data['color']) && \is_string($data['color']) ? $data['color'] : null;
         $isGlobal = isset($data['is_global']) && $data['is_global'] === true;
 
+        $icon = $this->extractIcon($data);
+        if (!$this->emojiValidator->isValid($icon)) {
+            return ApiResponse::error(400, 'icon must be a single emoji grapheme');
+        }
+
         $coreUser = $user->getCoreUser();
         $owner = $isGlobal && $coreUser->isAdmin() ? null : $user->getUserIdentifier();
 
@@ -87,8 +143,9 @@ final class CategoryController
         );
 
         $this->coreServiceFactory->getCategoryService()->createCategory($category, $coreUser);
+        $this->icons->set($nextId, $owner, $icon);
 
-        return ApiResponse::success(self::categoryToArray($category), null, Response::HTTP_CREATED);
+        return ApiResponse::success(self::categoryToArray($category, $icon), null, Response::HTTP_CREATED);
     }
 
     #[Route('/api/v2/categories/{id}', name: 'api_categories_update', methods: ['PUT'])]
@@ -115,6 +172,12 @@ final class CategoryController
         $name = isset($data['name']) && \is_string($data['name']) ? $data['name'] : $existing->name();
         $color = isset($data['color']) && \is_string($data['color']) ? $data['color'] : $existing->color();
 
+        $iconProvided = \array_key_exists('icon', $data);
+        $icon = $iconProvided ? $this->extractIcon($data) : $this->icons->get($id, $existing->owner());
+        if ($iconProvided && !$this->emojiValidator->isValid($icon)) {
+            return ApiResponse::error(400, 'icon must be a single emoji grapheme');
+        }
+
         // Handle is_global promotion/demotion (admin only)
         if (isset($data['is_global'])) {
             if (!$coreUser->isAdmin()) {
@@ -126,9 +189,11 @@ final class CategoryController
             if ($newOwner !== $existing->owner()) {
                 // Owner change requires delete + re-create (core uses composite key cat_id + cat_owner)
                 $this->coreServiceFactory->getCategoryRepository()->delete($id);
+                $this->icons->delete($id, $existing->owner());
                 $promoted = new Category($id, $newOwner, $name, $color, $existing->isEnabled());
                 $this->coreServiceFactory->getCategoryRepository()->save($promoted);
-                return ApiResponse::success(self::categoryToArray($promoted));
+                $this->icons->set($id, $newOwner, $icon);
+                return ApiResponse::success(self::categoryToArray($promoted, $icon));
             }
         }
 
@@ -141,8 +206,11 @@ final class CategoryController
         );
 
         $this->coreServiceFactory->getCategoryService()->updateCategory($updated, $coreUser);
+        if ($iconProvided) {
+            $this->icons->set($id, $existing->owner(), $icon);
+        }
 
-        return ApiResponse::success(self::categoryToArray($updated));
+        return ApiResponse::success(self::categoryToArray($updated, $icon));
     }
 
     #[Route('/api/v2/categories/{id}', name: 'api_categories_delete', methods: ['DELETE'])]
@@ -159,6 +227,7 @@ final class CategoryController
 
         $coreUser = $user->getCoreUser();
         $this->coreServiceFactory->getCategoryService()->deleteCategory($id, $coreUser);
+        $this->icons->delete($id, $existing->owner());
 
         return ApiResponse::noContent();
     }
@@ -221,12 +290,13 @@ final class CategoryController
     /**
      * @return array<string, mixed>
      */
-    private static function categoryToArray(Category $category): array
+    private static function categoryToArray(Category $category, ?string $icon = null): array
     {
         return [
             'id' => $category->id(),
             'name' => $category->name(),
             'color' => $category->color(),
+            'icon' => $icon,
             'is_global' => $category->isGlobal(),
             'owner' => $category->owner(),
         ];

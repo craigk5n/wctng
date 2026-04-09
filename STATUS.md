@@ -72,7 +72,23 @@
 
 ---
 
-## Plan Change (2026-04-08): Category Emoji Icons
+## Plan Change (2026-04-08): Category Emoji Icons — BACKEND DONE
+
+**Backend landed (2026-04-08):**
+- `src/Service/CategoryIconRepository.php` — sidecar `webcal_category_icons` table keyed by (cat_id, cat_owner), leaves vendor schema untouched. Idempotent `ensureSchema()`, `get`/`set`/`delete`/`getBatchForOwner`. Portable upsert (delete+insert) across MySQL/SQLite/PostgreSQL.
+- `src/Service/EmojiValidator.php` — single-grapheme check via `grapheme_strlen()` + Unicode range regex (pictographs, symbols, dingbats, regional indicators). Accepts multi-codepoint ZWJ sequences (family, flags). Rejects plain text.
+- `src/Controller/Api/CategoryController.php` — accepts and returns `icon` field on create/get/list/update, batch-loads icons for list endpoint, validates on write, cascades delete on category delete and owner promotion.
+- `tests/Integration/CategoryIconIntegrationTest.php` — 13 tests (repository CRUD + owner scoping + idempotent schema + validator: single emoji, multi-codepoint, plain text rejected, multi-grapheme rejected, null/empty). All passing. PHPStan clean. Pre-existing Category integration tests still green.
+
+**Deferred to follow-up stories:**
+- Legacy import: drop `cat_icon_blob`/`cat_icon_mime` silently with notice log (import path still references blob columns)
+- Frontend: lazy-loaded emoji picker (frimousse or emoji-mart), render emoji next to category name in sidebar / filter / event chips
+- Schema cleanup: remove legacy `cat_icon_mime` + `cat_icon_blob` columns from `webcal_categories` in a future webcalendar-core migration
+- SSR font fallback: install Noto Color Emoji / Twemoji for PDF export and email rendering
+
+---
+
+## Plan Change (2026-04-08): Category Emoji Icons (original)
 
 Pivoting category icons from legacy image blobs → single emoji per category.
 
