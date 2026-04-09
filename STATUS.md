@@ -74,7 +74,7 @@
 - ~~Mercure `calendar.purged` message~~ **DONE 2026-04-08** — MercurePublisher gained `publishCalendarPurged()`; PurgeService publishes to `/calendars/purged` + global `/calendars/events` topics after a successful non-empty live run. Extracted `CalendarPublisherInterface` so PurgeService depends on a narrow contract and can be tested with a fake. Dry runs and zero-count runs silent. Best-effort: publish failure never unwinds the purge. 3 new integration tests.
 - ~~Recurring series UNTIL-truncate mode~~ **DONE 2026-04-08** — with `include_repeating=true`, PurgeService partitions target events into fully-deleted (non-recurring or series already ended before cutoff) vs truncated (active series with `cal_end` NULL or ≥ cutoff). Truncated series keep their `webcal_entry` row and get their `webcal_entry_repeats.cal_end` updated to `cutoff - 1 day` (YYYYMMDD), preserving history. Purge count includes both buckets. 3 new integration tests (active truncated, ended fully deleted, mixed batch).
 - ~~Activity log entry per purge~~ **DONE 2026-04-08** (PurgeService writes via ActivityLogRepository, type=EXTRA, best-effort, 4 new tests)
-- Admin UI (Settings → Data Management page with typed confirmation)
+- ~~Admin UI (Settings → Data Management page with typed confirmation)~~ **DONE 2026-04-09** — `src/admin/PurgePage.tsx` at `/admin/purge`: date picker (defaults to 1 year ago, 1st of month), optional user-login filter, include-recurring checkbox, Preview (dry-run) → count display, typed `DELETE` confirmation, live-run with `confirm_count` echoed from the preview. Filter change after preview resets the confirm flow. Zero-count shows "Nothing to purge". 9 Vitest tests. tsc clean.
 
 
 

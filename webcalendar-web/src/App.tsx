@@ -18,6 +18,7 @@ const ResourceManagement = lazy(() => import('./admin/ResourceManagement').then(
 const CustomHtmlPage = lazy(() => import('./admin/CustomHtmlPage').then(m => ({ default: m.CustomHtmlPage })));
 const DashboardPage = lazy(() => import('./admin/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const BackupPage = lazy(() => import('./admin/BackupPage').then(m => ({ default: m.BackupPage })));
+const PurgePage = lazy(() => import('./admin/PurgePage').then(m => ({ default: m.PurgePage })));
 const SecurityAuditPage = lazy(() => import('./admin/SecurityAuditPage').then(m => ({ default: m.SecurityAuditPage })));
 const SavedViewsPage = lazy(() => import('./views/SavedViewsPage').then(m => ({ default: m.SavedViewsPage })));
 const PreferencesPage = lazy(() => import('./settings/PreferencesPage').then(m => ({ default: m.PreferencesPage })));
@@ -170,6 +171,16 @@ export default function App() {
               <ProtectedRoute>
                 <AppLayout>
                   <BackupPage />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/purge"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <PurgePage />
                 </AppLayout>
               </ProtectedRoute>
             }
