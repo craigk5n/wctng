@@ -334,6 +334,12 @@ final class EventController
         } catch (\Throwable) {
         }
 
+        // Send invitations to external (email-only) participants
+        try {
+            $this->notifications->notifyExtParticipantsAdded($responseData, $extParticipants);
+        } catch (\Throwable) {
+        }
+
         // Log activity
         try {
             $this->coreServiceFactory->getActivityLogService()->log(
@@ -510,6 +516,14 @@ final class EventController
         } catch (\Throwable) {
         }
 
+        // Notify external participants of update
+        if ($extParticipantsUpdate !== null) {
+            try {
+                $this->notifications->notifyExtParticipantsUpdated($responseData, $extParticipantsUpdate);
+            } catch (\Throwable) {
+            }
+        }
+
         // Log activity
         try {
             $this->coreServiceFactory->getActivityLogService()->log(
@@ -545,6 +559,10 @@ final class EventController
             return ApiResponse::error(403, 'You do not have permission to delete this event');
         }
 
+        // Snapshot ext participants BEFORE deletion so we can send
+        // cancellation emails after the row is gone.
+        $extParticipantsSnapshot = $this->extParticipants->findForEvent($id);
+
         // Notify participants before deleting
         try {
             /** @var array<string, string> $participants */
@@ -554,6 +572,21 @@ final class EventController
                 $pList[] = ['login' => $login, 'status' => $status];
             }
             $this->notifications->notifyEventDeleted($existing->name(), $pList);
+        } catch (\Throwable) {
+        }
+
+        // Notify external participants of cancellation (before deletion so
+        // we still have the uid/title/date from $existing via the DTO below)
+        try {
+            $this->notifications->notifyExtParticipantsDeleted(
+                [
+                    'id' => $id,
+                    'title' => $existing->name(),
+                    'start_date' => $existing->start()->format('Ymd'),
+                    'uid' => $existing->uid(),
+                ],
+                $extParticipantsSnapshot,
+            );
         } catch (\Throwable) {
         }
 

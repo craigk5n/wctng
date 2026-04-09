@@ -140,6 +140,112 @@ final class EventNotificationService
         }
     }
 
+    /**
+     * Invite external (email-only) participants who do not have user accounts.
+     *
+     * Unlike regular participants, external invitees have no opt-out preferences
+     * and no accept/decline tokens — they're one-off guests. Each email includes
+     * a standard METHOD:REQUEST .ics attachment so the recipient's calendar
+     * client (Apple Mail, Outlook, Gmail) can tap-to-add the event.
+     *
+     * Participants without an email address are skipped — we have nowhere to
+     * send the invitation.
+     *
+     * @param array<string, mixed> $eventData
+     * @param list<array{name: string, email: ?string}> $extParticipants
+     */
+    public function notifyExtParticipantsAdded(array $eventData, array $extParticipants): void
+    {
+        if ($extParticipants === []) {
+            return;
+        }
+
+        /** @var string $title */
+        $title = $eventData['title'] ?? 'Untitled Event';
+        /** @var string $startDate */
+        $startDate = $eventData['start_date'] ?? '';
+        /** @var string $location */
+        $location = $eventData['location'] ?? '';
+
+        $ics = $this->generateIcsAttachment($eventData, 'REQUEST');
+        $html = $this->renderExtInvitationEmail($title, $startDate, $location);
+
+        foreach ($extParticipants as $p) {
+            $email = $p['email'] ?? null;
+            if ($email === null || $email === '') {
+                continue;
+            }
+            $this->sendEmail($email, "Event Invitation: {$title}", $html, $ics);
+        }
+    }
+
+    /**
+     * Notify external participants that an event has been updated.
+     *
+     * Sends a METHOD:REQUEST .ics — RFC 5546 lets clients treat REQUEST on a
+     * known UID as an update, keeping the calendar entry in sync.
+     *
+     * @param array<string, mixed> $eventData
+     * @param list<array{name: string, email: ?string}> $extParticipants
+     */
+    public function notifyExtParticipantsUpdated(array $eventData, array $extParticipants): void
+    {
+        if ($extParticipants === []) {
+            return;
+        }
+
+        /** @var string $title */
+        $title = $eventData['title'] ?? 'Untitled Event';
+        /** @var string $startDate */
+        $startDate = $eventData['start_date'] ?? '';
+        /** @var string $location */
+        $location = $eventData['location'] ?? '';
+
+        $ics = $this->generateIcsAttachment($eventData, 'REQUEST');
+        $html = "<h2>Event Updated: {$title}</h2>"
+            . '<p>The event on ' . $this->formatDate($startDate) . ' has been updated.</p>'
+            . ($location !== '' ? "<p><strong>Location:</strong> {$location}</p>" : '');
+
+        foreach ($extParticipants as $p) {
+            $email = $p['email'] ?? null;
+            if ($email === null || $email === '') {
+                continue;
+            }
+            $this->sendEmail($email, "Event Updated: {$title}", $html, $ics);
+        }
+    }
+
+    /**
+     * Notify external participants that an event has been cancelled.
+     *
+     * Sends a METHOD:CANCEL .ics so the recipient's calendar client can
+     * automatically remove the entry per RFC 5546.
+     *
+     * @param array<string, mixed> $eventData
+     * @param list<array{name: string, email: ?string}> $extParticipants
+     */
+    public function notifyExtParticipantsDeleted(array $eventData, array $extParticipants): void
+    {
+        if ($extParticipants === []) {
+            return;
+        }
+
+        /** @var string $title */
+        $title = $eventData['title'] ?? 'Untitled Event';
+
+        $ics = $this->generateIcsAttachment($eventData, 'CANCEL');
+        $html = "<h2>Event Cancelled: {$title}</h2>"
+            . '<p>This event has been cancelled by the organizer.</p>';
+
+        foreach ($extParticipants as $p) {
+            $email = $p['email'] ?? null;
+            if ($email === null || $email === '') {
+                continue;
+            }
+            $this->sendEmail($email, "Event Cancelled: {$title}", $html, $ics);
+        }
+    }
+
     private function sendEmail(string $to, string $subject, string $html, ?string $icsAttachment = null): void
     {
         try {
@@ -214,7 +320,7 @@ final class EventNotificationService
     /**
      * @param array<string, mixed> $eventData
      */
-    private function generateIcsAttachment(array $eventData): string
+    private function generateIcsAttachment(array $eventData, string $method = 'REQUEST'): string
     {
         /** @var string $title */
         $title = $eventData['title'] ?? '';
@@ -225,7 +331,31 @@ final class EventNotificationService
         /** @var string $uid */
         $uid = \is_string($eventData['uid'] ?? null) ? $eventData['uid'] : 'wctng-' . $eid . '@webcalendar';
 
-        return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:{$uid}\r\nSUMMARY:{$title}\r\nDTSTART:{$startDate}\r\nEND:VEVENT\r\nEND:VCALENDAR";
+        $status = $method === 'CANCEL' ? 'CANCELLED' : 'CONFIRMED';
+
+        return "BEGIN:VCALENDAR\r\n"
+            . "VERSION:2.0\r\n"
+            . "METHOD:{$method}\r\n"
+            . "PRODID:-//WebCalendar//WCTNG//EN\r\n"
+            . "BEGIN:VEVENT\r\n"
+            . "UID:{$uid}\r\n"
+            . "SUMMARY:{$title}\r\n"
+            . "DTSTART:{$startDate}\r\n"
+            . "STATUS:{$status}\r\n"
+            . "END:VEVENT\r\n"
+            . "END:VCALENDAR";
+    }
+
+    private function renderExtInvitationEmail(string $title, string $date, string $location): string
+    {
+        $locationHtml = $location !== '' ? "<p><strong>Location:</strong> {$location}</p>" : '';
+
+        return <<<HTML
+        <h2>You're invited: {$title}</h2>
+        <p><strong>When:</strong> {$this->formatDate($date)}</p>
+        {$locationHtml}
+        <p>An event invitation is attached. Open it with your calendar app to add this event.</p>
+        HTML;
     }
 
     private function formatDate(string $yyyymmdd): string
