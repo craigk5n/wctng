@@ -1,6 +1,67 @@
 # WCTNG — Phase 7 Development Plan & Status
 
-> **Last Updated:** 2026-03-18
+> **Last Updated:** 2026-04-08
+
+---
+
+## New Epic (2026-04-08): Event Deletion & Purge
+
+**Goal:** Replace ad-hoc SQL truncation with two supported deletion paths — a production admin purge and a dev-only reset — both TDD-first.
+
+### Story DEL-S1: Admin Event Purge (production)
+
+**Acceptance criteria:**
+- [ ] `POST /api/v2/admin/events/purge` — admin-only (`ROLE_ADMIN`), tenant-scoped
+- [ ] Request body: `before_date` (ISO date, required), `user_login` (optional), `include_repeating` (bool, default false), `dry_run` (bool, default true), `confirm_count` (int, required when `dry_run=false`)
+- [ ] Dry run returns `{ would_delete: N, sample: [...first 10 event ids] }` without mutating
+- [ ] Non-dry-run refuses unless `confirm_count` matches the prior dry-run count exactly
+- [ ] Cascades: `webcal_entry_user`, `webcal_entry_categories`, `webcal_entry_repeats`, `webcal_entry_repeats_not`, `webcal_entry_ext_user`, `webcal_reminders`, `event_comments`, and frees `webcal_blob` attachment storage
+- [ ] Recurring series behavior: if `include_repeating=false`, skip any series whose `dtstart < before_date` but still recurs past it; if `true`, truncate the series with an `UNTIL` at `before_date` rather than deleting outright (preserves history)
+- [ ] CalDAV: bump per-calendar sync-token once after purge so clients re-sync rather than re-uploading
+- [ ] Webhooks: emit a single `events.purged` webhook with `{ count, before_date, user_login }`, suppress per-event `event.deleted` webhooks during purge
+- [ ] Mercure: publish a single `calendar.purged` message, not per-event updates
+- [ ] Activity log: one entry per purge with actor, filter, count
+- [ ] Admin UI: Settings → Data Management page with date picker, optional user filter, "Preview" (dry-run) button, typed "DELETE" confirmation, count match
+- [ ] Multi-tenant isolation: tenant A admin cannot purge tenant B
+
+**Tests:**
+- PHPUnit: dry-run returns count without mutation; confirm_count mismatch rejected; cascade verified across all child tables; recurring skip vs. truncate behavior; non-admin rejected; cross-tenant rejected; blob storage freed
+- Vitest: Purge page renders, dry-run shows preview, confirmation flow, error states
+- E2E: admin purges events before date → verifies count, post-purge API returns empty, activity log entry present
+- CalDAV integration test: Apple Calendar client sync-token advances, does not re-upload
+
+---
+
+### Story DEL-S2: Dev Event Reset (non-prod CLI)
+
+**Acceptance criteria:**
+- [ ] Symfony console command: `bin/console webcalendar:dev:reset-events`
+- [ ] Refuses unless **all** of: `APP_ENV=dev` or `test`, `--force` flag passed, and env var `WCTNG_ALLOW_DESTRUCTIVE_RESET=1` set
+- [ ] Prints the database name and table list, prompts for interactive "yes" unless `--no-interaction`
+- [ ] Truncates: `webcal_entry`, `webcal_entry_user`, `webcal_entry_categories`, `webcal_entry_ext_user`, `webcal_entry_log`, `webcal_entry_repeats`, `webcal_entry_repeats_not`, `webcal_reminders`, `event_comments`, `webcal_blob`
+- [ ] Not exposed via HTTP — CLI only
+- [ ] No webhook/Mercure emission (dev reset, not a user-facing event)
+- [ ] Output summary: rows deleted per table
+
+**Tests:**
+- PHPUnit: command refuses in prod env; refuses without `--force`; refuses without env var; truncates all listed tables when guards satisfied; output format
+
+---
+
+## Plan Change (2026-04-08): Category Emoji Icons
+
+Pivoting category icons from legacy image blobs → single emoji per category.
+
+**Rationale:** Emojis didn't exist in 2000 when the feature was designed. Today they're universal, zero-storage, accessible by default, safe (no image upload attack surface), and render consistently across calendar views, ICS export, webhooks, and email.
+
+**Scope:**
+- Schema migration: drop `webcal_categories.cat_icon_mime` and `cat_icon_blob`; add `cat_icon VARCHAR(8)` (enough for multi-codepoint graphemes).
+- API: `cat_icon` field on `GET/POST/PUT /api/v2/categories`, validated as a single emoji grapheme.
+- Frontend: lazy-loaded emoji picker (e.g. `frimousse` / `emoji-mart`) in Category create/edit form; render emoji next to category name + color dot in sidebar, filter, and event chips.
+- Legacy import: drop `cat_icon_blob` silently, log a notice. Users pick new emojis post-migration.
+- Server-side rendering (PDF/email): ensure Noto Color Emoji or Twemoji fallback is available.
+- Update `GAP-ANALYSIS.md` row for "Category icons" (done).
+
 > **Phase:** 7 — Competitive Parity & Differentiation
 > **Goal:** Drag-and-drop, ICS subscriptions, scheduling polls, room booking, MCP server, PWA notifications, natural language, saved views, private categories
 > **Methodology:** TDD (write tests first, then implementation)

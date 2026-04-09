@@ -75,7 +75,7 @@ WCTNG has reimplemented the vast majority of legacy WebCalendar functionality on
 |---|---|---|---|
 | Custom views | 7 view types (day/list/month/report/task/time/week) with arbitrary user groupings | FullCalendar 5 built-in views | No arbitrary custom view creation UI. FullCalendar covers the common cases. |
 | Report templates | Custom HTML templates with placeholder substitution | CSS-based charts + CSV export | No custom template editor. Reports are functional but not templated. |
-| Category icons | Category images stored as MIME blobs | Category colors only | No icon upload. Colors provide sufficient visual distinction. |
+| Category icons | Category images stored as MIME blobs | Category colors + emoji icon (planned) | **Plan change (2026-04-08):** dropping legacy image-blob uploads in favor of a single emoji per category. Emojis didn't exist in 2000; today they're universal, zero-storage, accessible, safe (no upload attack surface), and render consistently across calendar/ICS/webhook/email. Schema: replace `cat_icon_mime` + `cat_icon_blob` with `cat_icon VARCHAR(8)`. Picker will be lazy-loaded. Legacy import drops blobs; users pick new emojis. |
 | Event URL field | Dedicated URL field on events | Not in default form | URL can be added via custom fields. Could be a built-in field. |
 | Event priority field | Priority 1-9 on events | Not in default form | Priority can be added via custom fields. Tasks have priority. |
 | External participants | Email-only participants (no account) via `webcal_entry_ext_user` | Participants must be registered users | External participants not supported. Booking page covers external scheduling. |
