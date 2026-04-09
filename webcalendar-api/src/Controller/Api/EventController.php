@@ -109,40 +109,15 @@ final class EventController
         $offset = ($page - 1) * $limit;
         $pageItems = array_values(\array_slice($allEvents, $offset, $limit));
 
-        // Load category IDs for events in this page.
-        //
-        // We bypass CategoryRepository::getForEventsBatch here because its
-        // SQL JOINs on `ec.cat_owner = c.cat_owner`, which never matches
-        // global categories (c.cat_owner='') assigned to user events
-        // (ec.cat_owner='<login>'). The vendor library's single-event
-        // getForEvent() does not have this bug — it only filters on
-        // ec.cat_owner — so we replicate that behavior here in one batch
-        // query that handles both global and personal categories.
+        // Load category IDs for events in this page
+        $eventIds = array_map(static fn ($e) => $e->id(), $pageItems);
         $categoryMap = [];
-        if (\count($pageItems) > 0) {
-            $intIds = array_map(static fn ($e) => $e->id()->value(), $pageItems);
-            $placeholders = implode(',', array_fill(0, \count($intIds), '?'));
-            $sql = "SELECT ec.cal_id, ec.cat_id
-                    FROM webcal_entry_categories ec
-                    WHERE ec.cal_id IN ({$placeholders}) AND ec.cat_owner = ?
-                    ORDER BY ec.cal_id, ec.cat_order ASC";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute(array_merge($intIds, [$user->getUserIdentifier()]));
-            while (($row = $stmt->fetch(\PDO::FETCH_ASSOC)) !== false) {
-                if (!\is_array($row)) {
-                    continue;
-                }
-                $rawCid = $row['cal_id'] ?? null;
-                $rawKid = $row['cat_id'] ?? null;
-                if (!\is_numeric($rawCid) || !\is_numeric($rawKid)) {
-                    continue;
-                }
-                $cid = (int) $rawCid;
-                $kid = (int) $rawKid;
-                if ($cid > 0 && $kid > 0) {
-                    $categoryMap[$cid] ??= [];
-                    $categoryMap[$cid][] = $kid;
-                }
+        if (\count($eventIds) > 0) {
+            $categoryRepo = $this->coreServiceFactory->getCategoryRepository();
+            /** @var array<int, array{id: int, color: string|null}> $batchResult */
+            $batchResult = $categoryRepo->getForEventsBatch($eventIds, $user->getUserIdentifier());
+            foreach ($batchResult as $eventId => $catInfo) {
+                $categoryMap[$eventId] = [$catInfo['id']];
             }
         }
 
