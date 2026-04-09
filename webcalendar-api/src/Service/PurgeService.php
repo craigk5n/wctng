@@ -47,7 +47,32 @@ final class PurgeService
         private readonly ?ActivityLogRepositoryInterface $activityLog = null,
         private readonly ?WebhookDispatcherInterface $webhookDispatcher = null,
         private readonly ?CalendarPublisherInterface $calendarPublisher = null,
+        private readonly ?CalDavSyncTokenRepository $syncTokens = null,
     ) {
+    }
+
+    /**
+     * @param list<int> $ids
+     * @return list<string>
+     */
+    private function findOwnersOfEvents(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, \count($ids), '?'));
+        $stmt = $this->pdo->prepare(
+            "SELECT DISTINCT cal_create_by FROM webcal_entry WHERE cal_id IN ({$placeholders})"
+        );
+        $stmt->execute($ids);
+
+        $logins = [];
+        while (($row = $stmt->fetch(\PDO::FETCH_ASSOC)) !== false) {
+            if (\is_array($row) && isset($row['cal_create_by']) && \is_string($row['cal_create_by'])) {
+                $logins[] = $row['cal_create_by'];
+            }
+        }
+        return $logins;
     }
 
     public function purge(
@@ -89,12 +114,30 @@ final class PurgeService
             );
         }
 
+        // Collect affected users BEFORE deletion so we can bump CalDAV
+        // sync tokens after the fact (rows are gone by then).
+        $affectedLogins = $count > 0
+            ? $this->findOwnersOfEvents(array_merge($deleteIds, $truncateIds))
+            : [];
+
         if ($deleteIds !== []) {
             $this->deleteEventIds($deleteIds);
         }
         if ($truncateIds !== []) {
             $untilYmd = (int) $beforeDate->modify('-1 day')->format('Ymd');
             $this->truncateSeries($truncateIds, $untilYmd);
+        }
+
+        // Bump each affected user's CalDAV sync token so clients (Apple
+        // Calendar, Thunderbird, DAVx5) observe a forward-moving token
+        // and reconcile rather than silently re-uploading the purged
+        // events on their next push.
+        if ($affectedLogins !== [] && $this->syncTokens !== null) {
+            try {
+                $this->syncTokens->bumpForUsers($affectedLogins);
+            } catch (\Throwable) {
+                // Sync-token bump is best-effort — never unwind a successful purge.
+            }
         }
 
         $this->writeAuditLog($actor, $beforeDate, $userLogin, $includeRepeating, $count);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\CalDav;
 
+use App\Service\CalDavSyncTokenRepository;
 use App\Service\CoreServiceFactory;
 use App\Service\DescriptionSanitizer;
 use App\Service\ValarmHelper;
@@ -40,12 +41,18 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
 
     private readonly DescriptionSanitizer $descriptionSanitizer;
     private readonly ValarmHelper $valarmHelper;
+    private ?CalDavSyncTokenRepository $syncTokenRepo = null;
 
     public function __construct(
         private readonly CoreServiceFactory $coreServiceFactory,
     ) {
         $this->descriptionSanitizer = new DescriptionSanitizer();
         $this->valarmHelper = new ValarmHelper();
+    }
+
+    private function getSyncTokenRepo(): CalDavSyncTokenRepository
+    {
+        return $this->syncTokenRepo ??= new CalDavSyncTokenRepository($this->coreServiceFactory->getPdo());
     }
 
     /**
@@ -457,18 +464,35 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
 
     private function getSyncToken(string $username): string
     {
+        $computed = 0;
         try {
             $pdo = $this->coreServiceFactory->getPdo();
             $stmt = $pdo->prepare('SELECT MAX(cal_mod_date * 1000000 + COALESCE(cal_mod_time, 0)) AS max_mod FROM webcal_entry WHERE cal_create_by = :user');
             $stmt->execute(['user' => $username]);
             $val = $stmt->fetchColumn();
-
-            $token = \is_numeric($val) ? (string) $val : '0';
-
-            return 'sync-' . $token;
+            $computed = \is_numeric($val) ? (int) $val : 0;
         } catch (\Throwable) {
-            return 'sync-' . time();
+            // Schema missing or query failed — fall through and let the
+            // override (if any) still take effect.
         }
+
+        // Bulk ops (admin purge) bump an override so clients see a
+        // forward-moving token even when no cal_mod_date changed.
+        $override = 0;
+        try {
+            $override = $this->getSyncTokenRepo()->getOverride($username) ?? 0;
+        } catch (\Throwable) {
+            // Override table missing — fall through.
+        }
+
+        $token = max($computed, $override);
+        if ($token === 0) {
+            // No events, no override — use wall clock so the token is
+            // still monotonic across restarts (clients tolerate a jump
+            // but not a constant zero).
+            $token = time();
+        }
+        return 'sync-' . $token;
     }
 
     private function extractEventId(string $objectUri): ?int

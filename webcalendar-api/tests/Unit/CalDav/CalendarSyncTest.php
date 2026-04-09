@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\CalDav;
 
 use App\CalDav\CoreCalendarBackend;
+use App\Service\CalDavSyncTokenRepository;
 use App\Service\CoreServiceFactory;
 use PHPUnit\Framework\TestCase;
 use Sabre\CalDAV\Backend\SyncSupport;
@@ -67,6 +68,27 @@ final class CalendarSyncTest extends TestCase
         $this->assertArrayHasKey('syncToken', $changes);
         $this->assertArrayHasKey('added', $changes);
         $this->assertIsArray($changes['added']);
+    }
+
+    public function testSyncTokenRespectsBumpOverride(): void
+    {
+        $pdo = new \PDO('sqlite::memory:');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $factory = new CoreServiceFactory($pdo, 'test');
+        $backend = new CoreCalendarBackend($factory);
+
+        // Bump alice's override to a known huge value, simulating a purge.
+        $repo = new CalDavSyncTokenRepository($pdo);
+        $repo->bumpForUsers(['alice']);
+        $override = $repo->getOverride('alice');
+        $this->assertNotNull($override);
+
+        $token = (string) $backend->getCalendarsForUser('principals/alice')[0]['{DAV:}sync-token'];
+        $this->assertStringStartsWith('sync-', $token);
+        $tail = (int) substr($token, 5);
+        // The backend returns max(computed, override). The computed value
+        // against an empty DB is 0, so the override must win.
+        $this->assertGreaterThanOrEqual($override, $tail);
     }
 
     public function testGetChangesReturnsAllOnTokenMismatch(): void

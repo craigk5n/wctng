@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration;
 
+use App\Service\CalDavSyncTokenRepository;
 use App\Service\CalendarPublisherInterface;
 use App\Service\PurgeService;
 use App\Webhook\WebhookDispatcherInterface;
@@ -43,17 +44,20 @@ final class PurgeServiceIntegrationTest extends IntegrationTestCase
     private PurgeService $purge;
     private RecordingWebhookDispatcher $webhooks;
     private RecordingCalendarPublisher $mercure;
+    private CalDavSyncTokenRepository $syncTokens;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->webhooks = new RecordingWebhookDispatcher();
         $this->mercure = new RecordingCalendarPublisher();
+        $this->syncTokens = new CalDavSyncTokenRepository($this->pdo);
         $this->purge = new PurgeService(
             $this->pdo,
             $this->factory->getActivityLogRepository(),
             $this->webhooks,
             $this->mercure,
+            $this->syncTokens,
         );
     }
 
@@ -336,6 +340,70 @@ final class PurgeServiceIntegrationTest extends IntegrationTestCase
         $stmt = $this->pdo->prepare('SELECT cal_end FROM webcal_entry_repeats WHERE cal_id = :id');
         $stmt->execute(['id' => $activeId]);
         $this->assertSame(20241231, (int) $stmt->fetchColumn());
+    }
+
+    public function testLiveRunBumpsCalDavSyncTokenForAffectedUser(): void
+    {
+        $this->createEvent('admin-old@test', '2020-01-15', 'admin');
+        $this->assertNull($this->syncTokens->getOverride('admin'), 'no override before purge');
+
+        $this->purge->purge(
+            beforeDate: new \DateTimeImmutable('2025-01-01'),
+            actor: 'admin',
+            dryRun: false,
+            confirmCount: 1,
+        );
+
+        $override = $this->syncTokens->getOverride('admin');
+        $this->assertNotNull($override);
+        $this->assertGreaterThan(0, $override);
+    }
+
+    public function testPurgeOnlyBumpsAffectedUsers(): void
+    {
+        $this->createEvent('alice-old@test', '2020-01-15', 'alice');
+        $this->createEvent('admin-future@test', '2030-01-01', 'admin');
+
+        $this->purge->purge(
+            beforeDate: new \DateTimeImmutable('2025-01-01'),
+            actor: 'admin',
+            dryRun: false,
+            confirmCount: 1,
+        );
+
+        $this->assertNotNull($this->syncTokens->getOverride('alice'), 'alice was purged, should bump');
+        $this->assertNull($this->syncTokens->getOverride('admin'), 'admin was untouched, no bump');
+    }
+
+    public function testDryRunDoesNotBumpSyncToken(): void
+    {
+        $this->createEvent('old@test', '2020-01-15', 'admin');
+
+        $this->purge->purge(
+            beforeDate: new \DateTimeImmutable('2025-01-01'),
+            actor: 'admin',
+            dryRun: true,
+        );
+
+        $this->assertNull($this->syncTokens->getOverride('admin'));
+    }
+
+    public function testTruncatedSeriesAlsoBumpsSyncToken(): void
+    {
+        // Active recurring series: include_repeating=true truncates (not deletes)
+        // but the user's sync view still changed — token must bump.
+        $rid = $this->createEvent('active@test', '2020-01-15', 'alice');
+        $this->pdo->exec("INSERT INTO webcal_entry_repeats (cal_id, cal_type, cal_frequency) VALUES ({$rid}, 'weekly', 1)");
+
+        $this->purge->purge(
+            beforeDate: new \DateTimeImmutable('2025-01-01'),
+            includeRepeating: true,
+            actor: 'admin',
+            dryRun: false,
+            confirmCount: 1,
+        );
+
+        $this->assertNotNull($this->syncTokens->getOverride('alice'));
     }
 
     public function testLiveRunPublishesMercurePurged(): void
