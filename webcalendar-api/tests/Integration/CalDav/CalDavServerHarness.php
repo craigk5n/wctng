@@ -72,6 +72,10 @@ final class CalDavServerHarness
         // "ReportNotSupported" even though the backend implements the
         // interface.
         $server->addPlugin(new DAV\Sync\Plugin());
+        // Scheduling plugin — matches production wiring. Adds the
+        // calendar-schedule compliance class and the scheduling
+        // inbox/outbox collections.
+        $server->addPlugin(new CalDAV\Schedule\Plugin());
 
         return $server;
     }
