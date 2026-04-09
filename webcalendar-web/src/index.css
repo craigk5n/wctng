@@ -126,6 +126,38 @@
   @apply mt-0.5;
 }
 
+/* Month view: single-line ellipsis for truncated titles. Users see the
+   full title via the native tooltip wired up in eventDidMount. */
+.fc .fc-daygrid-event .fc-event-title,
+.fc .fc-daygrid-event .fc-event-title-container {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* Week view time grid: 2-line clamp for events tall enough to fit them,
+   ellipsis for short ones. All-day band stays single-line. */
+.fc .fc-timegrid-event .fc-event-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+}
+
+.fc .fc-timegrid-event-short .fc-event-title {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  white-space: nowrap;
+}
+
+.fc .fc-timegrid-axis + .fc-timegrid-body .fc-daygrid-event .fc-event-title {
+  white-space: nowrap;
+}
+
 .fc .fc-event-focus-time {
   background: repeating-linear-gradient(
     45deg,

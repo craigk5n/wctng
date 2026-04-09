@@ -8,6 +8,7 @@ import multiMonthPlugin from '@fullcalendar/multimonth';
 import type { DatesSetArg, EventClickArg, DateSelectArg, EventInput, EventDropArg, AllowFunc } from '@fullcalendar/core';
 import type { EventResizeDoneArg } from '@fullcalendar/interaction';
 import { fetchCalendarEvents } from './useCalendarEvents';
+import { buildEventTooltip } from './eventTooltip';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
 import { useCategories, getEventColor } from './useCategories';
 import { useTranslation } from 'react-i18next';
@@ -308,6 +309,20 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
         height="auto"
         locale={i18nInstance.language}
         nowIndicator={true}
+        eventDidMount={(info) => {
+          const tip = buildEventTooltip({
+            title: info.event.title,
+            start: info.event.start,
+            end: info.event.end,
+            allDay: info.event.allDay,
+            location: (info.event.extendedProps?.location as string | undefined) ?? undefined,
+            description: (info.event.extendedProps?.description as string | undefined) ?? undefined,
+          });
+          if (tip) {
+            info.el.setAttribute('title', tip);
+            info.el.setAttribute('aria-label', tip);
+          }
+        }}
       />
     </div>
   );
