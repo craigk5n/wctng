@@ -2,11 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../api/client';
 import { useToast } from '../components/toast/ToastProvider';
 import { useAuth } from '../auth/auth-context';
+import { EmojiPickerPopover } from './EmojiPickerPopover';
 
 interface Category {
   id: number;
   name: string;
   color: string | null;
+  icon: string | null;
   is_global: boolean;
   owner: string | null;
 }
@@ -17,6 +19,7 @@ export function CategoryManagement() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState('#3788d8');
+  const [newIcon, setNewIcon] = useState<string | null>(null);
   const [newIsGlobal, setNewIsGlobal] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const { user } = useAuth();
@@ -24,6 +27,7 @@ export function CategoryManagement() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState('');
+  const [editIcon, setEditIcon] = useState<string | null>(null);
   const [showMerge, setShowMerge] = useState(false);
   const [mergeSource, setMergeSource] = useState(0);
   const [mergeTarget, setMergeTarget] = useState(0);
@@ -47,7 +51,7 @@ export function CategoryManagement() {
 
     const { error } = await apiFetch('/categories', {
       method: 'POST',
-      body: JSON.stringify({ name: newName.trim(), color: newColor, is_global: isAdmin && newIsGlobal }),
+      body: JSON.stringify({ name: newName.trim(), color: newColor, icon: newIcon, is_global: isAdmin && newIsGlobal }),
     });
 
     setIsCreating(false);
@@ -56,6 +60,7 @@ export function CategoryManagement() {
       toast({ title: `Category "${newName}" created`, variant: 'success' });
       setNewName('');
       setNewColor('#3788d8');
+      setNewIcon(null);
       setNewIsGlobal(false);
       setShowCreateForm(false);
       void fetchCategories();
@@ -111,6 +116,7 @@ export function CategoryManagement() {
     setEditingId(cat.id);
     setEditName(cat.name);
     setEditColor(cat.color ?? '#3788d8');
+    setEditIcon(cat.icon ?? null);
   };
 
   const handleSaveEdit = async () => {
@@ -118,7 +124,7 @@ export function CategoryManagement() {
 
     const { error } = await apiFetch(`/categories/${editingId}`, {
       method: 'PUT',
-      body: JSON.stringify({ name: editName.trim(), color: editColor }),
+      body: JSON.stringify({ name: editName.trim(), color: editColor, icon: editIcon }),
     });
 
     if (!error) {
@@ -216,6 +222,14 @@ export function CategoryManagement() {
                 className="h-10 w-16 cursor-pointer rounded-md border border-input"
               />
             </div>
+            <div className="space-y-1">
+              <span id="cat-icon-label" className="block text-sm font-medium">Icon</span>
+              <EmojiPickerPopover
+                value={newIcon}
+                onChange={setNewIcon}
+                labelledBy="cat-icon-label"
+              />
+            </div>
           </div>
           {isAdmin && (
             <div className="flex items-center gap-2">
@@ -274,6 +288,7 @@ export function CategoryManagement() {
                       onChange={(e) => setEditColor(e.target.value)}
                       className="h-8 w-10 cursor-pointer rounded border border-input"
                     />
+                    <EmojiPickerPopover value={editIcon} onChange={setEditIcon} />
                     <button
                       onClick={handleSaveEdit}
                       className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground hover:bg-primary/90"
@@ -289,6 +304,9 @@ export function CategoryManagement() {
                   </div>
                 ) : (
                   <div>
+                    {cat.icon && (
+                      <span className="mr-1.5 text-base" aria-hidden="true">{cat.icon}</span>
+                    )}
                     <span className="font-medium">{cat.name}</span>
                     <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-medium ${
                       cat.is_global

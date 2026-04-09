@@ -133,7 +133,7 @@
 
 **Deferred to follow-up stories:**
 - Legacy import: drop `cat_icon_blob`/`cat_icon_mime` silently with notice log (import path still references blob columns)
-- Frontend: lazy-loaded emoji picker (frimousse or emoji-mart), render emoji next to category name in sidebar / filter / event chips
+- ~~Frontend: lazy-loaded emoji picker~~ **DONE 2026-04-09** — `frimousse` (~8kb gz) wrapped in `EmojiPickerPopover` (shell) + `EmojiPickerInner` (lazy-loaded frimousse composition, code-split out of the main bundle). Integrated into CategoryManagement create/edit (persists via `icon` field on POST/PUT). Emoji now renders next to category name in admin list and in the sidebar CategoryFilter. Picker has aria-labelledby + aria-expanded + dialog role. 6 Vitest tests for the popover (stubs the lazy inner for hermetic runs). All existing CategoryManagement + CategoryFilter tests still pass. tsc clean.
 - Schema cleanup: remove legacy `cat_icon_mime` + `cat_icon_blob` columns from `webcal_categories` in a future webcalendar-core migration
 - SSR font fallback: install Noto Color Emoji / Twemoji for PDF export and email rendering
 

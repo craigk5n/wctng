@@ -5,6 +5,7 @@ interface Category {
   id: number;
   name: string;
   color: string | null;
+  icon: string | null;
   is_global: boolean;
   owner: string | null;
 }
@@ -118,6 +119,9 @@ export function CategoryFilter({ onChange }: CategoryFilterProps) {
             style={{ backgroundColor: cat.color ?? '#888' }}
             data-testid="category-color-dot"
           />
+          {cat.icon && (
+            <span className="text-xs leading-none" aria-hidden="true">{cat.icon}</span>
+          )}
           <span className="truncate text-xs">{cat.name}</span>
         </label>
       ))}
