@@ -249,6 +249,12 @@ services:
             $pdo: '@pdo.connection'
             $appEnv: '%kernel.environment%'
 
+    # The core activity log repository lives behind CoreServiceFactory; expose
+    # it as a first-class service so the Symfony container can inject it into
+    # PurgeService (and any future consumers).
+    WebCalendar\Core\Infrastructure\Persistence\PdoActivityLogRepository:
+        factory: ['@App\Service\CoreServiceFactory', 'getActivityLogRepository']
+
     # Purge service needs raw PDO + activity log + webhook dispatcher
     App\Service\PurgeService:
         arguments:
@@ -259,6 +265,10 @@ services:
             $syncTokens: '@App\Service\CalDavSyncTokenRepository'
 
     App\Service\CalDavSyncTokenRepository:
+        arguments:
+            $pdo: '@pdo.connection'
+
+    App\Service\CategoryIconRepository:
         arguments:
             $pdo: '@pdo.connection'
 
