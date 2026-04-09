@@ -62,21 +62,13 @@ final class CalDavProtocolTest extends IntegrationTestCase
 
     // -- MKCALENDAR ----------------------------------------------------------
 
-    public function testMkcalendarOnNewUriPinnedBehavior(): void
+    public function testMkcalendarOnNewUriIsRejected(): void
     {
-        // Pinned behavior / KNOWN LIMITATION:
-        // Our backend only exposes a single "default" calendar per user,
-        // but sabre's default MKCALENDAR handling will happily accept a
-        // CREATE without consulting us. A client that sends
-        // `MKCALENDAR /dav/calendars/admin/my-new-calendar/` currently
-        // gets a 201 Created even though no persistent calendar row is
-        // actually written — subsequent operations on that phantom
-        // calendar will fail mysteriously. Proper fix is to reject
-        // MKCALENDAR explicitly in CoreCalendarBackend::createCalendar
-        // (or via a server plugin).
-        //
-        // This test pins the current behavior so the bug is visible and
-        // a future fix will clearly flip the expected status.
+        // Our backend exposes a single "default" calendar per user and
+        // rejects attempts to create additional ones. createCalendar
+        // throws MethodNotAllowed (405) so clients get a clean RFC 2616
+        // response rather than a phantom calendar that doesn't exist in
+        // the database.
         $body = <<<'XML'
 <?xml version="1.0" encoding="utf-8"?>
 <c:mkcalendar xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
@@ -95,13 +87,10 @@ XML;
             ['Content-Type' => 'application/xml'],
         );
 
-        // Document the current behavior: any response that isn't a 5xx
-        // server fault. When MKCALENDAR is properly rejected this should
-        // become `assertGreaterThanOrEqual(400, ...)`.
-        $this->assertLessThan(
-            500,
+        $this->assertSame(
+            405,
             $response->getStatus(),
-            'MKCALENDAR should not 5xx — current behavior accepts with 201, proper fix rejects with 4xx',
+            'MKCALENDAR on an arbitrary URI must return 405 Method Not Allowed',
         );
     }
 
@@ -155,21 +144,11 @@ XML;
             $body,
             'matching event should be returned',
         );
-        // KNOWN LIMITATION: same root cause as the text-match gap
-        // documented in CalDavAdvancedTest — CoreCalendarBackend::calendarQuery()
-        // returns ALL object URIs for matching component types and does
-        // not apply the time-range, prop-filter, or text-match filters.
-        // Sabre's post-filter isn't triggered because the backend signals
-        // "I handled it" by returning a non-empty URI list.
-        //
-        // Consequence: a client asking for "events in April 2026" gets
-        // back the user's entire event history. Performance + correctness
-        // bug. Proper fix is to either implement the filter in the
-        // backend or return null / a special sentinel so sabre's default
-        // filter runs.
-        //
-        // Asserting only the positive case keeps the test pinned without
-        // locking in the broken exclusion behavior.
+        $this->assertStringNotContainsString(
+            'Out Of Range Event',
+            $body,
+            'time-range filter must exclude events whose DTSTART is outside the window',
+        );
     }
 
     // -- Multi-event PROPFIND listing ----------------------------------------
@@ -206,26 +185,35 @@ XML;
 
     // -- Calendar-level DELETE protection ------------------------------------
 
-    public function testDeleteOnCalendarCollectionPinnedBehavior(): void
+    public function testDeleteOnCalendarCollectionIsForbidden(): void
     {
-        // KNOWN LIMITATION:
-        // A CalDAV client that sends `DELETE /dav/calendars/admin/default/`
-        // currently gets a 204 No Content, and sabre may cascade the
-        // delete through every event in the collection — potentially
-        // wiping the user's entire calendar. Calendars should be
-        // un-deletable via CalDAV; the backend's `deleteCalendar` method
-        // (if any) should refuse, or a server plugin should veto DELETE
-        // on calendar collections.
-        //
-        // This test pins the current behavior so the bug is visible,
-        // and so a future fix that flips the expected status will force
-        // an intentional update rather than silently regress.
+        // Calendars are not user-deletable via CalDAV. deleteCalendar
+        // throws Forbidden (403), so a client's attempt to `DELETE
+        // /dav/calendars/admin/default/` cannot cascade through the
+        // collection's children.
         $response = $this->harness->invoke('DELETE', '/dav/calendars/admin/default/');
-        $this->assertLessThan(
-            500,
+        $this->assertSame(
+            403,
             $response->getStatus(),
-            'DELETE on calendar collection should not 5xx — current behavior returns 204, proper fix rejects with 403/405',
+            'DELETE on a calendar collection must return 403 Forbidden',
         );
+    }
+
+    public function testDeleteOnCalendarCollectionLeavesEventsIntact(): void
+    {
+        // Regression guard: confirm the blocked DELETE does not silently
+        // remove events from the collection. Create an event, try to
+        // delete the whole calendar, then verify the event is still
+        // there.
+        $uid = 'protect-' . bin2hex(random_bytes(4));
+        $eventUri = "/dav/calendars/admin/default/{$uid}.ics";
+        $this->harness->putIcs($eventUri, $this->sampleEvent($uid, 'Survivor', '20260601T090000Z'));
+
+        $this->harness->invoke('DELETE', '/dav/calendars/admin/default/');
+
+        $after = $this->harness->get($eventUri);
+        $this->assertSame(200, $after->getStatus(), 'Event must survive a blocked collection DELETE');
+        $this->assertStringContainsString('SUMMARY:Survivor', $after->getBodyAsString());
     }
 
     // -- Nonexistent principal ------------------------------------------------

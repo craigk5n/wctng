@@ -64,16 +64,19 @@ final class CoreCalendarBackendTest extends TestCase
         $this->assertInstanceOf(SupportedCalendarComponentSet::class, $componentSet);
     }
 
-    public function testCreateCalendarReturnsCalendarId(): void
+    public function testCreateCalendarRejectsAdditionalCalendars(): void
     {
-        $id = $this->backend->createCalendar('principals/charlie', 'work', []);
-        $this->assertSame('charlie', $id);
+        // The backend exposes a single default calendar per user and
+        // refuses MKCALENDAR requests for new calendar collections.
+        $this->expectException(\Sabre\DAV\Exception\MethodNotAllowed::class);
+        $this->backend->createCalendar('principals/charlie', 'work', []);
     }
 
-    public function testDeleteCalendarDoesNotThrow(): void
+    public function testDeleteCalendarIsForbidden(): void
     {
-        // Default calendar cannot be deleted — should be a no-op
+        // Calendars cannot be deleted via CalDAV — prevents data-loss
+        // from a misdirected DELETE on the collection URI.
+        $this->expectException(\Sabre\DAV\Exception\Forbidden::class);
         $this->backend->deleteCalendar('alice');
-        $this->assertTrue(true);
     }
 }

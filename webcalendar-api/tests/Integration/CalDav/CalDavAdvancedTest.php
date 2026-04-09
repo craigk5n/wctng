@@ -252,13 +252,11 @@ XML;
         $this->assertSame(207, $response->getStatus());
         $text = $response->getBodyAsString();
         $this->assertStringContainsString('Sprint Planning', $text, 'matching event should appear');
-        // Known limitation: CoreCalendarBackend::calendarQuery() only
-        // filters by component-type (VEVENT/VTODO/VJOURNAL) and returns
-        // all objects otherwise. Sabre's post-filter isn't triggered
-        // because the backend signals "I handled it" by returning a URI
-        // list. Proper prop-filter / text-match support is a follow-up.
-        // We only assert the positive case here so the test pins the
-        // happy path without locking in the incorrect exclusion behavior.
+        $this->assertStringNotContainsString(
+            'Lunch',
+            $text,
+            'text-match prop-filter must exclude non-matching events',
+        );
     }
 
     // -- Principal PROPFIND --------------------------------------------------

@@ -11,9 +11,12 @@ use App\Service\ValarmHelper;
 use Sabre\CalDAV\Backend\BackendInterface;
 use Sabre\CalDAV\Backend\SchedulingSupport;
 use Sabre\CalDAV\Backend\SyncSupport;
+use Sabre\CalDAV\CalendarQueryValidator;
 use Sabre\CalDAV\Plugin;
 use Sabre\CalDAV\Xml\Property\ScheduleCalendarTransp;
 use Sabre\CalDAV\Xml\Property\SupportedCalendarComponentSet;
+use Sabre\DAV\Exception\Forbidden;
+use Sabre\DAV\Exception\MethodNotAllowed;
 use Sabre\DAV\PropPatch;
 use Sabre\VObject;
 use WebCalendar\Core\Domain\Entity\Event;
@@ -92,11 +95,16 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
     #[\Override]
     public function createCalendar($principalUri, $calendarUri, array $properties)
     {
-        /** @var string $uri */
-        $uri = $principalUri;
-        $parts = explode('/', $uri);
-
-        return end($parts);
+        // Each user gets exactly one implicit "default" calendar — we do
+        // not support clients creating additional calendars. Without this
+        // guard, sabre's default MKCALENDAR handler happily accepts the
+        // request and returns 201, producing a phantom calendar URI that
+        // does not exist in the database. Subsequent operations against
+        // that URI would then fail mysteriously.
+        throw new MethodNotAllowed(
+            'This server supports a single default calendar per user. '
+            . 'Additional calendars cannot be created via MKCALENDAR.',
+        );
     }
 
     #[\Override]
@@ -107,6 +115,13 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
     #[\Override]
     public function deleteCalendar($calendarId): void
     {
+        // Calendars are not user-deletable via CalDAV. Without this guard,
+        // a `DELETE /dav/calendars/{user}/default/` request would be
+        // treated as success (204) and sabre's default tree walker would
+        // cascade the delete through every event in the collection —
+        // potentially wiping the user's entire calendar history with a
+        // single HTTP request.
+        throw new Forbidden('Calendars cannot be deleted via CalDAV.');
     }
 
     /**
@@ -417,6 +432,15 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
     }
 
     /**
+     * Full CalDAV filter evaluation via sabre's CalendarQueryValidator.
+     *
+     * The previous implementation only filtered by component-type and
+     * returned every matching URI without applying time-range, prop-filter,
+     * or text-match — which meant a client asking "events in April 2026"
+     * received the user's entire event history. This mirrors the default
+     * AbstractBackend::calendarQuery logic: iterate every object, parse
+     * its VCALENDAR body, and ask the validator whether the filter matches.
+     *
      * @param array<string, mixed> $filters
      *
      * @return list<string>
@@ -424,27 +448,48 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
     #[\Override]
     public function calendarQuery($calendarId, array $filters): array
     {
-        $objects = $this->getCalendarObjects($calendarId);
+        $validator = new CalendarQueryValidator();
+        $result = [];
 
-        // Filter by component type if specified
-        $componentType = null;
-        if (isset($filters['comp-filters']) && \is_array($filters['comp-filters']) && \count($filters['comp-filters']) > 0) {
-            /** @var array<string, mixed> $firstFilter */
-            $firstFilter = $filters['comp-filters'][0];
-            if (isset($firstFilter['name']) && \is_string($firstFilter['name'])) {
-                $componentType = strtolower($firstFilter['name']);
+        foreach ($this->getCalendarObjects($calendarId) as $object) {
+            /** @var string|null $uri */
+            $uri = \is_string($object['uri'] ?? null) ? $object['uri'] : null;
+            if ($uri === null) {
+                continue;
+            }
+
+            $calendarData = $object['calendardata'] ?? null;
+            if (!\is_string($calendarData) || $calendarData === '') {
+                // Re-fetch the full object if the listing omitted
+                // calendardata (backend implementations often do this to
+                // keep getCalendarObjects cheap).
+                $full = $this->getCalendarObject($calendarId, $uri);
+                if ($full === null || !\is_string($full['calendardata'] ?? null)) {
+                    continue;
+                }
+                $calendarData = $full['calendardata'];
+            }
+
+            try {
+                $vObject = VObject\Reader::read($calendarData);
+                if (!$vObject instanceof VObject\Component\VCalendar) {
+                    continue;
+                }
+
+                if ($validator->validate($vObject, $filters)) {
+                    $result[] = $uri;
+                }
+
+                // Destroy circular references so PHP can GC the VObject tree.
+                $vObject->destroy();
+            } catch (\Throwable) {
+                // Malformed calendardata — skip this object rather than
+                // failing the whole query.
+                continue;
             }
         }
 
-        if ($componentType !== null) {
-            $objects = array_filter($objects, static function (array $o) use ($componentType): bool {
-                $objComponent = \is_string($o['component'] ?? null) ? $o['component'] : '';
-                return $objComponent === $componentType;
-            });
-        }
-
-        /** @var list<string> */
-        return array_values(array_map(static fn (array $o): string => \is_string($o['uri']) ? $o['uri'] : '', $objects));
+        return $result;
     }
 
     #[\Override]
