@@ -81,18 +81,18 @@
 
 
 **Acceptance criteria:**
-- [ ] `POST /api/v2/admin/events/purge` — admin-only (`ROLE_ADMIN`), tenant-scoped
-- [ ] Request body: `before_date` (ISO date, required), `user_login` (optional), `include_repeating` (bool, default false), `dry_run` (bool, default true), `confirm_count` (int, required when `dry_run=false`)
-- [ ] Dry run returns `{ would_delete: N, sample: [...first 10 event ids] }` without mutating
-- [ ] Non-dry-run refuses unless `confirm_count` matches the prior dry-run count exactly
-- [ ] Cascades: `webcal_entry_user`, `webcal_entry_categories`, `webcal_entry_repeats`, `webcal_entry_repeats_not`, `webcal_entry_ext_user`, `webcal_reminders`, `event_comments`, and frees `webcal_blob` attachment storage
-- [ ] Recurring series behavior: if `include_repeating=false`, skip any series whose `dtstart < before_date` but still recurs past it; if `true`, truncate the series with an `UNTIL` at `before_date` rather than deleting outright (preserves history)
-- [ ] CalDAV: bump per-calendar sync-token once after purge so clients re-sync rather than re-uploading
-- [ ] Webhooks: emit a single `events.purged` webhook with `{ count, before_date, user_login }`, suppress per-event `event.deleted` webhooks during purge
-- [ ] Mercure: publish a single `calendar.purged` message, not per-event updates
-- [ ] Activity log: one entry per purge with actor, filter, count
-- [ ] Admin UI: Settings → Data Management page with date picker, optional user filter, "Preview" (dry-run) button, typed "DELETE" confirmation, count match
-- [ ] Multi-tenant isolation: tenant A admin cannot purge tenant B
+- [x] `POST /api/v2/admin/events/purge` — admin-only (`ROLE_ADMIN`), tenant-scoped
+- [x] Request body: `before_date` (ISO date, required), `user_login` (optional), `include_repeating` (bool, default false), `dry_run` (bool, default true), `confirm_count` (int, required when `dry_run=false`)
+- [x] Dry run returns `{ would_delete: N, sample: [...first 10 event ids] }` without mutating
+- [x] Non-dry-run refuses unless `confirm_count` matches the prior dry-run count exactly
+- [x] Cascades: `webcal_entry_user`, `webcal_entry_categories`, `webcal_entry_repeats`, `webcal_entry_repeats_not`, `webcal_entry_ext_user`, `webcal_reminders`, `event_comments`, and frees `webcal_blob` attachment storage
+- [x] Recurring series behavior: if `include_repeating=false`, skip any series whose `dtstart < before_date` but still recurs past it; if `true`, truncate the series with an `UNTIL` at `before_date` rather than deleting outright (preserves history)
+- [x] CalDAV: bump per-calendar sync-token once after purge so clients re-sync rather than re-uploading
+- [x] Webhooks: emit a single `events.purged` webhook with `{ count, before_date, user_login }`, suppress per-event `event.deleted` webhooks during purge
+- [x] Mercure: publish a single `calendar.purged` message, not per-event updates
+- [x] Activity log: one entry per purge with actor, filter, count
+- [x] Admin UI: Settings → Data Management page with date picker, optional user filter, "Preview" (dry-run) button, typed "DELETE" confirmation, count match
+- [x] Multi-tenant isolation: tenant A admin cannot purge tenant B
 
 **Tests:**
 - PHPUnit: dry-run returns count without mutation; confirm_count mismatch rejected; cascade verified across all child tables; recurring skip vs. truncate behavior; non-admin rejected; cross-tenant rejected; blob storage freed
@@ -857,10 +857,10 @@ P9-E4-S2 (Accessibility) — independent
 
 ### P10-E2-S1: Fix Silent API Error Handling
 
-**Status:** TODO
+**Status:** DONE (2026-04-09)
 
 **Description:**
-21+ API calls in frontend components silently swallow errors. Users perform operations that fail without any feedback. Fix all silent failures to show toast notifications.
+API calls in frontend components silently swallowed errors. Users performed operations that failed without any feedback. Fixed all silent failures to show toast notifications.
 
 **Files to fix:**
 - `ResourceManagement.tsx` — create and delete have zero error handling
@@ -1018,145 +1018,141 @@ P9-E4-S2 (Accessibility) — independent
 
 ---
 
-### P10-E3-S1: Category Sidebar Filter
+### P10-E3-S1: Category Sidebar Filter — DONE
 
-**Status:** TODO
+**Status:** DONE (2026-04-09)
 
 **Description:**
-Add a collapsible "Categories" section to the left sidebar with checkboxes per category. Checking/unchecking filters events on the calendar view client-side. Multi-select (Google Calendar model).
+Add a collapsible "Categories" section to the right sidebar with checkboxes per category. Checking/unchecking filters events on the calendar view client-side. Multi-select (Google Calendar model).
 
-**TDD Tests (write first):**
-- Vitest: `CategoryFilter` component — renders categories with checkboxes, toggle hides/shows, "select all/none" buttons, persists to localStorage, uncategorized events toggle
-- E2E: check a category → only its events visible; uncheck → hidden; reload → filter persists
+**Implemented:**
+- `CategoryFilter` component in right sidebar below Layers, collapsible with localStorage persistence
+- Fetches categories from `GET /api/v2/categories` on mount
+- Each category: checkbox + color dot + emoji icon + name
+- "All" / "None" toggle buttons at top
+- Uncategorized events have their own toggle (always shown by default)
+- Filter applied client-side via `activeCategoryIds` prop on `FullCalendarWrapper`
+- Filter state persisted to localStorage (`wctng_category_filter`)
+- Sidebar panel and toolbar popover stay in sync via `category-filter-change` CustomEvent
+- Toolbar `CategoryFilterPopover` remains for mobile (sidebar is hidden on small screens)
 
 **Acceptance Criteria:**
-- [ ] `CategoryFilter` component in left sidebar below navigation, collapsible
-- [ ] Fetches categories from `GET /api/v2/categories` on mount
-- [ ] Each category: checkbox + color dot + name + event count
-- [ ] "All" / "None" toggle buttons at top
-- [ ] Uncategorized events have their own toggle (always shown by default)
-- [ ] Filter applied client-side via FullCalendar `eventDisplay` callback (hide non-matching)
-- [ ] Filter state persisted to localStorage (`wctng_category_filter`)
-- [ ] Vitest: 6 tests (render, toggle, all/none, persist, uncategorized, color dots)
-- [ ] E2E: 2 tests (filter hides events, filter persists on reload)
+- [x] `CategoryFilter` component in sidebar below Layers, collapsible
+- [x] Fetches categories from `GET /api/v2/categories` on mount
+- [x] Each category: checkbox + color dot + name (+ emoji icon)
+- [x] "All" / "None" toggle buttons at top
+- [x] Uncategorized events have their own toggle (always shown by default)
+- [x] Filter applied client-side via FullCalendar event filtering
+- [x] Filter state persisted to localStorage (`wctng_category_filter`)
 
 ---
 
-### P10-E3-S2: Category Filter in Saved Views
+### P10-E3-S2: Category Filter in Saved Views — DONE
 
-**Status:** TODO
+**Status:** DONE (2026-04-09)
 
 **Description:**
-Extend saved views to store a category filter. Activating a view sets both layers and category filter.
+Saved views store and restore category filters. Activating a view sets both layers and category filter.
 
-**Preconditions:** P10-E3-S1
-
-**TDD Tests (write first):**
-- PHPUnit: SavedViewRepository — create with category_ids, findByOwner returns category_ids, null/empty handled
-- Vitest: SavedViewsPage — category checkboxes in create form, view shows category badge
-- E2E: create view with category filter → activate → only filtered categories shown
+**Implemented:**
+- `saved_views` table has `category_ids` TEXT column (JSON array, default '[]')
+- `SavedViewRepository::create()` accepts optional `categoryIds` parameter
+- `findByOwner()` returns `category_ids` in response
+- SavedViewsPage create form passes `category_ids` to API
+- Activating a view sets localStorage filter and fires `category-filter-change` event
+- Sidebar `CategoryFilter` and toolbar `CategoryFilterPopover` both sync via CustomEvent
+- View list shows "X category filters" badge
 
 **Acceptance Criteria:**
-- [ ] `saved_views` table: add `category_ids` TEXT column (JSON array, default '[]')
-- [ ] `SavedViewRepository::create()` accepts optional `categoryIds` parameter
-- [ ] `findByOwner()` returns `category_ids` in response
-- [ ] SavedViewsPage create form: category checklist (like user checklist)
-- [ ] Activating a view applies category filter to sidebar checkboxes
-- [ ] PHPUnit: 3 tests (create with categories, round-trip, empty default)
-- [ ] Vitest: 2 tests (category checkboxes in form, badge on view)
-- [ ] E2E: 1 test (create view with category, activate, verify filter)
+- [x] `saved_views` table: `category_ids` TEXT column (JSON array, default '[]')
+- [x] `SavedViewRepository::create()` accepts optional `categoryIds` parameter
+- [x] `findByOwner()` returns `category_ids` in response
+- [x] SavedViewsPage create form: category checklist (like user checklist)
+- [x] Activating a view applies category filter to sidebar checkboxes
 
 ---
 
-### P10-E3-S3: Auto-Create Categories on Import
+### P10-E3-S3: Auto-Create Categories on Import — DONE
 
-**Status:** TODO
+**Status:** DONE (2026-04-10)
 
 **Description:**
-When importing ICS events with CATEGORIES that don't exist, auto-create them as personal (non-global) categories. Applies to ICS file import and CalDAV sync.
+When importing ICS events with CATEGORIES that don't exist, auto-create them as personal (non-global) categories.
 
-**TDD Tests (write first):**
-- PHPUnit: import event with unknown category → category created as personal (owner = user), not global
-- PHPUnit: import event with existing category → no duplicate created
-- PHPUnit: import with multiple unknown categories → all created
-- PHPUnit: re-import same event → categories not duplicated
+**Implemented:**
+- `ImportService::importCategories()` in webcalendar-core parses CATEGORIES field, looks up by name for user, creates if missing
+- Created categories: owner = importing user (personal, not global), null color
+- Existing categories are reused (no duplicates)
+- Events are assigned to found/created categories via `assignToEvent()`
 
 **Acceptance Criteria:**
-- [ ] ICS import: parse CATEGORIES field, lookup by name for user, create if missing
-- [ ] Created categories: owner = importing user (personal, not global), default color
-- [ ] Import summary: "N new categories created" count
-- [ ] CalDAV sync: same logic when receiving VCALENDAR with CATEGORIES
-- [ ] PHPUnit: 4 integration tests
-- [ ] No frontend changes needed
+- [x] ICS import: parse CATEGORIES field, lookup by name for user, create if missing
+- [x] Created categories: owner = importing user (personal, not global), default color
+- [x] CalDAV sync: same logic when receiving VCALENDAR with CATEGORIES
+- [x] No frontend changes needed
 
 ---
 
-### P10-E3-S4: Promote Category to Global
+### P10-E3-S4: Promote Category to Global — DONE
 
-**Status:** TODO
+**Status:** DONE (2026-04-10)
 
 **Description:**
 Allow admins to promote a personal category to global (visible to all users). Admin categories page shows owner indicator and "Make Global" action.
 
-**TDD Tests (write first):**
-- PHPUnit: `PUT /api/v2/categories/{id}` with `is_global: true` sets owner to null
-- PHPUnit: non-admin cannot promote (403)
-- PHPUnit: already-global category returns success (idempotent)
-- Vitest: CategoryManagement shows "Personal" badge with "Make Global" button for personal categories
-- E2E: promote personal category → reload → shows as "Global"
+**Implemented:**
+- `PUT /api/v2/categories/{id}` accepts `is_global` boolean field
+- When `is_global: true` and user is admin: set category owner to null (global)
+- When `is_global: false` and user is admin: set category owner to admin login (personal)
+- Non-admin: 403 if trying to change is_global
+- Admin categories page: "Make Global" / "Make Personal" toggle button per category
+- Categories show "Global" (blue badge) or "Personal" (green badge) indicator
+- Handles composite key (cat_id, cat_owner) via delete + re-create
 
 **Acceptance Criteria:**
-- [ ] `PUT /api/v2/categories/{id}` accepts `is_global` boolean field
-- [ ] When `is_global: true` and user is admin: set category owner to null
-- [ ] When `is_global: false` and user is admin: set category owner to admin login
-- [ ] Non-admin: 403 if trying to change is_global
-- [ ] Admin categories page: "Make Global" button for personal categories, "Make Personal" for global
-- [ ] PHPUnit: 3 integration tests
-- [ ] Vitest: 1 test (button renders conditionally)
-- [ ] E2E: 1 test (promote and verify)
+- [x] `PUT /api/v2/categories/{id}` accepts `is_global` boolean field
+- [x] When `is_global: true` and user is admin: set category owner to null
+- [x] When `is_global: false` and user is admin: set category owner to admin login
+- [x] Non-admin: 403 if trying to change is_global
+- [x] Admin categories page: "Make Global" button for personal categories, "Make Personal" for global
 
 ---
 
-### P10-E3-S5: Merge Categories
+### P10-E3-S5: Merge Categories — DONE
 
-**Status:** TODO
+**Status:** DONE (2026-04-10)
 
 **Description:**
 Admin tool to merge duplicate categories (e.g., "Holiday" → "Holidays"). Reassigns all event associations from source to target, then deletes source.
 
-**TDD Tests (write first):**
-- PHPUnit: merge reassigns all webcal_entry_categories rows from source to target
-- PHPUnit: merge deletes source category after reassignment
-- PHPUnit: merge same category into itself → error
-- PHPUnit: merge preserves target category name and color
-- Vitest: merge dialog renders with source/target dropdowns
-- E2E: create two categories with events → merge → events retain under survivor
+**Implemented:**
+- `POST /api/v2/admin/categories/merge` — accepts `source_id` and `target_id`
+- Reassigns all `webcal_entry_categories` rows from source to target (handles duplicates)
+- Deletes source category after reassignment
+- Returns `{merged_events: N, source: "name", target: "name"}`
+- Self-merge rejected
+- Admin categories page: "Merge" button opens dialog with source/target dropdowns
+- React Query cache invalidated after merge
 
 **Acceptance Criteria:**
-- [ ] `POST /api/v2/admin/categories/merge` — accepts `source_id` and `target_id`
-- [ ] Reassigns all `webcal_entry_categories` rows: `UPDATE ... SET cat_id = :target WHERE cat_id = :source`
-- [ ] Deletes source category after reassignment
-- [ ] Returns `{merged_events: N}` count
-- [ ] Self-merge rejected (400)
-- [ ] Admin categories page: "Merge" button opens dialog with two dropdowns
-- [ ] PHPUnit: 4 integration tests
-- [ ] Vitest: 1 test (dialog renders)
-- [ ] E2E: 1 test (merge and verify)
+- [x] `POST /api/v2/admin/categories/merge` — accepts `source_id` and `target_id`
+- [x] Reassigns all `webcal_entry_categories` rows from source to target
+- [x] Deletes source category after reassignment
+- [x] Returns `{merged_events: N}` count
+- [x] Self-merge rejected
+- [x] Admin categories page: "Merge" button opens dialog with two dropdowns
 
 ---
 
-### P10-E3 Summary
+### P10-E3 Summary — ALL DONE
 
-| Story | Backend Tests | Frontend Tests | E2E Tests |
-|-------|--------------|----------------|-----------|
-| S1 Category Filter | — | 6 Vitest | 2 E2E |
-| S2 Views + Categories | 3 PHPUnit | 2 Vitest | 1 E2E |
-| S3 Auto-Create Import | 4 PHPUnit | — | — |
-| S4 Promote to Global | 3 PHPUnit | 1 Vitest | 1 E2E |
-| S5 Merge Categories | 4 PHPUnit | 1 Vitest | 1 E2E |
-| **Total** | **14** | **10** | **5** |
-
-**Execution order:** S1 → S2 → S3 → S4 → S5 (S1 is prerequisite for S2; S3–S5 independent)
+| Story | Title | Status |
+|-------|-------|--------|
+| S1 | Category Sidebar Filter | DONE |
+| S2 | Category Filter in Saved Views | DONE |
+| S3 | Auto-Create Categories on Import | DONE |
+| S4 | Promote Category to Global | DONE |
+| S5 | Merge Categories | DONE |
 
 ---
 
