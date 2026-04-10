@@ -22,6 +22,7 @@ import { QuickAddInput } from './QuickAddInput';
 import { useMercure, type MercureMessage } from '../hooks/useMercure';
 import { CategoryFilterPopover } from './CategoryFilterPopover';
 import { CategoryFilter } from './CategoryFilter';
+import { RecurringScopeDialog, type RecurringScope } from './RecurringScopeDialog';
 
 type DialogState =
   | { type: 'none' }
@@ -33,8 +34,9 @@ type DialogState =
       initialAllDay: boolean;
       initialValues?: Record<string, unknown>;
     }
-  | { type: 'edit'; event: ApiEvent }
-  | { type: 'confirmDelete'; event: ApiEvent };
+  | { type: 'edit'; event: ApiEvent; editScope?: string; editFromDate?: string }
+  | { type: 'confirmDelete'; event: ApiEvent }
+  | { type: 'recurringScope'; event: ApiEvent; mode: 'edit' | 'delete' };
 
 export function CalendarPage() {
   const calendarRef = useRef<FullCalendarWrapperHandle>(null);
@@ -286,7 +288,13 @@ export function CalendarPage() {
         body.start_time = data.start_time;
       }
 
-      const { error } = await apiFetch(`/events/${event.id}`, {
+      // Build URL with scope parameters for recurring series split
+      let updateUrl = `/events/${event.id}`;
+      if (dialog.editScope === 'future' && dialog.editFromDate) {
+        updateUrl += `?scope=future&from_date=${dialog.editFromDate}`;
+      }
+
+      const { error } = await apiFetch(updateUrl, {
         method: 'PUT',
         body: JSON.stringify(body),
       });
@@ -385,6 +393,44 @@ export function CalendarPage() {
   }, [dialog, toast]);
 
   const closeDialog = useCallback(() => setDialog({ type: 'none' }), []);
+
+  // Handle recurring event scope selection
+  const handleRecurringScopeSelect = useCallback(
+    async (scope: RecurringScope, date?: string) => {
+      if (dialog.type !== 'recurringScope') return;
+      const event = dialog.event;
+
+      if (dialog.mode === 'edit') {
+        if (scope === 'all') {
+          setDialog({ type: 'edit', event });
+        } else if (scope === 'future' && date) {
+          setDialog({ type: 'edit', event, editScope: 'future', editFromDate: date });
+        }
+        return;
+      }
+
+      // Delete mode
+      if (scope === 'all') {
+        setDialog({ type: 'confirmDelete', event });
+        return;
+      }
+
+      // occurrence or future — call API directly with scope
+      const url = `/events/${event.id}?scope=${scope}${date ? `&date=${date}` : ''}`;
+      const { error } = await apiFetch(url, { method: 'DELETE' });
+      if (error) {
+        toast({ title: error.message ?? 'Failed to cancel occurrence', variant: 'error' });
+        return;
+      }
+      calendarRef.current?.refetchEvents();
+      setDialog({ type: 'none' });
+      toast({
+        title: scope === 'occurrence' ? 'Occurrence cancelled' : 'Future occurrences cancelled',
+        variant: 'success',
+      });
+    },
+    [dialog, toast],
+  );
 
   // Drag-and-drop rescheduling
   const handleEventDrop = useCallback(
@@ -566,8 +612,24 @@ export function CalendarPage() {
           event={dialog.event}
           open={true}
           onClose={closeDialog}
-          onEdit={() => setDialog({ type: 'edit', event: dialog.event })}
-          onDelete={() => setDialog({ type: 'confirmDelete', event: dialog.event })}
+          onEdit={() => {
+            const e = dialog.event;
+            const isRecurring = e.type === 'M' || !!e.rrule;
+            if (isRecurring) {
+              setDialog({ type: 'recurringScope', event: e, mode: 'edit' });
+            } else {
+              setDialog({ type: 'edit', event: e });
+            }
+          }}
+          onDelete={() => {
+            const e = dialog.event;
+            const isRecurring = e.type === 'M' || !!e.rrule;
+            if (isRecurring) {
+              setDialog({ type: 'recurringScope', event: e, mode: 'delete' });
+            } else {
+              setDialog({ type: 'confirmDelete', event: e });
+            }
+          }}
           onDuplicate={() => {
             const e = dialog.event;
             const now = new Date();
@@ -653,6 +715,17 @@ export function CalendarPage() {
           initialTime={apiEventToInitialValues(dialog.event).start_time_display}
           initialAllDay={dialog.event.all_day}
           initialValues={apiEventToInitialValues(dialog.event)}
+        />
+      )}
+
+      {/* Recurring Event Scope Picker */}
+      {dialog.type === 'recurringScope' && (
+        <RecurringScopeDialog
+          open={true}
+          mode={dialog.mode}
+          eventTitle={dialog.event.title}
+          onSelect={handleRecurringScopeSelect}
+          onCancel={() => setDialog({ type: 'detail', event: dialog.event })}
         />
       )}
 

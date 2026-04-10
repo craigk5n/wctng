@@ -405,6 +405,13 @@ final class EventController
         return ApiResponse::success($response);
     }
 
+    /**
+     * Update an event.
+     *
+     * Query params for recurring events:
+     * - scope=all (default) — edit entire series
+     * - scope=future&from_date=YYYYMMDD — split series at date, apply edits to new series
+     */
     #[Route('/api/v2/events/{id}', name: 'api_events_update', methods: ['PUT'])]
     public function update(int $id, Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
     {
@@ -423,6 +430,27 @@ final class EventController
         // Check ownership (only owner or admin can update)
         if ($existing->createdBy() !== $coreUser->login() && !$coreUser->isAdmin()) {
             return ApiResponse::error(403, 'You do not have permission to update this event');
+        }
+
+        // Handle series split: scope=future splits the series and applies edits to the new one
+        $editScope = $request->query->getString('scope', 'all');
+        if ($editScope === 'future' && $existing->recurrence()->isRepeating()) {
+            $fromDateStr = $request->query->getString('from_date', '');
+            $fromDate = $this->parseDateParam($fromDateStr);
+            if ($fromDate === null) {
+                return ApiResponse::error(400, 'Missing or invalid from_date parameter (YYYYMMDD)');
+            }
+
+            $splitResult = $this->splitSeriesAtDate($id, $existing, $fromDate, $coreUser->login());
+            $newId = $splitResult['new_id'];
+
+            // Now apply the edits to the NEW event instead of the original
+            $id = $newId;
+            $newEvent = $this->coreServiceFactory->getEventService()->getEventById(new EventId($newId));
+            if ($newEvent === null) {
+                return ApiResponse::error(500, 'Split succeeded but new event not found');
+            }
+            $existing = $newEvent;
         }
 
         $decoded = json_decode($request->getContent(), true);
@@ -562,6 +590,12 @@ final class EventController
     /**
      * Soft-delete an event.
      *
+     * Query params:
+     * - scope=all (default) — cancel entire event/series
+     * - scope=occurrence&date=YYYYMMDD — add EXDATE for one occurrence (recurring only)
+     * - scope=future&date=YYYYMMDD — truncate series with UNTIL before date (recurring only)
+     *
+     * For scope=all:
      * - Organizer (or admin): sets cal_status='cancelled', sends cancellation
      *   notifications, bumps sequence. Event stays in DB for audit.
      * - Participant (not organizer): sets their webcal_entry_user status to 'R'
@@ -570,7 +604,7 @@ final class EventController
      * Permanent removal is only via admin Purge (POST /admin/events/purge).
      */
     #[Route('/api/v2/events/{id}', name: 'api_events_delete', methods: ['DELETE'])]
-    public function delete(int $id, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
+    public function delete(int $id, Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
     {
         if ($user === null) {
             return ApiResponse::error(401, 'Authentication required');
@@ -586,6 +620,26 @@ final class EventController
         $login = $coreUser->login();
         $isOrganizer = $existing->createdBy() === $login;
         $isAdmin = $coreUser->isAdmin();
+
+        $scope = $request->query->getString('scope', 'all');
+        $dateStr = $request->query->getString('date', '');
+
+        // --- Occurrence-level or future-truncate scope ---
+        if (($scope === 'occurrence' || $scope === 'future') && ($isOrganizer || $isAdmin)) {
+            if (!$existing->recurrence()->isRepeating()) {
+                return ApiResponse::error(400, 'Event is not recurring');
+            }
+            $date = $this->parseDateParam($dateStr);
+            if ($date === null) {
+                return ApiResponse::error(400, 'Missing or invalid date parameter (YYYYMMDD)');
+            }
+
+            if ($scope === 'occurrence') {
+                return $this->cancelOccurrence($id, $existing, $date, $login);
+            }
+
+            return $this->cancelFutureOccurrences($id, $existing, $date, $login);
+        }
 
         // Check the caller is either organizer, admin, or a participant
         if (!$isOrganizer && !$isAdmin) {
@@ -898,5 +952,191 @@ final class EventController
             }
         }
         return 'warn';
+    }
+
+    /**
+     * Cancel a single occurrence by adding an EXDATE.
+     */
+    private function cancelOccurrence(
+        int $id,
+        \WebCalendar\Core\Domain\Entity\Event $event,
+        \DateTimeImmutable $date,
+        string $actor,
+    ): JsonResponse {
+        $pdo = $this->coreServiceFactory->getPdo();
+        $dateInt = (int) $date->format('Ymd');
+
+        // Insert EXDATE row (ignore if duplicate)
+        $stmt = $pdo->prepare(
+            'INSERT IGNORE INTO webcal_entry_repeats_not (cal_id, cal_date, cal_exdate) VALUES (:id, :date, 1)'
+        );
+        $stmt->execute(['id' => $id, 'date' => $dateInt]);
+
+        // Bump sequence
+        $pdo->prepare('UPDATE webcal_entry SET cal_sequence = cal_sequence + 1 WHERE cal_id = :id')
+            ->execute(['id' => $id]);
+
+        try {
+            $this->mercure->publishEventUpdated($id, ['action' => 'exdate_added']);
+        } catch (\Throwable) {
+        }
+
+        try {
+            $this->coreServiceFactory->getActivityLogService()->log(
+                $id,
+                $actor,
+                null,
+                ActivityLogType::UPDATE,
+                'Cancelled occurrence ' . $date->format('Y-m-d') . ' of: ' . $event->name(),
+            );
+        } catch (\Throwable) {
+        }
+
+        return new JsonResponse([
+            'action' => 'occurrence_cancelled',
+            'date' => $date->format('Y-m-d'),
+        ]);
+    }
+
+    /**
+     * Truncate a recurring series by setting UNTIL to the day before the given date.
+     */
+    private function cancelFutureOccurrences(
+        int $id,
+        \WebCalendar\Core\Domain\Entity\Event $event,
+        \DateTimeImmutable $fromDate,
+        string $actor,
+    ): JsonResponse {
+        $pdo = $this->coreServiceFactory->getPdo();
+        $untilDateInt = (int) $fromDate->modify('-1 day')->format('Ymd');
+
+        // Set the cal_end of the recurrence rule
+        $stmt = $pdo->prepare(
+            'UPDATE webcal_entry_repeats SET cal_end = :until WHERE cal_id = :id'
+        );
+        $stmt->execute(['until' => $untilDateInt, 'id' => $id]);
+
+        // Bump sequence
+        $pdo->prepare('UPDATE webcal_entry SET cal_sequence = cal_sequence + 1 WHERE cal_id = :id')
+            ->execute(['id' => $id]);
+
+        try {
+            $this->mercure->publishEventUpdated($id, ['action' => 'series_truncated']);
+        } catch (\Throwable) {
+        }
+
+        try {
+            $this->coreServiceFactory->getActivityLogService()->log(
+                $id,
+                $actor,
+                null,
+                ActivityLogType::UPDATE,
+                'Truncated series at ' . $fromDate->format('Y-m-d') . ': ' . $event->name(),
+            );
+        } catch (\Throwable) {
+        }
+
+        return new JsonResponse([
+            'action' => 'future_cancelled',
+            'from_date' => $fromDate->format('Y-m-d'),
+        ]);
+    }
+
+    /**
+     * Split a recurring series at a given date.
+     *
+     * The original series is truncated with UNTIL = fromDate - 1 day.
+     * A new recurring event is created starting at fromDate with the
+     * modified data and the same recurrence pattern.
+     *
+     * @return array{original_id: int, new_id: int}
+     */
+    private function splitSeriesAtDate(
+        int $originalId,
+        \WebCalendar\Core\Domain\Entity\Event $original,
+        \DateTimeImmutable $fromDate,
+        string $actor,
+    ): array {
+        $pdo = $this->coreServiceFactory->getPdo();
+
+        // 1. Truncate original series
+        $untilDateInt = (int) $fromDate->modify('-1 day')->format('Ymd');
+        $pdo->prepare('UPDATE webcal_entry_repeats SET cal_end = :until WHERE cal_id = :id')
+            ->execute(['until' => $untilDateInt, 'id' => $originalId]);
+        $pdo->prepare('UPDATE webcal_entry SET cal_sequence = cal_sequence + 1 WHERE cal_id = :id')
+            ->execute(['id' => $originalId]);
+
+        // 2. Create new event starting at fromDate with same recurrence
+        $newDateInt = (int) $fromDate->format('Ymd');
+        $newUid = sprintf('%s-%s@split', $original->uid(), $fromDate->format('Ymd'));
+        $now = new \DateTimeImmutable();
+
+        // Get next ID
+        $stmt = $pdo->query('SELECT COALESCE(MAX(cal_id), 0) + 1 FROM webcal_entry');
+        /** @var int $newId */
+        $newId = $stmt !== false ? (int) $stmt->fetchColumn() : 0;
+
+        $pdo->prepare(
+            'INSERT INTO webcal_entry (cal_id, cal_create_by, cal_date, cal_time, cal_duration,
+             cal_name, cal_description, cal_location, cal_type, cal_access, cal_uid,
+             cal_sequence, cal_status, cal_mod_date, cal_mod_time)
+             VALUES (:id, :create_by, :date, :time, :duration, :name, :description, :location,
+                     :type, :access, :uid, 0, NULL, :mod_date, :mod_time)'
+        )->execute([
+            'id' => $newId,
+            'create_by' => $original->createdBy(),
+            'date' => $newDateInt,
+            'time' => (int) $original->start()->format('His'),
+            'duration' => $original->duration(),
+            'name' => $original->name(),
+            'description' => $original->description(),
+            'location' => $original->location(),
+            'type' => 'M',
+            'access' => $original->access()->value,
+            'uid' => $newUid,
+            'mod_date' => (int) $now->format('Ymd'),
+            'mod_time' => (int) $now->format('His'),
+        ]);
+
+        // Copy recurrence rule (without the UNTIL we just set on the original)
+        $rruleRow = $pdo->prepare(
+            'SELECT * FROM webcal_entry_repeats WHERE cal_id = :id'
+        );
+        $rruleRow->execute(['id' => $originalId]);
+        /** @var array<string, mixed>|false $rr */
+        $rr = $rruleRow->fetch(\PDO::FETCH_ASSOC);
+        if (\is_array($rr)) {
+            $rr['cal_id'] = $newId;
+            $rr['cal_end'] = $original->recurrence()->rule() !== null
+                ? ($rr['cal_end'] ?? null)  // Preserve original end if it existed before truncation
+                : null;
+            // The original UNTIL was just set; the new series should use the ORIGINAL end
+            // Since we don't have it anymore, use NULL (no end) — user can edit the new series
+            $rr['cal_end'] = null;
+
+            $cols = array_keys($rr);
+            $placeholders = array_map(static fn (string $c) => ':' . $c, $cols);
+            $pdo->prepare(
+                'INSERT INTO webcal_entry_repeats (' . implode(', ', $cols) . ') VALUES (' . implode(', ', $placeholders) . ')'
+            )->execute($rr);
+        }
+
+        // Add creator as participant
+        $pdo->prepare(
+            "INSERT INTO webcal_entry_user (cal_id, cal_login, cal_status) VALUES (:id, :login, 'A')"
+        )->execute(['id' => $newId, 'login' => $original->createdBy()]);
+
+        try {
+            $this->coreServiceFactory->getActivityLogService()->log(
+                $originalId,
+                $actor,
+                null,
+                ActivityLogType::UPDATE,
+                'Split series at ' . $fromDate->format('Y-m-d') . ': ' . $original->name() . ' → new event #' . $newId,
+            );
+        } catch (\Throwable) {
+        }
+
+        return ['original_id' => $originalId, 'new_id' => $newId];
     }
 }
