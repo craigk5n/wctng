@@ -64,17 +64,11 @@ final class ConflictDetectionService
 
     private function overlaps(Event $a, Event $b): bool
     {
-        // All-day events: conflict if same date
-        if ($a->isAllDay() && $b->isAllDay()) {
-            return $a->start()->format('Y-m-d') === $b->start()->format('Y-m-d');
-        }
-
-        // Mixed all-day vs timed: all-day covers the whole day
-        if ($a->isAllDay()) {
-            return $a->start()->format('Y-m-d') === $b->start()->format('Y-m-d');
-        }
-        if ($b->isAllDay()) {
-            return $a->start()->format('Y-m-d') === $b->start()->format('Y-m-d');
+        // All-day events are treated as day-banners, not blocking time slots
+        // (matches Google/Apple Calendar behavior). They never raise conflicts —
+        // neither with other all-day events nor with timed events on the same day.
+        if ($a->isAllDay() || $b->isAllDay()) {
+            return false;
         }
 
         // Timed events: overlap if A starts before B ends AND B starts before A ends

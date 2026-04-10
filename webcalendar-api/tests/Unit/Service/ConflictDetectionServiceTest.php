@@ -88,17 +88,17 @@ final class ConflictDetectionServiceTest extends TestCase
         $this->assertCount(1, $conflicts);
     }
 
-    public function testAllDayEventsConflictOnSameDate(): void
+    public function testAllDayEventsNeverConflictWithEachOther(): void
     {
         $service = new ConflictDetectionService();
 
-        // Existing: all-day on April 1
+        // Two all-day events on the same day: no conflict (all-day events are banners,
+        // not blocking time slots — matches Google/Apple Calendar behavior).
         $existing = [$this->makeEvent(1, '2026-04-01 00:00', 0, 'alice', true)];
-        // New: all-day on April 1
         $newEvent = $this->makeEvent(0, '2026-04-01 00:00', 0, 'alice', true);
 
         $conflicts = $service->findConflicts($newEvent, $existing);
-        $this->assertCount(1, $conflicts);
+        $this->assertCount(0, $conflicts);
     }
 
     public function testAllDayEventsDifferentDatesNoConflict(): void
@@ -107,6 +107,29 @@ final class ConflictDetectionServiceTest extends TestCase
 
         $existing = [$this->makeEvent(1, '2026-04-01 00:00', 0, 'alice', true)];
         $newEvent = $this->makeEvent(0, '2026-04-02 00:00', 0, 'alice', true);
+
+        $conflicts = $service->findConflicts($newEvent, $existing);
+        $this->assertCount(0, $conflicts);
+    }
+
+    public function testAllDayDoesNotConflictWithTimedEvent(): void
+    {
+        $service = new ConflictDetectionService();
+
+        // Existing timed event at 10:00-11:00, new all-day event on the same day.
+        $existing = [$this->makeEvent(1, '2026-04-01 10:00', 60)];
+        $newEvent = $this->makeEvent(0, '2026-04-01 00:00', 0, 'alice', true);
+
+        $conflicts = $service->findConflicts($newEvent, $existing);
+        $this->assertCount(0, $conflicts);
+    }
+
+    public function testTimedEventDoesNotConflictWithExistingAllDay(): void
+    {
+        $service = new ConflictDetectionService();
+
+        $existing = [$this->makeEvent(1, '2026-04-01 00:00', 0, 'alice', true)];
+        $newEvent = $this->makeEvent(0, '2026-04-01 10:00', 60);
 
         $conflicts = $service->findConflicts($newEvent, $existing);
         $this->assertCount(0, $conflicts);
