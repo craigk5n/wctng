@@ -20,6 +20,7 @@ use WebCalendar\Core\Application\Service\CategoryService;
 use WebCalendar\Core\Application\Service\ConfigService;
 use WebCalendar\Core\Application\Service\EventService;
 use WebCalendar\Core\Application\Service\ExportService;
+use WebCalendar\Core\Application\Service\FeedService;
 use WebCalendar\Core\Application\Service\GroupService;
 use WebCalendar\Core\Application\Service\ImportService;
 use WebCalendar\Core\Application\Service\JournalService;
@@ -115,6 +116,7 @@ final class CoreServiceFactory
     private ?AssistantService $assistantService = null;
     private ?ImportService $importService = null;
     private ?ExportService $exportService = null;
+    private ?FeedService $feedService = null;
     private ?BookingService $bookingService = null;
     private ?NotificationService $notificationService = null;
     private ?DatabaseAuthService $authService = null;
@@ -454,6 +456,15 @@ final class CoreServiceFactory
             $this->getUserRepository(),
             $this->getRateLimiter(),
             logger: $this->logger,
+        );
+    }
+
+    public function getFeedService(string $baseUrl = ''): FeedService
+    {
+        return $this->feedService ??= new FeedService(
+            $this->getEventService(),
+            $baseUrl,
+            $this->logger,
         );
     }
 }
