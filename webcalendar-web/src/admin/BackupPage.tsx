@@ -18,6 +18,7 @@ function formatBytes(bytes: number): string {
 export function BackupPage() {
   const [backups, setBackups] = useState<BackupInfo[]>([]);
   const [creating, setCreating] = useState(false);
+  const [newFilename, setNewFilename] = useState<string | null>(null);
   const [restoreFile, setRestoreFile] = useState<File | null>(null);
   const [confirmText, setConfirmText] = useState('');
   const [restoring, setRestoring] = useState(false);
@@ -39,7 +40,10 @@ export function BackupPage() {
 
     if (data && !error) {
       toast({ title: `Backup created: ${data.filename}`, variant: 'success' });
-      void loadBackups();
+      setNewFilename(data.filename);
+      await loadBackups();
+      // Clear highlight after 3 seconds
+      setTimeout(() => setNewFilename(null), 3000);
     } else {
       toast({ title: 'Backup failed', variant: 'error' });
     }
@@ -102,8 +106,15 @@ export function BackupPage() {
           <p className="mt-2 text-sm text-muted-foreground">No backups found.</p>
         ) : (
           <div className="mt-2 space-y-2">
-            {backups.map((b) => (
-              <div key={b.filename} className="flex items-center justify-between rounded-md border p-3 text-sm">
+            {[...backups].sort((a, b) => b.created_at.localeCompare(a.created_at)).map((b) => (
+              <div
+                key={b.filename}
+                className={`flex items-center justify-between rounded-md border p-3 text-sm transition-colors duration-700 ${
+                  b.filename === newFilename
+                    ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                    : ''
+                }`}
+              >
                 <div>
                   <span className="font-mono font-medium">{b.filename}</span>
                   <span className="ml-2 text-muted-foreground">{formatBytes(b.size_bytes)}</span>
