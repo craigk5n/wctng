@@ -33,7 +33,8 @@ export interface MoonPhase {
 
 export function getMoonPhase(date: Date): MoonPhase {
   // Normalize to noon UTC to avoid timezone edge effects
-  const utcNoon = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0) / 86400000;
+  const utcNoon =
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0) / 86400000;
   const daysSinceNewMoon = utcNoon - KNOWN_NEW_MOON;
   const phase = ((daysSinceNewMoon % SYNODIC_MONTH) + SYNODIC_MONTH) % SYNODIC_MONTH;
   const index = Math.floor((phase / SYNODIC_MONTH) * 8) % 8;

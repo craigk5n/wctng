@@ -32,23 +32,11 @@ export default defineConfig({
             'rrule',
           ],
           // TipTap editor — only needed when editing descriptions
-          tiptap: [
-            '@tiptap/react',
-            '@tiptap/starter-kit',
-            '@tiptap/extension-link',
-          ],
+          tiptap: ['@tiptap/react', '@tiptap/starter-kit', '@tiptap/extension-link'],
           // i18n — loaded early but separable
-          i18n: [
-            'i18next',
-            'react-i18next',
-            'i18next-http-backend',
-          ],
+          i18n: ['i18next', 'react-i18next', 'i18next-http-backend'],
           // React core — cached long-term
-          'react-vendor': [
-            'react',
-            'react-dom',
-            'react-router-dom',
-          ],
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           // UI framework
           'ui-vendor': [
             '@radix-ui/react-dialog',

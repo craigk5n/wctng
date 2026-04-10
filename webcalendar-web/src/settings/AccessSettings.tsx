@@ -27,7 +27,7 @@ export function AccessSettings() {
     // Fetch current access settings and all users in parallel
     const [accessResult, usersResult] = await Promise.all([
       apiFetch<AccessEntry[]>('/access/users'),
-      apiFetch<UserListItem[]>('/users'),
+      apiFetch<UserListItem[]>('/users?enabled=true'),
     ]);
 
     const accessMap = new Map<string, AccessEntry>();

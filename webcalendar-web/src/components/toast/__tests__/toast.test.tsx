@@ -12,7 +12,9 @@ function TestConsumer() {
   return (
     <div>
       <button onClick={() => toast({ title: 'Success', variant: 'success' })}>Show Success</button>
-      <button onClick={() => toast({ title: 'Error occurred', variant: 'error' })}>Show Error</button>
+      <button onClick={() => toast({ title: 'Error occurred', variant: 'error' })}>
+        Show Error
+      </button>
       <button onClick={() => toast({ title: 'Info message' })}>Show Default</button>
       <button
         onClick={() =>

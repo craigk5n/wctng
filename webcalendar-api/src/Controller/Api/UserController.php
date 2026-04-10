@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use WebCalendar\Core\Domain\Entity\User;
+use WebCalendar\Core\Domain\Exception\SelfOperationException;
 
 final class UserController
 {
@@ -22,7 +23,7 @@ final class UserController
     }
 
     #[Route('/api/v2/users', name: 'api_users_list', methods: ['GET'])]
-    public function list(#[CurrentUser] ?WebCalendarUser $user): JsonResponse
+    public function list(Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
     {
         if ($user === null) {
             return ApiResponse::error(401, 'Authentication required');
@@ -31,8 +32,18 @@ final class UserController
         $coreUser = $user->getCoreUser();
         $userService = $this->coreServiceFactory->getUserService();
 
-        // getAllUsers throws AuthorizationException if not admin
-        $users = $userService->getAllUsers($coreUser);
+        $enabledFilter = $request->query->get('enabled');
+
+        if ($enabledFilter === 'true') {
+            // getAllUsers throws AuthorizationException if not admin
+            $users = $userService->getAllUsers($coreUser);
+            $users = array_filter($users, static fn (User $u) => $u->isEnabled());
+        } elseif ($enabledFilter === 'false') {
+            $users = $userService->getAllUsers($coreUser);
+            $users = array_filter($users, static fn (User $u) => !$u->isEnabled());
+        } else {
+            $users = $userService->getAllUsers($coreUser);
+        }
 
         $items = array_map(self::userToArray(...), $users);
 
@@ -223,10 +234,38 @@ final class UserController
             isEnabled: $isEnabled,
         );
 
-        // updateUser throws AuthorizationException if not admin or self
-        $this->coreServiceFactory->getUserService()->updateUser($updatedUser, $coreUser);
+        try {
+            // updateUser throws AuthorizationException if not admin or self
+            $this->coreServiceFactory->getUserService()->updateUser($updatedUser, $coreUser);
+        } catch (SelfOperationException $e) {
+            return ApiResponse::error(409, $e->getMessage());
+        }
 
         return ApiResponse::success(self::userToArray($updatedUser));
+    }
+
+    #[Route('/api/v2/users/{login}', name: 'api_users_delete', methods: ['DELETE'])]
+    public function delete(string $login, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
+    {
+        if ($user === null) {
+            return ApiResponse::error(401, 'Authentication required');
+        }
+
+        $coreUser = $user->getCoreUser();
+        $userService = $this->coreServiceFactory->getUserService();
+
+        $targetUser = $userService->getUserByLogin($login);
+        if ($targetUser === null) {
+            return ApiResponse::error(404, 'User not found');
+        }
+
+        try {
+            $userService->deleteUser($login, $coreUser);
+        } catch (SelfOperationException $e) {
+            return ApiResponse::error(409, $e->getMessage());
+        }
+
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
 
     #[Route('/api/v2/users/{login}/preferences', name: 'api_users_get_preferences', methods: ['GET'])]

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../api/client';
+import { useAuth } from '../auth/auth-context';
 import { useToast } from '../components/toast/ToastProvider';
 
 interface User {
@@ -32,7 +33,11 @@ export function UserManagement() {
   });
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [togglingUser, setTogglingUser] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
 
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
@@ -66,6 +71,50 @@ export function UserManagement() {
       setCreateError(error.message);
     }
   };
+
+  const handleToggleEnabled = async (targetUser: User) => {
+    setTogglingUser(targetUser.login);
+    const newEnabled = !targetUser.enabled;
+
+    const { error } = await apiFetch(`/users/${targetUser.login}`, {
+      method: 'PUT',
+      body: JSON.stringify({ enabled: newEnabled }),
+    });
+
+    setTogglingUser(null);
+
+    if (!error) {
+      toast({
+        title: `User "${targetUser.login}" ${newEnabled ? 'enabled' : 'disabled'}`,
+        variant: 'success',
+      });
+      void fetchUsers();
+    } else {
+      toast({ title: error.message, variant: 'error' });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+
+    const { error } = await apiFetch(`/users/${deleteTarget}`, {
+      method: 'DELETE',
+    });
+
+    setIsDeleting(false);
+
+    if (!error) {
+      toast({ title: `User "${deleteTarget}" deleted`, variant: 'success' });
+      setDeleteTarget(null);
+      void fetchUsers();
+    } else {
+      toast({ title: error.message, variant: 'error' });
+      setDeleteTarget(null);
+    }
+  };
+
+  const isSelf = (login: string) => currentUser?.login === login;
 
   return (
     <div>
@@ -171,6 +220,7 @@ export function UserManagement() {
                   <th className="px-4 py-3 text-left font-medium">Email</th>
                   <th className="px-4 py-3 text-left font-medium">Role</th>
                   <th className="px-4 py-3 text-left font-medium">Status</th>
+                  <th className="px-4 py-3 text-left font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -197,6 +247,35 @@ export function UserManagement() {
                         <span className="text-muted-foreground">Disabled</span>
                       )}
                     </td>
+                    <td className="px-4 py-3">
+                      {isSelf(u.login) ? (
+                        <span className="text-xs text-muted-foreground">You</span>
+                      ) : (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => void handleToggleEnabled(u)}
+                            disabled={togglingUser === u.login}
+                            className={`inline-flex h-8 items-center rounded-md px-3 text-xs font-medium disabled:opacity-50 ${
+                              u.enabled
+                                ? 'border border-border bg-background text-foreground hover:bg-muted'
+                                : 'bg-green-600 text-white hover:bg-green-700'
+                            }`}
+                          >
+                            {togglingUser === u.login
+                              ? '...'
+                              : u.enabled
+                                ? 'Disable'
+                                : 'Enable'}
+                          </button>
+                          <button
+                            onClick={() => setDeleteTarget(u.login)}
+                            className="inline-flex h-8 items-center rounded-md bg-destructive px-3 text-xs font-medium text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -204,6 +283,35 @@ export function UserManagement() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-lg">
+            <h3 className="text-lg font-semibold">Delete User</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Permanently delete user &ldquo;{deleteTarget}&rdquo;? This will remove all their
+              preferences, layer settings, and group memberships. This action cannot be undone.
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={isDeleting}
+                className="inline-flex h-9 items-center rounded-md border border-border px-4 text-sm font-medium hover:bg-muted disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => void handleDelete()}
+                disabled={isDeleting}
+                className="inline-flex h-9 items-center rounded-md bg-destructive px-4 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -61,6 +61,37 @@ final class SavedViewController
         ], null, 201);
     }
 
+    #[Route('/api/v2/views/{id}', name: 'api_views_update', methods: ['PUT'])]
+    public function update(int $id, Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
+    {
+        if ($user === null) {
+            return ApiResponse::error(401, 'Authentication required');
+        }
+
+        /** @var array{name?: string, user_logins?: list<string>, is_global?: bool, category_ids?: list<int>} $data */
+        $data = json_decode((string) $request->getContent(), true) ?? [];
+        $name = $data['name'] ?? '';
+        if ($name === '') {
+            return ApiResponse::error(400, 'Missing required field: name');
+        }
+
+        $isGlobal = ($data['is_global'] ?? false) === true && $user->getCoreUser()->isAdmin();
+        $logins = $data['user_logins'] ?? [];
+        $categoryIds = $data['category_ids'] ?? [];
+
+        if (!$this->repo->update($id, $user->getUserIdentifier(), $name, $logins, $isGlobal, $categoryIds)) {
+            return ApiResponse::error(404, 'View not found');
+        }
+
+        return ApiResponse::success([
+            'id' => $id,
+            'name' => $name,
+            'user_logins' => $logins,
+            'is_global' => $isGlobal,
+            'category_ids' => $categoryIds,
+        ]);
+    }
+
     #[Route('/api/v2/views/{id}', name: 'api_views_delete', methods: ['DELETE'])]
     public function delete(int $id, #[CurrentUser] ?WebCalendarUser $user): Response
     {

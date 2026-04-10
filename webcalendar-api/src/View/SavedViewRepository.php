@@ -73,6 +73,26 @@ final readonly class SavedViewRepository
         return (int) $this->pdo->lastInsertId();
     }
 
+    /**
+     * @param list<string> $userLogins
+     * @param list<int>    $categoryIds
+     */
+    public function update(int $id, string $owner, string $name, array $userLogins, bool $isGlobal = false, array $categoryIds = []): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE saved_views SET name = :name, user_logins = :logins, is_global = :global, category_ids = :cats WHERE id = :id AND owner_login = :owner',
+        );
+        $stmt->execute([
+            'id' => $id,
+            'owner' => $owner,
+            'name' => $name,
+            'logins' => json_encode($userLogins, \JSON_THROW_ON_ERROR),
+            'global' => $isGlobal ? 'Y' : 'N',
+            'cats' => json_encode($categoryIds, \JSON_THROW_ON_ERROR),
+        ]);
+        return $stmt->rowCount() > 0;
+    }
+
     public function delete(int $id, string $owner): bool
     {
         $stmt = $this->pdo->prepare('DELETE FROM saved_views WHERE id = :id AND owner_login = :owner');

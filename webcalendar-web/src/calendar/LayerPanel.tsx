@@ -52,7 +52,7 @@ export function LayerPanel({ onLayersChange }: LayerPanelProps) {
   useEffect(() => {
     void fetchLayers();
     void (async () => {
-      const { data } = await apiFetch<UserInfo[]>('/users');
+      const { data } = await apiFetch<UserInfo[]>('/users?enabled=true');
       if (data) setAllUsers(data);
     })();
   }, [fetchLayers]);
