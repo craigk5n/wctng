@@ -35,9 +35,7 @@ describe('ExtParticipantInput', () => {
     await user.type(screen.getByLabelText(/email/i), 'alice@vendor.com');
     await user.click(screen.getByRole('button', { name: /Add/i }));
 
-    expect(onChange).toHaveBeenCalledWith([
-      { name: 'Alice Vendor', email: 'alice@vendor.com' },
-    ]);
+    expect(onChange).toHaveBeenCalledWith([{ name: 'Alice Vendor', email: 'alice@vendor.com' }]);
   });
 
   it('trims whitespace', async () => {

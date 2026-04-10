@@ -99,9 +99,7 @@ export function EventTooltip({ event, categories, children }: EventTooltipProps)
             </div>
           )}
           <div className="text-sm font-semibold leading-snug">{event.title}</div>
-          {timeLine && (
-            <div className="mt-0.5 text-xs text-muted-foreground">{timeLine}</div>
-          )}
+          {timeLine && <div className="mt-0.5 text-xs text-muted-foreground">{timeLine}</div>}
           {location !== '' && (
             <div className="mt-0.5 text-xs text-muted-foreground">📍 {location}</div>
           )}

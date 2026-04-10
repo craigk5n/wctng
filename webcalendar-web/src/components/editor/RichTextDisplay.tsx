@@ -12,12 +12,18 @@ export function RichTextDisplay({ html, className = '' }: RichTextDisplayProps) 
 
   // If content has no HTML tags, render as plain text
   if (html === stripTags(html)) {
-    return <p className={`text-sm text-muted-foreground ${className}`}>{html}</p>;
+    return (
+      <p
+        className={`break-words text-sm text-muted-foreground [overflow-wrap:anywhere] ${className}`}
+      >
+        {html}
+      </p>
+    );
   }
 
   return (
     <div
-      className={`prose prose-sm max-w-none text-muted-foreground ${className}`}
+      className={`prose prose-sm max-w-none break-words text-muted-foreground [overflow-wrap:anywhere] ${className}`}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

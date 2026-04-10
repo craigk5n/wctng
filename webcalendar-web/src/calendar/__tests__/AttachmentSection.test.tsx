@@ -16,8 +16,22 @@ describe('AttachmentSection', () => {
       status: 200,
       json: async () => ({
         data: [
-          { id: 10, filename: 'report.pdf', mime_type: 'application/pdf', size: 2048, created_at: '2026-04-01T10:00:00', uploaded_by: 'alice' },
-          { id: 11, filename: 'photo.jpg', mime_type: 'image/jpeg', size: 50000, created_at: '2026-04-01T11:00:00', uploaded_by: 'alice' },
+          {
+            id: 10,
+            filename: 'report.pdf',
+            mime_type: 'application/pdf',
+            size: 2048,
+            created_at: '2026-04-01T10:00:00',
+            uploaded_by: 'alice',
+          },
+          {
+            id: 11,
+            filename: 'photo.jpg',
+            mime_type: 'image/jpeg',
+            size: 50000,
+            created_at: '2026-04-01T11:00:00',
+            uploaded_by: 'alice',
+          },
         ],
         error: null,
       }),
@@ -37,7 +51,14 @@ describe('AttachmentSection', () => {
       status: 200,
       json: async () => ({
         data: [
-          { id: 10, filename: 'big.pdf', mime_type: 'application/pdf', size: 1048576, created_at: '2026-04-01T10:00:00', uploaded_by: 'alice' },
+          {
+            id: 10,
+            filename: 'big.pdf',
+            mime_type: 'application/pdf',
+            size: 1048576,
+            created_at: '2026-04-01T10:00:00',
+            uploaded_by: 'alice',
+          },
         ],
         error: null,
       }),
@@ -70,7 +91,14 @@ describe('AttachmentSection', () => {
       status: 200,
       json: async () => ({
         data: [
-          { id: 10, filename: 'file.pdf', mime_type: 'application/pdf', size: 1024, created_at: '2026-04-01', uploaded_by: 'alice' },
+          {
+            id: 10,
+            filename: 'file.pdf',
+            mime_type: 'application/pdf',
+            size: 1024,
+            created_at: '2026-04-01',
+            uploaded_by: 'alice',
+          },
         ],
         error: null,
       }),
@@ -83,7 +111,7 @@ describe('AttachmentSection', () => {
     });
   });
 
-  it('shows empty state when no attachments', async () => {
+  it('shows upload dropzone (and no redundant empty label) when owner has no attachments', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -93,7 +121,8 @@ describe('AttachmentSection', () => {
     render(<AttachmentSection eventId={1} currentUserLogin="alice" eventOwner="alice" />);
 
     await waitFor(() => {
-      expect(screen.getByText(/no attachments/i)).toBeInTheDocument();
+      expect(screen.getByText(/drag & drop/i)).toBeInTheDocument();
     });
+    expect(screen.queryByText(/no attachments/i)).not.toBeInTheDocument();
   });
 });

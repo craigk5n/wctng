@@ -39,7 +39,13 @@ const allDayEvent: ApiEvent = {
 describe('EventDetailDialog', () => {
   it('renders event title and details', () => {
     render(
-      <EventDetailDialog event={timedEvent} open={true} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />,
+      <EventDetailDialog
+        event={timedEvent}
+        open={true}
+        onClose={() => {}}
+        onEdit={() => {}}
+        onDelete={() => {}}
+      />,
     );
 
     expect(screen.getByText('Team Meeting')).toBeInTheDocument();
@@ -49,17 +55,29 @@ describe('EventDetailDialog', () => {
 
   it('shows formatted date and time', () => {
     render(
-      <EventDetailDialog event={timedEvent} open={true} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />,
+      <EventDetailDialog
+        event={timedEvent}
+        open={true}
+        onClose={() => {}}
+        onEdit={() => {}}
+        onDelete={() => {}}
+      />,
     );
 
-    // Should show date in readable format
-    expect(screen.getByText(/2026-03-15/)).toBeInTheDocument();
+    // Condensed line: "Sun, Mar 15, 2026 · 10:00 – 11:00 (60 min)"
+    expect(screen.getByText(/mar 15, 2026/i)).toBeInTheDocument();
     expect(screen.getByText(/10:00/)).toBeInTheDocument();
   });
 
   it('shows "All day" for all-day events', () => {
     render(
-      <EventDetailDialog event={allDayEvent} open={true} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />,
+      <EventDetailDialog
+        event={allDayEvent}
+        open={true}
+        onClose={() => {}}
+        onEdit={() => {}}
+        onDelete={() => {}}
+      />,
     );
 
     expect(screen.getByText(/all day/i)).toBeInTheDocument();
@@ -67,7 +85,13 @@ describe('EventDetailDialog', () => {
 
   it('shows Edit and Delete buttons', () => {
     render(
-      <EventDetailDialog event={timedEvent} open={true} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />,
+      <EventDetailDialog
+        event={timedEvent}
+        open={true}
+        onClose={() => {}}
+        onEdit={() => {}}
+        onDelete={() => {}}
+      />,
     );
 
     expect(screen.getByRole('button', { name: /edit/i })).toBeInTheDocument();
@@ -77,7 +101,13 @@ describe('EventDetailDialog', () => {
   it('calls onEdit when Edit button clicked', async () => {
     const onEdit = vi.fn();
     render(
-      <EventDetailDialog event={timedEvent} open={true} onClose={() => {}} onEdit={onEdit} onDelete={() => {}} />,
+      <EventDetailDialog
+        event={timedEvent}
+        open={true}
+        onClose={() => {}}
+        onEdit={onEdit}
+        onDelete={() => {}}
+      />,
     );
 
     await userEvent.click(screen.getByRole('button', { name: /edit/i }));
@@ -87,7 +117,13 @@ describe('EventDetailDialog', () => {
   it('calls onDelete when Delete button clicked', async () => {
     const onDelete = vi.fn();
     render(
-      <EventDetailDialog event={timedEvent} open={true} onClose={() => {}} onEdit={() => {}} onDelete={onDelete} />,
+      <EventDetailDialog
+        event={timedEvent}
+        open={true}
+        onClose={() => {}}
+        onEdit={() => {}}
+        onDelete={onDelete}
+      />,
     );
 
     await userEvent.click(screen.getByRole('button', { name: /delete/i }));
@@ -97,7 +133,13 @@ describe('EventDetailDialog', () => {
   it('calls onClose when Close button clicked', async () => {
     const onClose = vi.fn();
     render(
-      <EventDetailDialog event={timedEvent} open={true} onClose={onClose} onEdit={() => {}} onDelete={() => {}} />,
+      <EventDetailDialog
+        event={timedEvent}
+        open={true}
+        onClose={onClose}
+        onEdit={() => {}}
+        onDelete={() => {}}
+      />,
     );
 
     await userEvent.click(screen.getByRole('button', { name: /close/i }));
@@ -106,7 +148,13 @@ describe('EventDetailDialog', () => {
 
   it('does not render when open is false', () => {
     render(
-      <EventDetailDialog event={timedEvent} open={false} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />,
+      <EventDetailDialog
+        event={timedEvent}
+        open={false}
+        onClose={() => {}}
+        onEdit={() => {}}
+        onDelete={() => {}}
+      />,
     );
 
     expect(screen.queryByText('Team Meeting')).not.toBeInTheDocument();
@@ -114,7 +162,13 @@ describe('EventDetailDialog', () => {
 
   it('shows access level', () => {
     render(
-      <EventDetailDialog event={timedEvent} open={true} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />,
+      <EventDetailDialog
+        event={timedEvent}
+        open={true}
+        onClose={() => {}}
+        onEdit={() => {}}
+        onDelete={() => {}}
+      />,
     );
 
     expect(screen.getByText(/public/i)).toBeInTheDocument();
@@ -127,7 +181,13 @@ describe('EventDetailDialog', () => {
       longitude: -74.006,
     };
     render(
-      <EventDetailDialog event={geoEvent} open={true} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />,
+      <EventDetailDialog
+        event={geoEvent}
+        open={true}
+        onClose={() => {}}
+        onEdit={() => {}}
+        onDelete={() => {}}
+      />,
     );
 
     const link = screen.getByTestId('map-link');
@@ -139,7 +199,13 @@ describe('EventDetailDialog', () => {
 
   it('shows map search link when no coordinates', () => {
     render(
-      <EventDetailDialog event={timedEvent} open={true} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />,
+      <EventDetailDialog
+        event={timedEvent}
+        open={true}
+        onClose={() => {}}
+        onEdit={() => {}}
+        onDelete={() => {}}
+      />,
     );
 
     const link = screen.getByTestId('map-search-link');
@@ -150,7 +216,13 @@ describe('EventDetailDialog', () => {
 
   it('does not show map link when no location', () => {
     render(
-      <EventDetailDialog event={allDayEvent} open={true} onClose={() => {}} onEdit={() => {}} onDelete={() => {}} />,
+      <EventDetailDialog
+        event={allDayEvent}
+        open={true}
+        onClose={() => {}}
+        onEdit={() => {}}
+        onDelete={() => {}}
+      />,
     );
 
     expect(screen.queryByTestId('map-link')).not.toBeInTheDocument();

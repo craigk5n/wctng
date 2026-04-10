@@ -62,14 +62,10 @@ export function CommentSection({ eventId, currentUserLogin }: CommentSectionProp
     <div className="mt-4 space-y-2">
       <h4 className="text-xs font-semibold uppercase text-muted-foreground">Comments</h4>
 
-      {comments.length === 0 && (
-        <p className="text-xs text-muted-foreground">No comments yet.</p>
-      )}
-
       {comments.map((c) => (
         <div key={c.id} className="rounded border border-border/50 p-2 text-sm">
           <div className="flex items-center justify-between">
-            <span className="font-medium text-xs">{c.user_login}</span>
+            <span className="text-xs font-medium">{c.user_login}</span>
             <div className="flex items-center gap-2">
               <span className="text-[10px] text-muted-foreground">
                 {new Date(c.created_at).toLocaleString()}
@@ -85,7 +81,7 @@ export function CommentSection({ eventId, currentUserLogin }: CommentSectionProp
               )}
             </div>
           </div>
-          <p className="mt-1 text-sm whitespace-pre-wrap">{c.text}</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm">{c.text}</p>
         </div>
       ))}
 
@@ -96,7 +92,7 @@ export function CommentSection({ eventId, currentUserLogin }: CommentSectionProp
           onChange={(e) => setNewComment(e.target.value)}
           placeholder="Add a comment..."
           aria-label="Add comment"
-          className="flex-1 h-8 rounded-md border border-input bg-background px-2 text-sm"
+          className="h-8 flex-1 rounded-md border border-input bg-background px-2 text-sm"
         />
         <button
           type="submit"

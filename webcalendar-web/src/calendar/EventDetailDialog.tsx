@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import type { ApiEvent } from './eventMapper';
 import { ParticipantList } from './ParticipantList';
-import { ParticipantResponse } from './ParticipantResponse';
 import { RichTextDisplay } from '../components/editor/RichTextDisplay';
 import { AttachmentSection } from './AttachmentSection';
 import { CommentSection } from './CommentSection';
@@ -35,20 +34,38 @@ function formatTime(timeStr: string): string {
   return `${timeStr.slice(0, 2)}:${timeStr.slice(2, 4)}`;
 }
 
+function formatLongDate(dateStr: string): string {
+  const y = Number(dateStr.slice(0, 4));
+  const m = Number(dateStr.slice(4, 6)) - 1;
+  const d = Number(dateStr.slice(6, 8));
+  const date = new Date(y, m, d);
+  if (Number.isNaN(date.getTime())) return formatDate(dateStr);
+  return date.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
 export function EventDetailDialog({
-  event, open, onClose, onEdit, onDelete, onDuplicate, onExportIcs,
-  currentUserLogin, onAccept, onReject, isResponding,
+  event,
+  open,
+  onClose,
+  onEdit,
+  onDelete,
+  onDuplicate,
+  onExportIcs,
+  currentUserLogin,
+  onAccept,
+  onReject,
+  isResponding,
 }: EventDetailDialogProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   if (!open) return null;
 
   const isAllDay = event.all_day || !event.start_time;
-
-  // Check if current user is a participant
-  const currentUserParticipant = currentUserLogin
-    ? event.participants?.find((p) => p.login === currentUserLogin)
-    : undefined;
 
   return (
     <div
@@ -79,14 +96,11 @@ export function EventDetailDialog({
 
         {/* Details */}
         <div className="mt-4 space-y-3 text-sm">
-          <div className="flex gap-2">
-            <span className="font-medium text-muted-foreground">Date:</span>
-            <span>{formatDate(event.start_date)}</span>
-          </div>
-
-          <div className="flex gap-2">
-            <span className="font-medium text-muted-foreground">Time:</span>
+          <div className="flex items-center gap-2">
+            <span aria-hidden="true">📅</span>
             <span>
+              {formatLongDate(event.start_date)}
+              {' · '}
               {isAllDay ? (
                 'All day'
               ) : (
@@ -144,7 +158,7 @@ export function EventDetailDialog({
           {event.description && (
             <div>
               <span className="font-medium text-muted-foreground">Description:</span>
-              <div className="mt-1">
+              <div className="mt-1 break-words [overflow-wrap:anywhere]">
                 <RichTextDisplay html={event.description} />
               </div>
             </div>
@@ -166,7 +180,19 @@ export function EventDetailDialog({
             <div>
               <span className="font-medium text-muted-foreground">Participants:</span>
               <div className="mt-1">
-                <ParticipantList participants={event.participants} />
+                <ParticipantList
+                  participants={event.participants}
+                  currentUserLogin={currentUserLogin}
+                  onRespond={
+                    onAccept && onReject
+                      ? (next) => {
+                          if (next === 'A') onAccept();
+                          else if (next === 'R') onReject();
+                        }
+                      : undefined
+                  }
+                  isResponding={isResponding}
+                />
               </div>
             </div>
           )}
@@ -208,21 +234,6 @@ export function EventDetailDialog({
         {/* Comments */}
         <CommentSection eventId={event.id} currentUserLogin={currentUserLogin} />
 
-        {/* Participant response (Accept/Reject) */}
-        {currentUserParticipant && onAccept && onReject && (
-          <div className="mt-4 rounded-md border border-border p-3">
-            <span className="text-sm font-medium text-muted-foreground">Your response:</span>
-            <div className="mt-1.5">
-              <ParticipantResponse
-                status={currentUserParticipant.status}
-                onAccept={onAccept}
-                onReject={onReject}
-                isLoading={isResponding}
-              />
-            </div>
-          </div>
-        )}
-
         {/* Actions */}
         <div className="mt-6 flex items-center gap-2">
           {(!currentUserLogin || event.created_by === currentUserLogin) && (
@@ -235,7 +246,7 @@ export function EventDetailDialog({
               </button>
               <button
                 onClick={onDelete}
-                className="inline-flex h-9 items-center rounded-md bg-destructive px-4 text-sm font-medium text-destructive-foreground hover:bg-destructive/90"
+                className="inline-flex h-9 items-center rounded-md border border-destructive/40 bg-transparent px-4 text-sm font-medium text-destructive hover:bg-destructive/10"
               >
                 Delete
               </button>
@@ -256,7 +267,10 @@ export function EventDetailDialog({
               <div className="absolute bottom-full right-0 mb-1 w-44 rounded-md border border-border bg-card py-1 shadow-lg">
                 {onDuplicate && (
                   <button
-                    onClick={() => { setMenuOpen(false); onDuplicate(); }}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onDuplicate();
+                    }}
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent"
                   >
                     <span>📋</span> Duplicate
@@ -264,7 +278,10 @@ export function EventDetailDialog({
                 )}
                 {onExportIcs && (
                   <button
-                    onClick={() => { setMenuOpen(false); onExportIcs(); }}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onExportIcs();
+                    }}
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent"
                   >
                     <span>📥</span> Export as ICS
