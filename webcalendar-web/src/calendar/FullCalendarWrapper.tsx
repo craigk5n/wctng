@@ -13,6 +13,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
 import multiMonthPlugin from '@fullcalendar/multimonth';
+import rrulePlugin from '@fullcalendar/rrule';
 import type {
   DatesSetArg,
   EventClickArg,
@@ -23,6 +24,7 @@ import type {
 } from '@fullcalendar/core';
 import type { EventResizeDoneArg } from '@fullcalendar/interaction';
 import * as Tooltip from '@radix-ui/react-tooltip';
+import { getMoonPhase } from './moonPhase';
 import { fetchCalendarEvents } from './useCalendarEvents';
 import { buildEventTooltip } from './eventTooltip';
 import { EventTooltip } from './EventTooltip';
@@ -353,6 +355,7 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
             ref={calendarRef}
             plugins={[
               dayGridPlugin,
+              rrulePlugin,
               timeGridPlugin,
               listPlugin,
               interactionPlugin,
@@ -385,6 +388,21 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
             scrollTimeReset={false}
             locale={i18nInstance.language}
             nowIndicator={true}
+            dayCellContent={(arg) => {
+              const moon = getMoonPhase(arg.date);
+              return (
+                <div className="flex w-full items-center justify-between">
+                  <span>{arg.dayNumberText}</span>
+                  <span
+                    className="text-[10px] leading-none opacity-40"
+                    title={moon.name}
+                    aria-label={moon.name}
+                  >
+                    {moon.emoji}
+                  </span>
+                </div>
+              );
+            }}
             eventContent={(arg) => {
               const catIds = (arg.event.extendedProps?.categories as number[] | undefined) ?? [];
               // Compute the emoji at render time so categories loading AFTER
