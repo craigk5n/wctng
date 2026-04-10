@@ -2,6 +2,7 @@ interface ConfirmDeleteDialogProps {
   open: boolean;
   eventTitle: string;
   isRecurring?: boolean;
+  isOrganizer?: boolean;
   onConfirm: () => void;
   onDeleteOccurrence?: () => void;
   onCancel: () => void;
@@ -12,12 +13,23 @@ export function ConfirmDeleteDialog({
   open,
   eventTitle,
   isRecurring = false,
+  isOrganizer = true,
   onConfirm,
   onDeleteOccurrence,
   onCancel,
   isDeleting,
 }: ConfirmDeleteDialogProps) {
   if (!open) return null;
+
+  const heading = isOrganizer ? 'Cancel Event' : 'Decline Event';
+  const description = isOrganizer
+    ? `Cancel "${eventTitle}"? Participants will be notified. You can undo this.`
+    : `Decline "${eventTitle}"? It will be removed from your calendar. You can undo this.`;
+  const confirmLabel = isOrganizer
+    ? isRecurring
+      ? 'Cancel All Occurrences'
+      : 'Cancel Event'
+    : 'Decline';
 
   return (
     <div
@@ -30,21 +42,21 @@ export function ConfirmDeleteDialog({
         className="w-full max-w-sm rounded-lg bg-card p-6 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-semibold">Delete Event</h2>
+        <h2 className="text-lg font-semibold">{heading}</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Are you sure you want to delete &ldquo;{eventTitle}&rdquo;?
-          {isRecurring && ' This is a recurring event.'}
+          {description}
+          {isRecurring && isOrganizer && ' This is a recurring event.'}
         </p>
 
         <div className="mt-6 flex flex-col gap-2">
-          {isRecurring && onDeleteOccurrence && (
+          {isRecurring && isOrganizer && onDeleteOccurrence && (
             <button
               type="button"
               onClick={onDeleteOccurrence}
               disabled={isDeleting}
               className="inline-flex h-10 w-full items-center justify-center rounded-md border border-destructive px-4 text-sm font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
             >
-              Delete This Occurrence
+              Cancel This Occurrence
             </button>
           )}
           <button
@@ -53,7 +65,7 @@ export function ConfirmDeleteDialog({
             disabled={isDeleting}
             className="inline-flex h-10 w-full items-center justify-center rounded-md bg-destructive px-4 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
           >
-            {isDeleting ? 'Deleting...' : isRecurring ? 'Delete All Occurrences' : 'Delete'}
+            {isDeleting ? (isOrganizer ? 'Cancelling...' : 'Declining...') : confirmLabel}
           </button>
           <button
             type="button"
@@ -61,7 +73,7 @@ export function ConfirmDeleteDialog({
             disabled={isDeleting}
             className="inline-flex h-10 w-full items-center justify-center rounded-md border border-input px-4 text-sm font-medium hover:bg-accent disabled:opacity-50"
           >
-            Cancel
+            Keep
           </button>
         </div>
       </div>

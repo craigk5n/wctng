@@ -222,8 +222,8 @@ export const FullCalendarWrapper = forwardRef<FullCalendarWrapperHandle, FullCal
                 classNames: ['fc-event-pending'],
               };
             }
-            // Rejected events are hidden from calendar
-            if (apiEvent?.status === 'rejected') {
+            // Rejected and cancelled events are hidden from calendar
+            if (apiEvent?.status === 'rejected' || apiEvent?.status === 'cancelled') {
               return null;
             }
             // Journals get a distinct indigo color

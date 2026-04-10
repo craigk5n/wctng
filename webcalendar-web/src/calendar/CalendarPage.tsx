@@ -331,22 +331,57 @@ export function CalendarPage() {
     [dialog, toast],
   );
 
-  // --- Delete event ---
+  // --- Soft-delete event (cancel or decline) with undo ---
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleDelete = useCallback(async () => {
     if (dialog.type !== 'confirmDelete') return;
     const event = dialog.event;
     setIsDeleting(true);
 
-    const { error } = await apiFetch(`/events/${event.id}`, { method: 'DELETE' });
+    const { data, error } = await apiFetch<{
+      action: 'cancelled' | 'declined';
+      previous_status: string | null;
+    }>(`/events/${event.id}`, { method: 'DELETE' });
 
-    if (!error) {
-      calendarRef.current?.refetchEvents();
-      setDialog({ type: 'none' });
-      toast({ title: 'Event deleted', variant: 'success' });
-    } else {
-      toast({ title: 'Failed to delete event', variant: 'error' });
-    }
     setIsDeleting(false);
+
+    if (error) {
+      toast({ title: 'Failed to remove event', variant: 'error' });
+      return;
+    }
+
+    calendarRef.current?.refetchEvents();
+    setDialog({ type: 'none' });
+
+    const isCancelled = data?.action === 'cancelled';
+    const label = isCancelled ? 'Event cancelled' : 'Event declined';
+
+    // Show undo toast
+    toast({
+      title: label,
+      variant: 'success',
+      action: {
+        label: 'Undo',
+        onClick: async () => {
+          if (undoTimerRef.current) {
+            clearTimeout(undoTimerRef.current);
+            undoTimerRef.current = null;
+          }
+          const { error: restoreErr } = await apiFetch(`/events/${event.id}/restore`, {
+            method: 'POST',
+            body: JSON.stringify({ previous_status: data?.previous_status }),
+          });
+          if (restoreErr) {
+            toast({ title: 'Failed to undo', variant: 'error' });
+          } else {
+            toast({ title: 'Event restored', variant: 'success' });
+            calendarRef.current?.refetchEvents();
+          }
+        },
+      },
+      duration: 5000,
+    });
   }, [dialog, toast]);
 
   const closeDialog = useCallback(() => setDialog({ type: 'none' }), []);
@@ -627,6 +662,7 @@ export function CalendarPage() {
           open={true}
           eventTitle={dialog.event.title}
           isRecurring={dialog.event.type === 'M' || !!dialog.event.rrule}
+          isOrganizer={dialog.event.created_by === user?.login || user?.is_admin === true}
           onConfirm={handleDelete}
           onCancel={closeDialog}
           isDeleting={isDeleting}

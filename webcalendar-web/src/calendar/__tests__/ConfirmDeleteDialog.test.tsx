@@ -15,15 +15,15 @@ describe('ConfirmDeleteDialog', () => {
   it('shows confirmation with event title', () => {
     render(<ConfirmDeleteDialog {...defaultProps} />);
 
-    expect(screen.getByRole('heading', { name: /delete event/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /cancel event/i })).toBeInTheDocument();
     expect(screen.getByText(/team meeting/i)).toBeInTheDocument();
   });
 
-  it('has confirm and cancel buttons', () => {
+  it('has confirm and keep buttons', () => {
     render(<ConfirmDeleteDialog {...defaultProps} />);
 
-    expect(screen.getByRole('button', { name: /delete|confirm/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /cancel event/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /keep/i })).toBeInTheDocument();
   });
 
   it('calls onConfirm when confirm button clicked', async () => {
@@ -31,16 +31,16 @@ describe('ConfirmDeleteDialog', () => {
     const onConfirm = vi.fn();
     render(<ConfirmDeleteDialog {...defaultProps} onConfirm={onConfirm} />);
 
-    await user.click(screen.getByRole('button', { name: /delete|confirm/i }));
+    await user.click(screen.getByRole('button', { name: /cancel event/i }));
     expect(onConfirm).toHaveBeenCalled();
   });
 
-  it('calls onCancel when cancel button clicked', async () => {
+  it('calls onCancel when keep button clicked', async () => {
     const user = userEvent.setup();
     const onCancel = vi.fn();
     render(<ConfirmDeleteDialog {...defaultProps} onCancel={onCancel} />);
 
-    await user.click(screen.getByRole('button', { name: /cancel/i }));
+    await user.click(screen.getByRole('button', { name: /keep/i }));
     expect(onCancel).toHaveBeenCalled();
   });
 
@@ -49,15 +49,26 @@ describe('ConfirmDeleteDialog', () => {
     expect(screen.queryByText(/team meeting/i)).not.toBeInTheDocument();
   });
 
-  it('disables confirm button while deleting', () => {
+  it('disables confirm button while processing', () => {
     render(<ConfirmDeleteDialog {...defaultProps} isDeleting={true} />);
 
-    const confirmBtn = screen.getByRole('button', { name: /delet/i });
+    const confirmBtn = screen.getByRole('button', { name: /cancelling/i });
     expect(confirmBtn).toBeDisabled();
   });
 
-  it('shows deleting state text', () => {
-    render(<ConfirmDeleteDialog {...defaultProps} isDeleting={true} />);
-    expect(screen.getByText(/deleting/i)).toBeInTheDocument();
+  it('shows cancelling state text for organizer', () => {
+    render(<ConfirmDeleteDialog {...defaultProps} isOrganizer={true} isDeleting={true} />);
+    expect(screen.getByText(/cancelling/i)).toBeInTheDocument();
+  });
+
+  it('shows decline wording for non-organizer', () => {
+    render(<ConfirmDeleteDialog {...defaultProps} isOrganizer={false} />);
+    expect(screen.getByRole('heading', { name: /decline event/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /decline/i })).toBeInTheDocument();
+  });
+
+  it('shows declining state text for participant', () => {
+    render(<ConfirmDeleteDialog {...defaultProps} isOrganizer={false} isDeleting={true} />);
+    expect(screen.getByText(/declining/i)).toBeInTheDocument();
   });
 });

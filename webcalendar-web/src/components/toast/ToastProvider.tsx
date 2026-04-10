@@ -1,9 +1,16 @@
 import { createContext, useCallback, useContext, useState } from 'react';
 
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 export interface ToastMessage {
   id: string;
   title: string;
   variant?: 'success' | 'error' | 'default';
+  action?: ToastAction;
+  duration?: number;
 }
 
 interface ToastContextValue {
@@ -27,7 +34,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       const newToast: ToastMessage = { ...msg, id };
       setToasts((prev) => [...prev, newToast]);
 
-      setTimeout(() => removeToast(id), TOAST_DURATION);
+      setTimeout(() => removeToast(id), msg.duration ?? TOAST_DURATION);
     },
     [removeToast],
   );
@@ -48,9 +55,20 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           <div
             key={t.id}
             role="alert"
-            className={`animate-in slide-in-from-right fade-in rounded-md px-4 py-3 text-sm font-medium shadow-lg ${variantStyles[t.variant ?? 'default']}`}
+            className={`animate-in slide-in-from-right fade-in flex items-center gap-3 rounded-md px-4 py-3 text-sm font-medium shadow-lg ${variantStyles[t.variant ?? 'default']}`}
           >
-            {t.title}
+            <span>{t.title}</span>
+            {t.action && (
+              <button
+                onClick={() => {
+                  t.action!.onClick();
+                  removeToast(t.id);
+                }}
+                className="rounded border border-current/30 px-2 py-0.5 text-xs font-semibold hover:bg-white/20"
+              >
+                {t.action.label}
+              </button>
+            )}
           </div>
         ))}
       </div>

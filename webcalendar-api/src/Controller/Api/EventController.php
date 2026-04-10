@@ -559,8 +559,18 @@ final class EventController
         return ApiResponse::success($responseData, $meta);
     }
 
+    /**
+     * Soft-delete an event.
+     *
+     * - Organizer (or admin): sets cal_status='cancelled', sends cancellation
+     *   notifications, bumps sequence. Event stays in DB for audit.
+     * - Participant (not organizer): sets their webcal_entry_user status to 'R'
+     *   (rejected/declined). Event remains visible to everyone else.
+     *
+     * Permanent removal is only via admin Purge (POST /admin/events/purge).
+     */
     #[Route('/api/v2/events/{id}', name: 'api_events_delete', methods: ['DELETE'])]
-    public function delete(int $id, #[CurrentUser] ?WebCalendarUser $user): Response
+    public function delete(int $id, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
     {
         if ($user === null) {
             return ApiResponse::error(401, 'Authentication required');
@@ -573,30 +583,73 @@ final class EventController
         }
 
         $coreUser = $user->getCoreUser();
+        $login = $coreUser->login();
+        $isOrganizer = $existing->createdBy() === $login;
+        $isAdmin = $coreUser->isAdmin();
 
-        if ($existing->createdBy() !== $coreUser->login() && !$coreUser->isAdmin()) {
-            return ApiResponse::error(403, 'You do not have permission to delete this event');
+        // Check the caller is either organizer, admin, or a participant
+        if (!$isOrganizer && !$isAdmin) {
+            // Check if caller is at least a participant
+            /** @var array<string, string> $participants */
+            $participants = $this->coreServiceFactory->getEventRepository()
+                ->getParticipantsWithStatus(new EventId($id));
+            if (!isset($participants[$login])) {
+                return ApiResponse::error(403, 'You do not have permission to modify this event');
+            }
+
+            // Participant decline: set their status to rejected
+            $previousStatus = $participants[$login];
+            $this->coreServiceFactory->getEventRepository()
+                ->updateParticipantStatus(new EventId($id), $login, 'R');
+
+            try {
+                $this->mercure->publishParticipantChanged($id, ['action' => 'declined', 'login' => $login]);
+            } catch (\Throwable) {
+            }
+
+            try {
+                $this->coreServiceFactory->getActivityLogService()->log(
+                    $id,
+                    $login,
+                    null,
+                    ActivityLogType::UPDATE,
+                    'Declined event: ' . $existing->name(),
+                );
+            } catch (\Throwable) {
+            }
+
+            return new JsonResponse([
+                'action' => 'declined',
+                'previous_status' => $previousStatus,
+            ]);
         }
 
-        // Snapshot ext participants BEFORE deletion so we can send
-        // cancellation emails after the row is gone.
-        $extParticipantsSnapshot = $this->extParticipants->findForEvent($id);
+        // Organizer/admin: cancel the event (soft-delete)
+        $previousStatus = $existing->status();
 
-        // Notify participants before deleting
+        // Update event status to cancelled and bump sequence
+        $pdo = $this->coreServiceFactory->getPdo();
+        $stmt = $pdo->prepare(
+            "UPDATE webcal_entry SET cal_status = 'cancelled', cal_sequence = cal_sequence + 1 WHERE cal_id = :id"
+        );
+        $stmt->execute(['id' => $id]);
+
+        // Notify internal participants
         try {
             /** @var array<string, string> $participants */
-            $participants = $this->coreServiceFactory->getEventRepository()->getParticipantsWithStatus(new EventId($id));
+            $participants = $this->coreServiceFactory->getEventRepository()
+                ->getParticipantsWithStatus(new EventId($id));
             $pList = [];
-            foreach ($participants as $login => $status) {
-                $pList[] = ['login' => $login, 'status' => $status];
+            foreach ($participants as $pLogin => $status) {
+                $pList[] = ['login' => $pLogin, 'status' => $status];
             }
             $this->notifications->notifyEventDeleted($existing->name(), $pList);
         } catch (\Throwable) {
         }
 
-        // Notify external participants of cancellation (before deletion so
-        // we still have the uid/title/date from $existing via the DTO below)
+        // Notify external participants
         try {
+            $extParticipants = $this->extParticipants->findForEvent($id);
             $this->notifications->notifyExtParticipantsDeleted(
                 [
                     'id' => $id,
@@ -604,16 +657,10 @@ final class EventController
                     'start_date' => $existing->start()->format('Ymd'),
                     'uid' => $existing->uid(),
                 ],
-                $extParticipantsSnapshot,
+                $extParticipants,
             );
         } catch (\Throwable) {
         }
-
-        $this->coreServiceFactory->getEventService()->deleteEvent(new EventId($id), $coreUser);
-
-        // Core EventRepository::delete() does not cascade to
-        // webcal_entry_ext_user — clean it up here so rows don't orphan.
-        $this->extParticipants->deleteForEvent($id);
 
         try {
             $this->mercure->publishEventDeleted($id);
@@ -621,23 +668,95 @@ final class EventController
         }
 
         try {
-            $this->webhookDispatcher->dispatch('event.deleted', ['id' => $id]);
+            $this->webhookDispatcher->dispatch('event.cancelled', ['id' => $id]);
         } catch (\Throwable) {
         }
 
-        // Log activity
         try {
             $this->coreServiceFactory->getActivityLogService()->log(
                 $id,
-                $user->getUserIdentifier(),
+                $login,
                 null,
                 ActivityLogType::UPDATE,
-                'Deleted event: ' . $existing->name(),
+                'Cancelled event: ' . $existing->name(),
             );
         } catch (\Throwable) {
         }
 
-        return ApiResponse::noContent();
+        return new JsonResponse([
+            'action' => 'cancelled',
+            'previous_status' => $previousStatus,
+        ]);
+    }
+
+    /**
+     * Restore (undo) a soft-deleted event or participant decline.
+     */
+    #[Route('/api/v2/events/{id}/restore', name: 'api_events_restore', methods: ['POST'])]
+    public function restore(int $id, Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
+    {
+        if ($user === null) {
+            return ApiResponse::error(401, 'Authentication required');
+        }
+
+        $existing = $this->coreServiceFactory->getEventService()->getEventById(new EventId($id));
+
+        if ($existing === null) {
+            return ApiResponse::error(404, 'Event not found');
+        }
+
+        $coreUser = $user->getCoreUser();
+        $login = $coreUser->login();
+        $isOrganizer = $existing->createdBy() === $login;
+        $isAdmin = $coreUser->isAdmin();
+
+        /** @var array{previous_status?: string} $body */
+        $body = json_decode($request->getContent(), true) ?? [];
+        $prevStatus = $body['previous_status'] ?? null;
+
+        if ($isOrganizer || $isAdmin) {
+            // Restore cancelled event
+            if ($existing->status() !== 'cancelled') {
+                return ApiResponse::error(400, 'Event is not cancelled');
+            }
+
+            $restoreTo = ($prevStatus !== null && $prevStatus !== 'cancelled') ? $prevStatus : null;
+            $pdo = $this->coreServiceFactory->getPdo();
+            $stmt = $pdo->prepare(
+                'UPDATE webcal_entry SET cal_status = :status WHERE cal_id = :id'
+            );
+            $stmt->execute(['status' => $restoreTo, 'id' => $id]);
+
+            try {
+                $this->mercure->publishEventUpdated($id, ['action' => 'restored']);
+            } catch (\Throwable) {
+            }
+
+            try {
+                $this->coreServiceFactory->getActivityLogService()->log(
+                    $id,
+                    $login,
+                    null,
+                    ActivityLogType::UPDATE,
+                    'Restored event: ' . $existing->name(),
+                );
+            } catch (\Throwable) {
+            }
+
+            return ApiResponse::success(['restored' => true]);
+        }
+
+        // Participant: restore their acceptance
+        $restoreTo = ($prevStatus !== null && $prevStatus !== 'R') ? $prevStatus : 'A';
+        $this->coreServiceFactory->getEventRepository()
+            ->updateParticipantStatus(new EventId($id), $login, $restoreTo);
+
+        try {
+            $this->mercure->publishParticipantChanged($id, ['action' => 'restored', 'login' => $login]);
+        } catch (\Throwable) {
+        }
+
+        return ApiResponse::success(['restored' => true]);
     }
 
     /**
