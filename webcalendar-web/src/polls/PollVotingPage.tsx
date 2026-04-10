@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiFetch } from '../api/client';
 import { useAuth } from '../auth/auth-context';
+import { useToast } from '../components/toast/ToastProvider';
 
 interface PollOption {
   id: number;
@@ -30,6 +31,7 @@ export function PollVotingPage() {
   const [myVotes, setMyVotes] = useState<Record<number, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
+  const { toast } = useToast();
 
   const fetchPoll = useCallback(async () => {
     if (!id) return;
@@ -60,24 +62,38 @@ export function PollVotingPage() {
   const handleSubmitVotes = async () => {
     if (!id) return;
     setSubmitting(true);
-    await apiFetch(`/polls/${id}/vote`, {
+    const { error } = await apiFetch(`/polls/${id}/vote`, {
       method: 'POST',
       body: JSON.stringify({ votes: myVotes }),
     });
     setSubmitting(false);
+    if (error) {
+      toast({ title: error.message ?? 'Failed to submit votes', variant: 'error' });
+      return;
+    }
+    toast({ title: 'Votes submitted', variant: 'success' });
     void fetchPoll();
   };
 
   const handleFinalize = async () => {
     if (!id) return;
     setFinalizing(true);
-    await apiFetch(`/polls/${id}/finalize`, { method: 'POST' });
+    const { error } = await apiFetch(`/polls/${id}/finalize`, { method: 'POST' });
     setFinalizing(false);
+    if (error) {
+      toast({ title: error.message ?? 'Failed to finalize poll', variant: 'error' });
+      return;
+    }
+    toast({ title: 'Poll finalized', variant: 'success' });
     void fetchPoll();
   };
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Loading...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+        Loading...
+      </div>
+    );
   }
 
   if (notFound || !poll) {
@@ -127,9 +143,7 @@ export function PollVotingPage() {
                   <p className="font-medium">
                     {formatDateTime(opt.start)} — {formatTime(opt.end)}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDate(opt.start)}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{formatDate(opt.start)}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-sm font-semibold text-green-800 dark:bg-green-900/30 dark:text-green-300">
@@ -148,9 +162,11 @@ export function PollVotingPage() {
                     <span
                       key={v.voter}
                       className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        v.vote === 'yes' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                        : v.vote === 'maybe' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                        v.vote === 'yes'
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                          : v.vote === 'maybe'
+                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                            : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
                       }`}
                     >
                       {v.voter}: {v.vote}
@@ -168,9 +184,11 @@ export function PollVotingPage() {
                       onClick={() => handleVoteChange(opt.id, vote)}
                       className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                         myVotes[opt.id] === vote
-                          ? vote === 'yes' ? 'bg-green-500 text-white'
-                            : vote === 'maybe' ? 'bg-yellow-500 text-white'
-                            : 'bg-red-500 text-white'
+                          ? vote === 'yes'
+                            ? 'bg-green-500 text-white'
+                            : vote === 'maybe'
+                              ? 'bg-yellow-500 text-white'
+                              : 'bg-red-500 text-white'
                           : 'border border-border hover:bg-accent'
                       }`}
                     >

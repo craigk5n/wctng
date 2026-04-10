@@ -62,10 +62,12 @@ export function WebhookManagement() {
 
   const handleDelete = async (webhook: Webhook) => {
     const { error } = await apiFetch(`/admin/webhooks/${webhook.id}`, { method: 'DELETE' });
-    if (!error) {
-      toast({ title: 'Webhook deleted', variant: 'success' });
-      void fetchWebhooks();
+    if (error) {
+      toast({ title: error.message ?? 'Failed to delete webhook', variant: 'error' });
+      return;
     }
+    toast({ title: 'Webhook deleted', variant: 'success' });
+    void fetchWebhooks();
   };
 
   const handleTest = async (webhook: Webhook) => {
@@ -85,9 +87,14 @@ export function WebhookManagement() {
       </div>
 
       {showCreate && (
-        <form onSubmit={handleCreate} className="mt-4 flex items-end gap-3 rounded-lg border border-border p-4">
+        <form
+          onSubmit={handleCreate}
+          className="mt-4 flex items-end gap-3 rounded-lg border border-border p-4"
+        >
           <div className="flex-1 space-y-1">
-            <label htmlFor="wh-url" className="text-sm font-medium">URL</label>
+            <label htmlFor="wh-url" className="text-sm font-medium">
+              URL
+            </label>
             <input
               id="wh-url"
               type="url"
@@ -99,7 +106,9 @@ export function WebhookManagement() {
             />
           </div>
           <div className="w-48 space-y-1">
-            <label htmlFor="wh-events" className="text-sm font-medium">Events</label>
+            <label htmlFor="wh-events" className="text-sm font-medium">
+              Events
+            </label>
             <input
               id="wh-events"
               type="text"
@@ -125,7 +134,10 @@ export function WebhookManagement() {
           <p className="text-sm text-muted-foreground">No webhooks configured.</p>
         ) : (
           webhooks.map((wh) => (
-            <div key={wh.id} className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
+            <div
+              key={wh.id}
+              className="flex items-center justify-between rounded-lg border border-border px-4 py-3"
+            >
               <div className="min-w-0 flex-1">
                 <div className="truncate font-mono text-sm">{wh.url}</div>
                 <div className="text-xs text-muted-foreground">Events: {wh.events}</div>

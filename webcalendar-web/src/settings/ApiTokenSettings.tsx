@@ -56,10 +56,14 @@ export function ApiTokenSettings() {
 
   const handleRevoke = async () => {
     if (!login) return;
-    await apiFetch(`/users/${login}/preferences`, {
+    const { error } = await apiFetch(`/users/${login}/preferences`, {
       method: 'PUT',
       body: JSON.stringify({ api_token: '' }),
     });
+    if (error) {
+      toast({ title: error.message ?? 'Failed to revoke token', variant: 'error' });
+      return;
+    }
     setHasToken(false);
     setNewToken(null);
     toast({ title: 'API token revoked', variant: 'success' });
@@ -115,7 +119,7 @@ export function ApiTokenSettings() {
                 <p className="text-xs font-medium text-destructive">
                   Copy this token now — it won't be shown again!
                 </p>
-                <code className="mt-1 block break-all text-xs font-mono">{newToken}</code>
+                <code className="mt-1 block break-all font-mono text-xs">{newToken}</code>
                 <button
                   onClick={() => {
                     void navigator.clipboard.writeText(newToken);
@@ -130,20 +134,28 @@ export function ApiTokenSettings() {
           </div>
 
           {/* MCP connection instructions */}
-          <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+          <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
             <h3 className="text-sm font-medium">MCP Connection Instructions</h3>
             <div className="space-y-2 text-xs text-muted-foreground">
-              <p><strong>Endpoint:</strong> <code>{baseUrl}/api/v2/mcp</code></p>
-              <p><strong>Method:</strong> POST</p>
-              <p><strong>Authentication:</strong> Include header <code>X-API-Token: YOUR_TOKEN</code></p>
-              <p><strong>Protocol:</strong> JSON-RPC 2.0</p>
+              <p>
+                <strong>Endpoint:</strong> <code>{baseUrl}/api/v2/mcp</code>
+              </p>
+              <p>
+                <strong>Method:</strong> POST
+              </p>
+              <p>
+                <strong>Authentication:</strong> Include header <code>X-API-Token: YOUR_TOKEN</code>
+              </p>
+              <p>
+                <strong>Protocol:</strong> JSON-RPC 2.0
+              </p>
             </div>
             <details className="text-xs">
               <summary className="cursor-pointer font-medium text-muted-foreground hover:text-foreground">
                 Example: List events
               </summary>
               <pre className="mt-2 overflow-x-auto rounded bg-muted p-2 text-xs">
-{`curl -X POST ${baseUrl}/api/v2/mcp \\
+                {`curl -X POST ${baseUrl}/api/v2/mcp \\
   -H "Content-Type: application/json" \\
   -H "X-API-Token: YOUR_TOKEN" \\
   -d '{
@@ -165,13 +177,27 @@ export function ApiTokenSettings() {
                 Available tools
               </summary>
               <ul className="mt-2 space-y-1 text-muted-foreground">
-                <li><code>list_events</code> — List events in a date range</li>
-                <li><code>get_event</code> — Get event details by ID</li>
-                <li><code>create_event</code> — Create a new event</li>
-                <li><code>update_event</code> — Update event fields</li>
-                <li><code>delete_event</code> — Delete an event</li>
-                <li><code>search_events</code> — Search by keyword</li>
-                <li><code>get_availability</code> — Check free/busy</li>
+                <li>
+                  <code>list_events</code> — List events in a date range
+                </li>
+                <li>
+                  <code>get_event</code> — Get event details by ID
+                </li>
+                <li>
+                  <code>create_event</code> — Create a new event
+                </li>
+                <li>
+                  <code>update_event</code> — Update event fields
+                </li>
+                <li>
+                  <code>delete_event</code> — Delete an event
+                </li>
+                <li>
+                  <code>search_events</code> — Search by keyword
+                </li>
+                <li>
+                  <code>get_availability</code> — Check free/busy
+                </li>
               </ul>
             </details>
           </div>

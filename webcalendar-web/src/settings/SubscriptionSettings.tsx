@@ -14,11 +14,31 @@ interface Subscription {
 }
 
 const POPULAR_CALENDARS = [
-  { name: 'US Holidays', url: 'https://calendar.google.com/calendar/ical/en.usa%23holiday%40group.v.calendar.google.com/public/basic.ics', color: '#e74c3c' },
-  { name: 'UK Holidays', url: 'https://calendar.google.com/calendar/ical/en.uk%23holiday%40group.v.calendar.google.com/public/basic.ics', color: '#3498db' },
-  { name: 'Canadian Holidays', url: 'https://calendar.google.com/calendar/ical/en.canadian%23holiday%40group.v.calendar.google.com/public/basic.ics', color: '#e67e22' },
-  { name: 'German Holidays', url: 'https://calendar.google.com/calendar/ical/en.german%23holiday%40group.v.calendar.google.com/public/basic.ics', color: '#2ecc71' },
-  { name: 'French Holidays', url: 'https://calendar.google.com/calendar/ical/en.french%23holiday%40group.v.calendar.google.com/public/basic.ics', color: '#9b59b6' },
+  {
+    name: 'US Holidays',
+    url: 'https://calendar.google.com/calendar/ical/en.usa%23holiday%40group.v.calendar.google.com/public/basic.ics',
+    color: '#e74c3c',
+  },
+  {
+    name: 'UK Holidays',
+    url: 'https://calendar.google.com/calendar/ical/en.uk%23holiday%40group.v.calendar.google.com/public/basic.ics',
+    color: '#3498db',
+  },
+  {
+    name: 'Canadian Holidays',
+    url: 'https://calendar.google.com/calendar/ical/en.canadian%23holiday%40group.v.calendar.google.com/public/basic.ics',
+    color: '#e67e22',
+  },
+  {
+    name: 'German Holidays',
+    url: 'https://calendar.google.com/calendar/ical/en.german%23holiday%40group.v.calendar.google.com/public/basic.ics',
+    color: '#2ecc71',
+  },
+  {
+    name: 'French Holidays',
+    url: 'https://calendar.google.com/calendar/ical/en.french%23holiday%40group.v.calendar.google.com/public/basic.ics',
+    color: '#9b59b6',
+  },
 ];
 
 export function SubscriptionSettings() {
@@ -63,7 +83,7 @@ export function SubscriptionSettings() {
     }
   };
 
-  const handleQuickAdd = async (cal: typeof POPULAR_CALENDARS[0]) => {
+  const handleQuickAdd = async (cal: (typeof POPULAR_CALENDARS)[0]) => {
     setSaving(true);
     const { error } = await apiFetch('/calendars/subscribe', {
       method: 'POST',
@@ -77,7 +97,12 @@ export function SubscriptionSettings() {
   };
 
   const handleDelete = async (id: number) => {
-    await apiFetch(`/calendars/subscriptions/${id}`, { method: 'DELETE' });
+    const { error } = await apiFetch(`/calendars/subscriptions/${id}`, { method: 'DELETE' });
+    if (error) {
+      toast({ title: error.message ?? 'Failed to delete subscription', variant: 'error' });
+      return;
+    }
+    toast({ title: 'Subscription removed', variant: 'success' });
     void fetchSubs();
   };
 
@@ -103,7 +128,9 @@ export function SubscriptionSettings() {
       {showAdd && (
         <form onSubmit={handleAdd} className="space-y-3 rounded-lg border p-4">
           <div className="space-y-1">
-            <label htmlFor="sub-url" className="text-sm font-medium">Calendar URL</label>
+            <label htmlFor="sub-url" className="text-sm font-medium">
+              Calendar URL
+            </label>
             <input
               id="sub-url"
               type="url"
@@ -116,7 +143,9 @@ export function SubscriptionSettings() {
           </div>
           <div className="flex gap-3">
             <div className="flex-1 space-y-1">
-              <label htmlFor="sub-name" className="text-sm font-medium">Display Name</label>
+              <label htmlFor="sub-name" className="text-sm font-medium">
+                Display Name
+              </label>
               <input
                 id="sub-name"
                 type="text"
@@ -128,7 +157,9 @@ export function SubscriptionSettings() {
               />
             </div>
             <div className="w-20 space-y-1">
-              <label htmlFor="sub-color" className="text-sm font-medium">Color</label>
+              <label htmlFor="sub-color" className="text-sm font-medium">
+                Color
+              </label>
               <input
                 id="sub-color"
                 type="color"
@@ -139,10 +170,20 @@ export function SubscriptionSettings() {
             </div>
           </div>
           <div className="flex gap-2">
-            <button type="submit" disabled={saving} className="rounded bg-primary px-4 py-1.5 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded bg-primary px-4 py-1.5 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
               {saving ? 'Adding...' : 'Subscribe'}
             </button>
-            <button type="button" onClick={() => setShowAdd(false)} className="rounded border px-4 py-1.5 text-sm hover:bg-accent">Cancel</button>
+            <button
+              type="button"
+              onClick={() => setShowAdd(false)}
+              className="rounded border px-4 py-1.5 text-sm hover:bg-accent"
+            >
+              Cancel
+            </button>
           </div>
         </form>
       )}
@@ -159,7 +200,9 @@ export function SubscriptionSettings() {
                 <p className="text-sm font-medium">{sub.name}</p>
                 <p className="truncate text-xs text-muted-foreground">{sub.url}</p>
                 {sub.last_fetched && (
-                  <p className="text-xs text-muted-foreground">Last synced: {new Date(sub.last_fetched).toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Last synced: {new Date(sub.last_fetched).toLocaleString()}
+                  </p>
                 )}
               </div>
               <button
@@ -192,7 +235,9 @@ export function SubscriptionSettings() {
               >
                 <span className="h-3 w-3 rounded-full" style={{ backgroundColor: cal.color }} />
                 <span className="font-medium">{cal.name}</span>
-                {alreadyAdded && <span className="ml-auto text-xs text-muted-foreground">Added</span>}
+                {alreadyAdded && (
+                  <span className="ml-auto text-xs text-muted-foreground">Added</span>
+                )}
               </button>
             );
           })}
