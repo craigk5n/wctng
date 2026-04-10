@@ -140,8 +140,8 @@ export function BackupPage() {
                   <div className="flex gap-2">
                     <a
                       href={`/api/v2/admin/backup/${b.filename}`}
-                      className="text-sm text-blue-600 hover:underline dark:text-blue-400"
                       download
+                      className="inline-flex h-8 items-center rounded-md border border-input px-3 text-xs font-medium hover:bg-accent"
                     >
                       Download
                     </a>
@@ -151,7 +151,7 @@ export function BackupPage() {
                           void handleDeleteBackup(b.filename);
                         }
                       }}
-                      className="text-sm text-destructive hover:underline"
+                      className="inline-flex h-8 items-center rounded-md border border-destructive/30 px-3 text-xs font-medium text-destructive hover:bg-destructive/10"
                     >
                       Delete
                     </button>
