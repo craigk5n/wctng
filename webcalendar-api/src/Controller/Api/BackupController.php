@@ -74,6 +74,29 @@ final class BackupController
         ]);
     }
 
+    #[Route('/api/v2/admin/backup/{filename}', name: 'api_admin_backup_delete', methods: ['DELETE'])]
+    public function delete(string $filename, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
+    {
+        if ($user === null || !$user->getCoreUser()->isAdmin()) {
+            return ApiResponse::error(403, 'Admin access required');
+        }
+
+        if (!BackupService::isValidFilename($filename)) {
+            return ApiResponse::error(400, 'Invalid filename');
+        }
+
+        $path = $this->backupService->getBackupDir() . '/' . $filename;
+        if (!file_exists($path)) {
+            return ApiResponse::error(404, 'Backup not found');
+        }
+
+        if (!unlink($path)) {
+            return ApiResponse::error(500, 'Failed to delete backup file');
+        }
+
+        return ApiResponse::success(['deleted' => $filename]);
+    }
+
     #[Route('/api/v2/admin/restore', name: 'api_admin_restore', methods: ['POST'])]
     public function restore(Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
     {

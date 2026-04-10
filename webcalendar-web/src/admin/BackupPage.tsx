@@ -29,6 +29,19 @@ export function BackupPage() {
     if (data) setBackups(data);
   }, []);
 
+  const handleDeleteBackup = useCallback(
+    async (filename: string) => {
+      const { error } = await apiFetch(`/admin/backup/${filename}`, { method: 'DELETE' });
+      if (error) {
+        toast({ title: error.message ?? 'Failed to delete backup', variant: 'error' });
+        return;
+      }
+      toast({ title: 'Backup deleted', variant: 'success' });
+      await loadBackups();
+    },
+    [toast, loadBackups],
+  );
+
   useEffect(() => {
     void loadBackups();
   }, [loadBackups]);
@@ -106,31 +119,45 @@ export function BackupPage() {
           <p className="mt-2 text-sm text-muted-foreground">No backups found.</p>
         ) : (
           <div className="mt-2 space-y-2">
-            {[...backups].sort((a, b) => b.created_at.localeCompare(a.created_at)).map((b) => (
-              <div
-                key={b.filename}
-                className={`flex items-center justify-between rounded-md border p-3 text-sm transition-colors duration-700 ${
-                  b.filename === newFilename
-                    ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                    : ''
-                }`}
-              >
-                <div>
-                  <span className="font-mono font-medium">{b.filename}</span>
-                  <span className="ml-2 text-muted-foreground">{formatBytes(b.size_bytes)}</span>
-                  <span className="ml-2 text-xs text-muted-foreground">
-                    {new Date(b.created_at).toLocaleString()}
-                  </span>
-                </div>
-                <a
-                  href={`/api/v2/admin/backup/${b.filename}`}
-                  className="text-sm text-blue-600 hover:underline dark:text-blue-400"
-                  download
+            {[...backups]
+              .sort((a, b) => b.created_at.localeCompare(a.created_at))
+              .map((b) => (
+                <div
+                  key={b.filename}
+                  className={`flex items-center justify-between rounded-md border p-3 text-sm transition-colors duration-700 ${
+                    b.filename === newFilename
+                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                      : ''
+                  }`}
                 >
-                  Download
-                </a>
-              </div>
-            ))}
+                  <div>
+                    <span className="font-mono font-medium">{b.filename}</span>
+                    <span className="ml-2 text-muted-foreground">{formatBytes(b.size_bytes)}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      {new Date(b.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <a
+                      href={`/api/v2/admin/backup/${b.filename}`}
+                      className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+                      download
+                    >
+                      Download
+                    </a>
+                    <button
+                      onClick={() => {
+                        if (confirm(`Delete backup "${b.filename}"?`)) {
+                          void handleDeleteBackup(b.filename);
+                        }
+                      }}
+                      className="text-sm text-destructive hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
           </div>
         )}
       </div>
@@ -142,9 +169,11 @@ export function BackupPage() {
           This will replace the entire database. This action cannot be undone.
         </p>
 
-        <div className="mt-4 space-y-3 max-w-md">
+        <div className="mt-4 max-w-md space-y-3">
           <div>
-            <label htmlFor="restore-file" className="block text-sm font-medium">Backup File</label>
+            <label htmlFor="restore-file" className="block text-sm font-medium">
+              Backup File
+            </label>
             <input
               id="restore-file"
               type="file"
