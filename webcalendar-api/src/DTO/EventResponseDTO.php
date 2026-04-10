@@ -43,6 +43,10 @@ final class EventResponseDTO
             'sequence' => $event->sequence(),
             'status' => $event->status(),
             'rrule' => $event->recurrence()->rule() !== null ? $event->recurrence()->rule()->toString() : null,
+            'exdates' => array_map(
+                static fn (\DateTimeImmutable $d): string => $d->format('Ymd'),
+                $event->recurrence()->exDate()->dates(),
+            ),
             'categories' => $categoryIds,
         ];
 

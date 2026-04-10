@@ -21,6 +21,7 @@ export interface ApiEvent {
   sequence?: number;
   status?: string | null;
   rrule?: string | null;
+  exdates?: string[];
   categories?: number[];
   participants?: Array<{ login: string; status: string }>;
   ext_participants?: Array<{ name: string; email: string | null }>;
@@ -63,11 +64,9 @@ export function mapApiEventToFullCalendar(event: ApiEvent): EventInput {
 
   const isRecurring = event.type === 'M' || !!event.rrule;
 
-  return {
+  const result: EventInput = {
     id: String(event.id),
     title: isRecurring ? `🔁 ${event.title}` : event.title,
-    start,
-    end,
     allDay: isAllDay,
     extendedProps: {
       description: event.description,
@@ -79,6 +78,36 @@ export function mapApiEventToFullCalendar(event: ApiEvent): EventInput {
       apiEvent: event,
     },
   };
+
+  // For recurring events with an RRULE, let FullCalendar's rrule plugin
+  // handle expansion so every occurrence renders on the calendar.
+  if (isRecurring && event.rrule) {
+    // Build the rrule string with DTSTART prefix
+    const dtstart = isAllDay
+      ? `DTSTART;VALUE=DATE:${event.start_date}`
+      : `DTSTART:${event.start_date}T${event.start_time ?? '000000'}`;
+    // Build full iCal recurrence block: DTSTART + RRULE + EXDATEs
+    let rruleBlock = `${dtstart}\nRRULE:${event.rrule}`;
+    if (event.exdates && event.exdates.length > 0) {
+      const exdateStr = event.exdates
+        .map((d) => (isAllDay ? d : `${d}T${event.start_time ?? '000000'}`))
+        .join(',');
+      rruleBlock += `\nEXDATE${isAllDay ? ';VALUE=DATE' : ''}:${exdateStr}`;
+    }
+    result.rrule = rruleBlock;
+
+    // Duration for FullCalendar to size each occurrence
+    const hours = Math.floor(event.duration / 60);
+    const mins = event.duration % 60;
+    result.duration = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+
+    // Don't set start/end — rrule plugin generates them
+  } else {
+    result.start = start;
+    result.end = end;
+  }
+
+  return result;
 }
 
 /**
