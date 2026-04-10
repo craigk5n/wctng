@@ -51,9 +51,11 @@ export function EmojiPickerPopover({ value, onChange, labelledBy }: EmojiPickerP
         <div
           role="dialog"
           aria-label="Emoji picker"
-          className="absolute left-0 top-12 z-50 rounded-md border border-border bg-background shadow-lg"
+          className="absolute right-0 top-12 z-50 max-w-[calc(100vw-2rem)] overflow-hidden rounded-md border border-border bg-background shadow-lg"
         >
-          <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading picker…</div>}>
+          <Suspense
+            fallback={<div className="p-4 text-sm text-muted-foreground">Loading picker…</div>}
+          >
             <EmojiPickerInner
               onSelect={(emoji) => {
                 onChange(emoji);

@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useCategories, DEFAULT_EVENT_COLOR, getEventColor, getEventIcon, type ApiCategory } from '../useCategories';
+import {
+  useCategories,
+  DEFAULT_EVENT_COLOR,
+  getEventColor,
+  getEventIcon,
+  type ApiCategory,
+} from '../useCategories';
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -41,9 +47,7 @@ describe('useCategories', () => {
   });
 
   it('returns empty array on error', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response('Error', { status: 500 }),
-    );
+    globalThis.fetch = vi.fn().mockResolvedValue(new Response('Error', { status: 500 }));
 
     const { result } = renderHook(() => useCategories(), { wrapper: createWrapper() });
 

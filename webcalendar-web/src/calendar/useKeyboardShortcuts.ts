@@ -19,7 +19,11 @@ export function handleCalendarKeydown(event: KeyboardEvent, handlers: KeyboardHa
   // typing a "d" in a description field would trigger the global
   // "switch to day view" shortcut.
   const target = event.target;
-  if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {
+  if (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement
+  ) {
     return;
   }
   if (target instanceof HTMLElement && target.isContentEditable) {

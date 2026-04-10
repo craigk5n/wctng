@@ -49,6 +49,22 @@ export function CategoryFilterPopover({ onChange }: CategoryFilterPopoverProps) 
     if (loaded) onChange(Array.from(activeIds));
   }, [activeIds, loaded]);
 
+  // Sync when the sidebar panel (or another component) changes localStorage
+  useEffect(() => {
+    const handler = () => {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        try {
+          setActiveIds(new Set(JSON.parse(raw) as number[]));
+        } catch {
+          // ignore
+        }
+      }
+    };
+    window.addEventListener('category-filter-change', handler);
+    return () => window.removeEventListener('category-filter-change', handler);
+  }, []);
+
   // Close on outside click
   useEffect(() => {
     if (!open) return;
@@ -64,14 +80,18 @@ export function CategoryFilterPopover({ onChange }: CategoryFilterPopoverProps) 
     window.dispatchEvent(new CustomEvent('category-filter-change'));
   }, []);
 
-  const toggle = useCallback((id: number) => {
-    setActiveIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      persist(next);
-      return next;
-    });
-  }, [persist]);
+  const toggle = useCallback(
+    (id: number) => {
+      setActiveIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        persist(next);
+        return next;
+      });
+    },
+    [persist],
+  );
 
   const selectAll = useCallback(() => {
     const all = new Set([UNCATEGORIZED_ID, ...categories.map((c) => c.id)]);
@@ -97,9 +117,7 @@ export function CategoryFilterPopover({ onChange }: CategoryFilterPopoverProps) 
         onClick={() => setOpen(!open)}
         aria-label="Filter by category"
         className={`inline-flex h-10 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors ${
-          isFiltering
-            ? 'border-primary bg-primary/10 text-primary'
-            : 'border-input hover:bg-accent'
+          isFiltering ? 'border-primary bg-primary/10 text-primary' : 'border-input hover:bg-accent'
         }`}
       >
         <FilterIcon />
@@ -111,12 +129,22 @@ export function CategoryFilterPopover({ onChange }: CategoryFilterPopoverProps) 
           <div className="flex items-center justify-between border-b px-3 py-2">
             <span className="text-xs font-medium text-muted-foreground">Categories</span>
             <div className="flex gap-1">
-              <button onClick={selectAll} className="rounded px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-accent">All</button>
-              <button onClick={selectNone} className="rounded px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-accent">None</button>
+              <button
+                onClick={selectAll}
+                className="rounded px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-accent"
+              >
+                All
+              </button>
+              <button
+                onClick={selectNone}
+                className="rounded px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-accent"
+              >
+                None
+              </button>
             </div>
           </div>
           <div className="max-h-64 overflow-y-auto py-1">
-            <label className="flex items-center gap-2 cursor-pointer px-3 py-1.5 hover:bg-accent/50 border-b border-border/50 mb-1">
+            <label className="mb-1 flex cursor-pointer items-center gap-2 border-b border-border/50 px-3 py-1.5 hover:bg-accent/50">
               <input
                 type="checkbox"
                 checked={activeIds.has(UNCATEGORIZED_ID)}
@@ -124,11 +152,14 @@ export function CategoryFilterPopover({ onChange }: CategoryFilterPopoverProps) 
                 className="h-3.5 w-3.5 rounded border-input"
                 aria-label="Uncategorized"
               />
-              <span className="h-2.5 w-2.5 rounded-full flex-shrink-0 border border-dashed border-muted-foreground/40" />
+              <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full border border-dashed border-muted-foreground/40" />
               <span className="truncate text-sm italic text-muted-foreground">Uncategorized</span>
             </label>
             {categories.map((cat) => (
-              <label key={cat.id} className="flex items-center gap-2 cursor-pointer px-3 py-1.5 hover:bg-accent/50">
+              <label
+                key={cat.id}
+                className="flex cursor-pointer items-center gap-2 px-3 py-1.5 hover:bg-accent/50"
+              >
                 <input
                   type="checkbox"
                   checked={activeIds.has(cat.id)}
@@ -137,7 +168,7 @@ export function CategoryFilterPopover({ onChange }: CategoryFilterPopoverProps) 
                   aria-label={cat.name}
                 />
                 <span
-                  className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                  className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
                   style={{ backgroundColor: cat.color ?? '#888' }}
                   data-testid="category-color-dot"
                 />
@@ -153,7 +184,16 @@ export function CategoryFilterPopover({ onChange }: CategoryFilterPopoverProps) 
 
 function FilterIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
     </svg>
   );

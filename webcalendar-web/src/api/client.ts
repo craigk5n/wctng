@@ -65,6 +65,22 @@ export function getAuthHeaders(): Record<string, string> {
 }
 
 /**
+ * Handles a 401 response by clearing the stored token and sending the user
+ * back to the login page. Mirrors the openapi-fetch `authMiddleware` so that
+ * plain `apiFetch` callers get the same expired-token handling.
+ *
+ * Skips the redirect for /auth/login itself (which surfaces bad-credential
+ * errors inline) and when we're already on the /login route.
+ */
+function handleUnauthorized(path: string): void {
+  if (path.includes('/auth/login')) return;
+  localStorage.removeItem(TOKEN_STORAGE_KEY);
+  if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+    window.location.href = '/login';
+  }
+}
+
+/**
  * Typed fetch wrapper for the WebCalendar API.
  * Uses plain fetch (reliable) with the standard envelope response format.
  */
@@ -78,6 +94,26 @@ export async function apiFetch<T>(
   try {
     const res = await fetch(`${baseUrl}${path}`, { ...options, headers });
 
+    if (res.status === 401) {
+      handleUnauthorized(path);
+      // Still parse the body so callers that want to surface a specific
+      // auth-error message (e.g. the login form) can do so.
+      let body: unknown = null;
+      try {
+        body = await res.json();
+      } catch {
+        // ignore — response may be empty
+      }
+      const parsed = body as { error?: { code?: number; message?: string } } | null;
+      return {
+        data: null,
+        error: {
+          code: 401,
+          message: parsed?.error?.message ?? 'Your session has expired. Please log in again.',
+        },
+      };
+    }
+
     if (res.status === 204) {
       return { data: null, error: null };
     }
@@ -90,6 +126,9 @@ export async function apiFetch<T>(
 
     return { data: body?.data as T, error: null };
   } catch (err) {
-    return { data: null, error: { code: 0, message: err instanceof Error ? err.message : 'Network error' } };
+    return {
+      data: null,
+      error: { code: 0, message: err instanceof Error ? err.message : 'Network error' },
+    };
   }
 }

@@ -13,7 +13,8 @@ const FEATURES: FeatureToggle[] = [
   {
     key: 'ALLOW_HTML_DESCRIPTION',
     label: 'Rich Text Descriptions',
-    description: 'Allow HTML formatting in event, task, and journal descriptions using the rich text editor.',
+    description:
+      'Allow HTML formatting in event, task, and journal descriptions using the rich text editor.',
     inverted: false,
   },
   {
@@ -43,13 +44,15 @@ const FEATURES: FeatureToggle[] = [
   {
     key: 'DISABLE_EXT_PARTICIPANTS_FIELD',
     label: 'External Participants',
-    description: 'Allow inviting email-only external guests (customers, vendors, etc.) who do not have user accounts.',
+    description:
+      'Allow inviting email-only external guests (customers, vendors, etc.) who do not have user accounts.',
     inverted: true,
   },
   {
     key: 'DISABLE_TASKS',
     label: 'Tasks',
-    description: 'Enable the Tasks module for tracking to-dos with due dates and completion status.',
+    description:
+      'Enable the Tasks module for tracking to-dos with due dates and completion status.',
     inverted: true,
   },
   {
@@ -61,7 +64,8 @@ const FEATURES: FeatureToggle[] = [
   {
     key: 'ENABLE_SEO_PAGES',
     label: 'Public Event Pages for Search Engines',
-    description: 'Enable server-rendered event detail pages that search engines can crawl. Individual users can opt out in their preferences.',
+    description:
+      'Enable server-rendered event detail pages that search engines can crawl. Individual users can opt out in their preferences.',
     inverted: false,
   },
   {
@@ -85,7 +89,8 @@ const FEATURES: FeatureToggle[] = [
   {
     key: 'ENABLE_EMAIL_REMINDERS',
     label: 'Email Reminders',
-    description: 'Send email reminders before events. Individual users can configure their reminder timing in preferences.',
+    description:
+      'Send email reminders before events. Individual users can configure their reminder timing in preferences.',
     inverted: false,
   },
   {
@@ -109,29 +114,30 @@ export function AdminSettingsPage() {
     })();
   }, []);
 
-  const handleToggle = useCallback(async (key: string, inverted: boolean, checked: boolean) => {
-    // For inverted fields: checked = enabled = 'N' (not disabled)
-    // For normal fields: checked = enabled = 'Y'
-    const value = inverted
-      ? (checked ? 'N' : 'Y')
-      : (checked ? 'Y' : 'N');
+  const handleToggle = useCallback(
+    async (key: string, inverted: boolean, checked: boolean) => {
+      // For inverted fields: checked = enabled = 'N' (not disabled)
+      // For normal fields: checked = enabled = 'Y'
+      const value = inverted ? (checked ? 'N' : 'Y') : checked ? 'Y' : 'N';
 
-    // Optimistic update
-    setConfig((prev) => ({ ...prev, [key]: value }));
+      // Optimistic update
+      setConfig((prev) => ({ ...prev, [key]: value }));
 
-    const { error } = await apiFetch('/admin/config', {
-      method: 'PUT',
-      body: JSON.stringify({ [key]: value }),
-    });
+      const { error } = await apiFetch('/admin/config', {
+        method: 'PUT',
+        body: JSON.stringify({ [key]: value }),
+      });
 
-    if (!error) {
-      toast({ title: 'Setting saved', variant: 'success' });
-    } else {
-      toast({ title: 'Failed to save', variant: 'error' });
-      // Revert
-      setConfig((prev) => ({ ...prev, [key]: value === 'Y' ? 'N' : 'Y' }));
-    }
-  }, [toast]);
+      if (!error) {
+        toast({ title: 'Setting saved', variant: 'success' });
+      } else {
+        toast({ title: 'Failed to save', variant: 'error' });
+        // Revert
+        setConfig((prev) => ({ ...prev, [key]: value === 'Y' ? 'N' : 'Y' }));
+      }
+    },
+    [toast],
+  );
 
   const isEnabled = (key: string, inverted: boolean): boolean => {
     const value = config[key] ?? (inverted ? 'N' : 'Y');
@@ -153,7 +159,7 @@ export function AdminSettingsPage() {
         {FEATURES.map((feature) => (
           <label
             key={feature.key}
-            className="flex items-start gap-3 rounded-lg border p-4 cursor-pointer hover:bg-accent/30"
+            className="flex cursor-pointer items-start gap-3 rounded-lg border p-4 hover:bg-accent/30"
           >
             <input
               type="checkbox"

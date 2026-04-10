@@ -19,7 +19,7 @@ export function EmojiPickerInner({ onSelect }: EmojiPickerInnerProps) {
         placeholder="Search emoji…"
         className="z-10 mx-2 mt-2 h-8 appearance-none rounded-md bg-muted px-2 text-sm outline-none"
       />
-      <EmojiPicker.Viewport className="relative flex-1 outline-hidden">
+      <EmojiPicker.Viewport className="outline-hidden relative flex-1">
         <EmojiPicker.Loading className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
           Loading…
         </EmojiPicker.Loading>

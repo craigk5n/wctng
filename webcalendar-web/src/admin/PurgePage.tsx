@@ -107,7 +107,10 @@ export function PurgePage() {
     }
     setLastResult(data);
     setPhase('done');
-    toast({ title: `Purged ${data.count} event${data.count === 1 ? '' : 's'}`, variant: 'success' });
+    toast({
+      title: `Purged ${data.count} event${data.count === 1 ? '' : 's'}`,
+      variant: 'success',
+    });
   }, [previewCount, confirmText, buildBody, toast]);
 
   const filterChanged = phase === 'previewed' || phase === 'done';
@@ -187,8 +190,8 @@ export function PurgePage() {
         {phase === 'previewed' && previewCount !== null && (
           <div className="mt-6 rounded-md border bg-muted/30 p-4">
             <p className="text-sm">
-              <span className="font-semibold">{previewCount}</span>{' '}
-              event{previewCount === 1 ? '' : 's'} will be affected.
+              <span className="font-semibold">{previewCount}</span> event
+              {previewCount === 1 ? '' : 's'} will be affected.
             </p>
             {previewCount === 0 ? (
               <p className="mt-2 text-sm text-muted-foreground">

@@ -34,7 +34,6 @@ export interface EventFormData {
   resource?: string;
   rrule?: string;
   color?: string;
-  focus_time?: boolean;
 }
 
 interface EventDialogProps {
@@ -46,7 +45,9 @@ interface EventDialogProps {
   initialDate?: string; // YYYY-MM-DD
   initialTime?: string; // HH:MM
   initialAllDay?: boolean;
-  initialValues?: Partial<EventFormData & { start_date_display: string; start_time_display: string }>;
+  initialValues?: Partial<
+    EventFormData & { start_date_display: string; start_time_display: string }
+  >;
 }
 
 function toYYYYMMDD(dateStr: string): string {
@@ -76,10 +77,16 @@ export function EventDialog({
   const [description, setDescription] = useState(initialValues?.description ?? '');
   const [access, setAccess] = useState(initialValues?.access ?? 'P');
   const [allDay, setAllDay] = useState(initialAllDay);
-  const [selectedCategories, setSelectedCategories] = useState<number[]>(initialValues?.categories ?? []);
-  const [participantLogins, setParticipantLogins] = useState<string[]>(initialValues?.participants ?? []);
+  const [selectedCategories, setSelectedCategories] = useState<number[]>(
+    initialValues?.categories ?? [],
+  );
+  const [participantLogins, setParticipantLogins] = useState<string[]>(
+    initialValues?.participants ?? [],
+  );
   const [newParticipant, setNewParticipant] = useState('');
-  const [extParticipants, setExtParticipants] = useState<ExtParticipant[]>(initialValues?.ext_participants ?? []);
+  const [extParticipants, setExtParticipants] = useState<ExtParticipant[]>(
+    initialValues?.ext_participants ?? [],
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { categories: availableCategories } = useCategories();
@@ -89,7 +96,6 @@ export function EventDialog({
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [rrule, setRrule] = useState(initialValues?.rrule ?? '');
   const [eventColor, setEventColor] = useState(initialValues?.color ?? '');
-  const [isFocusTime, setIsFocusTime] = useState(false);
   const [resources, setResources] = useState<Array<{ login: string; name: string }>>([]);
   const [selectedResource, setSelectedResource] = useState('');
   const [categorySearch, setCategorySearch] = useState('');
@@ -136,9 +142,10 @@ export function EventDialog({
     })();
   }, []);
 
-  const filteredGroups = newParticipant.trim().length > 0
-    ? groups.filter((g) => g.name.toLowerCase().includes(newParticipant.trim().toLowerCase()))
-    : [];
+  const filteredGroups =
+    newParticipant.trim().length > 0
+      ? groups.filter((g) => g.name.toLowerCase().includes(newParticipant.trim().toLowerCase()))
+      : [];
 
   const handleSelectGroup = useCallback(async (group: GroupSuggestion) => {
     const { data } = await apiFetch<GroupDetail>(`/groups/${group.id}`);
@@ -185,7 +192,6 @@ export function EventDialog({
         resource: selectedResource || undefined,
         rrule: rrule || undefined,
         color: eventColor || undefined,
-        focus_time: isFocusTime || undefined,
       };
 
       if (!allDay && time) {
@@ -211,12 +217,10 @@ export function EventDialog({
       aria-modal="true"
     >
       <div
-        className="fixed inset-0 overflow-y-auto bg-card p-6 shadow-lg md:static md:inset-auto md:w-full md:max-w-lg md:max-h-[85vh] md:overflow-y-auto md:rounded-lg"
+        className="fixed inset-0 overflow-y-auto bg-card p-6 shadow-lg md:static md:inset-auto md:max-h-[85vh] md:w-full md:max-w-lg md:overflow-y-auto md:rounded-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-semibold">
-          {mode === 'edit' ? 'Edit Event' : 'New Event'}
-        </h2>
+        <h2 className="text-lg font-semibold">{mode === 'edit' ? 'Edit Event' : 'New Event'}</h2>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           {error && (
@@ -252,18 +256,6 @@ export function EventDialog({
               />
               <label htmlFor="event-allday" className="text-sm font-medium">
                 All day
-              </label>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                id="event-focus"
-                type="checkbox"
-                checked={isFocusTime}
-                onChange={(e) => setIsFocusTime(e.target.checked)}
-                className="h-4 w-4 rounded border-input"
-              />
-              <label htmlFor="event-focus" className="text-sm font-medium">
-                Focus Time
               </label>
             </div>
           </div>
@@ -363,16 +355,16 @@ export function EventDialog({
               >
                 <option value="">None</option>
                 {resources.map((r) => (
-                  <option key={r.login} value={r.login}>{r.name}</option>
+                  <option key={r.login} value={r.login}>
+                    {r.name}
+                  </option>
                 ))}
               </select>
             </div>
           )}
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">
-              Description
-            </label>
+            <label className="text-sm font-medium">Description</label>
             {flags.ALLOW_HTML_DESCRIPTION === 'Y' ? (
               <RichTextEditor
                 content={description}
@@ -434,10 +426,7 @@ export function EventDialog({
           </div>
 
           {/* Custom Fields */}
-          <CustomFieldsSection
-            values={customFieldValues}
-            onChange={setCustomFieldValues}
-          />
+          <CustomFieldsSection values={customFieldValues} onChange={setCustomFieldValues} />
 
           {availableCategories.length > 0 && (
             <div className="space-y-2">
@@ -457,7 +446,9 @@ export function EventDialog({
                         {cat.name}
                         <button
                           type="button"
-                          onClick={() => setSelectedCategories((prev) => prev.filter((id) => id !== cat.id))}
+                          onClick={() =>
+                            setSelectedCategories((prev) => prev.filter((id) => id !== cat.id))
+                          }
                           className="ml-0.5 hover:opacity-70"
                           aria-label={`Remove ${cat.name}`}
                         >
@@ -489,9 +480,10 @@ export function EventDialog({
                 {showCategoryDropdown && (
                   <div className="absolute left-0 top-10 z-10 max-h-40 w-full overflow-y-auto rounded-md border border-border bg-card shadow-lg">
                     {availableCategories
-                      .filter((cat) =>
-                        cat.name.toLowerCase().includes(categorySearch.toLowerCase()) &&
-                        !selectedCategories.includes(cat.id),
+                      .filter(
+                        (cat) =>
+                          cat.name.toLowerCase().includes(categorySearch.toLowerCase()) &&
+                          !selectedCategories.includes(cat.id),
                       )
                       .map((cat) => (
                         <button
@@ -528,90 +520,92 @@ export function EventDialog({
 
           {/* Participants */}
           {flags.DISABLE_PARTICIPANTS_FIELD !== 'Y' && (
-          <div className="space-y-2">
-            <span className="text-sm font-medium">Participants</span>
-            <div className="relative flex gap-2">
-              <input
-                type="text"
-                value={newParticipant}
-                onChange={(e) => {
-                  setNewParticipant(e.target.value);
-                  setShowGroupSuggestions(e.target.value.trim().length > 0);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
+            <div className="space-y-2">
+              <span className="text-sm font-medium">Participants</span>
+              <div className="relative flex gap-2">
+                <input
+                  type="text"
+                  value={newParticipant}
+                  onChange={(e) => {
+                    setNewParticipant(e.target.value);
+                    setShowGroupSuggestions(e.target.value.trim().length > 0);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const login = newParticipant.trim();
+                      if (login && !participantLogins.includes(login)) {
+                        setParticipantLogins((prev) => [...prev, login]);
+                        setNewParticipant('');
+                        setShowGroupSuggestions(false);
+                      }
+                    }
+                    if (e.key === 'Escape') {
+                      setShowGroupSuggestions(false);
+                    }
+                  }}
+                  onFocus={() => {
+                    if (newParticipant.trim().length > 0) setShowGroupSuggestions(true);
+                  }}
+                  placeholder="Type username and press Enter"
+                  className="flex h-9 flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
                     const login = newParticipant.trim();
                     if (login && !participantLogins.includes(login)) {
                       setParticipantLogins((prev) => [...prev, login]);
                       setNewParticipant('');
                       setShowGroupSuggestions(false);
                     }
-                  }
-                  if (e.key === 'Escape') {
-                    setShowGroupSuggestions(false);
-                  }
-                }}
-                onFocus={() => {
-                  if (newParticipant.trim().length > 0) setShowGroupSuggestions(true);
-                }}
-                placeholder="Type username and press Enter"
-                className="flex h-9 flex-1 rounded-md border border-input bg-background px-3 py-1 text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  const login = newParticipant.trim();
-                  if (login && !participantLogins.includes(login)) {
-                    setParticipantLogins((prev) => [...prev, login]);
-                    setNewParticipant('');
-                    setShowGroupSuggestions(false);
-                  }
-                }}
-                className="inline-flex h-9 items-center rounded-md border border-input px-3 text-sm hover:bg-accent"
-              >
-                Add
-              </button>
+                  }}
+                  className="inline-flex h-9 items-center rounded-md border border-input px-3 text-sm hover:bg-accent"
+                >
+                  Add
+                </button>
 
-              {/* Group suggestions dropdown */}
-              {showGroupSuggestions && filteredGroups.length > 0 && (
-                <div className="absolute left-0 top-10 z-10 w-full rounded-md border border-border bg-card shadow-lg">
-                  {filteredGroups.map((group) => (
-                    <button
-                      key={group.id}
-                      type="button"
-                      onClick={() => void handleSelectGroup(group)}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent"
+                {/* Group suggestions dropdown */}
+                {showGroupSuggestions && filteredGroups.length > 0 && (
+                  <div className="absolute left-0 top-10 z-10 w-full rounded-md border border-border bg-card shadow-lg">
+                    {filteredGroups.map((group) => (
+                      <button
+                        key={group.id}
+                        type="button"
+                        onClick={() => void handleSelectGroup(group)}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent"
+                      >
+                        <span>👥</span>
+                        <span>{group.name}</span>
+                        <span className="text-xs text-muted-foreground">(group)</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {participantLogins.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {participantLogins.map((login) => (
+                    <span
+                      key={login}
+                      className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium"
                     >
-                      <span>👥</span>
-                      <span>{group.name}</span>
-                      <span className="text-xs text-muted-foreground">(group)</span>
-                    </button>
+                      {login}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setParticipantLogins((prev) => prev.filter((l) => l !== login))
+                        }
+                        className="ml-0.5 text-muted-foreground hover:text-foreground"
+                        aria-label={`Remove ${login}`}
+                      >
+                        ✕
+                      </button>
+                    </span>
                   ))}
                 </div>
               )}
             </div>
-            {participantLogins.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {participantLogins.map((login) => (
-                  <span
-                    key={login}
-                    className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium"
-                  >
-                    {login}
-                    <button
-                      type="button"
-                      onClick={() => setParticipantLogins((prev) => prev.filter((l) => l !== login))}
-                      className="ml-0.5 text-muted-foreground hover:text-foreground"
-                      aria-label={`Remove ${login}`}
-                    >
-                      ✕
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
           )}
 
           {/* External (email-only) participants */}

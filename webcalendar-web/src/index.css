@@ -126,6 +126,13 @@
   @apply mt-0.5;
 }
 
+/* Prevent single-day event bars from visually bleeding into the next cell
+   on narrow viewports (observed on iPad portrait). */
+.fc .fc-daygrid-event-harness {
+  max-width: 100%;
+  overflow: hidden;
+}
+
 /* Month view: single-line ellipsis for truncated titles. Users see the
    full title via the native tooltip wired up in eventDidMount. */
 .fc .fc-daygrid-event .fc-event-title,

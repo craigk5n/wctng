@@ -21,11 +21,18 @@ import { ViewSwitcher } from './ViewSwitcher';
 import { QuickAddInput } from './QuickAddInput';
 import { useMercure, type MercureMessage } from '../hooks/useMercure';
 import { CategoryFilterPopover } from './CategoryFilterPopover';
+import { CategoryFilter } from './CategoryFilter';
 
 type DialogState =
   | { type: 'none' }
   | { type: 'detail'; event: ApiEvent }
-  | { type: 'create'; initialDate: string; initialTime: string; initialAllDay: boolean; initialValues?: Record<string, unknown> }
+  | {
+      type: 'create';
+      initialDate: string;
+      initialTime: string;
+      initialAllDay: boolean;
+      initialValues?: Record<string, unknown>;
+    }
   | { type: 'edit'; event: ApiEvent }
   | { type: 'confirmDelete'; event: ApiEvent };
 
@@ -37,10 +44,14 @@ export function CalendarPage() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showPoll, setShowPoll] = useState(false);
-  const [showLayers, setShowLayers] = useState(() =>
-    localStorage.getItem('wctng_layers_visible') !== 'false',
+  const [showLayers, setShowLayers] = useState(
+    () => localStorage.getItem('wctng_layers_visible') !== 'false',
+  );
+  const [showCategories, setShowCategories] = useState(
+    () => localStorage.getItem('wctng_categories_visible') !== 'false',
   );
   const [defaultView, setDefaultView] = useState('dayGridMonth');
+  const [scrollTime, setScrollTime] = useState('08:00:00');
   const [activeLayers, setActiveLayers] = useState<LayerVisibility[]>([]);
   const [activeCategoryIds, setActiveCategoryIds] = useState<number[] | null>(null);
   const { toast } = useToast();
@@ -52,10 +63,23 @@ export function CalendarPage() {
   useEffect(() => {
     if (!user?.login) return;
     void (async () => {
-      const { data } = await apiFetch<Array<{ key: string; value: string }>>(`/users/${user.login}/preferences`);
+      const { data } = await apiFetch<Array<{ key: string; value: string }>>(
+        `/users/${user.login}/preferences`,
+      );
       if (data) {
         const viewPref = data.find((p) => p.key === 'STARTVIEW');
         if (viewPref) setDefaultView(viewPref.value);
+        const startPref = data.find((p) => p.key === 'WORK_DAY_START');
+        if (startPref?.value) {
+          // Accept "HH:MM" or "H" and normalize to "HH:MM:SS"
+          const v = startPref.value.trim();
+          const m = /^(\d{1,2})(?::(\d{2}))?(?::\d{2})?$/.exec(v);
+          if (m) {
+            const hh = String(Math.min(23, parseInt(m[1], 10))).padStart(2, '0');
+            const mm = (m[2] ?? '00').padStart(2, '0');
+            setScrollTime(`${hh}:${mm}:00`);
+          }
+        }
       }
     })();
   }, [user?.login]);
@@ -83,40 +107,47 @@ export function CalendarPage() {
   }, [searchParams, setSearchParams]);
 
   // --- Global keyboard shortcuts ---
-  const shortcutHandlers = useMemo(() => ({
-    onHelp: () => setShowShortcuts(true),
-    onNewEvent: () => {
-      const now = new Date();
-      setDialog({
-        type: 'create',
-        initialDate: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
-        initialTime: '09:00',
-        initialAllDay: false,
-      });
-    },
-  }), []);
+  const shortcutHandlers = useMemo(
+    () => ({
+      onHelp: () => setShowShortcuts(true),
+      onNewEvent: () => {
+        const now = new Date();
+        setDialog({
+          type: 'create',
+          initialDate: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
+          initialTime: '09:00',
+          initialAllDay: false,
+        });
+      },
+    }),
+    [],
+  );
 
   useGlobalShortcuts(shortcutHandlers);
 
   // --- Mercure real-time subscription ---
-  const mercureHubUrl = import.meta.env.VITE_MERCURE_URL as string | undefined
-    ?? 'http://localhost:47181/.well-known/mercure';
+  const mercureHubUrl =
+    (import.meta.env.VITE_MERCURE_URL as string | undefined) ??
+    'http://localhost:47181/.well-known/mercure';
   const mercureTopics = useMemo(() => ['/calendars/events'], []);
 
-  const handleMercureMessage = useCallback((msg: MercureMessage) => {
-    if (msg.type === 'event.created' || msg.type === 'event.updated') {
-      calendarRef.current?.refetchEvents();
-      const eventData = msg.event as Record<string, unknown> | undefined;
-      const createdBy = eventData?.created_by as string | undefined;
-      if (createdBy && createdBy !== user?.login) {
-        toast({ title: `Calendar updated by ${createdBy}` });
+  const handleMercureMessage = useCallback(
+    (msg: MercureMessage) => {
+      if (msg.type === 'event.created' || msg.type === 'event.updated') {
+        calendarRef.current?.refetchEvents();
+        const eventData = msg.event as Record<string, unknown> | undefined;
+        const createdBy = eventData?.created_by as string | undefined;
+        if (createdBy && createdBy !== user?.login) {
+          toast({ title: `Calendar updated by ${createdBy}` });
+        }
+      } else if (msg.type === 'event.deleted') {
+        calendarRef.current?.refetchEvents();
+      } else if (msg.type === 'participant.changed') {
+        calendarRef.current?.refetchEvents();
       }
-    } else if (msg.type === 'event.deleted') {
-      calendarRef.current?.refetchEvents();
-    } else if (msg.type === 'participant.changed') {
-      calendarRef.current?.refetchEvents();
-    }
-  }, [toast, user?.login]);
+    },
+    [toast, user?.login],
+  );
 
   useMercure({
     hubUrl: mercureHubUrl,
@@ -125,14 +156,20 @@ export function CalendarPage() {
   });
 
   // --- Task click: navigate to tasks page ---
-  const handleTaskClick = useCallback((_taskId: number) => {
-    navigate('/tasks');
-  }, [navigate]);
+  const handleTaskClick = useCallback(
+    (_taskId: number) => {
+      navigate('/tasks');
+    },
+    [navigate],
+  );
 
   // --- Journal click: navigate to journals page ---
-  const handleJournalClick = useCallback((_journalId: number) => {
-    navigate('/journals');
-  }, [navigate]);
+  const handleJournalClick = useCallback(
+    (_journalId: number) => {
+      navigate('/journals');
+    },
+    [navigate],
+  );
 
   // --- Event click: fetch full event and show detail ---
   const handleEventClick = useCallback(async (eventId: number) => {
@@ -174,53 +211,61 @@ export function CalendarPage() {
   }, []);
 
   // --- Create event ---
-  const handleCreate = useCallback(async (data: EventFormData): Promise<boolean> => {
-    const body: Record<string, unknown> = {
-      title: data.title,
-      start_date: data.start_date,
-      duration: data.duration,
-      location: data.location,
-      description: data.description,
-      access: data.access,
-      categories: data.categories ?? [],
-    };
-    if (!data.all_day && data.start_time) {
-      body.start_time = data.start_time;
-    }
-    if (data.rrule) {
-      body.rrule = data.rrule;
-    }
-
-    const { data: created, error } = await apiFetch<{ id: number }>('/events', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    });
-
-    if (!error && created) {
-      // Add participants if specified
-      if (data.participants && data.participants.length > 0) {
-        await apiFetch(`/events/${created.id}/participants`, {
-          method: 'POST',
-          body: JSON.stringify({ participants: data.participants }),
-        });
+  const handleCreate = useCallback(
+    async (data: EventFormData): Promise<boolean> => {
+      const body: Record<string, unknown> = {
+        title: data.title,
+        start_date: data.start_date,
+        duration: data.duration,
+        location: data.location,
+        description: data.description,
+        access: data.access,
+        categories: data.categories ?? [],
+      };
+      if (!data.all_day && data.start_time) {
+        body.start_time = data.start_time;
       }
-      // Save custom field values (including event color)
-      const customFields = { ...(data.custom_fields ?? {}) };
-      if (data.color) customFields['_event_color'] = data.color;
-      if (data.focus_time) customFields['_focus_time'] = 'true';
-      if (Object.keys(customFields).length > 0) {
-        await apiFetch(`/events/${created.id}/custom-fields`, {
-          method: 'PUT',
-          body: JSON.stringify(customFields),
-        });
+      if (data.rrule) {
+        body.rrule = data.rrule;
       }
-      calendarRef.current?.refetchEvents();
-      toast({ title: 'Event created', variant: 'success' });
-      return true;
-    }
-    toast({ title: 'Failed to create event', variant: 'error' });
-    return false;
-  }, [toast]);
+
+      const { data: created, error } = await apiFetch<{ id: number }>('/events', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+
+      if (!error && created) {
+        // Add participants if specified
+        if (data.participants && data.participants.length > 0) {
+          const { error: partErr } = await apiFetch(`/events/${created.id}/participants`, {
+            method: 'POST',
+            body: JSON.stringify({ participants: data.participants }),
+          });
+          if (partErr) {
+            toast({ title: 'Event created but failed to add participants', variant: 'error' });
+          }
+        }
+        // Save custom field values (including event color)
+        const customFields = { ...(data.custom_fields ?? {}) };
+        if (data.color) customFields['_event_color'] = data.color;
+        if (Object.keys(customFields).length > 0) {
+          const { error: cfErr } = await apiFetch(`/events/${created.id}/custom-fields`, {
+            method: 'PUT',
+            body: JSON.stringify(customFields),
+          });
+          if (cfErr) {
+            toast({ title: 'Event created but failed to save custom fields', variant: 'error' });
+          }
+        }
+        calendarRef.current?.refetchEvents();
+        toast({ title: 'Event created', variant: 'success' });
+        return true;
+      }
+      toast({ title: 'Failed to create event', variant: 'error' });
+      return false;
+    },
+    [toast],
+  );
 
   // --- Update event ---
   const handleUpdate = useCallback(
@@ -252,18 +297,26 @@ export function CalendarPage() {
         const currentLogins = (event.participants ?? []).map((p) => p.login);
         const newLogins = data.participants;
 
+        let participantFailed = false;
         for (const login of newLogins) {
           if (!currentLogins.includes(login)) {
-            await apiFetch(`/events/${event.id}/participants`, {
+            const { error: addErr } = await apiFetch(`/events/${event.id}/participants`, {
               method: 'POST',
               body: JSON.stringify({ participants: [login] }),
             });
+            if (addErr) participantFailed = true;
           }
         }
         for (const login of currentLogins) {
           if (!newLogins.includes(login)) {
-            await apiFetch(`/events/${event.id}/participants/${login}`, { method: 'DELETE' });
+            const { error: rmErr } = await apiFetch(`/events/${event.id}/participants/${login}`, {
+              method: 'DELETE',
+            });
+            if (rmErr) participantFailed = true;
           }
+        }
+        if (participantFailed) {
+          toast({ title: 'Event updated but some participant changes failed', variant: 'error' });
         }
       }
 
@@ -299,29 +352,38 @@ export function CalendarPage() {
   const closeDialog = useCallback(() => setDialog({ type: 'none' }), []);
 
   // Drag-and-drop rescheduling
-  const handleEventDrop = useCallback(async (info: { eventId: number; newStart: Date; newEnd: Date | null; allDay: boolean; revert: () => void }) => {
-    const startDate = formatDateYmd(info.newStart);
-    const startTime = info.allDay ? undefined : formatTimeHms(info.newStart);
-    const duration = info.newEnd
-      ? Math.round((info.newEnd.getTime() - info.newStart.getTime()) / 60000)
-      : undefined;
+  const handleEventDrop = useCallback(
+    async (info: {
+      eventId: number;
+      newStart: Date;
+      newEnd: Date | null;
+      allDay: boolean;
+      revert: () => void;
+    }) => {
+      const startDate = formatDateYmd(info.newStart);
+      const startTime = info.allDay ? undefined : formatTimeHms(info.newStart);
+      const duration = info.newEnd
+        ? Math.round((info.newEnd.getTime() - info.newStart.getTime()) / 60000)
+        : undefined;
 
-    const body: Record<string, unknown> = { start_date: startDate };
-    if (startTime) body.start_time = startTime;
-    if (duration !== undefined) body.duration = duration;
+      const body: Record<string, unknown> = { start_date: startDate };
+      if (startTime) body.start_time = startTime;
+      if (duration !== undefined) body.duration = duration;
 
-    const { error } = await apiFetch(`/events/${info.eventId}`, {
-      method: 'PUT',
-      body: JSON.stringify(body),
-    });
+      const { error } = await apiFetch(`/events/${info.eventId}`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      });
 
-    if (error) {
-      info.revert();
-      toast({ title: 'Failed to reschedule', variant: 'error' });
-    } else {
-      toast({ title: 'Event rescheduled', variant: 'success' });
-    }
-  }, [toast]);
+      if (error) {
+        info.revert();
+        toast({ title: 'Failed to reschedule', variant: 'error' });
+      } else {
+        toast({ title: 'Event rescheduled', variant: 'success' });
+      }
+    },
+    [toast],
+  );
 
   const handleCategoryFilterChange = useCallback((ids: number[]) => {
     setActiveCategoryIds((prev) => {
@@ -336,8 +398,16 @@ export function CalendarPage() {
   const handleLayersChange = useCallback((layers: LayerVisibility[]) => {
     setActiveLayers((prev) => {
       // Only trigger refetch if visibility actually changed
-      const prevVisible = prev.filter((l) => l.visible).map((l) => l.id).sort().join(',');
-      const newVisible = layers.filter((l) => l.visible).map((l) => l.id).sort().join(',');
+      const prevVisible = prev
+        .filter((l) => l.visible)
+        .map((l) => l.id)
+        .sort()
+        .join(',');
+      const newVisible = layers
+        .filter((l) => l.visible)
+        .map((l) => l.id)
+        .sort()
+        .join(',');
       if (prevVisible !== newVisible) {
         // Defer refetch to after state update
         setTimeout(() => calendarRef.current?.refetchEvents(), 0);
@@ -350,18 +420,22 @@ export function CalendarPage() {
     <div>
       {/* Toolbar */}
       <div className="mb-4 flex justify-end gap-2">
-        <QuickAddInput onParsed={(parsed) => {
-          setDialog({
-            type: 'create',
-            initialDate: parsed.start_date_display ?? '',
-            initialTime: parsed.start_time_display ?? '',
-            initialAllDay: false,
-            initialValues: parsed as Record<string, unknown>,
-          });
-        }} />
-        <ViewSwitcher onViewChange={() => {
-          calendarRef.current?.refetchEvents();
-        }} />
+        <QuickAddInput
+          onParsed={(parsed) => {
+            setDialog({
+              type: 'create',
+              initialDate: parsed.start_date_display ?? '',
+              initialTime: parsed.start_time_display ?? '',
+              initialAllDay: false,
+              initialValues: parsed as Record<string, unknown>,
+            });
+          }}
+        />
+        <ViewSwitcher
+          onViewChange={() => {
+            calendarRef.current?.refetchEvents();
+          }}
+        />
         <CategoryFilterPopover onChange={handleCategoryFilterChange} />
         <PrintButton />
         <ExportButton />
@@ -398,6 +472,7 @@ export function CalendarPage() {
           <FullCalendarWrapper
             ref={calendarRef}
             initialView={defaultView}
+            scrollTime={scrollTime}
             onEventClick={handleEventClick}
             onTaskClick={handleTaskClick}
             onJournalClick={handleJournalClick}
@@ -428,6 +503,25 @@ export function CalendarPage() {
               <LayerPanel onLayersChange={handleLayersChange} />
             </div>
           )}
+
+          <button
+            onClick={() => {
+              setShowCategories((prev) => {
+                localStorage.setItem('wctng_categories_visible', String(!prev));
+                return !prev;
+              });
+            }}
+            className="mb-1 flex w-full items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-accent"
+            aria-expanded={showCategories}
+          >
+            <span>Categories</span>
+            <span aria-hidden="true">{showCategories ? '▼' : '▶'}</span>
+          </button>
+          {showCategories && (
+            <div className="w-56 rounded-lg border border-border bg-card">
+              <CategoryFilter onChange={handleCategoryFilterChange} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -448,7 +542,9 @@ export function CalendarPage() {
             setDialog({
               type: 'create',
               initialDate: `${yyyy}-${mm}-${dd}`,
-              initialTime: e.start_time ? `${e.start_time.slice(0, 2)}:${e.start_time.slice(2, 4)}` : '',
+              initialTime: e.start_time
+                ? `${e.start_time.slice(0, 2)}:${e.start_time.slice(2, 4)}`
+                : '',
               initialAllDay: e.all_day,
               initialValues: {
                 title: `${e.title} (copy)`,
@@ -466,7 +562,9 @@ export function CalendarPage() {
           isResponding={isResponding}
           onAccept={async () => {
             setIsResponding(true);
-            const { error } = await apiFetch(`/events/${dialog.event.id}/approve`, { method: 'POST' });
+            const { error } = await apiFetch(`/events/${dialog.event.id}/approve`, {
+              method: 'POST',
+            });
             if (!error) {
               toast({ title: 'Event accepted', variant: 'success' });
               // Refresh event detail
@@ -479,7 +577,9 @@ export function CalendarPage() {
           }}
           onReject={async () => {
             setIsResponding(true);
-            const { error } = await apiFetch(`/events/${dialog.event.id}/reject`, { method: 'POST' });
+            const { error } = await apiFetch(`/events/${dialog.event.id}/reject`, {
+              method: 'POST',
+            });
             if (!error) {
               toast({ title: 'Event declined', variant: 'success' });
               const { data } = await apiFetch<ApiEvent>(`/events/${dialog.event.id}`);

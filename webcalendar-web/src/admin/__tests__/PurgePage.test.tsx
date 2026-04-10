@@ -26,7 +26,10 @@ describe('PurgePage', () => {
   });
 
   it('sends a dry-run request when Preview is clicked', async () => {
-    apiFetch.mockResolvedValue({ data: { count: 5, dry_run: true, before_date: '2025-01-01', user_login: null }, error: null });
+    apiFetch.mockResolvedValue({
+      data: { count: 5, dry_run: true, before_date: '2025-01-01', user_login: null },
+      error: null,
+    });
     const user = userEvent.setup();
 
     render(<PurgePage />);
@@ -48,7 +51,10 @@ describe('PurgePage', () => {
   });
 
   it('shows the preview count and disables Purge until DELETE is typed', async () => {
-    apiFetch.mockResolvedValue({ data: { count: 7, dry_run: true, before_date: '2025-01-01', user_login: null }, error: null });
+    apiFetch.mockResolvedValue({
+      data: { count: 7, dry_run: true, before_date: '2025-01-01', user_login: null },
+      error: null,
+    });
     const user = userEvent.setup();
 
     render(<PurgePage />);
@@ -67,8 +73,14 @@ describe('PurgePage', () => {
 
   it('Purge button sends live-run with confirm_count matching preview', async () => {
     apiFetch
-      .mockResolvedValueOnce({ data: { count: 3, dry_run: true, before_date: '2025-01-01', user_login: null }, error: null })
-      .mockResolvedValueOnce({ data: { count: 3, dry_run: false, before_date: '2025-01-01', user_login: null }, error: null });
+      .mockResolvedValueOnce({
+        data: { count: 3, dry_run: true, before_date: '2025-01-01', user_login: null },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: { count: 3, dry_run: false, before_date: '2025-01-01', user_login: null },
+        error: null,
+      });
     const user = userEvent.setup();
 
     render(<PurgePage />);
@@ -88,7 +100,10 @@ describe('PurgePage', () => {
   });
 
   it('shows zero-count state without a confirm prompt', async () => {
-    apiFetch.mockResolvedValue({ data: { count: 0, dry_run: true, before_date: '2025-01-01', user_login: null }, error: null });
+    apiFetch.mockResolvedValue({
+      data: { count: 0, dry_run: true, before_date: '2025-01-01', user_login: null },
+      error: null,
+    });
     const user = userEvent.setup();
 
     render(<PurgePage />);
@@ -101,7 +116,10 @@ describe('PurgePage', () => {
   });
 
   it('changing the date after preview resets the confirm flow', async () => {
-    apiFetch.mockResolvedValue({ data: { count: 5, dry_run: true, before_date: '2025-01-01', user_login: null }, error: null });
+    apiFetch.mockResolvedValue({
+      data: { count: 5, dry_run: true, before_date: '2025-01-01', user_login: null },
+      error: null,
+    });
     const user = userEvent.setup();
 
     render(<PurgePage />);
@@ -117,7 +135,10 @@ describe('PurgePage', () => {
   });
 
   it('includes user_login in the body when provided', async () => {
-    apiFetch.mockResolvedValue({ data: { count: 1, dry_run: true, before_date: '2025-01-01', user_login: 'alice' }, error: null });
+    apiFetch.mockResolvedValue({
+      data: { count: 1, dry_run: true, before_date: '2025-01-01', user_login: 'alice' },
+      error: null,
+    });
     const user = userEvent.setup();
 
     render(<PurgePage />);
@@ -132,7 +153,10 @@ describe('PurgePage', () => {
   });
 
   it('passes include_repeating when checkbox is set', async () => {
-    apiFetch.mockResolvedValue({ data: { count: 2, dry_run: true, before_date: '2025-01-01', user_login: null }, error: null });
+    apiFetch.mockResolvedValue({
+      data: { count: 2, dry_run: true, before_date: '2025-01-01', user_login: null },
+      error: null,
+    });
     const user = userEvent.setup();
 
     render(<PurgePage />);

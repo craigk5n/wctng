@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '../api/client';
 import { useToast } from '../components/toast/ToastProvider';
 import { useAuth } from '../auth/auth-context';
@@ -32,6 +33,17 @@ export function CategoryManagement() {
   const [mergeSource, setMergeSource] = useState(0);
   const [mergeTarget, setMergeTarget] = useState(0);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  /**
+   * Invalidate the shared ['categories'] React Query cache so that
+   * EventDialog / FullCalendarWrapper / EventTooltip see fresh data after
+   * any create/update/delete/merge here. Without this, the edit dialog
+   * keeps serving stale cached categories until staleTime (5 min) elapses.
+   */
+  const invalidateSharedCategories = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ['categories'] });
+  }, [queryClient]);
 
   const fetchCategories = useCallback(async () => {
     setIsLoading(true);
@@ -51,7 +63,12 @@ export function CategoryManagement() {
 
     const { error } = await apiFetch('/categories', {
       method: 'POST',
-      body: JSON.stringify({ name: newName.trim(), color: newColor, icon: newIcon, is_global: isAdmin && newIsGlobal }),
+      body: JSON.stringify({
+        name: newName.trim(),
+        color: newColor,
+        icon: newIcon,
+        is_global: isAdmin && newIsGlobal,
+      }),
     });
 
     setIsCreating(false);
@@ -64,6 +81,7 @@ export function CategoryManagement() {
       setNewIsGlobal(false);
       setShowCreateForm(false);
       void fetchCategories();
+      invalidateSharedCategories();
     } else {
       toast({ title: error.message, variant: 'error' });
     }
@@ -75,6 +93,7 @@ export function CategoryManagement() {
     if (!error) {
       toast({ title: `Category "${cat.name}" deleted`, variant: 'success' });
       void fetchCategories();
+      invalidateSharedCategories();
     } else {
       toast({ title: error.message, variant: 'error' });
     }
@@ -83,7 +102,11 @@ export function CategoryManagement() {
   const handleMerge = async () => {
     if (mergeSource <= 0 || mergeTarget <= 0 || mergeSource === mergeTarget) return;
 
-    const { data, error } = await apiFetch<{ merged_events: number; source: string; target: string }>('/admin/categories/merge', {
+    const { data, error } = await apiFetch<{
+      merged_events: number;
+      source: string;
+      target: string;
+    }>('/admin/categories/merge', {
       method: 'POST',
       body: JSON.stringify({ source_id: mergeSource, target_id: mergeTarget }),
     });
@@ -92,11 +115,15 @@ export function CategoryManagement() {
       toast({ title: error.message ?? 'Merge failed', variant: 'error' });
       return;
     }
-    toast({ title: `Merged "${data?.source}" into "${data?.target}" (${data?.merged_events} events)`, variant: 'success' });
+    toast({
+      title: `Merged "${data?.source}" into "${data?.target}" (${data?.merged_events} events)`,
+      variant: 'success',
+    });
     setShowMerge(false);
     setMergeSource(0);
     setMergeTarget(0);
     void fetchCategories();
+    invalidateSharedCategories();
   };
 
   const handleToggleGlobal = async (cat: Category) => {
@@ -108,8 +135,12 @@ export function CategoryManagement() {
       toast({ title: error.message ?? 'Failed to update', variant: 'error' });
       return;
     }
-    toast({ title: cat.is_global ? 'Category is now personal' : 'Category is now global', variant: 'success' });
+    toast({
+      title: cat.is_global ? 'Category is now personal' : 'Category is now global',
+      variant: 'success',
+    });
     void fetchCategories();
+    invalidateSharedCategories();
   };
 
   const startEditing = (cat: Category) => {
@@ -131,6 +162,7 @@ export function CategoryManagement() {
       toast({ title: 'Category updated', variant: 'success' });
       setEditingId(null);
       void fetchCategories();
+      invalidateSharedCategories();
     } else {
       toast({ title: error.message, variant: 'error' });
     }
@@ -160,29 +192,52 @@ export function CategoryManagement() {
 
       {/* Merge Dialog */}
       {showMerge && (
-        <div className="mt-4 rounded-lg border border-border p-4 space-y-3">
+        <div className="mt-4 space-y-3 rounded-lg border border-border p-4">
           <h3 className="text-sm font-semibold">Merge Categories</h3>
-          <p className="text-xs text-muted-foreground">All events from the source category will be reassigned to the target. The source will be deleted.</p>
+          <p className="text-xs text-muted-foreground">
+            All events from the source category will be reassigned to the target. The source will be
+            deleted.
+          </p>
           <div className="flex items-end gap-3">
             <div className="flex-1 space-y-1">
-              <label htmlFor="merge-source" className="text-xs font-medium">Source (will be deleted)</label>
-              <select id="merge-source" value={mergeSource} onChange={(e) => setMergeSource(Number(e.target.value))}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+              <label htmlFor="merge-source" className="text-xs font-medium">
+                Source (will be deleted)
+              </label>
+              <select
+                id="merge-source"
+                value={mergeSource}
+                onChange={(e) => setMergeSource(Number(e.target.value))}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
                 <option value={0}>Select source...</option>
-                {categories.filter(c => c.id !== mergeTarget).map(c => (
-                  <option key={c.id} value={c.id}>{c.name} ({c.is_global ? 'Global' : 'Personal'})</option>
-                ))}
+                {categories
+                  .filter((c) => c.id !== mergeTarget)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.is_global ? 'Global' : 'Personal'})
+                    </option>
+                  ))}
               </select>
             </div>
             <div className="px-2 text-muted-foreground">into</div>
             <div className="flex-1 space-y-1">
-              <label htmlFor="merge-target" className="text-xs font-medium">Target (will be kept)</label>
-              <select id="merge-target" value={mergeTarget} onChange={(e) => setMergeTarget(Number(e.target.value))}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+              <label htmlFor="merge-target" className="text-xs font-medium">
+                Target (will be kept)
+              </label>
+              <select
+                id="merge-target"
+                value={mergeTarget}
+                onChange={(e) => setMergeTarget(Number(e.target.value))}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
                 <option value={0}>Select target...</option>
-                {categories.filter(c => c.id !== mergeSource).map(c => (
-                  <option key={c.id} value={c.id}>{c.name} ({c.is_global ? 'Global' : 'Personal'})</option>
-                ))}
+                {categories
+                  .filter((c) => c.id !== mergeSource)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.is_global ? 'Global' : 'Personal'})
+                    </option>
+                  ))}
               </select>
             </div>
             <button
@@ -198,10 +253,15 @@ export function CategoryManagement() {
 
       {/* Create Form */}
       {showCreateForm && (
-        <form onSubmit={handleCreate} className="mt-4 space-y-3 rounded-lg border border-border p-4">
+        <form
+          onSubmit={handleCreate}
+          className="mt-4 space-y-3 rounded-lg border border-border p-4"
+        >
           <div className="flex items-end gap-3">
             <div className="flex-1 space-y-1">
-              <label htmlFor="cat-name" className="text-sm font-medium">Name</label>
+              <label htmlFor="cat-name" className="text-sm font-medium">
+                Name
+              </label>
               <input
                 id="cat-name"
                 type="text"
@@ -213,7 +273,9 @@ export function CategoryManagement() {
               />
             </div>
             <div className="space-y-1">
-              <label htmlFor="cat-color" className="text-sm font-medium">Color</label>
+              <label htmlFor="cat-color" className="text-sm font-medium">
+                Color
+              </label>
               <input
                 id="cat-color"
                 type="color"
@@ -223,7 +285,9 @@ export function CategoryManagement() {
               />
             </div>
             <div className="space-y-1">
-              <span id="cat-icon-label" className="block text-sm font-medium">Icon</span>
+              <span id="cat-icon-label" className="block text-sm font-medium">
+                Icon
+              </span>
               <EmojiPickerPopover
                 value={newIcon}
                 onChange={setNewIcon}
@@ -260,7 +324,9 @@ export function CategoryManagement() {
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Loading...</p>
         ) : categories.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No categories yet. Create one to get started.</p>
+          <p className="text-sm text-muted-foreground">
+            No categories yet. Create one to get started.
+          </p>
         ) : (
           categories.map((cat) => (
             <div
@@ -305,14 +371,18 @@ export function CategoryManagement() {
                 ) : (
                   <div>
                     {cat.icon && (
-                      <span className="mr-1.5 text-base" aria-hidden="true">{cat.icon}</span>
+                      <span className="mr-1.5 text-base" aria-hidden="true">
+                        {cat.icon}
+                      </span>
                     )}
                     <span className="font-medium">{cat.name}</span>
-                    <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                      cat.is_global
-                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                        : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                    }`}>
+                    <span
+                      className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        cat.is_global
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                          : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                      }`}
+                    >
                       {cat.is_global ? 'Global' : 'Personal'}
                     </span>
                   </div>
