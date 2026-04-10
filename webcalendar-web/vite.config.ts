@@ -28,6 +28,8 @@ export default defineConfig({
             '@fullcalendar/multimonth',
             '@fullcalendar/interaction',
             '@fullcalendar/react',
+            '@fullcalendar/rrule',
+            'rrule',
           ],
           // TipTap editor — only needed when editing descriptions
           tiptap: [
