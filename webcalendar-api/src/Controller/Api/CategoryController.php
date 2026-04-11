@@ -18,6 +18,29 @@ use WebCalendar\Core\Domain\Entity\Category;
 
 final class CategoryController
 {
+    /**
+     * Resolves a category by its composite primary key (cat_id, cat_owner),
+     * falling back from the caller's personal row to the global row
+     * (`cat_owner=''`).
+     *
+     * Single-id endpoints like GET/PUT/DELETE /categories/{id} accept only
+     * a numeric id, but a cat_id can theoretically be shared between a
+     * global and a user-owned row. Fresh installs never produce a
+     * collision because core allocates ids via `MAX(cat_id)+1` across all
+     * rows, but legacy-imported data can. Personal-first matches the
+     * pre-4.3 behavior where the user's own category wins over a global
+     * one with the same id.
+     */
+    private function resolveCategory(int $id, string $login): ?Category
+    {
+        $repo = $this->coreServiceFactory->getCategoryRepository();
+        $personal = $repo->findByCompositeKey($id, $login);
+        if ($personal !== null) {
+            return $personal;
+        }
+        return $repo->findByCompositeKey($id, '');
+    }
+
     public function __construct(
         private readonly CoreServiceFactory $coreServiceFactory,
         private readonly CategoryIconRepository $icons,
@@ -93,7 +116,7 @@ final class CategoryController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $category = $this->coreServiceFactory->getCategoryRepository()->findById($id);
+        $category = $this->resolveCategory($id, $user->getUserIdentifier());
 
         if ($category === null) {
             return ApiResponse::error(404, 'Category not found');
@@ -155,7 +178,7 @@ final class CategoryController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $existing = $this->coreServiceFactory->getCategoryRepository()->findById($id);
+        $existing = $this->resolveCategory($id, $user->getUserIdentifier());
         if ($existing === null) {
             return ApiResponse::error(404, 'Category not found');
         }
@@ -187,11 +210,16 @@ final class CategoryController
             $newOwner = $data['is_global'] === true ? null : $coreUser->login();
 
             if ($newOwner !== $existing->owner()) {
-                // Owner change requires delete + re-create (core uses composite key cat_id + cat_owner)
-                $this->coreServiceFactory->getCategoryRepository()->delete($id);
+                // Owner change requires delete + re-create (core uses
+                // composite key cat_id + cat_owner). Target the exact
+                // existing row via deleteByCompositeKey so a sibling row
+                // at the same cat_id with a different owner is never
+                // collateral damage.
+                $repo = $this->coreServiceFactory->getCategoryRepository();
+                $repo->deleteByCompositeKey($id, $existing->owner() ?? '');
                 $this->icons->delete($id, $existing->owner());
                 $promoted = new Category($id, $newOwner, $name, $color, $existing->isEnabled());
-                $this->coreServiceFactory->getCategoryRepository()->save($promoted);
+                $repo->save($promoted);
                 $this->icons->set($id, $newOwner, $icon);
                 return ApiResponse::success(self::categoryToArray($promoted, $icon));
             }
@@ -220,13 +248,29 @@ final class CategoryController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $existing = $this->coreServiceFactory->getCategoryRepository()->findById($id);
+        $coreUser = $user->getCoreUser();
+        $existing = $this->resolveCategory($id, $user->getUserIdentifier());
         if ($existing === null) {
             return ApiResponse::error(404, 'Category not found');
         }
 
-        $coreUser = $user->getCoreUser();
-        $this->coreServiceFactory->getCategoryService()->deleteCategory($id, $coreUser);
+        // Inline the authorization rule from CategoryService::assertCanModify
+        // so we can drive the delete via the composite-key method. The
+        // service's single-id deleteCategory() still routes through the
+        // deprecated findById/delete pair, which would wipe sibling rows
+        // sharing the numeric id on legacy-imported data.
+        if (!$coreUser->isAdmin()) {
+            $ownerLogin = $existing->owner();
+            if ($ownerLogin === null || $ownerLogin === '') {
+                return ApiResponse::error(403, 'Only admins can delete a global category');
+            }
+            if ($ownerLogin !== $coreUser->login()) {
+                return ApiResponse::error(403, 'You do not have permission to delete this category');
+            }
+        }
+
+        $this->coreServiceFactory->getCategoryRepository()
+            ->deleteByCompositeKey($id, $existing->owner() ?? '');
         $this->icons->delete($id, $existing->owner());
 
         return ApiResponse::noContent();
@@ -257,8 +301,15 @@ final class CategoryController
             return ApiResponse::error(400, 'Cannot merge a category into itself');
         }
 
-        $source = $this->coreServiceFactory->getCategoryRepository()->findById($sourceId);
-        $target = $this->coreServiceFactory->getCategoryRepository()->findById($targetId);
+        $repo = $this->coreServiceFactory->getCategoryRepository();
+
+        // Personal-first then global resolution mirrors the single-id
+        // endpoints. Admin merges are typically aimed at global rows
+        // promoted from legacy imports, so the global fallback is the
+        // common case here.
+        $adminLogin = $user->getUserIdentifier();
+        $source = $this->resolveCategory($sourceId, $adminLogin);
+        $target = $this->resolveCategory($targetId, $adminLogin);
 
         if ($source === null) {
             return ApiResponse::error(404, 'Source category not found');
@@ -267,24 +318,59 @@ final class CategoryController
             return ApiResponse::error(404, 'Target category not found');
         }
 
-        // Count events that will be reassigned
-        $eventCount = $this->coreServiceFactory->getCategoryRepository()->getEventCount($sourceId);
+        // Count distinct events assigned to the source category under the
+        // source's owner, not across-owners. `getEventCount()` is
+        // deprecated in core 4.3 because it inflates counts by joining
+        // on `cat_id` alone.
+        $eventCount = $repo->getEventCountByOwner($sourceId, $source->owner() ?? '');
 
-        // Reassign events from source to target
-        $this->coreServiceFactory->getCategoryRepository()->reassignEvents(
-            $sourceId,
-            $targetId,
-            $user->getUserIdentifier(),
-        );
+        // Core 4.3's reassignEvents() is now per-user: it only moves
+        // junction rows whose `cat_owner` matches the supplied login.
+        // For an admin merge we want every user's assignments at this
+        // cat_id to move, so we enumerate the distinct `cat_owner`s on
+        // the source and loop. Without this, jane's assignment of the
+        // soon-to-be-deleted source would be left dangling.
+        $affectedOwners = $this->loadDistinctJunctionOwners($sourceId);
+        foreach ($affectedOwners as $junctionOwner) {
+            $repo->reassignEvents($sourceId, $targetId, $junctionOwner);
+        }
 
-        // Delete source category
-        $this->coreServiceFactory->getCategoryRepository()->delete($sourceId);
+        // Delete only the specific source row — not a sibling at the
+        // same numeric cat_id owned by another user.
+        $repo->deleteByCompositeKey($sourceId, $source->owner() ?? '');
 
         return ApiResponse::success([
             'merged_events' => $eventCount,
             'source' => $source->name(),
             'target' => $target->name(),
         ]);
+    }
+
+    /**
+     * Returns the distinct `cat_owner` values present in the junction
+     * table for a given `cat_id`. Used by the admin merge endpoint to
+     * drive a per-user reassignEvents() loop because core 4.3+ scopes
+     * reassignments by `cat_owner`. Lives here — not in core — because
+     * it is an admin-operation concern that core's domain layer
+     * intentionally does not model.
+     *
+     * @return list<string>
+     */
+    private function loadDistinctJunctionOwners(int $catId): array
+    {
+        $stmt = $this->coreServiceFactory->getPdo()->prepare(
+            'SELECT DISTINCT cat_owner FROM webcal_entry_categories WHERE cat_id = :cat_id'
+        );
+        $stmt->execute(['cat_id' => $catId]);
+        $owners = [];
+        while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+            if (!\is_array($row)) {
+                continue;
+            }
+            $owner = $row['cat_owner'];
+            $owners[] = \is_string($owner) ? $owner : '';
+        }
+        return $owners;
     }
 
     /**

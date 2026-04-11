@@ -57,16 +57,16 @@
         },
         {
             "name": "craigk5n/webcalendar-core",
-            "version": "v4.1.0",
+            "version": "v4.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/craigk5n/webcalendar-core.git",
-                "reference": "b8516156b5d21265e0e5559333b76d9509447141"
+                "reference": "5ed578fdf5f75e313fbc09fa130b1a0fb5564f80"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/craigk5n/webcalendar-core/zipball/b8516156b5d21265e0e5559333b76d9509447141",
-                "reference": "b8516156b5d21265e0e5559333b76d9509447141",
+                "url": "https://api.github.com/repos/craigk5n/webcalendar-core/zipball/5ed578fdf5f75e313fbc09fa130b1a0fb5564f80",
+                "reference": "5ed578fdf5f75e313fbc09fa130b1a0fb5564f80",
                 "shasum": ""
             },
             "require": {
@@ -137,10 +137,10 @@
                 "webcalendar"
             ],
             "support": {
-                "source": "https://github.com/craigk5n/webcalendar-core/tree/v4.1.0",
+                "source": "https://github.com/craigk5n/webcalendar-core/tree/v4.3.0",
                 "issues": "https://github.com/craigk5n/webcalendar-core/issues"
             },
-            "time": "2026-04-09T16:25:29+00:00"
+            "time": "2026-04-11T17:29:37+00:00"
         },
         {
             "name": "doctrine/lexer",
