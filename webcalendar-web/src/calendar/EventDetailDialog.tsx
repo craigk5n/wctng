@@ -20,6 +20,7 @@ interface EventDetailDialogProps {
   onDelete: () => void;
   onDuplicate?: () => void;
   onExportIcs?: () => void;
+  publicPageUrl?: string;
   currentUserLogin?: string;
   onAccept?: () => void;
   onReject?: () => void;
@@ -56,6 +57,7 @@ export function EventDetailDialog({
   onDelete,
   onDuplicate,
   onExportIcs,
+  publicPageUrl,
   currentUserLogin,
   onAccept,
   onReject,
@@ -286,6 +288,17 @@ export function EventDetailDialog({
                   >
                     <span>📥</span> Export as ICS
                   </button>
+                )}
+                {publicPageUrl && (
+                  <a
+                    href={publicPageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent"
+                  >
+                    <span>🌐</span> View Public Page
+                  </a>
                 )}
               </div>
             )}

@@ -152,4 +152,40 @@ final class SeoEventIndexIntegrationTest extends IntegrationTestCase
         $this->assertStringContainsString('<meta name="twitter:title"', $html);
         $this->assertStringContainsString('<meta name="twitter:description"', $html);
     }
+
+    public function testHasOgImageWhenConfigured(): void
+    {
+        $this->factory->getConfigService()->updateSetting('SEO_OG_IMAGE_URL', 'https://example.com/card.png');
+        $this->createEvents(1);
+        $request = Request::create('/public/alice/events');
+        $response = $this->controller->index('alice', $request);
+        $html = (string) $response->getContent();
+
+        $this->assertStringContainsString('<meta property="og:image" content="https://example.com/card.png">', $html);
+        $this->assertStringContainsString('<meta name="twitter:image" content="https://example.com/card.png">', $html);
+        $this->assertStringContainsString('twitter:card" content="summary_large_image"', $html);
+    }
+
+    public function testHasBreadcrumbJsonLd(): void
+    {
+        $this->createEvents(1);
+        $request = Request::create('/public/alice/events');
+        $response = $this->controller->index('alice', $request);
+        $html = (string) $response->getContent();
+
+        $this->assertStringContainsString('BreadcrumbList', $html);
+        $this->assertStringContainsString('/public/alice', $html);
+    }
+
+    public function testHasCacheControlHeader(): void
+    {
+        $this->createEvents(1);
+        $request = Request::create('/public/alice/events');
+        $response = $this->controller->index('alice', $request);
+
+        $cacheControl = $response->headers->get('Cache-Control');
+        $this->assertNotNull($cacheControl);
+        $this->assertStringContainsString('public', $cacheControl);
+        $this->assertStringContainsString('max-age=3600', $cacheControl);
+    }
 }

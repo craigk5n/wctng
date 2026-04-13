@@ -226,6 +226,75 @@ final class SeoEventPageIntegrationTest extends IntegrationTestCase
         $this->assertStringContainsString('.site-header { background: blue; }', $html);
     }
 
+    public function testHasOgImageWhenConfigured(): void
+    {
+        $this->factory->getConfigService()->updateSetting('ENABLE_SEO_PAGES', 'Y');
+        $this->factory->getUserRepository()->savePreference('alice', new UserPreference('public_calendar_enabled', 'Y'));
+        $this->factory->getConfigService()->updateSetting('SEO_OG_IMAGE_URL', 'https://example.com/calendar-card.png');
+
+        $eventId = $this->createPublicEvent('OG Image Test');
+        $response = $this->controller->detail('alice', $eventId);
+        $html = (string) $response->getContent();
+
+        $this->assertStringContainsString('<meta property="og:image" content="https://example.com/calendar-card.png">', $html);
+        $this->assertStringContainsString('<meta name="twitter:image" content="https://example.com/calendar-card.png">', $html);
+        $this->assertStringContainsString('twitter:card" content="summary_large_image"', $html);
+    }
+
+    public function testNoOgImageWhenNotConfigured(): void
+    {
+        $this->factory->getConfigService()->updateSetting('ENABLE_SEO_PAGES', 'Y');
+        $this->factory->getUserRepository()->savePreference('alice', new UserPreference('public_calendar_enabled', 'Y'));
+
+        $eventId = $this->createPublicEvent('No OG Image');
+        $response = $this->controller->detail('alice', $eventId);
+        $html = (string) $response->getContent();
+
+        $this->assertStringNotContainsString('og:image', $html);
+        $this->assertStringNotContainsString('twitter:image', $html);
+        $this->assertStringContainsString('twitter:card" content="summary"', $html);
+    }
+
+    public function testHasBreadcrumbJsonLd(): void
+    {
+        $this->factory->getConfigService()->updateSetting('ENABLE_SEO_PAGES', 'Y');
+        $this->factory->getUserRepository()->savePreference('alice', new UserPreference('public_calendar_enabled', 'Y'));
+
+        $eventId = $this->createPublicEvent('Breadcrumb Test');
+        $response = $this->controller->detail('alice', $eventId);
+        $html = (string) $response->getContent();
+
+        $this->assertStringContainsString('BreadcrumbList', $html);
+        $this->assertStringContainsString('/public/alice/events', $html);
+        $this->assertStringContainsString('Breadcrumb Test', $html);
+    }
+
+    public function testHasCanonicalLink(): void
+    {
+        $this->factory->getConfigService()->updateSetting('ENABLE_SEO_PAGES', 'Y');
+        $this->factory->getUserRepository()->savePreference('alice', new UserPreference('public_calendar_enabled', 'Y'));
+
+        $eventId = $this->createPublicEvent('Canonical Test');
+        $response = $this->controller->detail('alice', $eventId);
+        $html = (string) $response->getContent();
+
+        $this->assertStringContainsString("<link rel=\"canonical\" href=\"/public/alice/event/{$eventId}\">", $html);
+    }
+
+    public function testHasCacheControlHeader(): void
+    {
+        $this->factory->getConfigService()->updateSetting('ENABLE_SEO_PAGES', 'Y');
+        $this->factory->getUserRepository()->savePreference('alice', new UserPreference('public_calendar_enabled', 'Y'));
+
+        $eventId = $this->createPublicEvent('Cache Test');
+        $response = $this->controller->detail('alice', $eventId);
+
+        $cacheControl = $response->headers->get('Cache-Control');
+        $this->assertNotNull($cacheControl);
+        $this->assertStringContainsString('public', $cacheControl);
+        $this->assertStringContainsString('max-age=3600', $cacheControl);
+    }
+
     public function testJsonLdIncludesGeoCoordinates(): void
     {
         $this->factory->getConfigService()->updateSetting('ENABLE_SEO_PAGES', 'Y');

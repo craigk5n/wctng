@@ -23,6 +23,7 @@ import { useMercure, type MercureMessage } from '../hooks/useMercure';
 import { CategoryFilterPopover } from './CategoryFilterPopover';
 import { CategoryFilter } from './CategoryFilter';
 import { RecurringScopeDialog, type RecurringScope } from './RecurringScopeDialog';
+import { useFeatureFlags } from '../hooks/useFeatureFlags';
 
 type DialogState =
   | { type: 'none' }
@@ -54,10 +55,12 @@ export function CalendarPage() {
   );
   const [defaultView, setDefaultView] = useState('dayGridMonth');
   const [scrollTime, setScrollTime] = useState('08:00:00');
+  const [publicCalendarEnabled, setPublicCalendarEnabled] = useState(false);
   const [activeLayers, setActiveLayers] = useState<LayerVisibility[]>([]);
   const [activeCategoryIds, setActiveCategoryIds] = useState<number[] | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const features = useFeatureFlags();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -71,6 +74,8 @@ export function CalendarPage() {
       if (data) {
         const viewPref = data.find((p) => p.key === 'STARTVIEW');
         if (viewPref) setDefaultView(viewPref.value);
+        const publicPref = data.find((p) => p.key === 'public_calendar_enabled');
+        setPublicCalendarEnabled(publicPref?.value === 'Y');
         const startPref = data.find((p) => p.key === 'WORK_DAY_START');
         if (startPref?.value) {
           // Accept "HH:MM" or "H" and normalize to "HH:MM:SS"
@@ -655,6 +660,13 @@ export function CalendarPage() {
             });
           }}
           onExportIcs={() => exportEventAsIcs(dialog.event)}
+          publicPageUrl={
+            dialog.event.access === 'P' &&
+            features.ENABLE_SEO_PAGES === 'Y' &&
+            publicCalendarEnabled
+              ? `/public/${dialog.event.created_by}/event/${dialog.event.id}`
+              : undefined
+          }
           currentUserLogin={user?.login}
           isResponding={isResponding}
           onAccept={async () => {

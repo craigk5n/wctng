@@ -112,6 +112,12 @@ MAP;
         // Generate JSON-LD structured data
         $canonicalUrl = "/public/{$username}/event/{$id}";
         $jsonLdBlock = $seoStatus['noindex'] ? '' : $this->jsonLd->generateEventJsonLd($event, $user, $canonicalUrl, $geo);
+        $breadcrumbBlock = $seoStatus['noindex'] ? '' : $this->jsonLd->generateBreadcrumbJsonLd($username, $displayName, $canonicalUrl, $title);
+
+        // og:image from admin config
+        $ogImageUrl = $this->factory->getConfigService()->getSetting('SEO_OG_IMAGE_URL', '') ?? '';
+        $ogImageTag = $ogImageUrl !== '' ? "<meta property=\"og:image\" content=\"{$ogImageUrl}\">\n    <meta name=\"twitter:image\" content=\"{$ogImageUrl}\">" : '';
+        $twitterCardType = $ogImageUrl !== '' ? 'summary_large_image' : 'summary';
 
         // Custom HTML/CSS
         $customHtml = new CustomHtmlProvider($this->factory);
@@ -131,11 +137,14 @@ MAP;
     <meta property="og:description" content="{$metaDescription}">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{$canonicalUrl}">
-    <meta name="twitter:card" content="summary">
+    {$ogImageTag}
+    <meta name="twitter:card" content="{$twitterCardType}">
     <meta name="twitter:title" content="{$title}">
     <meta name="twitter:description" content="{$metaDescription}">
+    <link rel="canonical" href="{$canonicalUrl}">
     {$noindex}
     {$jsonLdBlock}
+    {$breadcrumbBlock}
     {$mapHeadHtml}
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -180,6 +189,9 @@ MAP;
 </html>
 HTML;
 
-        return new Response($html, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
+        return new Response($html, 200, [
+            'Content-Type' => 'text/html; charset=UTF-8',
+            'Cache-Control' => 'public, max-age=3600',
+        ]);
     }
 }

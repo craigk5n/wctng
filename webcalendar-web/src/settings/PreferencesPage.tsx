@@ -17,6 +17,7 @@ export function PreferencesPage() {
   const [workDayEnd, setWorkDayEnd] = useState('17:00');
   const [conflictMode, setConflictMode] = useState('warn');
   const [language, setLanguage] = useState(getLocale());
+  const [publicCalendar, setPublicCalendar] = useState('N');
   const [seoIndexing, setSeoIndexing] = useState('Y');
   const [reminderMinutes, setReminderMinutes] = useState('30');
   const [dailyAgendaEnabled, setDailyAgendaEnabled] = useState('N');
@@ -40,7 +41,11 @@ export function PreferencesPage() {
           if (p.key === 'WORK_DAY_START') setWorkDayStart(p.value);
           if (p.key === 'WORK_DAY_END') setWorkDayEnd(p.value);
           if (p.key === 'conflict_mode') setConflictMode(p.value);
-          if (p.key === 'locale') { setLanguage(p.value); changeLocale(p.value); }
+          if (p.key === 'locale') {
+            setLanguage(p.value);
+            changeLocale(p.value);
+          }
+          if (p.key === 'public_calendar_enabled') setPublicCalendar(p.value);
           if (p.key === 'seo_indexing_enabled') setSeoIndexing(p.value);
           if (p.key === 'REMINDER_MINUTES') setReminderMinutes(p.value);
           if (p.key === 'daily_agenda_enabled') setDailyAgendaEnabled(p.value);
@@ -64,6 +69,7 @@ export function PreferencesPage() {
     if (timezone) prefs['TIMEZONE'] = timezone;
     prefs['conflict_mode'] = conflictMode;
     prefs['locale'] = language;
+    prefs['public_calendar_enabled'] = publicCalendar;
     prefs['seo_indexing_enabled'] = seoIndexing;
     prefs['REMINDER_MINUTES'] = reminderMinutes;
     prefs['daily_agenda_enabled'] = dailyAgendaEnabled;
@@ -82,7 +88,23 @@ export function PreferencesPage() {
     } else {
       toast({ title: 'Failed to save', variant: 'error' });
     }
-  }, [login, defaultView, timezone, workDayStart, workDayEnd, conflictMode, language, seoIndexing, reminderMinutes, dailyAgendaEnabled, dailyAgendaTime, emailInvitation, emailUpdate, toast]);
+  }, [
+    login,
+    defaultView,
+    timezone,
+    workDayStart,
+    workDayEnd,
+    conflictMode,
+    language,
+    publicCalendar,
+    seoIndexing,
+    reminderMinutes,
+    dailyAgendaEnabled,
+    dailyAgendaTime,
+    emailInvitation,
+    emailUpdate,
+    toast,
+  ]);
 
   return (
     <div>
@@ -90,7 +112,9 @@ export function PreferencesPage() {
 
       <div className="mt-6 max-w-lg space-y-6">
         <div className="space-y-2">
-          <label htmlFor="default-view" className="text-sm font-medium">Default View</label>
+          <label htmlFor="default-view" className="text-sm font-medium">
+            Default View
+          </label>
           <select
             id="default-view"
             value={defaultView}
@@ -105,7 +129,9 @@ export function PreferencesPage() {
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="timezone" className="text-sm font-medium">Timezone</label>
+          <label htmlFor="timezone" className="text-sm font-medium">
+            Timezone
+          </label>
           <input
             id="timezone"
             type="text"
@@ -118,7 +144,9 @@ export function PreferencesPage() {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label htmlFor="work-start" className="text-sm font-medium">Work Day Start</label>
+            <label htmlFor="work-start" className="text-sm font-medium">
+              Work Day Start
+            </label>
             <input
               id="work-start"
               type="time"
@@ -128,7 +156,9 @@ export function PreferencesPage() {
             />
           </div>
           <div className="space-y-2">
-            <label htmlFor="work-end" className="text-sm font-medium">Work Day End</label>
+            <label htmlFor="work-end" className="text-sm font-medium">
+              Work Day End
+            </label>
             <input
               id="work-end"
               type="time"
@@ -140,7 +170,9 @@ export function PreferencesPage() {
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="conflict-mode" className="text-sm font-medium">Conflict Detection</label>
+          <label htmlFor="conflict-mode" className="text-sm font-medium">
+            Conflict Detection
+          </label>
           <select
             id="conflict-mode"
             value={conflictMode}
@@ -152,16 +184,22 @@ export function PreferencesPage() {
             <option value="off">Off (no conflict checking)</option>
           </select>
           <p className="text-xs text-muted-foreground">
-            Controls whether you are warned about scheduling conflicts when creating or editing events.
+            Controls whether you are warned about scheduling conflicts when creating or editing
+            events.
           </p>
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="language" className="text-sm font-medium">Language</label>
+          <label htmlFor="language" className="text-sm font-medium">
+            Language
+          </label>
           <select
             id="language"
             value={language}
-            onChange={(e) => { setLanguage(e.target.value); changeLocale(e.target.value); }}
+            onChange={(e) => {
+              setLanguage(e.target.value);
+              changeLocale(e.target.value);
+            }}
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           >
             <option value="en">English</option>
@@ -174,7 +212,9 @@ export function PreferencesPage() {
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="email-reminder" className="text-sm font-medium">Email Reminder</label>
+          <label htmlFor="email-reminder" className="text-sm font-medium">
+            Email Reminder
+          </label>
           <select
             id="email-reminder"
             value={reminderMinutes}
@@ -209,7 +249,9 @@ export function PreferencesPage() {
           </div>
           {dailyAgendaEnabled === 'Y' && (
             <div className="ml-6">
-              <label htmlFor="agenda-time" className="text-xs text-muted-foreground">Send at:</label>
+              <label htmlFor="agenda-time" className="text-xs text-muted-foreground">
+                Send at:
+              </label>
               <input
                 id="agenda-time"
                 type="time"
@@ -256,28 +298,51 @@ export function PreferencesPage() {
             </label>
           </div>
           <p className="text-xs text-muted-foreground">
-            Receive email notifications when events you are participating in are updated or cancelled.
+            Receive email notifications when events you are participating in are updated or
+            cancelled.
           </p>
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <input
-              id="seo-indexing"
+              id="public-calendar"
               type="checkbox"
-              checked={seoIndexing === 'Y'}
-              onChange={(e) => setSeoIndexing(e.target.checked ? 'Y' : 'N')}
+              checked={publicCalendar === 'Y'}
+              onChange={(e) => setPublicCalendar(e.target.checked ? 'Y' : 'N')}
               className="h-4 w-4"
             />
-            <label htmlFor="seo-indexing" className="text-sm font-medium">
-              Allow search engines to index my public events
+            <label htmlFor="public-calendar" className="text-sm font-medium">
+              Public Calendar
             </label>
           </div>
           <p className="text-xs text-muted-foreground">
-            When enabled, your public events may appear in Google and other search engine results.
-            Disable this to keep your calendar shareable via link but hidden from search engines.
+            Make your public events visible at a shareable URL. Only events marked as
+            &quot;Public&quot; access will be shown. Private and confidential events are never
+            exposed.
           </p>
         </div>
+
+        {publicCalendar === 'Y' && (
+          <div className="ml-6 space-y-2">
+            <div className="flex items-center gap-2">
+              <input
+                id="seo-indexing"
+                type="checkbox"
+                checked={seoIndexing === 'Y'}
+                onChange={(e) => setSeoIndexing(e.target.checked ? 'Y' : 'N')}
+                className="h-4 w-4"
+              />
+              <label htmlFor="seo-indexing" className="text-sm font-medium">
+                Allow search engines to index my public events
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              When enabled, your public events may appear in Google and other search engine results.
+              Disable this to keep your calendar shareable via link but hidden from search engines.
+            </p>
+          </div>
+        )}
 
         <PushNotificationToggle />
 
@@ -312,9 +377,7 @@ function PushNotificationToggle() {
         >
           {subscribed ? 'Disable Notifications' : 'Enable Notifications'}
         </button>
-        {subscribed && (
-          <span className="text-xs text-green-600">Active</span>
-        )}
+        {subscribed && <span className="text-xs text-green-600">Active</span>}
       </div>
       <p className="text-xs text-muted-foreground">
         Receive browser notifications for event reminders and calendar updates.

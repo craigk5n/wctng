@@ -75,6 +75,63 @@ final class JsonLdGenerator
     }
 
     /**
+     * Generates a JSON-LD script block for a BreadcrumbList.
+     *
+     * @param string      $eventName Optional event name for detail page breadcrumb (3rd level)
+     */
+    public function generateBreadcrumbJsonLd(string $username, string $displayName, string $canonicalUrl, ?string $eventName = null): string
+    {
+        $data = $this->buildBreadcrumbData($username, $displayName, $canonicalUrl, $eventName);
+        $json = json_encode($data, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE | \JSON_THROW_ON_ERROR);
+
+        return '<script type="application/ld+json">' . $json . '</script>';
+    }
+
+    /**
+     * Builds the Schema.org BreadcrumbList data array.
+     *
+     * @return array<string, mixed>
+     */
+    public function buildBreadcrumbData(string $username, string $displayName, string $canonicalUrl, ?string $eventName = null): array
+    {
+        $items = [
+            [
+                '@type' => 'ListItem',
+                'position' => 1,
+                'item' => [
+                    '@id' => "/public/{$username}",
+                    'name' => "{$displayName}'s Calendar",
+                ],
+            ],
+            [
+                '@type' => 'ListItem',
+                'position' => 2,
+                'item' => [
+                    '@id' => "/public/{$username}/events",
+                    'name' => 'Events',
+                ],
+            ],
+        ];
+
+        if ($eventName !== null) {
+            $items[] = [
+                '@type' => 'ListItem',
+                'position' => 3,
+                'item' => [
+                    '@id' => $canonicalUrl,
+                    'name' => $eventName,
+                ],
+            ];
+        }
+
+        return [
+            '@context' => 'https://schema.org',
+            '@type' => 'BreadcrumbList',
+            'itemListElement' => $items,
+        ];
+    }
+
+    /**
      * @param array{lat: float, lon: float}|null $geo
      *
      * @return array<string, mixed>

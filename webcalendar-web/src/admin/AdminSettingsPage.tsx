@@ -101,6 +101,44 @@ const FEATURES: FeatureToggle[] = [
   },
 ];
 
+interface NumericSetting {
+  key: string;
+  label: string;
+  description: string;
+  min: number;
+  max: number;
+  defaultValue: number;
+}
+
+interface TextSetting {
+  key: string;
+  label: string;
+  description: string;
+  placeholder: string;
+}
+
+const TEXT_SETTINGS: TextSetting[] = [
+  {
+    key: 'SEO_OG_IMAGE_URL',
+    label: 'Social Share Image URL',
+    description:
+      'URL of the image shown when public event pages are shared on social media (og:image). Leave empty for no image. Recommended size: 1200x630px.',
+    placeholder: 'https://example.com/calendar-card.png',
+  },
+];
+
+const NUMERIC_SETTINGS: NumericSetting[] = [
+  {
+    key: 'MAX_EVENTS_PER_PAGE',
+    label: 'Max Events Per API Request',
+    description:
+      'Maximum number of events returned per API request. Must be high enough to show all events in month view. Default: 1000.',
+    min: 50,
+    max: 10000,
+    defaultValue: 1000,
+  },
+];
+
 export function AdminSettingsPage() {
   const [config, setConfig] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -139,6 +177,46 @@ export function AdminSettingsPage() {
     [toast],
   );
 
+  const handleNumericBlur = useCallback(
+    async (key: string, min: number, max: number, defaultValue: number) => {
+      const raw = parseInt(config[key] ?? String(defaultValue), 10);
+      const clamped = Math.max(min, Math.min(max, isNaN(raw) ? defaultValue : raw));
+      const value = String(clamped);
+
+      setConfig((prev) => ({ ...prev, [key]: value }));
+
+      const { error } = await apiFetch('/admin/config', {
+        method: 'PUT',
+        body: JSON.stringify({ [key]: value }),
+      });
+
+      if (!error) {
+        toast({ title: 'Setting saved', variant: 'success' });
+      } else {
+        toast({ title: 'Failed to save', variant: 'error' });
+      }
+    },
+    [config, toast],
+  );
+
+  const handleTextBlur = useCallback(
+    async (key: string) => {
+      const value = config[key] ?? '';
+
+      const { error } = await apiFetch('/admin/config', {
+        method: 'PUT',
+        body: JSON.stringify({ [key]: value }),
+      });
+
+      if (!error) {
+        toast({ title: 'Setting saved', variant: 'success' });
+      } else {
+        toast({ title: 'Failed to save', variant: 'error' });
+      }
+    },
+    [config, toast],
+  );
+
   const isEnabled = (key: string, inverted: boolean): boolean => {
     const value = config[key] ?? (inverted ? 'N' : 'Y');
     return inverted ? value === 'N' : value === 'Y';
@@ -172,6 +250,59 @@ export function AdminSettingsPage() {
               <p className="mt-0.5 text-xs text-muted-foreground">{feature.description}</p>
             </div>
           </label>
+        ))}
+      </div>
+
+      <h3 className="mt-10 text-lg font-semibold">Limits</h3>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Configure system limits. Changes take effect on the next page load.
+      </p>
+
+      <div className="mt-4 max-w-lg space-y-4">
+        {NUMERIC_SETTINGS.map((setting) => (
+          <div key={setting.key} className="rounded-lg border p-4">
+            <label className="text-sm font-medium" htmlFor={setting.key}>
+              {setting.label}
+            </label>
+            <p className="mt-0.5 text-xs text-muted-foreground">{setting.description}</p>
+            <input
+              id={setting.key}
+              type="number"
+              min={setting.min}
+              max={setting.max}
+              value={config[setting.key] ?? String(setting.defaultValue)}
+              onChange={(e) => setConfig((prev) => ({ ...prev, [setting.key]: e.target.value }))}
+              onBlur={() =>
+                void handleNumericBlur(setting.key, setting.min, setting.max, setting.defaultValue)
+              }
+              className="mt-2 w-32 rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+            />
+          </div>
+        ))}
+      </div>
+
+      <h3 className="mt-10 text-lg font-semibold">SEO</h3>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Configure how public event pages appear to search engines and social media.
+      </p>
+
+      <div className="mt-4 max-w-lg space-y-4">
+        {TEXT_SETTINGS.map((setting) => (
+          <div key={setting.key} className="rounded-lg border p-4">
+            <label className="text-sm font-medium" htmlFor={setting.key}>
+              {setting.label}
+            </label>
+            <p className="mt-0.5 text-xs text-muted-foreground">{setting.description}</p>
+            <input
+              id={setting.key}
+              type="text"
+              value={config[setting.key] ?? ''}
+              placeholder={setting.placeholder}
+              onChange={(e) => setConfig((prev) => ({ ...prev, [setting.key]: e.target.value }))}
+              onBlur={() => void handleTextBlur(setting.key)}
+              className="mt-2 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+            />
+          </div>
         ))}
       </div>
     </div>

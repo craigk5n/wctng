@@ -30,6 +30,8 @@ final class ConfigController
         'ENABLE_GEOCODING' => 'Y',
         'ENABLE_EMAIL_REMINDERS' => 'Y',
         'ENABLE_DAILY_AGENDA' => 'N',
+        'MAX_EVENTS_PER_PAGE' => '1000',
+        'SEO_OG_IMAGE_URL' => '',
     ];
 
     public function __construct(

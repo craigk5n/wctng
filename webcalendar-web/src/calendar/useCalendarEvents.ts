@@ -36,17 +36,20 @@ export async function fetchCalendarEvents(
     apiFetch<SubscriptionInfo[]>('/calendars/subscriptions'),
   ]);
 
-  const events = eventsResult.data && Array.isArray(eventsResult.data)
-    ? mapApiEventsToFullCalendar(eventsResult.data)
-    : [];
+  const events =
+    eventsResult.data && Array.isArray(eventsResult.data)
+      ? mapApiEventsToFullCalendar(eventsResult.data)
+      : [];
 
-  const tasks = tasksResult.data && Array.isArray(tasksResult.data)
-    ? mapTasksToFullCalendar(tasksResult.data)
-    : [];
+  const tasks =
+    tasksResult.data && Array.isArray(tasksResult.data)
+      ? mapTasksToFullCalendar(tasksResult.data)
+      : [];
 
-  const journals = journalsResult.data && Array.isArray(journalsResult.data)
-    ? mapJournalsToFullCalendar(journalsResult.data)
-    : [];
+  const journals =
+    journalsResult.data && Array.isArray(journalsResult.data)
+      ? mapJournalsToFullCalendar(journalsResult.data)
+      : [];
 
   // Fetch subscription events (each subscription separately)
   let subscriptionEvents: EventInput[] = [];

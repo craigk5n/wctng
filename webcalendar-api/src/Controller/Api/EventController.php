@@ -70,7 +70,8 @@ final class EventController
         }
 
         $page = max(1, $request->query->getInt('page', 1));
-        $limit = min(100, max(1, $request->query->getInt('limit', 20)));
+        $maxPerPage = (int) ($this->coreServiceFactory->getConfigService()->getSetting('MAX_EVENTS_PER_PAGE') ?? '1000');
+        $limit = min($maxPerPage, max(1, $request->query->getInt('limit', $maxPerPage)));
 
         $dateRange = new DateRange($start, $end);
         $coreUser = $user->getCoreUser();

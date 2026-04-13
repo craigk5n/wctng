@@ -60,12 +60,28 @@ final class SitemapController
         $urls = [];
 
         foreach ($eligibleUsers as $login) {
+            // Add public calendar SPA page
+            $urls[] = $this->buildUrl(
+                "/public/{$login}",
+                $now->format('Y-m-d'),
+                'daily',
+                '0.7',
+            );
+
             // Add event index page
             $urls[] = $this->buildUrl(
                 "/public/{$login}/events",
                 $now->format('Y-m-d'),
                 'daily',
                 '0.6',
+            );
+
+            // Add booking page
+            $urls[] = $this->buildUrl(
+                "/book/{$login}",
+                $now->format('Y-m-d'),
+                'weekly',
+                '0.5',
             );
 
             // Fetch public events (past year + future year)

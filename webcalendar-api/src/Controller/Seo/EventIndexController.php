@@ -132,6 +132,15 @@ ITEM;
         $canonical = "/public/{$username}/events" . ($isMonthView ? "?month={$monthParam}" : '') . ($page > 1 ? "{$sep}page={$page}" : '');
         $metaDesc = htmlspecialchars("{$displayName}'s {$pageTitle} — {$total} events", \ENT_QUOTES, 'UTF-8');
 
+        // JSON-LD breadcrumb
+        $jsonLd = new \App\Service\JsonLdGenerator();
+        $breadcrumbBlock = $seoStatus['noindex'] ? '' : $jsonLd->generateBreadcrumbJsonLd($username, $displayName, $canonical);
+
+        // og:image from admin config
+        $ogImageUrl = $this->factory->getConfigService()->getSetting('SEO_OG_IMAGE_URL', '') ?? '';
+        $ogImageTag = $ogImageUrl !== '' ? "<meta property=\"og:image\" content=\"{$ogImageUrl}\">\n    <meta name=\"twitter:image\" content=\"{$ogImageUrl}\">" : '';
+        $twitterCardType = $ogImageUrl !== '' ? 'summary_large_image' : 'summary';
+
         // Custom HTML/CSS
         $customHtml = new CustomHtmlProvider($this->factory);
         $customCssTag = $customHtml->getCssStyleTag();
@@ -150,12 +159,14 @@ ITEM;
     <meta property="og:description" content="{$metaDesc}">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{$canonical}">
-    <meta name="twitter:card" content="summary">
+    {$ogImageTag}
+    <meta name="twitter:card" content="{$twitterCardType}">
     <meta name="twitter:title" content="{$pageTitle} — {$displayName}'s Calendar">
     <meta name="twitter:description" content="{$metaDesc}">
     <link rel="canonical" href="{$canonical}">
     {$linkTags}
     {$noindex}
+    {$breadcrumbBlock}
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a1a; background: #f8f9fa; line-height: 1.6; }
@@ -199,6 +210,9 @@ ITEM;
 </html>
 HTML;
 
-        return new Response($html, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
+        return new Response($html, 200, [
+            'Content-Type' => 'text/html; charset=UTF-8',
+            'Cache-Control' => 'public, max-age=3600',
+        ]);
     }
 }

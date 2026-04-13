@@ -81,7 +81,7 @@ final class EventControllerListTest extends WebTestCase
 
         $body = $this->decodeResponse($client);
         $this->assertSame(1, $body['meta']['page']);
-        $this->assertSame(20, $body['meta']['limit']);
+        $this->assertSame(1000, $body['meta']['limit']);
     }
 
     public function testListCustomPagination(): void

@@ -132,4 +132,44 @@ final class JsonLdGeneratorTest extends TestCase
         $this->assertStringEndsWith('</script>', $output);
         $this->assertStringContainsString('"@context": "https://schema.org"', $output);
     }
+
+    public function testBreadcrumbListForEventDetail(): void
+    {
+        $data = $this->generator->buildBreadcrumbData('alice', 'Alice Smith', '/public/alice/event/1', 'Test Event');
+
+        $this->assertSame('https://schema.org', $data['@context']);
+        $this->assertSame('BreadcrumbList', $data['@type']);
+        $this->assertCount(3, $data['itemListElement']);
+
+        $this->assertSame(1, $data['itemListElement'][0]['position']);
+        $this->assertSame('Alice Smith\'s Calendar', $data['itemListElement'][0]['item']['name']);
+        $this->assertSame('/public/alice', $data['itemListElement'][0]['item']['@id']);
+
+        $this->assertSame(2, $data['itemListElement'][1]['position']);
+        $this->assertSame('Events', $data['itemListElement'][1]['item']['name']);
+        $this->assertSame('/public/alice/events', $data['itemListElement'][1]['item']['@id']);
+
+        $this->assertSame(3, $data['itemListElement'][2]['position']);
+        $this->assertSame('Test Event', $data['itemListElement'][2]['item']['name']);
+        $this->assertSame('/public/alice/event/1', $data['itemListElement'][2]['item']['@id']);
+    }
+
+    public function testBreadcrumbListForEventIndex(): void
+    {
+        $data = $this->generator->buildBreadcrumbData('alice', 'Alice Smith', '/public/alice/events');
+
+        $this->assertSame('BreadcrumbList', $data['@type']);
+        $this->assertCount(2, $data['itemListElement']);
+
+        $this->assertSame('Alice Smith\'s Calendar', $data['itemListElement'][0]['item']['name']);
+        $this->assertSame('Events', $data['itemListElement'][1]['item']['name']);
+    }
+
+    public function testBreadcrumbJsonLdScriptTag(): void
+    {
+        $output = $this->generator->generateBreadcrumbJsonLd('alice', 'Alice Smith', '/public/alice/events');
+        $this->assertStringStartsWith('<script type="application/ld+json">', $output);
+        $this->assertStringEndsWith('</script>', $output);
+        $this->assertStringContainsString('BreadcrumbList', $output);
+    }
 }

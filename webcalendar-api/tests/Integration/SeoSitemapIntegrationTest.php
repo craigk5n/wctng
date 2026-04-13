@@ -156,4 +156,27 @@ final class SeoSitemapIntegrationTest extends IntegrationTestCase
 
         $this->assertStringNotContainsString('Sitemap', $text);
     }
+
+    public function testIncludesPublicCalendarPageInSitemap(): void
+    {
+        $this->enableSeo();
+        $this->createPublicEvent('Calendar Page Test');
+
+        $response = $this->controller->sitemap();
+        $xml = (string) $response->getContent();
+
+        // Should include /public/alice (the SPA calendar page)
+        $this->assertStringContainsString('/public/alice</loc>', $xml);
+    }
+
+    public function testIncludesBookingPageInSitemap(): void
+    {
+        $this->enableSeo();
+
+        $response = $this->controller->sitemap();
+        $xml = (string) $response->getContent();
+
+        // Should include /book/alice (the booking page)
+        $this->assertStringContainsString('/book/alice</loc>', $xml);
+    }
 }
