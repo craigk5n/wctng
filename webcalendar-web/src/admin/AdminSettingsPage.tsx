@@ -139,6 +139,54 @@ const NUMERIC_SETTINGS: NumericSetting[] = [
   },
 ];
 
+type DurationUnit = 'minutes' | 'hours' | 'days';
+
+const UNIT_SECONDS: Record<DurationUnit, number> = {
+  minutes: 60,
+  hours: 3600,
+  days: 86400,
+};
+
+/** Decompose seconds into { value, unit } picking the most natural unit. */
+function decomposeDuration(totalSeconds: number): { value: number; unit: DurationUnit } {
+  if (totalSeconds >= 86400 && totalSeconds % 86400 === 0) {
+    return { value: totalSeconds / 86400, unit: 'days' };
+  }
+  if (totalSeconds >= 3600 && totalSeconds % 3600 === 0) {
+    return { value: totalSeconds / 3600, unit: 'hours' };
+  }
+  return { value: Math.round(totalSeconds / 60), unit: 'minutes' };
+}
+
+interface DurationSetting {
+  key: string;
+  label: string;
+  description: string;
+  defaultSeconds: number;
+  minSeconds: number;
+  maxSeconds: number;
+}
+
+const SESSION_SETTINGS: DurationSetting[] = [
+  {
+    key: 'SESSION_TTL',
+    label: 'Session Duration',
+    description:
+      'How long a login session lasts without "Remember me". Tokens auto-refresh while the user is active.',
+    defaultSeconds: 28800,
+    minSeconds: 1800,
+    maxSeconds: 86400,
+  },
+  {
+    key: 'SESSION_TTL_REMEMBER_ME',
+    label: 'Remember Me Duration',
+    description: 'How long a session lasts when "Remember me" is checked at login.',
+    defaultSeconds: 2592000,
+    minSeconds: 86400,
+    maxSeconds: 7776000,
+  },
+];
+
 export function AdminSettingsPage() {
   const [config, setConfig] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -304,6 +352,108 @@ export function AdminSettingsPage() {
             />
           </div>
         ))}
+      </div>
+
+      <h3 className="mt-10 text-lg font-semibold">Sessions</h3>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Configure how long login sessions last. Tokens auto-refresh while the user is active.
+      </p>
+
+      <div className="mt-4 max-w-lg space-y-4">
+        {SESSION_SETTINGS.map((setting) => (
+          <DurationInput
+            key={setting.key}
+            setting={setting}
+            seconds={parseInt(config[setting.key] ?? String(setting.defaultSeconds), 10)}
+            onSave={(seconds) => {
+              const value = String(seconds);
+              setConfig((prev) => ({ ...prev, [setting.key]: value }));
+              void (async () => {
+                const { error } = await apiFetch('/admin/config', {
+                  method: 'PUT',
+                  body: JSON.stringify({ [setting.key]: value }),
+                });
+                if (!error) {
+                  toast({ title: 'Setting saved', variant: 'success' });
+                } else {
+                  toast({ title: 'Failed to save', variant: 'error' });
+                }
+              })();
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DurationInput({
+  setting,
+  seconds,
+  onSave,
+}: {
+  setting: DurationSetting;
+  seconds: number;
+  onSave: (seconds: number) => void;
+}) {
+  const initial = decomposeDuration(isNaN(seconds) ? setting.defaultSeconds : seconds);
+  const [value, setValue] = useState(initial.value);
+  const [unit, setUnit] = useState<DurationUnit>(initial.unit);
+
+  // Recompute when the stored seconds change externally
+  useEffect(() => {
+    const s = isNaN(seconds) ? setting.defaultSeconds : seconds;
+    const d = decomposeDuration(s);
+    setValue(d.value);
+    setUnit(d.unit);
+  }, [seconds, setting.defaultSeconds]);
+
+  const handleSave = () => {
+    const raw = Math.max(1, isNaN(value) ? 1 : value);
+    const totalSeconds = raw * UNIT_SECONDS[unit];
+    const clamped = Math.max(setting.minSeconds, Math.min(setting.maxSeconds, totalSeconds));
+    // Re-decompose in case clamping changed the value
+    const d = decomposeDuration(clamped);
+    setValue(d.value);
+    setUnit(d.unit);
+    onSave(clamped);
+  };
+
+  return (
+    <div className="rounded-lg border p-4">
+      <label className="text-sm font-medium">{setting.label}</label>
+      <p className="mt-0.5 text-xs text-muted-foreground">{setting.description}</p>
+      <div className="mt-2 flex items-center gap-2">
+        <input
+          type="number"
+          min={1}
+          value={value}
+          onChange={(e) => setValue(parseInt(e.target.value, 10))}
+          onBlur={handleSave}
+          className="w-20 rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+        />
+        <select
+          value={unit}
+          onChange={(e) => {
+            const newUnit = e.target.value as DurationUnit;
+            // Convert current value to the new unit
+            const totalSeconds = value * UNIT_SECONDS[unit];
+            const converted = Math.max(1, Math.round(totalSeconds / UNIT_SECONDS[newUnit]));
+            setUnit(newUnit);
+            setValue(converted);
+            // Save after unit change
+            const clamped = Math.max(
+              setting.minSeconds,
+              Math.min(setting.maxSeconds, converted * UNIT_SECONDS[newUnit]),
+            );
+            onSave(clamped);
+          }}
+          className="rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+        >
+          <option value="minutes">minutes</option>
+          <option value="hours">hours</option>
+          <option value="days">days</option>
+        </select>
       </div>
     </div>
   );

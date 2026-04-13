@@ -14,6 +14,7 @@ export function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [oauthProviders, setOauthProviders] = useState<OAuthProviderInfo[]>([]);
   const { tenant } = useTenant();
@@ -80,10 +81,10 @@ export function LoginPage() {
       const response = await fetch(`${baseUrl}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, remember_me: rememberMe }),
       });
 
-      const body = await response.json() as {
+      const body = (await response.json()) as {
         data: { token: string; user: AuthUser; expires_at: string } | null;
         error: { code: number; message: string } | null;
       };
@@ -128,7 +129,9 @@ export function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="w-full max-w-sm space-y-6 p-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold tracking-tight">{tenant ? tenant.name : 'WebCalendar'}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {tenant ? tenant.name : 'WebCalendar'}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">Sign in to your account</p>
         </div>
 
@@ -146,8 +149,12 @@ export function LoginPage() {
               </button>
             ))}
             <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
-              <div className="relative flex justify-center text-xs"><span className="bg-background px-2 text-muted-foreground">or</span></div>
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-background px-2 text-muted-foreground">or</span>
+              </div>
             </div>
           </div>
         )}
@@ -160,7 +167,9 @@ export function LoginPage() {
           )}
 
           <div className="space-y-2">
-            <label htmlFor="username" className="text-sm font-medium">Username</label>
+            <label htmlFor="username" className="text-sm font-medium">
+              Username
+            </label>
             <input
               id="username"
               type="text"
@@ -175,7 +184,9 @@ export function LoginPage() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium">Password</label>
+            <label htmlFor="password" className="text-sm font-medium">
+              Password
+            </label>
             <input
               id="password"
               type="password"
@@ -187,6 +198,16 @@ export function LoginPage() {
               placeholder="Enter your password"
             />
           </div>
+
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="h-4 w-4 rounded border-input"
+            />
+            <span className="text-sm text-muted-foreground">Remember me</span>
+          </label>
 
           <button
             type="submit"

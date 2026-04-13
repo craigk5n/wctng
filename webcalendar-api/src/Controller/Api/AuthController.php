@@ -66,19 +66,33 @@ final class AuthController
             return ApiResponse::error(401, 'Invalid credentials');
         }
 
-        return $this->createTokenResponse($coreUser->login(), $coreUser->isAdmin(), $coreUser);
+        $rememberMe = isset($data['remember_me']) && $data['remember_me'] === true;
+
+        return $this->createTokenResponse($coreUser->login(), $coreUser->isAdmin(), $coreUser, $rememberMe);
     }
 
     #[Route('/api/v2/auth/refresh', name: 'api_auth_refresh', methods: ['POST'])]
-    public function refresh(#[CurrentUser] ?WebCalendarUser $user): JsonResponse
+    public function refresh(Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
     {
         if ($user === null) {
             return ApiResponse::error(401, 'Authentication required');
         }
 
+        // Preserve remember_me flag from the current token
+        $rememberMe = false;
+        $authHeader = $request->headers->get('Authorization', '');
+        if (str_starts_with($authHeader, 'Bearer ')) {
+            $tokenStr = substr($authHeader, 7);
+            $parts = explode('.', $tokenStr);
+            if (\count($parts) === 3) {
+                $payload = json_decode(base64_decode($parts[1]), true);
+                $rememberMe = \is_array($payload) && ($payload['rem'] ?? false) === true;
+            }
+        }
+
         $coreUser = $user->getCoreUser();
 
-        return $this->createTokenResponse($coreUser->login(), $coreUser->isAdmin(), $coreUser);
+        return $this->createTokenResponse($coreUser->login(), $coreUser->isAdmin(), $coreUser, $rememberMe);
     }
 
     #[Route('/api/v2/auth/logout', name: 'api_auth_logout', methods: ['POST'])]
@@ -93,12 +107,29 @@ final class AuthController
         return ApiResponse::noContent();
     }
 
-    private function createTokenResponse(string $login, bool $isAdmin, \WebCalendar\Core\Domain\Entity\User $coreUser): JsonResponse
+    private function createTokenResponse(string $login, bool $isAdmin, \WebCalendar\Core\Domain\Entity\User $coreUser, bool $rememberMe = false): JsonResponse
     {
+        // Resolve TTL: admin config overrides env var default
+        $configService = $this->coreServiceFactory->getConfigService();
+        $configKey = $rememberMe ? 'SESSION_TTL_REMEMBER_ME' : 'SESSION_TTL';
+        $configDefault = $rememberMe ? '2592000' : '28800';
+        $ttl = (int) ($configService->getSetting($configKey) ?? $configDefault);
+
+        // Fall back to env var if config hasn't been set yet (first run)
+        if ($ttl <= 0) {
+            $ttl = $this->jwtTtl;
+        }
+
         $claims = [
             'username' => $login,
             'is_admin' => $isAdmin,
+            'exp' => time() + $ttl,
         ];
+
+        // Mark remember-me tokens so refresh preserves the TTL type
+        if ($rememberMe) {
+            $claims['rem'] = true;
+        }
 
         // Include tenant claim in multi-tenant mode
         $tenant = $this->tenantContext->getTenant();
@@ -108,7 +139,7 @@ final class AuthController
 
         $token = $this->jwtEncoder->encode($claims);
 
-        $expiresAt = new \DateTimeImmutable('+' . $this->jwtTtl . ' seconds');
+        $expiresAt = new \DateTimeImmutable('+' . $ttl . ' seconds');
 
         $response = [
             'token' => $token,

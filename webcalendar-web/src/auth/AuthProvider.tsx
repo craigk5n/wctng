@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { TOKEN_STORAGE_KEY } from '../api/client';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { TOKEN_STORAGE_KEY, getApiBaseUrl, getAuthHeaders } from '../api/client';
 import { AuthContext, type AuthContextValue, type AuthUser } from './auth-context';
 
 /**
@@ -23,6 +23,15 @@ function isTokenExpired(token: string): boolean {
   const payload = decodeJwtPayload(token);
   if (!payload || typeof payload.exp !== 'number') return true;
   return payload.exp < Date.now() / 1000;
+}
+
+/**
+ * Returns seconds until a JWT token expires, or 0 if already expired.
+ */
+function secondsUntilExpiry(token: string): number {
+  const payload = decodeJwtPayload(token);
+  if (!payload || typeof payload.exp !== 'number') return 0;
+  return Math.max(0, payload.exp - Date.now() / 1000);
 }
 
 /**
@@ -68,6 +77,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       localStorage.removeItem(TOKEN_STORAGE_KEY);
     }
+  }, [token]);
+
+  // Auto-refresh token before it expires
+  const refreshingRef = useRef(false);
+  useEffect(() => {
+    if (!token) return;
+
+    const scheduleRefresh = () => {
+      const remaining = secondsUntilExpiry(token);
+      // Refresh 5 minutes before expiry, or at half-life if TTL < 10 minutes
+      const refreshAt = remaining > 600 ? remaining - 300 : remaining / 2;
+      if (refreshAt <= 0) return;
+
+      return window.setTimeout(async () => {
+        if (refreshingRef.current) return;
+        refreshingRef.current = true;
+        try {
+          const res = await fetch(`${getApiBaseUrl()}/auth/refresh`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+          });
+          if (res.ok) {
+            const body = await res.json();
+            if (body?.data?.token) {
+              setToken(body.data.token);
+              if (body.data.user) setUser(body.data.user);
+            }
+          }
+        } catch {
+          // Silent failure — user will be logged out when token expires
+        } finally {
+          refreshingRef.current = false;
+        }
+      }, refreshAt * 1000);
+    };
+
+    const timerId = scheduleRefresh();
+    return () => {
+      if (timerId) clearTimeout(timerId);
+    };
   }, [token]);
 
   const login = useCallback((newToken: string, newUser: AuthUser) => {

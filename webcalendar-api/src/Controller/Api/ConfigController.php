@@ -32,6 +32,8 @@ final class ConfigController
         'ENABLE_DAILY_AGENDA' => 'N',
         'MAX_EVENTS_PER_PAGE' => '1000',
         'SEO_OG_IMAGE_URL' => '',
+        'SESSION_TTL' => '28800',
+        'SESSION_TTL_REMEMBER_ME' => '2592000',
     ];
 
     public function __construct(
