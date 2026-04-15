@@ -6,19 +6,23 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Application\Contract\AuthServiceInterface;
+use WebCalendar\Core\Application\Service\UserService;
 use WebCalendar\Core\Domain\Entity\User;
 use WebCalendar\Core\Domain\Exception\SelfOperationException;
+use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 
 final class UserController
 {
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly UserService $userService,
+        private readonly UserRepositoryInterface $userRepository,
+        private readonly AuthServiceInterface $authService,
     ) {
     }
 
@@ -30,7 +34,7 @@ final class UserController
         }
 
         $coreUser = $user->getCoreUser();
-        $userService = $this->coreServiceFactory->getUserService();
+        $userService = $this->userService;
 
         $enabledFilter = $request->query->get('enabled');
 
@@ -64,7 +68,7 @@ final class UserController
             return ApiResponse::error(403, 'You do not have permission to view this user');
         }
 
-        $targetUser = $this->coreServiceFactory->getUserService()->getUserByLogin($login);
+        $targetUser = $this->userService->getUserByLogin($login);
 
         if ($targetUser === null) {
             return ApiResponse::error(404, 'User not found');
@@ -106,7 +110,7 @@ final class UserController
         }
 
         // Check if login already exists
-        $existing = $this->coreServiceFactory->getUserService()->getUserByLogin($login);
+        $existing = $this->userService->getUserByLogin($login);
         if ($existing !== null) {
             return ApiResponse::error(409, 'User with this login already exists');
         }
@@ -127,11 +131,11 @@ final class UserController
         $coreUser = $user->getCoreUser();
 
         // createUser throws AuthorizationException if not admin
-        $this->coreServiceFactory->getUserService()->createUser($newUser, $coreUser);
+        $this->userService->createUser($newUser, $coreUser);
 
         // Set password
-        $hash = $this->coreServiceFactory->getUserService()->hashPassword($password);
-        $this->coreServiceFactory->getUserRepository()->setPassword($login, $hash);
+        $hash = $this->userService->hashPassword($password);
+        $this->userRepository->setPassword($login, $hash);
 
         return ApiResponse::success(self::userToArray($newUser), null, Response::HTTP_CREATED);
     }
@@ -150,7 +154,7 @@ final class UserController
             return ApiResponse::error(403, 'You do not have permission to change this password');
         }
 
-        $targetUser = $this->coreServiceFactory->getUserService()->getUserByLogin($login);
+        $targetUser = $this->userService->getUserByLogin($login);
         if ($targetUser === null) {
             return ApiResponse::error(404, 'User not found');
         }
@@ -175,14 +179,14 @@ final class UserController
                 return ApiResponse::error(400, 'Missing required field: current_password');
             }
 
-            $authService = $this->coreServiceFactory->getAuthService();
+            $authService = $this->authService;
             if (!$authService->authenticate($login, $currentPassword)) {
                 return ApiResponse::error(400, 'Current password is incorrect');
             }
         }
 
-        $hash = $this->coreServiceFactory->getUserService()->hashPassword($newPassword);
-        $this->coreServiceFactory->getUserRepository()->setPassword($login, $hash);
+        $hash = $this->userService->hashPassword($newPassword);
+        $this->userRepository->setPassword($login, $hash);
 
         return ApiResponse::success(['message' => 'Password changed successfully']);
     }
@@ -196,7 +200,7 @@ final class UserController
 
         $coreUser = $user->getCoreUser();
 
-        $targetUser = $this->coreServiceFactory->getUserService()->getUserByLogin($login);
+        $targetUser = $this->userService->getUserByLogin($login);
         if ($targetUser === null) {
             return ApiResponse::error(404, 'User not found');
         }
@@ -236,7 +240,7 @@ final class UserController
 
         try {
             // updateUser throws AuthorizationException if not admin or self
-            $this->coreServiceFactory->getUserService()->updateUser($updatedUser, $coreUser);
+            $this->userService->updateUser($updatedUser, $coreUser);
         } catch (SelfOperationException $e) {
             return ApiResponse::error(409, $e->getMessage());
         }
@@ -252,7 +256,7 @@ final class UserController
         }
 
         $coreUser = $user->getCoreUser();
-        $userService = $this->coreServiceFactory->getUserService();
+        $userService = $this->userService;
 
         $targetUser = $userService->getUserByLogin($login);
         if ($targetUser === null) {
@@ -276,7 +280,7 @@ final class UserController
         }
 
         $coreUser = $user->getCoreUser();
-        $prefs = $this->coreServiceFactory->getUserService()->getPreferences($login, $coreUser);
+        $prefs = $this->userService->getPreferences($login, $coreUser);
 
         $items = [];
         foreach ($prefs as $pref) {
@@ -313,7 +317,7 @@ final class UserController
         }
 
         foreach ($prefMap as $key => $value) {
-            $this->coreServiceFactory->getUserService()->updatePreference($login, $key, $value, $coreUser);
+            $this->userService->updatePreference($login, $key, $value, $coreUser);
         }
 
         return ApiResponse::success(['message' => 'Preferences saved']);
@@ -329,7 +333,7 @@ final class UserController
         $date = $request->query->getString('date', date('Y-m-d'));
         $prefKey = "working_location_{$date}";
 
-        $prefs = $this->coreServiceFactory->getUserRepository()->getPreferences($login);
+        $prefs = $this->userRepository->getPreferences($login);
         $location = 'office'; // default
         foreach ($prefs as $pref) {
             if ($pref->key() === $prefKey) {
@@ -364,7 +368,7 @@ final class UserController
         $location = $data['location'] ?? 'office';
 
         $prefKey = "working_location_{$date}";
-        $this->coreServiceFactory->getUserRepository()->savePreference(
+        $this->userRepository->savePreference(
             $login,
             new \WebCalendar\Core\Domain\ValueObject\UserPreference($prefKey, $location),
         );

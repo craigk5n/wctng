@@ -6,7 +6,6 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use App\Service\EventNotificationService;
 use App\Service\MercurePublisher;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -14,13 +13,16 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Application\Service\EventService;
+use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\EventId;
 use WebCalendar\Core\Domain\ValueObject\ParticipantStatus;
 
 final class ParticipantController
 {
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly EventService $eventService,
+        private readonly EventRepositoryInterface $eventRepository,
         private readonly MercurePublisher $mercure,
         private readonly EventNotificationService $notifications,
     ) {
@@ -33,13 +35,13 @@ final class ParticipantController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $event = $this->coreServiceFactory->getEventService()->getEventById(new EventId($eventId));
+        $event = $this->eventService->getEventById(new EventId($eventId));
         if ($event === null) {
             return ApiResponse::error(404, 'Event not found');
         }
 
         /** @var array<string, string> $participants */
-        $participants = $this->coreServiceFactory->getEventRepository()->getParticipantsWithStatus(new EventId($eventId));
+        $participants = $this->eventRepository->getParticipantsWithStatus(new EventId($eventId));
 
         $items = [];
         foreach ($participants as $login => $status) {
@@ -56,7 +58,7 @@ final class ParticipantController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $event = $this->coreServiceFactory->getEventService()->getEventById(new EventId($eventId));
+        $event = $this->eventService->getEventById(new EventId($eventId));
         if ($event === null) {
             return ApiResponse::error(404, 'Event not found');
         }
@@ -74,7 +76,7 @@ final class ParticipantController
         }
 
         $coreUser = $user->getCoreUser();
-        $eventService = $this->coreServiceFactory->getEventService();
+        $eventService = $this->eventService;
 
         /** @var list<string> $participantList */
         $participantList = $data['participants'];
@@ -91,7 +93,7 @@ final class ParticipantController
 
         // Send invitation emails to new participants
         try {
-            $eventEntity = $this->coreServiceFactory->getEventService()->getEventById(new EventId($eventId));
+            $eventEntity = $this->eventService->getEventById(new EventId($eventId));
             if ($eventEntity !== null) {
                 $eventData = \App\DTO\EventResponseDTO::fromEntity($eventEntity);
                 $this->notifications->notifyParticipantsAdded($eventData, $participantList);
@@ -109,13 +111,13 @@ final class ParticipantController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $event = $this->coreServiceFactory->getEventService()->getEventById(new EventId($eventId));
+        $event = $this->eventService->getEventById(new EventId($eventId));
         if ($event === null) {
             return ApiResponse::error(404, 'Event not found');
         }
 
         $coreUser = $user->getCoreUser();
-        $this->coreServiceFactory->getEventService()->removeParticipant(new EventId($eventId), $login, $coreUser);
+        $this->eventService->removeParticipant(new EventId($eventId), $login, $coreUser);
 
         try {
             $this->mercure->publishParticipantChanged($eventId, ['action' => 'removed', 'login' => $login]);
@@ -132,7 +134,7 @@ final class ParticipantController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $event = $this->coreServiceFactory->getEventService()->getEventById(new EventId($eventId));
+        $event = $this->eventService->getEventById(new EventId($eventId));
         if ($event === null) {
             return ApiResponse::error(404, 'Event not found');
         }
@@ -156,7 +158,7 @@ final class ParticipantController
         }
 
         $coreUser = $user->getCoreUser();
-        $this->coreServiceFactory->getEventService()->setParticipantStatus(
+        $this->eventService->setParticipantStatus(
             new EventId($eventId),
             $login,
             $status,
@@ -173,13 +175,13 @@ final class ParticipantController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $event = $this->coreServiceFactory->getEventService()->getEventById(new EventId($eventId));
+        $event = $this->eventService->getEventById(new EventId($eventId));
         if ($event === null) {
             return ApiResponse::error(404, 'Event not found');
         }
 
         $coreUser = $user->getCoreUser();
-        $this->coreServiceFactory->getEventService()->approveEvent(
+        $this->eventService->approveEvent(
             new EventId($eventId),
             $coreUser->login(),
             $coreUser,
@@ -200,13 +202,13 @@ final class ParticipantController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $event = $this->coreServiceFactory->getEventService()->getEventById(new EventId($eventId));
+        $event = $this->eventService->getEventById(new EventId($eventId));
         if ($event === null) {
             return ApiResponse::error(404, 'Event not found');
         }
 
         $coreUser = $user->getCoreUser();
-        $this->coreServiceFactory->getEventService()->rejectEvent(
+        $this->eventService->rejectEvent(
             new EventId($eventId),
             $coreUser->login(),
             $coreUser,

@@ -9,7 +9,6 @@ use App\DTO\EventResponseDTO;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Service\ConflictDetectionService;
-use App\Service\CoreServiceFactory;
 use App\Service\DescriptionSanitizer;
 use App\Service\EventNotificationService;
 use App\Service\ExtParticipantRepository;
@@ -17,15 +16,24 @@ use App\Service\ExtParticipantValidator;
 use App\Service\GeocodingService;
 use App\Service\GeoRepository;
 use App\Service\MercurePublisher;
+use App\Service\TenantAwarePdoProvider;
 use App\Webhook\WebhookDispatcher;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Application\Service\ActivityLogService;
+use WebCalendar\Core\Application\Service\CategoryService;
+use WebCalendar\Core\Application\Service\ConfigService;
+use WebCalendar\Core\Application\Service\EventService;
+use WebCalendar\Core\Application\Service\LayerService;
+use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
+use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\ActivityLogType;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 use WebCalendar\Core\Domain\ValueObject\EventId;
+use WebCalendar\Core\Infrastructure\Persistence\PdoCategoryRepository;
 
 final class EventController
 {
@@ -34,7 +42,15 @@ final class EventController
     private readonly ExtParticipantValidator $extParticipantValidator;
 
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly EventService $eventService,
+        private readonly EventRepositoryInterface $eventRepository,
+        private readonly CategoryService $categoryService,
+        private readonly PdoCategoryRepository $categoryRepository,
+        private readonly ConfigService $configService,
+        private readonly LayerService $layerService,
+        private readonly UserRepositoryInterface $userRepository,
+        private readonly ActivityLogService $activityLogService,
+        private readonly TenantAwarePdoProvider $pdoProvider,
         private readonly MercurePublisher $mercure,
         private readonly \PDO $pdo,
         private readonly EventNotificationService $notifications,
@@ -70,24 +86,24 @@ final class EventController
         }
 
         $page = max(1, $request->query->getInt('page', 1));
-        $maxPerPage = (int) ($this->coreServiceFactory->getConfigService()->getSetting('MAX_EVENTS_PER_PAGE') ?? '1000');
+        $maxPerPage = (int) ($this->configService->getSetting('MAX_EVENTS_PER_PAGE') ?? '1000');
         $limit = min($maxPerPage, max(1, $request->query->getInt('limit', $maxPerPage)));
 
         $dateRange = new DateRange($start, $end);
         $coreUser = $user->getCoreUser();
-        $collection = $this->coreServiceFactory->getEventService()->getEventsInDateRange($dateRange, $coreUser);
+        $collection = $this->eventService->getEventsInDateRange($dateRange, $coreUser);
 
         $allEvents = $collection->all();
 
         // Include events from active layers when layers=1
         if ($request->query->getString('layers', '') === '1') {
-            $layers = $this->coreServiceFactory->getLayerService()->getLayersForUser($user->getUserIdentifier());
+            $layers = $this->layerService->getLayersForUser($user->getUserIdentifier());
             $layerUsers = array_map(static fn ($l) => $l->layerUser(), $layers);
             if (\count($layerUsers) > 0) {
                 // Load access permissions for layered users
                 $accessMap = $this->getAccessPermissions($user->getUserIdentifier(), array_values($layerUsers));
 
-                $layerCollection = $this->coreServiceFactory->getEventService()->getEventsInDateRange($dateRange, null, null, $layerUsers);
+                $layerCollection = $this->eventService->getEventsInDateRange($dateRange, null, null, $layerUsers);
                 // Merge, avoiding duplicates by event ID, filtering by access
                 $existingIds = array_map(static fn ($e) => $e->id(), $allEvents);
                 foreach ($layerCollection->all() as $layerEvent) {
@@ -114,7 +130,7 @@ final class EventController
         $eventIds = array_map(static fn ($e) => $e->id(), $pageItems);
         $categoryMap = [];
         if (\count($eventIds) > 0) {
-            $categoryRepo = $this->coreServiceFactory->getCategoryRepository();
+            $categoryRepo = $this->categoryRepository;
             /** @var array<int, array{id: int, color: string|null}> $batchResult */
             $batchResult = $categoryRepo->getForEventsBatch($eventIds, $user->getUserIdentifier());
             foreach ($batchResult as $eventId => $catInfo) {
@@ -200,7 +216,7 @@ final class EventController
 
         $dateRange = new DateRange($start->modify('-1 day'), $end->modify('+1 day'));
         $coreUser = $user->getCoreUser();
-        $existing = $this->coreServiceFactory->getEventService()
+        $existing = $this->eventService
             ->getEventsInDateRange($dateRange, $coreUser)->all();
 
         $conflicts = $this->conflictService->findConflicts(
@@ -254,7 +270,7 @@ final class EventController
         $conflictList = [];
         if ($conflictMode !== 'off') {
             $dateRange = new DateRange($event->start()->modify('-1 day'), $event->end()->modify('+1 day'));
-            $existing = $this->coreServiceFactory->getEventService()
+            $existing = $this->eventService
                 ->getEventsInDateRange($dateRange, $coreUser)->all();
             $conflicts = $this->conflictService->findConflicts($event, $existing);
             $conflictList = $this->conflictService->formatConflicts($conflicts);
@@ -285,12 +301,12 @@ final class EventController
             );
         }
 
-        $this->coreServiceFactory->getEventService()->createEvent($event, $coreUser);
+        $this->eventService->createEvent($event, $coreUser);
 
         // Retrieve the created event to get the assigned ID
         // The core service saves the event; we need the generated ID.
         // Since Event is immutable with id=0, we search for it by UID.
-        $created = $this->coreServiceFactory->getEventRepository()->findByUid($event->uid());
+        $created = $this->eventRepository->findByUid($event->uid());
 
         if ($created === null) {
             return ApiResponse::error(500, 'Event created but could not be retrieved');
@@ -299,7 +315,7 @@ final class EventController
         // Assign categories if provided
         $categoryIds = $this->parseCategoryIds($data);
         if (\count($categoryIds) > 0) {
-            $this->coreServiceFactory->getCategoryService()->assignToEvent(
+            $this->categoryService->assignToEvent(
                 $created->id(),
                 $user->getUserIdentifier(),
                 $categoryIds,
@@ -343,7 +359,7 @@ final class EventController
 
         // Log activity
         try {
-            $this->coreServiceFactory->getActivityLogService()->log(
+            $this->activityLogService->log(
                 $created->id()->value(),
                 $user->getUserIdentifier(),
                 null,
@@ -364,7 +380,7 @@ final class EventController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $event = $this->coreServiceFactory->getEventService()->getEventById(new EventId($id));
+        $event = $this->eventService->getEventById(new EventId($id));
 
         if ($event === null) {
             return ApiResponse::error(404, 'Event not found');
@@ -378,7 +394,7 @@ final class EventController
         // selecting a category in the dialog did nothing.
         $categoryIds = [];
         try {
-            $categories = $this->coreServiceFactory->getCategoryRepository()->getForEvent(
+            $categories = $this->categoryRepository->getForEvent(
                 new EventId($id),
                 $user->getUserIdentifier(),
             );
@@ -394,7 +410,7 @@ final class EventController
 
         // Include participants
         /** @var array<string, string> $participants */
-        $participants = $this->coreServiceFactory->getEventRepository()->getParticipantsWithStatus(new EventId($id));
+        $participants = $this->eventRepository->getParticipantsWithStatus(new EventId($id));
         $response['participants'] = [];
         foreach ($participants as $login => $status) {
             $response['participants'][] = ['login' => $login, 'status' => $status];
@@ -420,7 +436,7 @@ final class EventController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $existing = $this->coreServiceFactory->getEventService()->getEventById(new EventId($id));
+        $existing = $this->eventService->getEventById(new EventId($id));
 
         if ($existing === null) {
             return ApiResponse::error(404, 'Event not found');
@@ -447,7 +463,7 @@ final class EventController
 
             // Now apply the edits to the NEW event instead of the original
             $id = $newId;
-            $newEvent = $this->coreServiceFactory->getEventService()->getEventById(new EventId($newId));
+            $newEvent = $this->eventService->getEventById(new EventId($newId));
             if ($newEvent === null) {
                 return ApiResponse::error(500, 'Split succeeded but new event not found');
             }
@@ -491,7 +507,7 @@ final class EventController
         $conflictList = [];
         if ($conflictMode !== 'off') {
             $dateRange = new DateRange($updated->start()->modify('-1 day'), $updated->end()->modify('+1 day'));
-            $allEvents = $this->coreServiceFactory->getEventService()
+            $allEvents = $this->eventService
                 ->getEventsInDateRange($dateRange, $coreUser)->all();
             $conflicts = $this->conflictService->findConflicts($updated, $allEvents, $id);
             $conflictList = $this->conflictService->formatConflicts($conflicts);
@@ -504,12 +520,12 @@ final class EventController
             }
         }
 
-        $this->coreServiceFactory->getEventService()->updateEvent($updated, $coreUser);
+        $this->eventService->updateEvent($updated, $coreUser);
 
         // Update categories if provided
         $categoryIds = $this->parseCategoryIds($data);
         if (isset($data['categories'])) {
-            $this->coreServiceFactory->getCategoryService()->assignToEvent(
+            $this->categoryService->assignToEvent(
                 new EventId($id),
                 $user->getUserIdentifier(),
                 $categoryIds,
@@ -523,7 +539,7 @@ final class EventController
         }
 
         // Re-fetch to return the saved state
-        $saved = $this->coreServiceFactory->getEventService()->getEventById(new EventId($id));
+        $saved = $this->eventService->getEventById(new EventId($id));
 
         if ($saved === null) {
             return ApiResponse::error(500, 'Event updated but could not be retrieved');
@@ -555,7 +571,7 @@ final class EventController
         // Notify participants of update
         try {
             /** @var array<string, string> $participants */
-            $participants = $this->coreServiceFactory->getEventRepository()->getParticipantsWithStatus(new EventId($id));
+            $participants = $this->eventRepository->getParticipantsWithStatus(new EventId($id));
             $pList = [];
             foreach ($participants as $login => $status) {
                 $pList[] = ['login' => $login, 'status' => $status];
@@ -574,7 +590,7 @@ final class EventController
 
         // Log activity
         try {
-            $this->coreServiceFactory->getActivityLogService()->log(
+            $this->activityLogService->log(
                 $id,
                 $user->getUserIdentifier(),
                 null,
@@ -611,7 +627,7 @@ final class EventController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $existing = $this->coreServiceFactory->getEventService()->getEventById(new EventId($id));
+        $existing = $this->eventService->getEventById(new EventId($id));
 
         if ($existing === null) {
             return ApiResponse::error(404, 'Event not found');
@@ -646,7 +662,7 @@ final class EventController
         if (!$isOrganizer && !$isAdmin) {
             // Check if caller is at least a participant
             /** @var array<string, string> $participants */
-            $participants = $this->coreServiceFactory->getEventRepository()
+            $participants = $this->eventRepository
                 ->getParticipantsWithStatus(new EventId($id));
             if (!isset($participants[$login])) {
                 return ApiResponse::error(403, 'You do not have permission to modify this event');
@@ -654,7 +670,7 @@ final class EventController
 
             // Participant decline: set their status to rejected
             $previousStatus = $participants[$login];
-            $this->coreServiceFactory->getEventRepository()
+            $this->eventRepository
                 ->updateParticipantStatus(new EventId($id), $login, 'R');
 
             try {
@@ -663,7 +679,7 @@ final class EventController
             }
 
             try {
-                $this->coreServiceFactory->getActivityLogService()->log(
+                $this->activityLogService->log(
                     $id,
                     $login,
                     null,
@@ -683,7 +699,7 @@ final class EventController
         $previousStatus = $existing->status();
 
         // Update event status to cancelled and bump sequence
-        $pdo = $this->coreServiceFactory->getPdo();
+        $pdo = $this->pdoProvider->get();
         $stmt = $pdo->prepare(
             "UPDATE webcal_entry SET cal_status = 'cancelled', cal_sequence = cal_sequence + 1 WHERE cal_id = :id"
         );
@@ -692,7 +708,7 @@ final class EventController
         // Notify internal participants
         try {
             /** @var array<string, string> $participants */
-            $participants = $this->coreServiceFactory->getEventRepository()
+            $participants = $this->eventRepository
                 ->getParticipantsWithStatus(new EventId($id));
             $pList = [];
             foreach ($participants as $pLogin => $status) {
@@ -728,7 +744,7 @@ final class EventController
         }
 
         try {
-            $this->coreServiceFactory->getActivityLogService()->log(
+            $this->activityLogService->log(
                 $id,
                 $login,
                 null,
@@ -754,7 +770,7 @@ final class EventController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $existing = $this->coreServiceFactory->getEventService()->getEventById(new EventId($id));
+        $existing = $this->eventService->getEventById(new EventId($id));
 
         if ($existing === null) {
             return ApiResponse::error(404, 'Event not found');
@@ -776,7 +792,7 @@ final class EventController
             }
 
             $restoreTo = ($prevStatus !== null && $prevStatus !== 'cancelled') ? $prevStatus : null;
-            $pdo = $this->coreServiceFactory->getPdo();
+            $pdo = $this->pdoProvider->get();
             $stmt = $pdo->prepare(
                 'UPDATE webcal_entry SET cal_status = :status WHERE cal_id = :id'
             );
@@ -788,7 +804,7 @@ final class EventController
             }
 
             try {
-                $this->coreServiceFactory->getActivityLogService()->log(
+                $this->activityLogService->log(
                     $id,
                     $login,
                     null,
@@ -803,7 +819,7 @@ final class EventController
 
         // Participant: restore their acceptance
         $restoreTo = ($prevStatus !== null && $prevStatus !== 'R') ? $prevStatus : 'A';
-        $this->coreServiceFactory->getEventRepository()
+        $this->eventRepository
             ->updateParticipantStatus(new EventId($id), $login, $restoreTo);
 
         try {
@@ -916,7 +932,7 @@ final class EventController
     private function isExtParticipantsDisabled(): bool
     {
         try {
-            $value = $this->coreServiceFactory->getConfigService()->getSetting('DISABLE_EXT_PARTICIPANTS_FIELD', 'N');
+            $value = $this->configService->getSetting('DISABLE_EXT_PARTICIPANTS_FIELD', 'N');
             return $value === 'Y';
         } catch (\Throwable) {
             return false;
@@ -928,7 +944,7 @@ final class EventController
      */
     private function requiresApproval(string $login): bool
     {
-        $prefs = $this->coreServiceFactory->getUserRepository()->getPreferences($login);
+        $prefs = $this->userRepository->getPreferences($login);
         foreach ($prefs as $pref) {
             if ($pref->key() === 'require_event_approval' && $pref->value() === 'Y') {
                 return true;
@@ -943,7 +959,7 @@ final class EventController
      */
     private function getConflictMode(string $login): string
     {
-        $prefs = $this->coreServiceFactory->getUserRepository()->getPreferences($login);
+        $prefs = $this->userRepository->getPreferences($login);
         foreach ($prefs as $pref) {
             if ($pref->key() === 'conflict_mode') {
                 $value = $pref->value();
@@ -964,7 +980,7 @@ final class EventController
         \DateTimeImmutable $date,
         string $actor,
     ): JsonResponse {
-        $pdo = $this->coreServiceFactory->getPdo();
+        $pdo = $this->pdoProvider->get();
         $dateInt = (int) $date->format('Ymd');
 
         // Insert EXDATE row (ignore if duplicate)
@@ -983,7 +999,7 @@ final class EventController
         }
 
         try {
-            $this->coreServiceFactory->getActivityLogService()->log(
+            $this->activityLogService->log(
                 $id,
                 $actor,
                 null,
@@ -1008,7 +1024,7 @@ final class EventController
         \DateTimeImmutable $fromDate,
         string $actor,
     ): JsonResponse {
-        $pdo = $this->coreServiceFactory->getPdo();
+        $pdo = $this->pdoProvider->get();
         $untilDateInt = (int) $fromDate->modify('-1 day')->format('Ymd');
 
         // Set the cal_end of the recurrence rule
@@ -1027,7 +1043,7 @@ final class EventController
         }
 
         try {
-            $this->coreServiceFactory->getActivityLogService()->log(
+            $this->activityLogService->log(
                 $id,
                 $actor,
                 null,
@@ -1058,7 +1074,7 @@ final class EventController
         \DateTimeImmutable $fromDate,
         string $actor,
     ): array {
-        $pdo = $this->coreServiceFactory->getPdo();
+        $pdo = $this->pdoProvider->get();
 
         // 1. Truncate original series
         $untilDateInt = (int) $fromDate->modify('-1 day')->format('Ymd');
@@ -1128,7 +1144,7 @@ final class EventController
         )->execute(['id' => $newId, 'login' => $original->createdBy()]);
 
         try {
-            $this->coreServiceFactory->getActivityLogService()->log(
+            $this->activityLogService->log(
                 $originalId,
                 $actor,
                 null,

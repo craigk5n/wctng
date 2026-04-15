@@ -6,11 +6,11 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use App\Service\ErrorMetricsService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 
 /**
  * Admin-only dashboard with system statistics.
@@ -18,7 +18,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 final class DashboardController
 {
     public function __construct(
-        private readonly CoreServiceFactory $factory,
+        private readonly UserRepositoryInterface $userRepository,
         private readonly \PDO $pdo,
         private readonly ?ErrorMetricsService $errorMetrics = null,
     ) {
@@ -46,7 +46,7 @@ final class DashboardController
     {
         $total = 0;
         try {
-            $total = \count($this->factory->getUserRepository()->findAll());
+            $total = \count($this->userRepository->findAll());
         } catch (\Throwable) {
         }
 

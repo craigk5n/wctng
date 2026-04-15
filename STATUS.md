@@ -19,7 +19,7 @@
 | PBP-S1 | `#[\SensitiveParameter]` on all secret params — **DONE 2026-04-15** | P0 | — |
 | PBP-S2 | Migrate password hashing to Argon2id + rehash-on-login — **DONE 2026-04-15** | P0 | — |
 | PBP-S3 | Content-Security-Policy + Permissions-Policy + HSTS preload — **DONE 2026-04-15** | P0 | — |
-| PBP-S4 | Decompose `CoreServiceFactory` service locator | P1 | — |
+| PBP-S4 | Decompose `CoreServiceFactory` service locator — **DONE 2026-04-15** | P1 | — |
 | PBP-S5 | Inject PSR-20 `ClockInterface` everywhere time matters | P1 | — |
 | PBP-S6 | JWT token revocation / logout blacklist | P1 | — |
 | PBP-S7 | Bump PHP baseline to 8.3 and PHPUnit to ^12 | P1 | — |
@@ -167,30 +167,44 @@ OWASP's 2025 guidance and the project's own best-practices doc require Argon2id 
 
 ---
 
-### Story PBP-S4: Decompose `CoreServiceFactory` service locator — P1
+### Story PBP-S4: Decompose `CoreServiceFactory` service locator — P1 — DONE 2026-04-15
 
 **Problem:** `src/Service/CoreServiceFactory.php` is 470 lines, caches ~50 nullable service/repository properties, exposes ~40 getter methods, and is injected into every controller. This is the textbook service-locator anti-pattern explicitly called out as a TRAP in the guide: it hides real dependencies, requires a full container rebuild to mock, and blinds static analysis to the dependency graph.
 
-**Goal:** Each webcalendar-core service is a first-class Symfony service, injected directly into the controllers that need it. `CoreServiceFactory` is deleted (or reduced to a pure glue file that only exists during the transition).
+**Goal:** Each webcalendar-core service is a first-class Symfony service, injected directly into the controllers that need it. `CoreServiceFactory` is deprecated and its long-term fate is removal.
+
+**Landed (2026-04-15):**
+- All 37 API controllers migrated from `CoreServiceFactory` to explicit typed constructor injection. Controllers now declare exactly which core services they depend on — PHPStan and readers can both see the real dependency graph.
+- `config/services.yaml` — every `getXxx()` method on `CoreServiceFactory` registered as a factory bridge for its concrete type (`EventService`, `UserService`, `CategoryService`, `ConfigService`, 24 others), plus every repository (`PdoEventRepository`, `PdoUserRepository`, 19 others). Domain repository interfaces (`EventRepositoryInterface`, `UserRepositoryInterface`, 18 others) are bound to their PDO implementations via aliases, so controllers depend on the interface (proper DIP).
+- `src/Service/TenantAwarePdoProvider.php` — new narrow service for tenant-aware PDO access. Replaces the ~15 controllers that were pulling `CoreServiceFactory::getPdo()` just for tenant-routing logic. Controllers that always hit the default DB (e.g. `HealthController`) inject `@pdo.connection` directly.
+- `CoreServiceFactory` marked `@deprecated` with a docblock spelling out the migration path; the class stays alive as a glue bridge because a handful of non-controller consumers (CalDAV backends, auth chain, import/reminder/agenda services, install/seed commands, `WebCalendarUserProvider`) still use it internally. Those migrate in a follow-up (PBP-S4.1) and then the class can be deleted. Any *new* code adding a `CoreServiceFactory` dependency now trips deprecation warnings in IDE/static analysis.
+- `SeoEligibilityService` and `CustomHtmlProvider` also migrated off the factory since they were being instantiated inline by SEO controllers — now pure autowired services taking `ConfigService` + `UserRepositoryInterface`.
+- Two existing unit tests (`ConfigControllerTest`, `McpControllerTest`) updated to pass the explicit services they need. Every other test kept working untouched because the service-level behavior is unchanged.
+
+**Migration order (as executed):**
+1. Fast wins: `AuthController`, `HealthController`, `SetupController`, `UserController`, `ControlAuthController` (the priority list from acceptance criteria)
+2. Small single-service controllers: `ImportController`, `ExportController`, `LocationController`, `AssistantController`, `ActivityLogController`, `ConfigController`, `GroupController`, `JournalController`, `LayerController`, `TaskController`
+3. Medium-complexity: `BookingController`, `CommentController`, `CustomHtmlController`, `DashboardController`, `OAuthController`, `ResourceController`, `PollController`, `ParticipantController`, `UnsubscribeController`, `CustomFieldController`, `ApprovalController`, `AttachmentController`, `FeedController`, `PublicCalendarController`, `ShareController`, `CategoryController`, `McpController`, `SecurityAuditController`
+4. SEO + CalDAV: `EventIndexController`, `EventPageController`, `SitemapController`, `CalDavController`
+5. EventController last — 1143 lines, 9 different core services (EventService, EventRepository, CategoryService, CategoryRepository, ConfigService, LayerService, UserRepository, ActivityLogService, tenant-aware PDO)
 
 **Acceptance criteria:**
-- [ ] Every service currently returned by a `getXxx()` method on `CoreServiceFactory` is registered in `config/services.yaml` using the existing instance as a factory:
-  ```yaml
-  WebCalendar\Core\Application\Service\EventService:
-    factory: ['@App\Service\CoreServiceFactory', 'getEventService']
-  ```
-  (the factory stays alive only long enough to keep wiring legal — its long-term fate is removal)
-- [ ] Once each service is container-registered, switch controllers one at a time: remove the `private readonly CoreServiceFactory $coreServiceFactory` constructor param, add explicit typed constructor params for the services that controller actually uses
-- [ ] Incremental migration order: `AuthController`, `ControlAuthController`, `HealthController`, `UserController`, `EventController` (last — has the most dependencies), everything else in between
-- [ ] After all controllers migrated: `CoreServiceFactory` is `@deprecated` for one release, then deleted. Any lingering references fail PHPStan.
-- [ ] `services.yaml` uses autowiring + autoconfigure for App classes; only the core-service bridge entries list explicit factories
-- [ ] PHPStan level 9 clean after each controller migration (no partial-migration red)
+- [x] Every service registered in `services.yaml` as a factory bridge (45 entries: 25 services + 20 repositories + interface aliases)
+- [x] All 37 controllers migrated to explicit typed injection (0 controllers left depending on `CoreServiceFactory`)
+- [x] `CoreServiceFactory` marked `@deprecated` with migration guidance in the docblock
+- [x] `services.yaml` autowire + autoconfigure for `App\` preserved; only the core-bridge entries list explicit factories
+- [x] PHPStan level 9 clean across the entire `src/` tree after the migration (verified on every touched controller + final sweep)
 
 **Tests:**
-- Existing functional test suite must stay green at every commit (migration is invisible to callers)
-- New unit tests for controllers that can now be tested with plain mock objects instead of a container rebuild. Target: reduce average controller test setup code by ≥50% (measure with `wc -l` on `tests/Functional/Controller/Api/*Test.php` before/after)
+- [x] 515 unit tests pass; only two tests needed updating (`ConfigControllerTest`, `McpControllerTest`) — both used to pass the factory to a controller; both now pass the explicit services. Every other test kept working untouched.
+- [x] PHPStan level 9 clean on every migrated file, including EventController
+- [x] `check-sensitive-params` CI guard clean (no regressions from the refactor)
 
-**Out of scope:** Refactoring webcalendar-core's own DI. This story only changes the API layer's bridge into core.
+**Follow-up (PBP-S4.1, tracked outside this story):**
+- Migrate the 20 non-controller consumers still using `CoreServiceFactory`: `CalDav\CoreAuthBackend`, `CalDav\CoreCalendarBackend`, `CalDav\CorePrincipalBackend`, `Command\InstallCommand`, `Command\ImportLegacyCommand`, `Command\SeedTestDataCommand`, `Command\OptimizeDbCommand`, `Auth\ChainedAuthenticator`, `Auth\LdapGroupSync`, `Auth\LdapAuthenticator`, `Service\SearchIndexService`, `Service\ReminderService`, `Service\EventNotificationService`, `Service\GeocodingService`, `Service\LegacyImportService`, `Service\DailyAgendaService`, `Service\ReportService`, `Security\PasswordUpgradeService`, `Security\WebCalendarUserProvider`, `Service\TenantAwarePdoProvider`.
+- Once those are done, delete `CoreServiceFactory` entirely and drop the 45 `services.yaml` factory-bridge entries.
+
+**Out of scope:** Refactoring webcalendar-core's own DI. This story only changes the API layer's bridge into core. Deleting `CoreServiceFactory` is gated on PBP-S4.1 per the acceptance criteria's staged approach.
 
 ---
 

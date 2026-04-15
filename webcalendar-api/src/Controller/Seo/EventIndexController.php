@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Controller\Seo;
 
 use App\Security\CspNonceProvider;
-use App\Service\CoreServiceFactory;
 use App\Service\CustomHtmlProvider;
 use App\Service\SeoEligibilityService;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use WebCalendar\Core\Application\Service\ConfigService;
+use WebCalendar\Core\Application\Service\UserService;
+use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 
@@ -21,13 +23,14 @@ final class EventIndexController
 {
     private const PER_PAGE = 20;
 
-    private readonly SeoEligibilityService $seoService;
-
     public function __construct(
-        private readonly CoreServiceFactory $factory,
+        private readonly SeoEligibilityService $seoService,
+        private readonly UserService $userService,
+        private readonly EventRepositoryInterface $eventRepository,
+        private readonly ConfigService $configService,
+        private readonly CustomHtmlProvider $customHtml,
         private readonly ?CspNonceProvider $nonceProvider = null,
     ) {
-        $this->seoService = new SeoEligibilityService($factory);
     }
 
     #[Route('/public/{username}/events', name: 'seo_event_index', methods: ['GET'])]
@@ -38,7 +41,7 @@ final class EventIndexController
             return new Response('Not Found', 404);
         }
 
-        $user = $this->factory->getUserService()->getUserByLogin($username);
+        $user = $this->userService->getUserByLogin($username);
         if ($user === null) {
             return new Response('Not Found', 404);
         }
@@ -65,7 +68,7 @@ final class EventIndexController
         }
 
         $range = new DateRange($start, $end);
-        $allEvents = $this->factory->getEventRepository()->findByDateRange($range, null, 'P', [$username]);
+        $allEvents = $this->eventRepository->findByDateRange($range, null, 'P', [$username]);
 
         // Sort by date
         usort($allEvents, fn ($a, $b) => $a->start() <=> $b->start());
@@ -140,15 +143,14 @@ ITEM;
         $breadcrumbBlock = $seoStatus['noindex'] ? '' : $jsonLd->generateBreadcrumbJsonLd($username, $displayName, $canonical, null, $nonce);
 
         // og:image from admin config
-        $ogImageUrl = $this->factory->getConfigService()->getSetting('SEO_OG_IMAGE_URL', '') ?? '';
+        $ogImageUrl = $this->configService->getSetting('SEO_OG_IMAGE_URL', '') ?? '';
         $ogImageTag = $ogImageUrl !== '' ? "<meta property=\"og:image\" content=\"{$ogImageUrl}\">\n    <meta name=\"twitter:image\" content=\"{$ogImageUrl}\">" : '';
         $twitterCardType = $ogImageUrl !== '' ? 'summary_large_image' : 'summary';
 
         // Custom HTML/CSS
-        $customHtml = new CustomHtmlProvider($this->factory);
-        $customCssTag = $customHtml->getCssStyleTag();
-        $customHeader = $customHtml->getHeaderHtml();
-        $customTrailer = $customHtml->getTrailerHtml();
+        $customCssTag = $this->customHtml->getCssStyleTag();
+        $customHeader = $this->customHtml->getHeaderHtml();
+        $customTrailer = $this->customHtml->getTrailerHtml();
 
         $html = <<<HTML
 <!DOCTYPE html>

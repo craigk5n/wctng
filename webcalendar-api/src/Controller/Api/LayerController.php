@@ -6,18 +6,18 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Application\Service\LayerService;
 use WebCalendar\Core\Domain\Entity\Layer;
 
 final class LayerController
 {
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly LayerService $layerService,
         private readonly \PDO $pdo,
     ) {
     }
@@ -29,7 +29,7 @@ final class LayerController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $layers = $this->coreServiceFactory->getLayerService()->getLayersForUser($user->getUserIdentifier());
+        $layers = $this->layerService->getLayersForUser($user->getUserIdentifier());
         $items = array_map(self::layerToArray(...), $layers);
 
         return ApiResponse::success(array_values($items));
@@ -65,7 +65,7 @@ final class LayerController
             color: $color,
         );
 
-        $this->coreServiceFactory->getLayerService()->addLayer($layer);
+        $this->layerService->addLayer($layer);
 
         // Core's save() doesn't include cal_layerid in INSERT — set it after
         $stmt = $this->pdo->prepare(
@@ -84,7 +84,7 @@ final class LayerController
         }
 
         // Find the existing layer
-        $layers = $this->coreServiceFactory->getLayerService()->getLayersForUser($user->getUserIdentifier());
+        $layers = $this->layerService->getLayersForUser($user->getUserIdentifier());
         $existing = null;
         foreach ($layers as $l) {
             if ($l->id() === $id) {
@@ -114,7 +114,7 @@ final class LayerController
             color: $color,
         );
 
-        $this->coreServiceFactory->getLayerService()->addLayer($updated);
+        $this->layerService->addLayer($updated);
 
         return ApiResponse::success(self::layerToArray($updated));
     }
@@ -126,7 +126,7 @@ final class LayerController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $this->coreServiceFactory->getLayerService()->deleteLayer($id);
+        $this->layerService->deleteLayer($id);
 
         return ApiResponse::noContent();
     }

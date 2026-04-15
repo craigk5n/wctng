@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\UserPreference;
 
 /**
@@ -16,7 +16,7 @@ use WebCalendar\Core\Domain\ValueObject\UserPreference;
 final class UnsubscribeController
 {
     public function __construct(
-        private readonly CoreServiceFactory $factory,
+        private readonly UserRepositoryInterface $userRepository,
         #[\SensitiveParameter]
         private readonly string $appSecret,
     ) {
@@ -32,11 +32,10 @@ final class UnsubscribeController
         }
 
         // Disable all automated emails for this user
-        $userRepo = $this->factory->getUserRepository();
-        $userRepo->savePreference($login, new UserPreference('REMINDER_MINUTES', '0'));
-        $userRepo->savePreference($login, new UserPreference('daily_agenda_enabled', 'N'));
-        $userRepo->savePreference($login, new UserPreference('EMAIL_INVITATION', 'N'));
-        $userRepo->savePreference($login, new UserPreference('EMAIL_UPDATE', 'N'));
+        $this->userRepository->savePreference($login, new UserPreference('REMINDER_MINUTES', '0'));
+        $this->userRepository->savePreference($login, new UserPreference('daily_agenda_enabled', 'N'));
+        $this->userRepository->savePreference($login, new UserPreference('EMAIL_INVITATION', 'N'));
+        $this->userRepository->savePreference($login, new UserPreference('EMAIL_UPDATE', 'N'));
 
         return $this->renderPage(
             'Unsubscribed',
@@ -57,7 +56,7 @@ final class UnsubscribeController
     {
         // Check all users to find whose token matches
         try {
-            $users = $this->factory->getUserRepository()->findAll();
+            $users = $this->userRepository->findAll();
             foreach ($users as $user) {
                 if (self::generateToken($user->login(), $this->appSecret) === $token) {
                     return $user->login();

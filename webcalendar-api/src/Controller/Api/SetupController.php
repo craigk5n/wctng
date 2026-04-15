@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use WebCalendar\Core\Application\Service\UserService;
 use WebCalendar\Core\Domain\Entity\User;
+use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 
 /**
  * First-run setup endpoint for standalone installations.
@@ -18,7 +19,8 @@ use WebCalendar\Core\Domain\Entity\User;
 final class SetupController
 {
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly UserService $userService,
+        private readonly UserRepositoryInterface $userRepository,
     ) {
     }
 
@@ -62,8 +64,6 @@ final class SetupController
         }
 
         try {
-            $userService = $this->coreServiceFactory->getUserService();
-
             $admin = new User(
                 login: $username,
                 firstName: 'Admin',
@@ -73,10 +73,10 @@ final class SetupController
                 isEnabled: true,
             );
 
-            $userService->createUser($admin, $admin);
+            $this->userService->createUser($admin, $admin);
 
-            $hash = $userService->hashPassword($password);
-            $this->coreServiceFactory->getUserRepository()->setPassword($username, $hash);
+            $hash = $this->userService->hashPassword($password);
+            $this->userRepository->setPassword($username, $hash);
 
             return ApiResponse::success(['message' => 'Setup complete. You can now log in.']);
         } catch (\Throwable $e) {
@@ -87,7 +87,7 @@ final class SetupController
     private function adminExists(): bool
     {
         try {
-            $user = $this->coreServiceFactory->getUserService()->getUserByLogin('admin');
+            $user = $this->userService->getUserByLogin('admin');
             return $user !== null;
         } catch (\Throwable) {
             return false;

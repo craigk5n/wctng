@@ -98,6 +98,12 @@ services:
             $pdo: '@pdo.connection'
             $appSecret: '%env(APP_SECRET)%'
 
+    # Tenant-aware PDO provider (PBP-S4): lets controllers/services depend
+    # on a narrow tenant-aware handle instead of the whole factory.
+    App\Service\TenantAwarePdoProvider:
+        arguments:
+            $defaultPdo: '@pdo.connection'
+
     # Saved view controller needs PDO
     App\Controller\Api\SavedViewController:
         arguments:
@@ -202,9 +208,10 @@ services:
         arguments:
             $jwtTtl: '%env(int:JWT_TTL)%'
 
-    # Health controller needs APP_MODE
+    # Health controller needs APP_MODE + default-DB PDO
     App\Controller\Api\HealthController:
         arguments:
+            $pdo: '@pdo.connection'
             $appMode: '%env(default:app_mode_default:APP_MODE)%'
 
     # User provider for Symfony Security
@@ -249,11 +256,130 @@ services:
             $pdo: '@pdo.connection'
             $appEnv: '%kernel.environment%'
 
-    # The core activity log repository lives behind CoreServiceFactory; expose
-    # it as a first-class service so the Symfony container can inject it into
-    # PurgeService (and any future consumers).
+    # webcalendar-core services and repositories — bridge the factory so the
+    # Symfony container can inject each service by its concrete type. This is
+    # the PBP-S4 migration away from the CoreServiceFactory service-locator
+    # anti-pattern: controllers can now depend on the specific services they
+    # actually use rather than the whole factory.
+    WebCalendar\Core\Application\Service\EventService:
+        factory: ['@App\Service\CoreServiceFactory', 'getEventService']
+    WebCalendar\Core\Application\Service\UserService:
+        factory: ['@App\Service\CoreServiceFactory', 'getUserService']
+    WebCalendar\Core\Application\Service\CategoryService:
+        factory: ['@App\Service\CoreServiceFactory', 'getCategoryService']
+    WebCalendar\Core\Application\Service\SecurityService:
+        factory: ['@App\Service\CoreServiceFactory', 'getSecurityService']
+    WebCalendar\Core\Application\Service\GroupService:
+        factory: ['@App\Service\CoreServiceFactory', 'getGroupService']
+    WebCalendar\Core\Application\Service\LayerService:
+        factory: ['@App\Service\CoreServiceFactory', 'getLayerService']
+    WebCalendar\Core\Application\Service\PermissionService:
+        factory: ['@App\Service\CoreServiceFactory', 'getPermissionService']
+    WebCalendar\Core\Application\Service\ConfigService:
+        factory: ['@App\Service\CoreServiceFactory', 'getConfigService']
+    WebCalendar\Core\Application\Service\ActivityLogService:
+        factory: ['@App\Service\CoreServiceFactory', 'getActivityLogService']
+    WebCalendar\Core\Application\Service\BlobService:
+        factory: ['@App\Service\CoreServiceFactory', 'getBlobService']
+    WebCalendar\Core\Application\Service\ResourceService:
+        factory: ['@App\Service\CoreServiceFactory', 'getResourceService']
+    WebCalendar\Core\Application\Service\TemplateService:
+        factory: ['@App\Service\CoreServiceFactory', 'getTemplateService']
+    WebCalendar\Core\Application\Service\ViewService:
+        factory: ['@App\Service\CoreServiceFactory', 'getViewService']
+    WebCalendar\Core\Application\Service\TaskService:
+        factory: ['@App\Service\CoreServiceFactory', 'getTaskService']
+    WebCalendar\Core\Application\Service\JournalService:
+        factory: ['@App\Service\CoreServiceFactory', 'getJournalService']
+    WebCalendar\Core\Application\Service\SiteExtraService:
+        factory: ['@App\Service\CoreServiceFactory', 'getSiteExtraService']
+    WebCalendar\Core\Application\Service\ReportService:
+        factory: ['@App\Service\CoreServiceFactory', 'getReportService']
+    WebCalendar\Core\Application\Service\SearchService:
+        factory: ['@App\Service\CoreServiceFactory', 'getSearchService']
+    WebCalendar\Core\Application\Service\RecurrenceService:
+        factory: ['@App\Service\CoreServiceFactory', 'getRecurrenceService']
+    WebCalendar\Core\Application\Service\AssistantService:
+        factory: ['@App\Service\CoreServiceFactory', 'getAssistantService']
+    WebCalendar\Core\Application\Service\ImportService:
+        factory: ['@App\Service\CoreServiceFactory', 'getImportService']
+    WebCalendar\Core\Application\Service\ExportService:
+        factory: ['@App\Service\CoreServiceFactory', 'getExportService']
+    WebCalendar\Core\Application\Service\BookingService:
+        factory: ['@App\Service\CoreServiceFactory', 'getBookingService']
+    WebCalendar\Core\Application\Service\NotificationService:
+        factory: ['@App\Service\CoreServiceFactory', 'getNotificationService']
+    WebCalendar\Core\Application\Contract\AuthServiceInterface:
+        factory: ['@App\Service\CoreServiceFactory', 'getAuthService']
+    WebCalendar\Core\Application\Contract\RateLimiterInterface:
+        factory: ['@App\Service\CoreServiceFactory', 'getRateLimiter']
+    WebCalendar\Core\Application\Service\FeedService:
+        factory: ['@App\Service\CoreServiceFactory', 'getFeedService']
+        arguments: ['']
+
+    # webcalendar-core PDO repositories — bridge for controllers/services
+    # that need direct repository access (e.g. custom queries or
+    # non-service-level operations).
+    WebCalendar\Core\Infrastructure\Persistence\PdoEventRepository:
+        factory: ['@App\Service\CoreServiceFactory', 'getEventRepository']
+    WebCalendar\Core\Infrastructure\Persistence\PdoUserRepository:
+        factory: ['@App\Service\CoreServiceFactory', 'getUserRepository']
+    WebCalendar\Core\Infrastructure\Persistence\PdoCategoryRepository:
+        factory: ['@App\Service\CoreServiceFactory', 'getCategoryRepository']
+    WebCalendar\Core\Infrastructure\Persistence\PdoTokenRepository:
+        factory: ['@App\Service\CoreServiceFactory', 'getTokenRepository']
     WebCalendar\Core\Infrastructure\Persistence\PdoActivityLogRepository:
         factory: ['@App\Service\CoreServiceFactory', 'getActivityLogRepository']
+    WebCalendar\Core\Infrastructure\Persistence\PdoGroupRepository:
+        factory: ['@App\Service\CoreServiceFactory', 'getGroupRepository']
+    WebCalendar\Core\Infrastructure\Persistence\PdoLayerRepository:
+        factory: ['@App\Service\CoreServiceFactory', 'getLayerRepository']
+    WebCalendar\Core\Infrastructure\Persistence\PdoPermissionRepository:
+        factory: ['@App\Service\CoreServiceFactory', 'getPermissionRepository']
+    WebCalendar\Core\Infrastructure\Persistence\PdoConfigRepository:
+        factory: ['@App\Service\CoreServiceFactory', 'getConfigRepository']
+    WebCalendar\Core\Infrastructure\Persistence\PdoBlobRepository:
+        factory: ['@App\Service\CoreServiceFactory', 'getBlobRepository']
+    WebCalendar\Core\Infrastructure\Persistence\PdoResourceRepository:
+        factory: ['@App\Service\CoreServiceFactory', 'getResourceRepository']
+    WebCalendar\Core\Infrastructure\Persistence\PdoTemplateRepository:
+        factory: ['@App\Service\CoreServiceFactory', 'getTemplateRepository']
+    WebCalendar\Core\Infrastructure\Persistence\PdoViewRepository:
+        factory: ['@App\Service\CoreServiceFactory', 'getViewRepository']
+    WebCalendar\Core\Infrastructure\Persistence\PdoTaskRepository:
+        factory: ['@App\Service\CoreServiceFactory', 'getTaskRepository']
+    WebCalendar\Core\Infrastructure\Persistence\PdoJournalRepository:
+        factory: ['@App\Service\CoreServiceFactory', 'getJournalRepository']
+    WebCalendar\Core\Infrastructure\Persistence\PdoSiteExtraRepository:
+        factory: ['@App\Service\CoreServiceFactory', 'getSiteExtraRepository']
+    WebCalendar\Core\Infrastructure\Persistence\PdoReportRepository:
+        factory: ['@App\Service\CoreServiceFactory', 'getReportRepository']
+    WebCalendar\Core\Infrastructure\Persistence\PdoAssistantRepository:
+        factory: ['@App\Service\CoreServiceFactory', 'getAssistantRepository']
+    WebCalendar\Core\Infrastructure\Persistence\PdoReminderRepository:
+        factory: ['@App\Service\CoreServiceFactory', 'getReminderRepository']
+
+    # Bind each repository interface to its concrete impl so controllers can
+    # depend on the interface (proper DIP) rather than the PDO implementation.
+    WebCalendar\Core\Domain\Repository\EventRepositoryInterface: '@WebCalendar\Core\Infrastructure\Persistence\PdoEventRepository'
+    WebCalendar\Core\Domain\Repository\UserRepositoryInterface: '@WebCalendar\Core\Infrastructure\Persistence\PdoUserRepository'
+    WebCalendar\Core\Domain\Repository\CategoryRepositoryInterface: '@WebCalendar\Core\Infrastructure\Persistence\PdoCategoryRepository'
+    WebCalendar\Core\Domain\Repository\TokenRepositoryInterface: '@WebCalendar\Core\Infrastructure\Persistence\PdoTokenRepository'
+    WebCalendar\Core\Domain\Repository\ActivityLogRepositoryInterface: '@WebCalendar\Core\Infrastructure\Persistence\PdoActivityLogRepository'
+    WebCalendar\Core\Domain\Repository\GroupRepositoryInterface: '@WebCalendar\Core\Infrastructure\Persistence\PdoGroupRepository'
+    WebCalendar\Core\Domain\Repository\LayerRepositoryInterface: '@WebCalendar\Core\Infrastructure\Persistence\PdoLayerRepository'
+    WebCalendar\Core\Domain\Repository\PermissionRepositoryInterface: '@WebCalendar\Core\Infrastructure\Persistence\PdoPermissionRepository'
+    WebCalendar\Core\Domain\Repository\ConfigRepositoryInterface: '@WebCalendar\Core\Infrastructure\Persistence\PdoConfigRepository'
+    WebCalendar\Core\Domain\Repository\BlobRepositoryInterface: '@WebCalendar\Core\Infrastructure\Persistence\PdoBlobRepository'
+    WebCalendar\Core\Domain\Repository\ResourceRepositoryInterface: '@WebCalendar\Core\Infrastructure\Persistence\PdoResourceRepository'
+    WebCalendar\Core\Domain\Repository\TemplateRepositoryInterface: '@WebCalendar\Core\Infrastructure\Persistence\PdoTemplateRepository'
+    WebCalendar\Core\Domain\Repository\ViewRepositoryInterface: '@WebCalendar\Core\Infrastructure\Persistence\PdoViewRepository'
+    WebCalendar\Core\Domain\Repository\TaskRepositoryInterface: '@WebCalendar\Core\Infrastructure\Persistence\PdoTaskRepository'
+    WebCalendar\Core\Domain\Repository\JournalRepositoryInterface: '@WebCalendar\Core\Infrastructure\Persistence\PdoJournalRepository'
+    WebCalendar\Core\Domain\Repository\SiteExtraRepositoryInterface: '@WebCalendar\Core\Infrastructure\Persistence\PdoSiteExtraRepository'
+    WebCalendar\Core\Domain\Repository\ReportRepositoryInterface: '@WebCalendar\Core\Infrastructure\Persistence\PdoReportRepository'
+    WebCalendar\Core\Domain\Repository\AssistantRepositoryInterface: '@WebCalendar\Core\Infrastructure\Persistence\PdoAssistantRepository'
+    WebCalendar\Core\Domain\Repository\ReminderRepositoryInterface: '@WebCalendar\Core\Infrastructure\Persistence\PdoReminderRepository'
 
     # Purge service needs raw PDO + activity log + webhook dispatcher
     App\Service\PurgeService:

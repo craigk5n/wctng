@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\DTO\EventResponseDTO;
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use WebCalendar\Core\Application\Service\BookingService;
+use WebCalendar\Core\Application\Service\EventService;
+use WebCalendar\Core\Application\Service\UserService;
 use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\Entity\User;
+use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
+use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 use WebCalendar\Core\Domain\ValueObject\EventId;
@@ -81,7 +85,11 @@ final class McpController
     ];
 
     public function __construct(
-        private readonly CoreServiceFactory $factory,
+        private readonly EventService $eventService,
+        private readonly UserService $userService,
+        private readonly BookingService $bookingService,
+        private readonly EventRepositoryInterface $eventRepository,
+        private readonly UserRepositoryInterface $userRepository,
     ) {
     }
 
@@ -155,7 +163,7 @@ final class McpController
         }
 
         $range = new DateRange($start->setTime(0, 0), $end->setTime(23, 59, 59));
-        $events = $this->factory->getEventService()->getEventsInDateRange($range, $user)->all();
+        $events = $this->eventService->getEventsInDateRange($range, $user)->all();
 
         return $this->jsonRpcResult($id, ['events' => EventResponseDTO::fromCollection(array_values($events))]);
     }
@@ -164,7 +172,7 @@ final class McpController
     private function getEvent(string|int|null $id, array $args): JsonResponse
     {
         $eventId = \is_numeric($args['id'] ?? null) ? (int) $args['id'] : 0;
-        $event = $this->factory->getEventService()->getEventById(new EventId($eventId));
+        $event = $this->eventService->getEventById(new EventId($eventId));
         if ($event === null) {
             return $this->jsonRpcError($id, -32602, 'Event not found');
         }
@@ -201,8 +209,8 @@ final class McpController
             allDay: $allDay,
         );
 
-        $this->factory->getEventService()->createEvent($event, $user);
-        $created = $this->factory->getEventRepository()->findByUid($event->uid());
+        $this->eventService->createEvent($event, $user);
+        $created = $this->eventRepository->findByUid($event->uid());
 
         return $this->jsonRpcResult($id, [
             'created' => true,
@@ -214,7 +222,7 @@ final class McpController
     private function updateEvent(string|int|null $id, array $args, User $user): JsonResponse
     {
         $eventId = \is_numeric($args['id'] ?? null) ? (int) $args['id'] : 0;
-        $existing = $this->factory->getEventService()->getEventById(new EventId($eventId));
+        $existing = $this->eventService->getEventById(new EventId($eventId));
         if ($existing === null) {
             return $this->jsonRpcError($id, -32602, 'Event not found');
         }
@@ -242,7 +250,7 @@ final class McpController
             sequence: $existing->sequence() + 1,
         );
 
-        $this->factory->getEventService()->updateEvent($updated, $user);
+        $this->eventService->updateEvent($updated, $user);
 
         return $this->jsonRpcResult($id, ['updated' => true, 'event' => EventResponseDTO::fromEntity($updated)]);
     }
@@ -251,7 +259,7 @@ final class McpController
     private function deleteEvent(string|int|null $id, array $args, User $user): JsonResponse
     {
         $eventId = \is_numeric($args['id'] ?? null) ? (int) $args['id'] : 0;
-        $this->factory->getEventService()->deleteEvent(new EventId($eventId), $user);
+        $this->eventService->deleteEvent(new EventId($eventId), $user);
         return $this->jsonRpcResult($id, ['deleted' => true]);
     }
 
@@ -263,7 +271,7 @@ final class McpController
             return $this->jsonRpcError($id, -32602, 'query parameter required');
         }
 
-        $results = $this->factory->getEventRepository()->search($query, null, $user, null, 20);
+        $results = $this->eventRepository->search($query, null, $user, null, 20);
         return $this->jsonRpcResult($id, ['events' => EventResponseDTO::fromCollection(array_values($results->all()))]);
     }
 
@@ -277,9 +285,9 @@ final class McpController
         }
 
         $targetLogin = \is_string($args['user'] ?? null) ? $args['user'] : $user->login();
-        $targetUser = $this->factory->getUserService()->getUserByLogin($targetLogin) ?? $user;
+        $targetUser = $this->userService->getUserByLogin($targetLogin) ?? $user;
 
-        $slots = $this->factory->getBookingService()->getAvailability($targetUser, $date->setTime(0, 0));
+        $slots = $this->bookingService->getAvailability($targetUser, $date->setTime(0, 0));
 
         $available = array_map(fn ($slot) => [
             'start' => $slot->startDate()->format('H:i'),
@@ -296,9 +304,9 @@ final class McpController
         }
 
         // Check for user with matching API token
-        $users = $this->factory->getUserRepository()->findAll();
+        $users = $this->userRepository->findAll();
         foreach ($users as $user) {
-            $prefs = $this->factory->getUserRepository()->getPreferences($user->login());
+            $prefs = $this->userRepository->getPreferences($user->login());
             foreach ($prefs as $pref) {
                 if ($pref->key() === 'api_token' && hash_equals($pref->value(), $token)) {
                     return $user;

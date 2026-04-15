@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
-use App\Service\CoreServiceFactory;
 use App\Service\ErrorMetricsService;
 use App\Tenant\TenantContext;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -14,7 +13,7 @@ final class HealthController
 {
     public function __construct(
         private readonly TenantContext $tenantContext,
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly \PDO $pdo,
         private readonly string $appMode,
         private readonly ?ErrorMetricsService $errorMetrics = null,
     ) {
@@ -25,10 +24,11 @@ final class HealthController
     {
         $components = [];
 
-        // Database check
+        // Database check — always hits the default DB, not tenant DBs.
+        // A tenant DB outage should surface as a per-request failure
+        // elsewhere, not as a global /health red flag.
         try {
-            $pdo = $this->coreServiceFactory->getPdo();
-            $pdo->query('SELECT 1');
+            $this->pdo->query('SELECT 1');
             $components['database'] = 'ok';
         } catch (\Throwable) {
             $components['database'] = 'error';

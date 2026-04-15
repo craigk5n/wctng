@@ -6,7 +6,6 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,13 +33,10 @@ final class AttachmentController
         'application/zip', 'application/gzip',
     ];
 
-    private readonly EventRepositoryInterface $eventRepo;
-    private readonly BlobRepositoryInterface $blobRepo;
-
-    public function __construct(CoreServiceFactory $factory)
-    {
-        $this->eventRepo = $factory->getEventRepository();
-        $this->blobRepo = $factory->getBlobRepository();
+    public function __construct(
+        private readonly EventRepositoryInterface $eventRepo,
+        private readonly BlobRepositoryInterface $blobRepo,
+    ) {
     }
 
     public static function createForTest(

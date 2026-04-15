@@ -6,18 +6,18 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Application\Service\GroupService;
 use WebCalendar\Core\Domain\Entity\Group;
 
 final class GroupController
 {
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly GroupService $groupService,
     ) {
     }
 
@@ -28,7 +28,7 @@ final class GroupController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $groups = $this->coreServiceFactory->getGroupService()->getAllGroups();
+        $groups = $this->groupService->getAllGroups();
         $items = array_map(self::groupToArray(...), $groups);
 
         return ApiResponse::success(array_values($items));
@@ -64,7 +64,7 @@ final class GroupController
             lastUpdate: new \DateTimeImmutable(),
         );
 
-        $this->coreServiceFactory->getGroupService()->createGroup($group);
+        $this->groupService->createGroup($group);
 
         return ApiResponse::success(self::groupToArray($group), null, Response::HTTP_CREATED);
     }
@@ -76,7 +76,7 @@ final class GroupController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $groups = $this->coreServiceFactory->getGroupService()->getAllGroups();
+        $groups = $this->groupService->getAllGroups();
         $group = null;
         foreach ($groups as $g) {
             if ($g->id() === $id) {
@@ -89,7 +89,7 @@ final class GroupController
             return ApiResponse::error(404, 'Group not found');
         }
 
-        $members = $this->coreServiceFactory->getGroupService()->getGroupMembers($id);
+        $members = $this->groupService->getGroupMembers($id);
 
         $result = self::groupToArray($group);
         $result['members'] = $members;
@@ -104,7 +104,7 @@ final class GroupController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $this->coreServiceFactory->getGroupService()->deleteGroup($id);
+        $this->groupService->deleteGroup($id);
 
         return ApiResponse::noContent();
     }
@@ -133,7 +133,7 @@ final class GroupController
 
         foreach ($users as $login) {
             if ($login !== '') {
-                $this->coreServiceFactory->getGroupService()->addMember($groupId, $login);
+                $this->groupService->addMember($groupId, $login);
             }
         }
 
@@ -147,7 +147,7 @@ final class GroupController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $this->coreServiceFactory->getGroupService()->removeMember($groupId, $login);
+        $this->groupService->removeMember($groupId, $login);
 
         return ApiResponse::noContent();
     }

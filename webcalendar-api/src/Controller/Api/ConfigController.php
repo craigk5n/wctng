@@ -6,11 +6,11 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Application\Service\ConfigService;
 
 final class ConfigController
 {
@@ -34,10 +34,11 @@ final class ConfigController
         'SEO_OG_IMAGE_URL' => '',
         'SESSION_TTL' => '28800',
         'SESSION_TTL_REMEMBER_ME' => '2592000',
+        'DISABLE_REMEMBER_ME' => 'N',
     ];
 
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly ConfigService $configService,
     ) {
     }
 
@@ -48,7 +49,7 @@ final class ConfigController
             return ApiResponse::error(403, 'Admin access required');
         }
 
-        $settings = $this->coreServiceFactory->getConfigService()->getAllSettings();
+        $settings = $this->configService->getAllSettings();
 
         // Merge with defaults for any missing keys
         foreach (self::DEFAULTS as $key => $default) {
@@ -70,7 +71,7 @@ final class ConfigController
         /** @var array<string, string> $data */
         $data = json_decode((string) $request->getContent(), true) ?? [];
 
-        $configService = $this->coreServiceFactory->getConfigService();
+        $configService = $this->configService;
         foreach ($data as $key => $value) {
             $configService->updateSetting($key, $value);
         }
@@ -82,7 +83,7 @@ final class ConfigController
     #[Route('/api/v2/config/features', name: 'api_config_features', methods: ['GET'])]
     public function getFeatures(): JsonResponse
     {
-        $configService = $this->coreServiceFactory->getConfigService();
+        $configService = $this->configService;
 
         $features = [];
         foreach (self::DEFAULTS as $key => $default) {

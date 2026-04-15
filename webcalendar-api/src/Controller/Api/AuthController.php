@@ -8,7 +8,6 @@ use App\Auth\LdapAuthenticator;
 use App\Response\ApiResponse;
 use App\Security\PasswordUpgradeService;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use App\Tenant\TenantContext;
 use Lexik\Bundle\JWTAuthenticationBundle\Encoder\JWTEncoderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -16,11 +15,16 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Application\Contract\AuthServiceInterface;
+use WebCalendar\Core\Application\Service\ConfigService;
+use WebCalendar\Core\Application\Service\UserService;
 
 final class AuthController
 {
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly AuthServiceInterface $authService,
+        private readonly UserService $userService,
+        private readonly ConfigService $configService,
         private readonly JWTEncoderInterface $jwtEncoder,
         private readonly int $jwtTtl,
         private readonly TenantContext $tenantContext,
@@ -51,12 +55,11 @@ final class AuthController
         }
 
         // Try local password auth first
-        $authService = $this->coreServiceFactory->getAuthService();
-        $authenticated = $authService->authenticate($username, $password);
+        $authenticated = $this->authService->authenticate($username, $password);
         $coreUser = null;
 
         if ($authenticated) {
-            $coreUser = $this->coreServiceFactory->getUserService()->getUserByLogin($username);
+            $coreUser = $this->userService->getUserByLogin($username);
             // Transparently upgrade legacy (bcrypt / non-pinned Argon2id) hashes.
             $this->passwordUpgradeService->upgradeIfNeeded($username, $password);
         }
@@ -74,7 +77,7 @@ final class AuthController
 
         // Admin can globally disable the remember-me option; client flag is ignored when disabled.
         if ($rememberMe) {
-            $disabled = $this->coreServiceFactory->getConfigService()->getSetting('DISABLE_REMEMBER_ME') ?? 'N';
+            $disabled = $this->configService->getSetting('DISABLE_REMEMBER_ME') ?? 'N';
             if ($disabled === 'Y') {
                 $rememberMe = false;
             }
@@ -122,10 +125,9 @@ final class AuthController
     private function createTokenResponse(string $login, bool $isAdmin, \WebCalendar\Core\Domain\Entity\User $coreUser, bool $rememberMe = false): JsonResponse
     {
         // Resolve TTL: admin config overrides env var default
-        $configService = $this->coreServiceFactory->getConfigService();
         $configKey = $rememberMe ? 'SESSION_TTL_REMEMBER_ME' : 'SESSION_TTL';
         $configDefault = $rememberMe ? '2592000' : '28800';
-        $ttl = (int) ($configService->getSetting($configKey) ?? $configDefault);
+        $ttl = (int) ($this->configService->getSetting($configKey) ?? $configDefault);
 
         // Fall back to env var if config hasn't been set yet (first run)
         if ($ttl <= 0) {

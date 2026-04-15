@@ -27,7 +27,7 @@ final class ConfigControllerTest extends TestCase
         $this->pdo->exec('CREATE TABLE webcal_config (cal_setting VARCHAR(60) PRIMARY KEY, cal_value VARCHAR(100))');
 
         $this->factory = new CoreServiceFactory($this->pdo, 'test_secret');
-        $this->controller = new ConfigController($this->factory);
+        $this->controller = new ConfigController($this->factory->getConfigService());
     }
 
     public function testGetFeaturesReturnsDefaults(): void

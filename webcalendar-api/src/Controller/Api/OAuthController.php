@@ -6,14 +6,15 @@ namespace App\Controller\Api;
 
 use App\Auth\OAuthProviderRepository;
 use App\Response\ApiResponse;
-use App\Service\CoreServiceFactory;
 use App\Tenant\TenantContext;
 use Lexik\Bundle\JWTAuthenticationBundle\Encoder\JWTEncoderInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use WebCalendar\Core\Application\Service\UserService;
 use WebCalendar\Core\Domain\Entity\User;
+use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 
 /**
  * OAuth2 authorization code flow with PKCE support.
@@ -22,7 +23,8 @@ final class OAuthController
 {
     public function __construct(
         private readonly OAuthProviderRepository $providerRepo,
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly UserService $userService,
+        private readonly UserRepositoryInterface $userRepository,
         private readonly JWTEncoderInterface $jwtEncoder,
         private readonly TenantContext $tenantContext,
         private readonly int $jwtTtl,
@@ -241,8 +243,7 @@ final class OAuthController
 
     private function provisionOrFindUser(string $login, string $name, string $email): ?User
     {
-        $userService = $this->coreServiceFactory->getUserService();
-        $existing = $userService->getUserByLogin($login);
+        $existing = $this->userService->getUserByLogin($login);
 
         if ($existing !== null) {
             return $existing;
@@ -263,12 +264,12 @@ final class OAuthController
         );
 
         try {
-            $userService->createUser($newUser, $newUser);
+            $this->userService->createUser($newUser, $newUser);
             // Set a random password (user authenticates via OAuth)
-            $hash = $userService->hashPassword(bin2hex(random_bytes(32)));
-            $this->coreServiceFactory->getUserRepository()->setPassword($login, $hash);
+            $hash = $this->userService->hashPassword(bin2hex(random_bytes(32)));
+            $this->userRepository->setPassword($login, $hash);
 
-            return $userService->getUserByLogin($login);
+            return $this->userService->getUserByLogin($login);
         } catch (\Throwable) {
             return null;
         }

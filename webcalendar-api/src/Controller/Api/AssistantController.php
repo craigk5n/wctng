@@ -6,17 +6,17 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Application\Service\AssistantService;
 
 final class AssistantController
 {
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly AssistantService $assistantService,
     ) {
     }
 
@@ -27,7 +27,7 @@ final class AssistantController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $service = $this->coreServiceFactory->getAssistantService();
+        $service = $this->assistantService;
         $assistants = $service->getAssistantsForBoss($login);
         $bosses = $service->getBossesForAssistant($login);
 
@@ -57,7 +57,7 @@ final class AssistantController
             return ApiResponse::error(400, 'Missing required field: assistant');
         }
 
-        $this->coreServiceFactory->getAssistantService()->assignAssistant($login, $asstLogin);
+        $this->assistantService->assignAssistant($login, $asstLogin);
 
         return ApiResponse::success(['boss' => $login, 'assistant' => $asstLogin], null, 201);
     }
@@ -74,7 +74,7 @@ final class AssistantController
             return ApiResponse::error(403, 'You can only manage your own assistants');
         }
 
-        $this->coreServiceFactory->getAssistantService()->removeAssistant($login, $assistant);
+        $this->assistantService->removeAssistant($login, $assistant);
 
         return ApiResponse::noContent();
     }

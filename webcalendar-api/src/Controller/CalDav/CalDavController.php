@@ -7,9 +7,6 @@ namespace App\Controller\CalDav;
 use App\CalDav\CoreAuthBackend;
 use App\CalDav\CoreCalendarBackend;
 use App\CalDav\CorePrincipalBackend;
-use App\Service\CoreServiceFactory;
-use App\Tenant\TenantContext;
-use Lexik\Bundle\JWTAuthenticationBundle\Encoder\JWTEncoderInterface;
 use Sabre\CalDAV;
 use Sabre\DAV;
 use Sabre\DAVACL;
@@ -25,9 +22,9 @@ use Symfony\Component\Routing\Attribute\Route;
 final class CalDavController
 {
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
-        private readonly JWTEncoderInterface $jwtEncoder,
-        private readonly TenantContext $tenantContext,
+        private readonly CoreAuthBackend $authBackend,
+        private readonly CorePrincipalBackend $principalBackend,
+        private readonly CoreCalendarBackend $calendarBackend,
     ) {
     }
 
@@ -47,10 +44,9 @@ final class CalDavController
             $request->getContent() ?: null,
         );
 
-        // Backends
-        $authBackend = new CoreAuthBackend($this->coreServiceFactory, $this->jwtEncoder, $this->tenantContext);
-        $principalBackend = new CorePrincipalBackend($this->coreServiceFactory);
-        $calendarBackend = new CoreCalendarBackend($this->coreServiceFactory);
+        $authBackend = $this->authBackend;
+        $principalBackend = $this->principalBackend;
+        $calendarBackend = $this->calendarBackend;
 
         // Build the DAV tree
         $tree = [

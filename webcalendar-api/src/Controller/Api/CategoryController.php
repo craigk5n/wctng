@@ -7,14 +7,16 @@ namespace App\Controller\Api;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Service\CategoryIconRepository;
-use App\Service\CoreServiceFactory;
 use App\Service\EmojiValidator;
+use App\Service\TenantAwarePdoProvider;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Application\Service\CategoryService;
 use WebCalendar\Core\Domain\Entity\Category;
+use WebCalendar\Core\Infrastructure\Persistence\PdoCategoryRepository;
 
 final class CategoryController
 {
@@ -33,17 +35,18 @@ final class CategoryController
      */
     private function resolveCategory(int $id, string $login): ?Category
     {
-        $repo = $this->coreServiceFactory->getCategoryRepository();
-        $personal = $repo->findByCompositeKey($id, $login);
+        $personal = $this->categoryRepository->findByCompositeKey($id, $login);
         if ($personal !== null) {
             return $personal;
         }
-        return $repo->findByCompositeKey($id, '');
+        return $this->categoryRepository->findByCompositeKey($id, '');
     }
 
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly CategoryService $categoryService,
+        private readonly PdoCategoryRepository $categoryRepository,
         private readonly CategoryIconRepository $icons,
+        private readonly TenantAwarePdoProvider $pdoProvider,
         private readonly EmojiValidator $emojiValidator = new EmojiValidator(),
     ) {
         $this->icons->ensureSchema();
@@ -71,7 +74,7 @@ final class CategoryController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $categories = $this->coreServiceFactory->getCategoryService()
+        $categories = $this->categoryService
             ->getCategoriesForUser($user->getUserIdentifier());
 
         $iconMap = $this->loadIconsForCategories(array_values($categories));
@@ -157,7 +160,7 @@ final class CategoryController
         $coreUser = $user->getCoreUser();
         $owner = $isGlobal && $coreUser->isAdmin() ? null : $user->getUserIdentifier();
 
-        $nextId = $this->coreServiceFactory->getCategoryRepository()->nextId();
+        $nextId = $this->categoryRepository->nextId();
         $category = new Category(
             id: $nextId,
             owner: $owner,
@@ -165,7 +168,7 @@ final class CategoryController
             color: $color,
         );
 
-        $this->coreServiceFactory->getCategoryService()->createCategory($category, $coreUser);
+        $this->categoryService->createCategory($category, $coreUser);
         $this->icons->set($nextId, $owner, $icon);
 
         return ApiResponse::success(self::categoryToArray($category, $icon), null, Response::HTTP_CREATED);
@@ -215,7 +218,7 @@ final class CategoryController
                 // existing row via deleteByCompositeKey so a sibling row
                 // at the same cat_id with a different owner is never
                 // collateral damage.
-                $repo = $this->coreServiceFactory->getCategoryRepository();
+                $repo = $this->categoryRepository;
                 $repo->deleteByCompositeKey($id, $existing->owner() ?? '');
                 $this->icons->delete($id, $existing->owner());
                 $promoted = new Category($id, $newOwner, $name, $color, $existing->isEnabled());
@@ -233,7 +236,7 @@ final class CategoryController
             enabled: $existing->isEnabled(),
         );
 
-        $this->coreServiceFactory->getCategoryService()->updateCategory($updated, $coreUser);
+        $this->categoryService->updateCategory($updated, $coreUser);
         if ($iconProvided) {
             $this->icons->set($id, $existing->owner(), $icon);
         }
@@ -269,7 +272,7 @@ final class CategoryController
             }
         }
 
-        $this->coreServiceFactory->getCategoryRepository()
+        $this->categoryRepository
             ->deleteByCompositeKey($id, $existing->owner() ?? '');
         $this->icons->delete($id, $existing->owner());
 
@@ -301,7 +304,7 @@ final class CategoryController
             return ApiResponse::error(400, 'Cannot merge a category into itself');
         }
 
-        $repo = $this->coreServiceFactory->getCategoryRepository();
+        $repo = $this->categoryRepository;
 
         // Personal-first then global resolution mirrors the single-id
         // endpoints. Admin merges are typically aimed at global rows
@@ -358,7 +361,7 @@ final class CategoryController
      */
     private function loadDistinctJunctionOwners(int $catId): array
     {
-        $stmt = $this->coreServiceFactory->getPdo()->prepare(
+        $stmt = $this->pdoProvider->get()->prepare(
             'SELECT DISTINCT cat_owner FROM webcal_entry_categories WHERE cat_id = :cat_id'
         );
         $stmt->execute(['cat_id' => $catId]);

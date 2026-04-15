@@ -6,19 +6,21 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Application\Service\ResourceService;
 use WebCalendar\Core\Domain\Entity\Resource as CalResource;
+use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 
 final class ResourceController
 {
     public function __construct(
-        private readonly CoreServiceFactory $factory,
+        private readonly ResourceService $resourceService,
+        private readonly EventRepositoryInterface $eventRepository,
     ) {
     }
 
@@ -29,7 +31,7 @@ final class ResourceController
             return ApiResponse::error(403, 'Admin access required');
         }
 
-        $resources = $this->factory->getResourceService()->getAllResources();
+        $resources = $this->resourceService->getAllResources();
         $items = array_map([$this, 'formatResource'], $resources);
         return ApiResponse::success(array_values($items));
     }
@@ -58,7 +60,7 @@ final class ResourceController
             url: $data['url'] ?? null,
         );
 
-        $this->factory->getResourceService()->createResource($resource);
+        $this->resourceService->createResource($resource);
         return ApiResponse::success($this->formatResource($resource), null, 201);
     }
 
@@ -69,7 +71,7 @@ final class ResourceController
             return ApiResponse::error(403, 'Admin access required');
         }
 
-        $existing = $this->factory->getResourceService()->getResourceByLogin($login);
+        $existing = $this->resourceService->getResourceByLogin($login);
         if ($existing === null) {
             return ApiResponse::error(404, 'Resource not found');
         }
@@ -85,7 +87,7 @@ final class ResourceController
             url: $data['url'] ?? $existing->url(),
         );
 
-        $this->factory->getResourceService()->updateResource($updated);
+        $this->resourceService->updateResource($updated);
         return ApiResponse::success($this->formatResource($updated));
     }
 
@@ -96,7 +98,7 @@ final class ResourceController
             return ApiResponse::error(403, 'Admin access required');
         }
 
-        $this->factory->getResourceService()->deleteResource($login);
+        $this->resourceService->deleteResource($login);
         return ApiResponse::noContent();
     }
 
@@ -118,7 +120,7 @@ final class ResourceController
         }
 
         $range = new DateRange($date->setTime(0, 0), $date->setTime(23, 59, 59));
-        $events = $this->factory->getEventRepository()->findByDateRange($range, null, null, [$login]);
+        $events = $this->eventRepository->findByDateRange($range, null, null, [$login]);
 
         $busy = array_map(static fn ($e) => [
             'title' => $e->name(),

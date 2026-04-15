@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use WebCalendar\Core\Application\Service\ConfigService;
+use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
+
 /**
  * Determines whether SEO pages should be rendered for a given user.
  *
@@ -15,7 +18,8 @@ namespace App\Service;
 final class SeoEligibilityService
 {
     public function __construct(
-        private readonly CoreServiceFactory $factory,
+        private readonly ConfigService $configService,
+        private readonly UserRepositoryInterface $userRepository,
     ) {
     }
 
@@ -24,7 +28,7 @@ final class SeoEligibilityService
      */
     public function isSeoEnabledGlobally(): bool
     {
-        $value = $this->factory->getConfigService()->getSetting('ENABLE_SEO_PAGES', 'N');
+        $value = $this->configService->getSetting('ENABLE_SEO_PAGES', 'N');
         return $value === 'Y';
     }
 
@@ -43,7 +47,7 @@ final class SeoEligibilityService
             return ['eligible' => false, 'noindex' => true, 'reason' => 'SEO pages disabled by admin'];
         }
 
-        $prefs = $this->factory->getUserRepository()->getPreferences($login);
+        $prefs = $this->userRepository->getPreferences($login);
 
         $publicEnabled = false;
         $seoEnabled = true; // default Y

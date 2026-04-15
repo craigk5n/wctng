@@ -8,31 +8,31 @@ use App\CustomField\CustomFieldDefinition;
 use App\CustomField\CustomFieldRepository;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Application\Service\SiteExtraService;
 
 final class CustomFieldController
 {
     private readonly CustomFieldRepository $fieldRepo;
-    private readonly CoreServiceFactory $coreServiceFactory;
 
-    public function __construct(CoreServiceFactory $factory, \PDO $pdo)
-    {
+    public function __construct(
+        private readonly SiteExtraService $siteExtraService,
+        \PDO $pdo,
+    ) {
         $this->fieldRepo = new CustomFieldRepository($pdo);
-        $this->coreServiceFactory = $factory;
     }
 
-    public static function createForTest(CustomFieldRepository $fieldRepo, CoreServiceFactory $factory): self
+    public static function createForTest(CustomFieldRepository $fieldRepo, SiteExtraService $siteExtraService): self
     {
         $instance = (new \ReflectionClass(self::class))->newInstanceWithoutConstructor();
         $ref = new \ReflectionProperty(self::class, 'fieldRepo');
         $ref->setValue($instance, $fieldRepo);
-        $ref = new \ReflectionProperty(self::class, 'coreServiceFactory');
-        $ref->setValue($instance, $factory);
+        $ref = new \ReflectionProperty(self::class, 'siteExtraService');
+        $ref->setValue($instance, $siteExtraService);
         return $instance;
     }
 
@@ -136,7 +136,7 @@ final class CustomFieldController
         /** @var array<string, mixed> $data */
         $data = json_decode((string) $request->getContent(), true) ?? [];
 
-        $this->coreServiceFactory->getSiteExtraService()->saveExtrasForEvent($eventId, $data);
+        $this->siteExtraService->saveExtrasForEvent($eventId, $data);
 
         return ApiResponse::success(['event_id' => $eventId, 'fields' => $data]);
     }
@@ -149,7 +149,7 @@ final class CustomFieldController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $values = $this->coreServiceFactory->getSiteExtraService()->getExtrasForEvent($eventId);
+        $values = $this->siteExtraService->getExtrasForEvent($eventId);
 
         return ApiResponse::success($values);
     }

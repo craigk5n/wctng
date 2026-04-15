@@ -7,11 +7,11 @@ namespace App\Controller\Api;
 use App\Poll\PollRepository;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Application\Service\EventService;
 use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\EventId;
@@ -21,7 +21,7 @@ final class PollController
 {
     private readonly PollRepository $pollRepo;
 
-    public function __construct(\PDO $pdo, private readonly CoreServiceFactory $factory)
+    public function __construct(\PDO $pdo, private readonly EventService $eventService)
     {
         $this->pollRepo = new PollRepository($pdo);
     }
@@ -167,7 +167,7 @@ final class PollController
             access: AccessLevel::PUBLIC,
         );
 
-        $this->factory->getEventService()->createEvent($event, $coreUser);
+        $this->eventService->createEvent($event, $coreUser);
         $this->pollRepo->closePoll($id);
 
         return ApiResponse::success([

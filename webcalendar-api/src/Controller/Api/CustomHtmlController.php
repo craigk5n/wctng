@@ -6,19 +6,19 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use App\Service\CustomHtmlSanitizer;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Application\Service\ConfigService;
 
 final class CustomHtmlController
 {
     private readonly CustomHtmlSanitizer $sanitizer;
 
     public function __construct(
-        private readonly CoreServiceFactory $factory,
+        private readonly ConfigService $configService,
     ) {
         $this->sanitizer = new CustomHtmlSanitizer();
     }
@@ -53,7 +53,7 @@ final class CustomHtmlController
 
         /** @var array<string, mixed> $data */
         $data = $decoded;
-        $configService = $this->factory->getConfigService();
+        $configService = $this->configService;
 
         if (isset($data['header_html']) && \is_string($data['header_html'])) {
             $configService->updateSetting('CUSTOM_HEADER_HTML', $this->sanitizer->sanitizeHtml($data['header_html']));
@@ -84,7 +84,7 @@ final class CustomHtmlController
      */
     private function getValues(): array
     {
-        $configService = $this->factory->getConfigService();
+        $configService = $this->configService;
 
         return [
             'header_html' => $configService->getSetting('CUSTOM_HEADER_HTML') ?? '',

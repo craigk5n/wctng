@@ -7,7 +7,6 @@ namespace App\Controller\Api;
 use App\DTO\EventResponseDTO;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
@@ -20,11 +19,9 @@ use WebCalendar\Core\Domain\ValueObject\EventId;
 
 final class ApprovalController
 {
-    private readonly EventRepositoryInterface $eventRepo;
-
-    public function __construct(CoreServiceFactory $factory)
-    {
-        $this->eventRepo = $factory->getEventRepository();
+    public function __construct(
+        private readonly EventRepositoryInterface $eventRepo,
+    ) {
     }
 
     public static function createForTest(

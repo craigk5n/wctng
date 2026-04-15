@@ -6,11 +6,11 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Application\Service\ConfigService;
 
 /**
  * Security audit endpoint — checks the installation for common security issues.
@@ -19,7 +19,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 final class SecurityAuditController
 {
     public function __construct(
-        private readonly CoreServiceFactory $factory,
+        private readonly ConfigService $configService,
         private readonly \PDO $pdo,
         #[\SensitiveParameter]
         private readonly string $appSecret,
@@ -313,7 +313,7 @@ final class SecurityAuditController
      */
     private function checkHtmlDescription(): array
     {
-        $enabled = $this->factory->getConfigService()->getSetting('ALLOW_HTML_DESCRIPTION') !== 'N';
+        $enabled = $this->configService->getSetting('ALLOW_HTML_DESCRIPTION') !== 'N';
 
         return [
             'category' => 'Application',
@@ -330,9 +330,9 @@ final class SecurityAuditController
      */
     private function checkCustomHtml(): array
     {
-        $header = $this->factory->getConfigService()->getSetting('CUSTOM_HEADER_HTML') ?? '';
-        $trailer = $this->factory->getConfigService()->getSetting('CUSTOM_TRAILER_HTML') ?? '';
-        $css = $this->factory->getConfigService()->getSetting('CUSTOM_CSS') ?? '';
+        $header = $this->configService->getSetting('CUSTOM_HEADER_HTML') ?? '';
+        $trailer = $this->configService->getSetting('CUSTOM_TRAILER_HTML') ?? '';
+        $css = $this->configService->getSetting('CUSTOM_CSS') ?? '';
         $hasCustom = $header !== '' || $trailer !== '' || $css !== '';
 
         return [
@@ -350,7 +350,7 @@ final class SecurityAuditController
      */
     private function checkSeoPages(): array
     {
-        $enabled = $this->factory->getConfigService()->getSetting('ENABLE_SEO_PAGES') === 'Y';
+        $enabled = $this->configService->getSetting('ENABLE_SEO_PAGES') === 'Y';
 
         return [
             'category' => 'Application',

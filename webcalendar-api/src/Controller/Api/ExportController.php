@@ -6,17 +6,19 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Application\Service\EventService;
+use WebCalendar\Core\Application\Service\ExportService;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 
 final class ExportController
 {
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly EventService $eventService,
+        private readonly ExportService $exportService,
     ) {
     }
 
@@ -44,9 +46,9 @@ final class ExportController
         $coreUser = $user->getCoreUser();
         $range = new DateRange($start, $end);
 
-        $collection = $this->coreServiceFactory->getEventService()->getEventsInDateRange($range, $coreUser);
+        $collection = $this->eventService->getEventsInDateRange($range, $coreUser);
 
-        $icsContent = $this->coreServiceFactory->getExportService()->exportIcal($collection);
+        $icsContent = $this->exportService->exportIcal($collection);
 
         $response = new Response($icsContent, Response::HTTP_OK, [
             'Content-Type' => 'text/calendar; charset=utf-8',

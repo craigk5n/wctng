@@ -49,7 +49,13 @@ final class McpControllerTest extends TestCase
         $this->factory->getUserService()->createUser($admin, $admin);
         $this->factory->getUserRepository()->savePreference('admin', new UserPreference('api_token', 'test-token-123'));
 
-        $this->controller = new McpController($this->factory);
+        $this->controller = new McpController(
+            $this->factory->getEventService(),
+            $this->factory->getUserService(),
+            $this->factory->getBookingService(),
+            $this->factory->getEventRepository(),
+            $this->factory->getUserRepository(),
+        );
     }
 
     public function testToolsListReturnsToolDefinitions(): void

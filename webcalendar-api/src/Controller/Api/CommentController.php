@@ -6,12 +6,13 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Application\Service\ActivityLogService;
+use WebCalendar\Core\Application\Service\ConfigService;
 use WebCalendar\Core\Domain\ValueObject\ActivityLogType;
 
 /**
@@ -20,7 +21,8 @@ use WebCalendar\Core\Domain\ValueObject\ActivityLogType;
 final class CommentController
 {
     public function __construct(
-        private readonly CoreServiceFactory $factory,
+        private readonly ActivityLogService $activityLogService,
+        private readonly ConfigService $configService,
         private readonly \PDO $pdo,
     ) {
     }
@@ -102,7 +104,7 @@ final class CommentController
 
         // Also log to activity log
         try {
-            $this->factory->getActivityLogService()->log(
+            $this->activityLogService->log(
                 $eventId,
                 $login,
                 null,
@@ -152,7 +154,7 @@ final class CommentController
 
     private function isCommentsDisabled(): bool
     {
-        return $this->factory->getConfigService()->getSetting('DISABLE_COMMENTS') === 'Y';
+        return $this->configService->getSetting('DISABLE_COMMENTS') === 'Y';
     }
 
     private function ensureTable(): void

@@ -6,13 +6,13 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use App\Service\DescriptionSanitizer;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Application\Service\TaskService;
 use WebCalendar\Core\Domain\Entity\Task;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
@@ -22,7 +22,7 @@ use WebCalendar\Core\Domain\ValueObject\EventType;
 final class TaskController
 {
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly TaskService $taskService,
         private readonly DescriptionSanitizer $descriptionSanitizer = new DescriptionSanitizer(),
     ) {
     }
@@ -47,7 +47,7 @@ final class TaskController
             return ApiResponse::error(400, 'Invalid date format');
         }
 
-        $tasks = $this->coreServiceFactory->getTaskService()->getTasksInDateRange(
+        $tasks = $this->taskService->getTasksInDateRange(
             new DateRange($start, $end),
             $user->getUserIdentifier(),
         );
@@ -103,14 +103,14 @@ final class TaskController
             percentComplete: $percentComplete,
         );
 
-        $this->coreServiceFactory->getTaskService()->createTask($task, $user->getCoreUser());
+        $this->taskService->createTask($task, $user->getCoreUser());
 
         // Find the created task by searching recent tasks
         $range = new DateRange(
             $startDate->modify('-1 day'),
             $startDate->modify('+1 day'),
         );
-        $tasks = $this->coreServiceFactory->getTaskService()->getTasksInDateRange(
+        $tasks = $this->taskService->getTasksInDateRange(
             $range,
             $user->getUserIdentifier(),
         );
@@ -138,7 +138,7 @@ final class TaskController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $task = $this->coreServiceFactory->getTaskService()->getTaskById(new EventId($id));
+        $task = $this->taskService->getTaskById(new EventId($id));
         if ($task === null) {
             return ApiResponse::error(404, 'Task not found');
         }
@@ -153,7 +153,7 @@ final class TaskController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $existing = $this->coreServiceFactory->getTaskService()->getTaskById(new EventId($id));
+        $existing = $this->taskService->getTaskById(new EventId($id));
         if ($existing === null) {
             return ApiResponse::error(404, 'Task not found');
         }
@@ -191,9 +191,9 @@ final class TaskController
             sequence: $existing->sequence() + 1,
         );
 
-        $this->coreServiceFactory->getTaskService()->updateTask($updated, $user->getCoreUser());
+        $this->taskService->updateTask($updated, $user->getCoreUser());
 
-        $saved = $this->coreServiceFactory->getTaskService()->getTaskById(new EventId($id));
+        $saved = $this->taskService->getTaskById(new EventId($id));
         if ($saved === null) {
             return ApiResponse::error(500, 'Task updated but could not be retrieved');
         }
@@ -208,12 +208,12 @@ final class TaskController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $existing = $this->coreServiceFactory->getTaskService()->getTaskById(new EventId($id));
+        $existing = $this->taskService->getTaskById(new EventId($id));
         if ($existing === null) {
             return ApiResponse::error(404, 'Task not found');
         }
 
-        $this->coreServiceFactory->getTaskService()->deleteTask(new EventId($id), $user->getCoreUser());
+        $this->taskService->deleteTask(new EventId($id), $user->getCoreUser());
 
         return ApiResponse::noContent();
     }

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Controller\Seo;
 
-use App\Service\CoreServiceFactory;
 use App\Service\SeoEligibilityService;
+use App\Service\TenantAwarePdoProvider;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
+use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 
@@ -18,12 +20,12 @@ final class SitemapController
 {
     private const MAX_URLS = 50000;
 
-    private readonly SeoEligibilityService $seoService;
-
     public function __construct(
-        private readonly CoreServiceFactory $factory,
+        private readonly SeoEligibilityService $seoService,
+        private readonly UserRepositoryInterface $userRepository,
+        private readonly EventRepositoryInterface $eventRepository,
+        private readonly TenantAwarePdoProvider $pdoProvider,
     ) {
-        $this->seoService = new SeoEligibilityService($factory);
     }
 
     private const CACHE_TTL = 3600; // 1 hour
@@ -36,7 +38,7 @@ final class SitemapController
         }
 
         // Serve from file cache if fresh (skip for SQLite/testing)
-        $driver = $this->factory->getPdo()->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        $driver = $this->pdoProvider->get()->getAttribute(\PDO::ATTR_DRIVER_NAME);
         $cacheFile = \dirname(__DIR__, 3) . '/var/cache/sitemap.xml';
         $useCache = $driver !== 'sqlite';
 
@@ -88,7 +90,7 @@ final class SitemapController
             $start = $now->modify('-1 year');
             $end = $now->modify('+1 year');
             $range = new DateRange($start, $end);
-            $events = $this->factory->getEventRepository()->findByDateRange($range, null, 'P', [$login]);
+            $events = $this->eventRepository->findByDateRange($range, null, 'P', [$login]);
 
             foreach ($events as $event) {
                 if ($event->access() !== AccessLevel::PUBLIC) {
@@ -181,7 +183,7 @@ final class SitemapController
      */
     private function getEligibleUsers(): array
     {
-        $allUsers = $this->factory->getUserRepository()->findAll();
+        $allUsers = $this->userRepository->findAll();
         $eligible = [];
 
         foreach ($allUsers as $user) {

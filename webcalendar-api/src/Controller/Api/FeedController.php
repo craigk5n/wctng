@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -25,17 +24,13 @@ final class FeedController
     private const RATE_WINDOW = 60;
     private const DEFAULT_DAYS = 90;
 
-    private readonly UserRepositoryInterface $userRepo;
-    private readonly RateLimiterInterface $rateLimiter;
-    private readonly FeedService $feedService;
-
-    public function __construct(CoreServiceFactory $factory)
-    {
-        $this->userRepo = $factory->getUserRepository();
-        $this->rateLimiter = $factory->getRateLimiter();
-        // FeedService needs the base URL which isn't available at DI time,
-        // but the RSS/FreeBusy methods override it per-request anyway.
-        $this->feedService = $factory->getFeedService('');
+    public function __construct(
+        private readonly UserRepositoryInterface $userRepo,
+        private readonly RateLimiterInterface $rateLimiter,
+        // FeedService's base URL is empty at DI time; RSS/FreeBusy methods
+        // override it per request.
+        private readonly FeedService $feedService,
+    ) {
     }
 
     /**

@@ -6,17 +6,17 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Application\Service\ActivityLogService;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 
 final class ActivityLogController
 {
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly ActivityLogService $activityLogService,
     ) {
     }
 
@@ -47,7 +47,7 @@ final class ActivityLogController
         $loginFilter = $request->query->getString('user', '') ?: null;
 
         $range = new DateRange($start, $end);
-        $entries = $this->coreServiceFactory->getActivityLogService()->getLogs($range, $loginFilter);
+        $entries = $this->activityLogService->getLogs($range, $loginFilter);
 
         $page = max(1, $request->query->getInt('page', 1));
         $limit = min(100, max(1, $request->query->getInt('limit', 50)));

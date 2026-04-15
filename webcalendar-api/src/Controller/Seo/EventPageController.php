@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Controller\Seo;
 
 use App\Security\CspNonceProvider;
-use App\Service\CoreServiceFactory;
 use App\Service\CustomHtmlProvider;
 use App\Service\DescriptionSanitizer;
 use App\Service\GeoRepository;
@@ -13,6 +12,9 @@ use App\Service\JsonLdGenerator;
 use App\Service\SeoEligibilityService;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use WebCalendar\Core\Application\Service\ConfigService;
+use WebCalendar\Core\Application\Service\EventService;
+use WebCalendar\Core\Application\Service\UserService;
 use WebCalendar\Core\Domain\ValueObject\EventId;
 
 /**
@@ -21,22 +23,20 @@ use WebCalendar\Core\Domain\ValueObject\EventId;
  */
 final class EventPageController
 {
-    private readonly SeoEligibilityService $seoService;
     private readonly DescriptionSanitizer $sanitizer;
     private readonly JsonLdGenerator $jsonLd;
-    private readonly ?GeoRepository $geoRepo;
-    private readonly ?CspNonceProvider $nonceProvider;
 
     public function __construct(
-        private readonly CoreServiceFactory $factory,
-        ?GeoRepository $geoRepo = null,
-        ?CspNonceProvider $nonceProvider = null,
+        private readonly SeoEligibilityService $seoService,
+        private readonly UserService $userService,
+        private readonly EventService $eventService,
+        private readonly ConfigService $configService,
+        private readonly CustomHtmlProvider $customHtmlProvider,
+        private readonly ?GeoRepository $geoRepo = null,
+        private readonly ?CspNonceProvider $nonceProvider = null,
     ) {
-        $this->seoService = new SeoEligibilityService($factory);
         $this->sanitizer = new DescriptionSanitizer();
         $this->jsonLd = new JsonLdGenerator();
-        $this->geoRepo = $geoRepo;
-        $this->nonceProvider = $nonceProvider;
     }
 
     #[Route('/public/{username}/event/{id}', name: 'seo_event_detail', methods: ['GET'], requirements: ['id' => '\d+'])]
@@ -49,13 +49,13 @@ final class EventPageController
         }
 
         // Get user
-        $user = $this->factory->getUserService()->getUserByLogin($username);
+        $user = $this->userService->getUserByLogin($username);
         if ($user === null) {
             return new Response('Not Found', 404);
         }
 
         // Get event
-        $event = $this->factory->getEventService()->getEventById(new EventId($id));
+        $event = $this->eventService->getEventById(new EventId($id));
         if ($event === null || $event->createdBy() !== $username) {
             return new Response('Not Found', 404);
         }
@@ -123,15 +123,14 @@ MAP;
         $breadcrumbBlock = $seoStatus['noindex'] ? '' : $this->jsonLd->generateBreadcrumbJsonLd($username, $displayName, $canonicalUrl, $title, $nonce);
 
         // og:image from admin config
-        $ogImageUrl = $this->factory->getConfigService()->getSetting('SEO_OG_IMAGE_URL', '') ?? '';
+        $ogImageUrl = $this->configService->getSetting('SEO_OG_IMAGE_URL', '') ?? '';
         $ogImageTag = $ogImageUrl !== '' ? "<meta property=\"og:image\" content=\"{$ogImageUrl}\">\n    <meta name=\"twitter:image\" content=\"{$ogImageUrl}\">" : '';
         $twitterCardType = $ogImageUrl !== '' ? 'summary_large_image' : 'summary';
 
         // Custom HTML/CSS
-        $customHtml = new CustomHtmlProvider($this->factory);
-        $customCssTag = $customHtml->getCssStyleTag();
-        $customHeader = $customHtml->getHeaderHtml();
-        $customTrailer = $customHtml->getTrailerHtml();
+        $customCssTag = $this->customHtmlProvider->getCssStyleTag();
+        $customHeader = $this->customHtmlProvider->getHeaderHtml();
+        $customTrailer = $this->customHtmlProvider->getTrailerHtml();
 
         $html = <<<HTML
 <!DOCTYPE html>

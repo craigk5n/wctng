@@ -6,17 +6,17 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\UserPreference;
 
 final class LocationController
 {
     public function __construct(
-        private readonly CoreServiceFactory $factory,
+        private readonly UserRepositoryInterface $userRepository,
     ) {
     }
 
@@ -30,7 +30,7 @@ final class LocationController
         $date = $request->query->getString('date', date('Y-m-d'));
         $prefKey = 'location_' . $date;
 
-        $prefs = $this->factory->getUserRepository()->getPreferences($login);
+        $prefs = $this->userRepository->getPreferences($login);
         $location = 'office'; // default
         foreach ($prefs as $pref) {
             if ($pref->key() === $prefKey) {
@@ -68,7 +68,7 @@ final class LocationController
         }
 
         $prefKey = 'location_' . $date;
-        $this->factory->getUserRepository()->savePreference(
+        $this->userRepository->savePreference(
             $login,
             new UserPreference($prefKey, $location),
         );

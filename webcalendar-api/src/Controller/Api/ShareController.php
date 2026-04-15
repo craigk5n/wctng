@@ -7,7 +7,6 @@ namespace App\Controller\Api;
 use App\DTO\EventResponseDTO;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use App\Share\ShareTokenRepository;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,12 +20,12 @@ use WebCalendar\Core\Domain\ValueObject\DateRange;
 final class ShareController
 {
     private readonly ShareTokenRepository $tokenRepo;
-    private readonly EventRepositoryInterface $eventRepo;
 
-    public function __construct(CoreServiceFactory $factory, \PDO $pdo)
-    {
+    public function __construct(
+        private readonly EventRepositoryInterface $eventRepo,
+        \PDO $pdo,
+    ) {
         $this->tokenRepo = new ShareTokenRepository($pdo);
-        $this->eventRepo = $factory->getEventRepository();
     }
 
     /**

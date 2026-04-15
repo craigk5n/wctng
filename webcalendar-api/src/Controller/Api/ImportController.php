@@ -6,16 +6,18 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Application\Service\CategoryService;
+use WebCalendar\Core\Application\Service\ImportService;
 
 final class ImportController
 {
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly CategoryService $categoryService,
+        private readonly ImportService $importService,
     ) {
     }
 
@@ -46,16 +48,11 @@ final class ImportController
 
         try {
             // Count categories before import to detect new ones
-            $catsBefore = \count($this->coreServiceFactory->getCategoryService()
-                ->getCategoriesForUser($user->getUserIdentifier()));
+            $catsBefore = \count($this->categoryService->getCategoriesForUser($user->getUserIdentifier()));
 
-            $result = $this->coreServiceFactory->getImportService()->importIcal(
-                $content,
-                $user->getCoreUser(),
-            );
+            $result = $this->importService->importIcal($content, $user->getCoreUser());
 
-            $catsAfter = \count($this->coreServiceFactory->getCategoryService()
-                ->getCategoriesForUser($user->getUserIdentifier()));
+            $catsAfter = \count($this->categoryService->getCategoriesForUser($user->getUserIdentifier()));
             $newCategories = max(0, $catsAfter - $catsBefore);
 
             return ApiResponse::success([

@@ -67,6 +67,16 @@ use WebCalendar\Core\Infrastructure\Webhook\LogWebhookProvider;
  *
  * Bridges Symfony's DI container with webcalendar-core's constructor-injected services.
  * All services are lazily created and cached for the lifetime of the factory.
+ *
+ * @deprecated since PBP-S4 (2026-04-15). Every `getXxx()` method is now registered
+ * in `config/services.yaml` as a Symfony-container service, and every controller
+ * has been migrated to inject specific services by type rather than depend on this
+ * factory. New code MUST NOT add dependencies on `CoreServiceFactory` — inject the
+ * specific service (e.g. `EventService`, `UserService`, `ConfigService`) or
+ * repository interface (e.g. `UserRepositoryInterface`) directly. The factory is
+ * kept alive only because a handful of services/commands/auth/CalDAV backends
+ * still use it internally; those will be migrated in a follow-up and then this
+ * class can be deleted.
  */
 final class CoreServiceFactory
 {

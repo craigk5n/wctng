@@ -6,13 +6,13 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use App\Service\DescriptionSanitizer;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Application\Service\JournalService;
 use WebCalendar\Core\Domain\Entity\Journal;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
@@ -22,7 +22,7 @@ use WebCalendar\Core\Domain\ValueObject\EventType;
 final class JournalController
 {
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly JournalService $journalService,
         private readonly DescriptionSanitizer $descriptionSanitizer = new DescriptionSanitizer(),
     ) {
     }
@@ -47,7 +47,7 @@ final class JournalController
             return ApiResponse::error(400, 'Invalid date format');
         }
 
-        $journals = $this->coreServiceFactory->getJournalService()->getJournalsInDateRange(
+        $journals = $this->journalService->getJournalsInDateRange(
             new DateRange($start, $end),
             $user->getUserIdentifier(),
         );
@@ -103,11 +103,11 @@ final class JournalController
             allDay: true,
         );
 
-        $this->coreServiceFactory->getJournalService()->createJournal($journal, $user->getCoreUser());
+        $this->journalService->createJournal($journal, $user->getCoreUser());
 
         // Find created journal by searching in date range
         $range = new DateRange($date->modify('-1 day'), $date->modify('+1 day'));
-        $journals = $this->coreServiceFactory->getJournalService()->getJournalsInDateRange(
+        $journals = $this->journalService->getJournalsInDateRange(
             $range,
             $user->getUserIdentifier(),
         );
@@ -134,7 +134,7 @@ final class JournalController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $journal = $this->coreServiceFactory->getJournalService()->getJournalById(new EventId($id));
+        $journal = $this->journalService->getJournalById(new EventId($id));
         if ($journal === null) {
             return ApiResponse::error(404, 'Journal not found');
         }
@@ -149,7 +149,7 @@ final class JournalController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $existing = $this->coreServiceFactory->getJournalService()->getJournalById(new EventId($id));
+        $existing = $this->journalService->getJournalById(new EventId($id));
         if ($existing === null) {
             return ApiResponse::error(404, 'Journal not found');
         }
@@ -182,9 +182,9 @@ final class JournalController
             sequence: $existing->sequence() + 1,
         );
 
-        $this->coreServiceFactory->getJournalService()->updateJournal($updated, $user->getCoreUser());
+        $this->journalService->updateJournal($updated, $user->getCoreUser());
 
-        $saved = $this->coreServiceFactory->getJournalService()->getJournalById(new EventId($id));
+        $saved = $this->journalService->getJournalById(new EventId($id));
         if ($saved === null) {
             return ApiResponse::error(500, 'Journal updated but could not be retrieved');
         }
@@ -199,12 +199,12 @@ final class JournalController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $existing = $this->coreServiceFactory->getJournalService()->getJournalById(new EventId($id));
+        $existing = $this->journalService->getJournalById(new EventId($id));
         if ($existing === null) {
             return ApiResponse::error(404, 'Journal not found');
         }
 
-        $this->coreServiceFactory->getJournalService()->deleteJournal(new EventId($id), $user->getCoreUser());
+        $this->journalService->deleteJournal(new EventId($id), $user->getCoreUser());
 
         return ApiResponse::noContent();
     }

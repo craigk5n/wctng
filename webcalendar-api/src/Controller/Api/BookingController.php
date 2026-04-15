@@ -5,22 +5,24 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use WebCalendar\Core\Application\Service\BookingService;
+use WebCalendar\Core\Application\Service\UserService;
 
 final class BookingController
 {
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly UserService $userService,
+        private readonly BookingService $bookingService,
     ) {
     }
 
     #[Route('/api/v2/public/availability/{username}', name: 'api_public_availability', methods: ['GET'])]
     public function availability(string $username, Request $request): JsonResponse
     {
-        $user = $this->coreServiceFactory->getUserService()->getUserByLogin($username);
+        $user = $this->userService->getUserByLogin($username);
         if ($user === null) {
             return ApiResponse::error(404, 'User not found');
         }
@@ -36,7 +38,7 @@ final class BookingController
         }
         $date = $date->setTime(0, 0);
 
-        $slots = $this->coreServiceFactory->getBookingService()->getAvailability($user, $date);
+        $slots = $this->bookingService->getAvailability($user, $date);
 
         $formatted = [];
         foreach ($slots as $slot) {
@@ -56,7 +58,7 @@ final class BookingController
     #[Route('/api/v2/public/book/{username}', name: 'api_public_book', methods: ['POST'])]
     public function book(string $username, Request $request): JsonResponse
     {
-        $user = $this->coreServiceFactory->getUserService()->getUserByLogin($username);
+        $user = $this->userService->getUserByLogin($username);
         if ($user === null) {
             return ApiResponse::error(404, 'User not found');
         }
@@ -81,7 +83,7 @@ final class BookingController
         $duration = $data['duration'] ?? 30;
 
         try {
-            $this->coreServiceFactory->getBookingService()->book($user, $name, $email, $start, $duration);
+            $this->bookingService->book($user, $name, $email, $start, $duration);
         } catch (\Throwable $e) {
             return ApiResponse::error(400, 'Booking failed: ' . $e->getMessage());
         }

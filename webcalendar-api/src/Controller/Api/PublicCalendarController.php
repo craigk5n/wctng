@@ -7,7 +7,6 @@ namespace App\Controller\Api;
 use App\DTO\EventResponseDTO;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\CoreServiceFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
@@ -24,15 +23,11 @@ final class PublicCalendarController
     private const PUBLIC_RATE_LIMIT = 30;
     private const PUBLIC_RATE_WINDOW = 60;
 
-    private readonly EventRepositoryInterface $eventRepo;
-    private readonly UserRepositoryInterface $userRepo;
-    private readonly RateLimiterInterface $rateLimiter;
-
-    public function __construct(CoreServiceFactory $factory)
-    {
-        $this->eventRepo = $factory->getEventRepository();
-        $this->userRepo = $factory->getUserRepository();
-        $this->rateLimiter = $factory->getRateLimiter();
+    public function __construct(
+        private readonly EventRepositoryInterface $eventRepo,
+        private readonly UserRepositoryInterface $userRepo,
+        private readonly RateLimiterInterface $rateLimiter,
+    ) {
     }
 
     /**
