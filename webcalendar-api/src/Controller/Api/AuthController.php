@@ -7,9 +7,12 @@ namespace App\Controller\Api;
 use App\Auth\LdapAuthenticator;
 use App\Response\ApiResponse;
 use App\Security\PasswordUpgradeService;
+use App\Security\TokenRevocationService;
+use App\Security\UserTokenIndex;
 use App\Security\WebCalendarUser;
 use App\Tenant\TenantContext;
 use Lexik\Bundle\JWTAuthenticationBundle\Encoder\JWTEncoderInterface;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\BlockedTokenManagerInterface;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,8 +20,10 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use WebCalendar\Core\Application\Contract\AuthServiceInterface;
+use WebCalendar\Core\Application\Service\ActivityLogService;
 use WebCalendar\Core\Application\Service\ConfigService;
 use WebCalendar\Core\Application\Service\UserService;
+use WebCalendar\Core\Domain\ValueObject\ActivityLogType;
 
 final class AuthController
 {
@@ -32,6 +37,10 @@ final class AuthController
         private readonly LdapAuthenticator $ldapAuthenticator,
         private readonly PasswordUpgradeService $passwordUpgradeService,
         private readonly ClockInterface $clock,
+        private readonly BlockedTokenManagerInterface $blockedTokens,
+        private readonly UserTokenIndex $tokenIndex,
+        private readonly TokenRevocationService $revoker,
+        private readonly ActivityLogService $activityLog,
     ) {
     }
 
@@ -113,15 +122,107 @@ final class AuthController
     }
 
     #[Route('/api/v2/auth/logout', name: 'api_auth_logout', methods: ['POST'])]
-    public function logout(#[CurrentUser] ?WebCalendarUser $user): Response
+    public function logout(Request $request, #[CurrentUser] ?WebCalendarUser $user): Response
     {
         if ($user === null) {
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        // With stateless JWT, logout is handled client-side by discarding the token.
-        // Server-side token blacklisting can be added later if needed.
+        $payload = $this->decodeCurrentToken($request);
+        if ($payload !== null) {
+            // Lexik's blocklist requires `jti` + `exp`; both are present on
+            // every token issued since PBP-S6.
+            try {
+                $this->blockedTokens->add($payload);
+            } catch (\Throwable) {
+                // MissingClaimException for legacy tokens pre-dating PBP-S6 —
+                // they just time out naturally.
+            }
+
+            if (isset($payload['jti']) && \is_string($payload['jti'])) {
+                $this->tokenIndex->forget($payload['jti']);
+            }
+        }
+
+        $this->logRevocation($user->getUserIdentifier(), 'auth.logout');
+
         return ApiResponse::noContent();
+    }
+
+    /**
+     * Revokes every outstanding JWT for the current user. Useful after a
+     * password change or a "sign me out of every device" action.
+     */
+    #[Route('/api/v2/auth/logout-all', name: 'api_auth_logout_all', methods: ['POST'])]
+    public function logoutAll(#[CurrentUser] ?WebCalendarUser $user): JsonResponse
+    {
+        if ($user === null) {
+            return ApiResponse::error(401, 'Authentication required');
+        }
+
+        $revoked = $this->revoker->revokeAllFor($user->getUserIdentifier());
+        $this->logRevocation($user->getUserIdentifier(), 'auth.logout_all');
+
+        return ApiResponse::success(['revoked' => $revoked]);
+    }
+
+    /**
+     * Admin-only: revokes every outstanding JWT for the target login.
+     * Used when an account is compromised or an admin wants to boot a
+     * user out of every device.
+     */
+    #[Route('/api/v2/admin/users/{login}/force-logout', name: 'api_admin_force_logout', methods: ['POST'])]
+    public function forceLogout(string $login, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
+    {
+        if ($user === null || !$user->getCoreUser()->isAdmin()) {
+            return ApiResponse::error(403, 'Admin access required');
+        }
+
+        $target = $this->userService->getUserByLogin($login);
+        if ($target === null) {
+            return ApiResponse::error(404, 'User not found');
+        }
+
+        $revoked = $this->revoker->revokeAllFor($login);
+        $this->logRevocation($login, 'auth.force_logout', $user->getUserIdentifier());
+
+        return ApiResponse::success(['revoked' => $revoked, 'login' => $login]);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function decodeCurrentToken(Request $request): ?array
+    {
+        $authHeader = $request->headers->get('Authorization', '');
+        if (!str_starts_with($authHeader, 'Bearer ')) {
+            return null;
+        }
+
+        $parts = explode('.', substr($authHeader, 7));
+        if (\count($parts) !== 3) {
+            return null;
+        }
+
+        $decoded = json_decode((string) base64_decode($parts[1], true), true);
+        if (!\is_array($decoded)) {
+            return null;
+        }
+
+        /** @var array<string, mixed> $decoded */
+        return $decoded;
+    }
+
+    private function logRevocation(string $login, string $action, ?string $actor = null): void
+    {
+        try {
+            $text = $actor !== null
+                ? sprintf('%s: %s revoked tokens for %s', $action, $actor, $login)
+                : sprintf('%s: %s', $action, $login);
+            $this->activityLog->log(0, $login, null, ActivityLogType::EXTRA, $text);
+        } catch (\Throwable) {
+            // Best-effort; never block the revocation on audit-log failure.
+        }
     }
 
     private function createTokenResponse(string $login, bool $isAdmin, \WebCalendar\Core\Domain\Entity\User $coreUser, bool $rememberMe = false): JsonResponse
@@ -136,10 +237,17 @@ final class AuthController
             $ttl = $this->jwtTtl;
         }
 
+        $issuedAt = $this->clock->now();
+        $expires = $issuedAt->getTimestamp() + $ttl;
+        $jti = self::newJti();
+
         $claims = [
+            'jti' => $jti,
+            'typ' => 'access',
             'username' => $login,
             'is_admin' => $isAdmin,
-            'exp' => time() + $ttl,
+            'iat' => $issuedAt->getTimestamp(),
+            'exp' => $expires,
         ];
 
         // Mark remember-me tokens so refresh preserves the TTL type
@@ -155,7 +263,10 @@ final class AuthController
 
         $token = $this->jwtEncoder->encode($claims);
 
-        $expiresAt = $this->clock->now()->modify('+' . $ttl . ' seconds');
+        // Record the jti so logout-all / force-logout can find it.
+        $this->tokenIndex->record($login, $jti, $expires);
+
+        $expiresAt = $issuedAt->modify('+' . $ttl . ' seconds');
 
         $response = [
             'token' => $token,
@@ -174,5 +285,10 @@ final class AuthController
         }
 
         return ApiResponse::success($response);
+    }
+
+    private static function newJti(): string
+    {
+        return rtrim(strtr(base64_encode(random_bytes(16)), '+/', '-_'), '=');
     }
 }

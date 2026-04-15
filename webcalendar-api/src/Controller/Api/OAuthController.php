@@ -6,6 +6,7 @@ namespace App\Controller\Api;
 
 use App\Auth\OAuthProviderRepository;
 use App\Response\ApiResponse;
+use App\Security\UserTokenIndex;
 use App\Tenant\TenantContext;
 use Lexik\Bundle\JWTAuthenticationBundle\Encoder\JWTEncoderInterface;
 use Psr\Clock\ClockInterface;
@@ -30,6 +31,7 @@ final class OAuthController
         private readonly TenantContext $tenantContext,
         private readonly int $jwtTtl,
         private readonly ClockInterface $clock,
+        private readonly UserTokenIndex $tokenIndex,
     ) {
     }
 
@@ -140,10 +142,18 @@ final class OAuthController
             return ApiResponse::error(500, 'Failed to provision user');
         }
 
-        // Issue JWT
+        // Issue JWT (with jti + exp so PBP-S6 revocation can target it)
+        $issuedAt = $this->clock->now();
+        $expires = $issuedAt->getTimestamp() + $this->jwtTtl;
+        $jti = rtrim(strtr(base64_encode(random_bytes(16)), '+/', '-_'), '=');
+
         $claims = [
+            'jti' => $jti,
+            'typ' => 'access',
             'username' => $user->login(),
             'is_admin' => $user->isAdmin(),
+            'iat' => $issuedAt->getTimestamp(),
+            'exp' => $expires,
         ];
 
         $tenant = $this->tenantContext->getTenant();
@@ -152,7 +162,8 @@ final class OAuthController
         }
 
         $jwt = $this->jwtEncoder->encode($claims);
-        $expiresAt = $this->clock->now()->modify('+' . $this->jwtTtl . ' seconds');
+        $this->tokenIndex->record($user->login(), $jti, $expires);
+        $expiresAt = $issuedAt->modify('+' . $this->jwtTtl . ' seconds');
 
         $response = [
             'token' => $jwt,

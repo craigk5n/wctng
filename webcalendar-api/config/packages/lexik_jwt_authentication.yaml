@@ -1,6 +1,16 @@
-# JWT config — keys will be generated in E4 (Authentication)
+# JWT config — keys were generated in E4 (Authentication).
+#
+# `blocklist_token` enables Lexik's single-token revocation (PBP-S6):
+# `BlockedTokenManagerInterface::add($payload)` stores the `jti` in the
+# configured cache pool until the token's `exp`, and `RejectBlockedTokenListener`
+# checks every incoming request. Pair with App\Security\UserTokenIndex for
+# `logout-all` / admin force-logout semantics (iterate per-user jtis and
+# add each to the blocklist).
 lexik_jwt_authentication:
     secret_key: '%env(resolve:JWT_SECRET_KEY)%'
     public_key: '%env(resolve:JWT_PUBLIC_KEY)%'
     pass_phrase: '%env(JWT_PASSPHRASE)%'
     token_ttl: '%env(int:JWT_TTL)%'
+    blocklist_token:
+        enabled: true
+        cache: cache.app

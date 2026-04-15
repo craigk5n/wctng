@@ -109,6 +109,12 @@ services:
         arguments:
             $defaultPdo: '@pdo.connection'
 
+    # Per-user JWT `jti` index (PBP-S6): complements Lexik's built-in
+    # single-token blocklist for `logout-all` and admin force-logout.
+    App\Security\UserTokenIndex:
+        arguments:
+            $pdo: '@pdo.connection'
+
     # Saved view controller needs PDO
     App\Controller\Api\SavedViewController:
         arguments:

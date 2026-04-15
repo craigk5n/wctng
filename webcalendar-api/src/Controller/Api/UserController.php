@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
+use App\Security\TokenRevocationService;
 use App\Security\WebCalendarUser;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,6 +24,7 @@ final class UserController
         private readonly UserService $userService,
         private readonly UserRepositoryInterface $userRepository,
         private readonly AuthServiceInterface $authService,
+        private readonly TokenRevocationService $tokenRevoker,
     ) {
     }
 
@@ -187,6 +189,10 @@ final class UserController
 
         $hash = $this->userService->hashPassword($newPassword);
         $this->userRepository->setPassword($login, $hash);
+
+        // PBP-S6: a password change invalidates every outstanding token
+        // for that login so a stolen session can't survive the rotation.
+        $this->tokenRevoker->revokeAllFor($login);
 
         return ApiResponse::success(['message' => 'Password changed successfully']);
     }
