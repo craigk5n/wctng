@@ -1,5 +1,17 @@
 
 services:
+###> redis ###
+# PBP-S11: shared rate-limit storage; API container reads REDIS_URL=redis://redis:6379
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+###< redis ###
+
 ###> symfony/mercure-bundle ###
   mercure:
     image: dunglas/mercure

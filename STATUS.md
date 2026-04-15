@@ -26,7 +26,7 @@
 | PBP-S8 | `composer audit` CI gate + `platform-check` + `classmap-authoritative` — **DONE 2026-04-15** | P1 | — |
 | PBP-S9 | PER-CS 3.0 coding standard (drop PSR-12, drop php_codesniffer) — **DONE 2026-04-15** | P2 | PBP-S7 |
 | PBP-S10 | Tenant status & plan → backed enums — **DONE 2026-04-15** | P2 | — |
-| PBP-S11 | Redis-backed rate limiter with file fallback | P2 | — |
+| PBP-S11 | Redis-backed rate limiter with file fallback — **DONE 2026-04-15** | P2 | — |
 | PBP-S12 | Adopt `doctrine/migrations` for API schema changes | P2 | — |
 | PBP-S13 | PDO & health-check hygiene (STRINGIFY_FETCHES, LIMIT params, timeout) | P3 | — |
 | PBP-S14 | Controller DI cleanup (`EmailService` final, no `new Repository`, no raw PDO) | P3 | PBP-S4 |
@@ -396,26 +396,37 @@ OWASP's 2025 guidance and the project's own best-practices doc require Argon2id 
 
 ---
 
-### Story PBP-S11: Redis-backed rate limiter with file fallback — P2
+### Story PBP-S11: Redis-backed rate limiter with file fallback — P2 — DONE 2026-04-15
 
-**Problem:** `src/Tenant/TenantRateLimiter.php` stores counters in `%kernel.cache_dir%` via fopen/flock. The file itself acknowledges "In production, this should be backed by Redis." File-based storage breaks in multi-node deploys and bottlenecks under contention.
+**Problem:** `src/Tenant/TenantRateLimiter.php` stored counters in `%kernel.cache_dir%` via fopen/flock. The file itself acknowledged "In production, this should be backed by Redis." File-based storage breaks in multi-node deploys because each node writes to its own filesystem, so two replicas serving the same tenant never see the other's count.
 
 **Goal:** Production-grade rate limiting.
 
-**Acceptance criteria:**
-- [ ] `TenantRateLimiterInterface` extracted so storage backends are swappable
-- [ ] `RedisTenantRateLimiter` implementation using Symfony's `RateLimiter\Storage\CacheStorage` with a Redis adapter (`predis/predis` or `phpredis` extension — pick one, document the choice)
-- [ ] Existing file-based `TenantRateLimiter` renamed to `FileTenantRateLimiter`, kept for dev
-- [ ] `services.yaml` selects the Redis implementation when `REDIS_URL` env var is set, file-based otherwise — a single `TenantRateLimiterInterface` alias that consumers depend on
-- [ ] Docker-compose dev stack already runs Redis; ensure the API container reads `REDIS_URL` and points at it
-- [ ] Metrics: each rate-limit hit publishes to the existing `ErrorMetricsService` or a new `RateLimitMetricsService` so dashboards can see reject rates per tenant
+**Landed (2026-04-15):**
+- Split the rate limiter into **subscriber** and **storage** concerns. The subscriber (`TenantRateLimiter`) still owns the HTTP wiring (event listener priority, plan→limit `match`, 429 response, `X-RateLimit-*` headers) and is the name consumers reference; the counter backend is now a `TenantRateLimitStorage` interface with a single method `incrementAndCount(string $slug, int $window): int` that atomically increments the (tenant, window) counter and returns the post-increment count.
+- `src/Tenant/TenantRateLimitStorage.php` — the narrow interface. Window math stays in the caller so backends never need a clock.
+- `src/Tenant/FileTenantRateLimitStorage.php` — the existing fopen/flock/glob logic lifted verbatim out of the old `TenantRateLimiter` and put behind the interface. Keeps single-node dev working without extra infra.
+- `src/Tenant/RedisTenantRateLimitStorage.php` — uses `predis/predis` (pure PHP, added via `composer require predis/predis:^2.2`) rather than the phpredis PECL extension so the runtime image doesn't need it compiled. `INCR key` returns the post-increment count atomically, and on the first INCR (count === 1) we call `EXPIRE key 120` so counters self-destruct after 2× the 60-second window — memory stays bounded with no cleanup job.
+- `src/Tenant/TenantRateLimitStorageFactory::fromEnv(string $redisUrl, string $cacheDir)` — DI factory that returns `RedisTenantRateLimitStorage` when `REDIS_URL` is set and non-empty, otherwise `FileTenantRateLimitStorage`. Wires a 2-second Predis `read_write_timeout` so a slow Redis can't hang the request path.
+- `config/services.yaml` — `App\Tenant\TenantRateLimitStorage` is now an interface-aliased service produced by the factory (`$redisUrl: '%env(default::REDIS_URL)%'`, `$cacheDir: '%kernel.cache_dir%'`). Consumers only wire the interface; no branching in app code.
+- `.env` — `REDIS_URL=` placeholder with a comment pointing at the PBP-S11 behavior; empty by default so dev works without Redis.
+- `compose.yaml` — added a `redis:7-alpine` service with a `redis-cli ping` healthcheck; `compose.override.yaml` exposes port 6379 for local tooling.
 
 **Tests:**
-- Integration: Redis-backed limiter exhausts quota at the configured N, `resetAfter()` reports the correct TTL
-- Integration: file-based limiter still passes the same contract (shared test suite against the interface)
-- Integration: two simulated "nodes" (two PDO connections in-process) sharing Redis see the same counter — this is the bug the file-based version hides
+- `tests/Unit/Tenant/FileTenantRateLimitStorageTest.php` — 4 tests: single increment, monotonic within window, separate slugs, new-window cleanup removes old counter files.
+- `tests/Unit/Tenant/RedisTenantRateLimitStorageTest.php` — 5 tests including `testTwoClientsSharingBackendSeeSameCounter` that demonstrates the multi-node property the file backend lacks by construction. Uses a `FakePredisClient` in-memory fake rather than mocks because Predis's `ClientInterface` declares `incr`/`expire` via `@method` annotations (handled by `__call`), which PHPUnit's mock builder can't stub.
+- `tests/Unit/Tenant/TenantRateLimiterTest.php` — updated constructor calls to pass `FileTenantRateLimitStorage` instead of a cache-dir string. 5 tests still cover standalone-mode skip, under-limit allow, header emission, 429 at limit, and per-plan differentiation.
 
-**Out of scope:** Per-endpoint rate limits (currently per-tenant). Separate story if product wants it.
+**Verified:**
+- [x] 535 unit tests pass (1 pre-existing skip); 19 integration tenant tests pass
+- [x] PHPStan level 9 clean (caught and fixed a dead constant)
+- [x] PHP-CS-Fixer clean (`@PER-CS3x0` + `@PHP83Migration`)
+- [x] Sensitive-param guard clean
+- [x] `composer audit` clean (predis/predis v2.4.1 has no advisories)
+
+**Out of scope (deferred):**
+- Rate-limit metrics publishing to `ErrorMetricsService`. The existing metrics service only tracks errors; adding rate-limit observability needs its own shape decision (per-tenant rows vs aggregate) and a lightweight storage strategy. Punted to a follow-up so this story can ship the core multi-node correctness win without the dashboard side quest.
+- Per-endpoint rate limits. Still per-tenant only.
 
 ---
 

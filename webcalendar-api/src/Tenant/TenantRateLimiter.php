@@ -12,10 +12,9 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * Per-tenant rate limiting based on plan.
- *
- * Uses a simple file-based counter per tenant per minute window.
- * In production, this should be backed by Redis.
+ * Per-tenant rate limiting by plan. The counting backend is swapped
+ * via {@see TenantRateLimitStorage} (file for single-node dev, Redis
+ * for multi-node prod — see PBP-S11).
  */
 #[AsEventListener(event: KernelEvents::REQUEST, priority: 150)]
 #[AsEventListener(event: KernelEvents::RESPONSE, priority: -10)]
@@ -27,7 +26,7 @@ final class TenantRateLimiter
 
     public function __construct(
         private readonly TenantContext $tenantContext,
-        private readonly string $storageDir,
+        private readonly TenantRateLimitStorage $storage,
     ) {}
 
     public function onKernelRequest(RequestEvent $event): void
@@ -38,20 +37,16 @@ final class TenantRateLimiter
 
         $tenant = $this->tenantContext->getTenant();
         if ($tenant === null) {
-            return; // Standalone mode — no rate limiting
+            return;
         }
 
         $slug = $tenant->slug();
-        $this->limit = match ($tenant->plan()) {
-            TenantPlan::Free => 100,
-            TenantPlan::Pro => 1000,
-            TenantPlan::Enterprise => 5000,
-        };
+        $this->limit = self::limitFor($tenant->plan());
 
-        $window = $this->getCurrentWindow();
+        $window = self::currentWindow();
         $this->resetAt = $window + 60;
 
-        $count = $this->incrementCounter($slug, $window);
+        $count = $this->storage->incrementAndCount($slug, $window);
         $this->remaining = max(0, $this->limit - $count);
 
         if ($count > $this->limit) {
@@ -84,56 +79,17 @@ final class TenantRateLimiter
         $response->headers->set('X-RateLimit-Reset', (string) ($this->resetAt ?? 0));
     }
 
-    private function getCurrentWindow(): int
+    private static function limitFor(TenantPlan $plan): int
+    {
+        return match ($plan) {
+            TenantPlan::Free => 100,
+            TenantPlan::Pro => 1000,
+            TenantPlan::Enterprise => 5000,
+        };
+    }
+
+    private static function currentWindow(): int
     {
         return (int) (floor(time() / 60) * 60);
-    }
-
-    private function incrementCounter(string $slug, int $window): int
-    {
-        $dir = $this->storageDir . '/rate_limits';
-        if (!is_dir($dir)) {
-            @mkdir($dir, 0o777, true);
-        }
-
-        $file = $dir . '/' . $slug . '_' . $window . '.count';
-
-        // Clean old windows
-        $this->cleanOldWindows($dir, $slug, $window);
-
-        $fp = fopen($file, 'c+');
-        if ($fp === false) {
-            return 1;
-        }
-
-        flock($fp, LOCK_EX);
-        $content = fread($fp, 100);
-        $current = $content !== false && $content !== '' ? (int) $content : 0;
-        $current++;
-        ftruncate($fp, 0);
-        rewind($fp);
-        fwrite($fp, (string) $current);
-        flock($fp, LOCK_UN);
-        fclose($fp);
-
-        return $current;
-    }
-
-    private function cleanOldWindows(string $dir, string $slug, int $currentWindow): void
-    {
-        $pattern = $dir . '/' . $slug . '_*.count';
-        $files = glob($pattern);
-        if ($files === false) {
-            return;
-        }
-
-        foreach ($files as $file) {
-            $basename = basename($file, '.count');
-            $parts = explode('_', $basename);
-            $fileWindow = (int) end($parts);
-            if ($fileWindow < $currentWindow) {
-                @unlink($file);
-            }
-        }
     }
 }

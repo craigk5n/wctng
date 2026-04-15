@@ -1,5 +1,11 @@
 
 services:
+###> redis ###
+  redis:
+    ports:
+      - "6379"
+###< redis ###
+
 ###> symfony/mercure-bundle ###
   mercure:
     ports:

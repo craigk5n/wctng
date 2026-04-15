@@ -35,9 +35,13 @@ services:
             - '%env(DATABASE_URL)%'
 
     # Tenant services
-    App\Tenant\TenantRateLimiter:
+    # PBP-S11: TenantRateLimitStorage picks File or Redis backend based on REDIS_URL
+    # env var. Consumers depend on the interface alone — no branching in app code.
+    App\Tenant\TenantRateLimitStorage:
+        factory: ['App\Tenant\TenantRateLimitStorageFactory', 'fromEnv']
         arguments:
-            $storageDir: '%kernel.cache_dir%'
+            $redisUrl: '%env(default::REDIS_URL)%'
+            $cacheDir: '%kernel.cache_dir%'
 
     App\Tenant\TenantRepository:
         arguments:
