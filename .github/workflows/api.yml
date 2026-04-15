@@ -75,6 +75,9 @@ jobs:
       - name: Check code style
         run: make cs-check
 
+      - name: Check #[\SensitiveParameter] on secret parameters (PBP-S1)
+        run: composer check-sensitive-params
+
       - name: Run PHPStan (level 9)
         run: make phpstan
 

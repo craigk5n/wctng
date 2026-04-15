@@ -24,6 +24,7 @@ final readonly class Tenant
         private string $dbHost,
         private string $dbName,
         private string $dbUser,
+        #[\SensitiveParameter]
         private string $dbPassword,
         private string $plan,
         private string $status,

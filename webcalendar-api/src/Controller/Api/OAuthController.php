@@ -209,7 +209,7 @@ final class OAuthController
     /**
      * @return array<string, mixed>|null
      */
-    private function fetchUserProfile(string $userinfoUrl, string $accessToken): ?array
+    private function fetchUserProfile(string $userinfoUrl, #[\SensitiveParameter] string $accessToken): ?array
     {
         if ($userinfoUrl === '') {
             return null;

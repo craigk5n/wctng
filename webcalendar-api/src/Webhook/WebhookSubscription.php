@@ -13,6 +13,7 @@ final readonly class WebhookSubscription
         private int $id,
         private string $url,
         private string $events, // Comma-separated: event.created,event.updated,...
+        #[\SensitiveParameter]
         private string $secret,
         private bool $enabled = true,
     ) {

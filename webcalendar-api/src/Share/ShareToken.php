@@ -8,6 +8,7 @@ final readonly class ShareToken
 {
     public function __construct(
         private int $id,
+        #[\SensitiveParameter]
         private string $token,
         private string $ownerLogin,
         private ?string $expiresAt,

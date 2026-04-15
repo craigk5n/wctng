@@ -63,7 +63,8 @@
         "auto-scripts": {
             "cache:clear": "symfony-cmd",
             "assets:install %PUBLIC_DIR%": "symfony-cmd"
-        }
+        },
+        "check-sensitive-params": "php bin/check-sensitive-params.php"
     },
     "extra": {
         "symfony": {

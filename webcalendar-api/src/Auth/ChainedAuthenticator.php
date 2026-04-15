@@ -31,7 +31,7 @@ final class ChainedAuthenticator
      *
      * @return array{user: User, method: string}|null
      */
-    public function authenticate(string $username, string $password): ?array
+    public function authenticate(string $username, #[\SensitiveParameter] string $password): ?array
     {
         $providers = $this->registry->getEnabledProviders();
 
@@ -60,7 +60,7 @@ final class ChainedAuthenticator
         return null;
     }
 
-    private function tryPasswordAuth(string $username, string $password): ?User
+    private function tryPasswordAuth(string $username, #[\SensitiveParameter] string $password): ?User
     {
         $authService = $this->coreServiceFactory->getAuthService();
         if (!$authService->authenticate($username, $password)) {

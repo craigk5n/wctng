@@ -14,6 +14,7 @@ final readonly class LdapConfig
         private int $port = 389,
         private string $baseDn = '',
         private string $bindDn = '',
+        #[\SensitiveParameter]
         private string $bindPassword = '',
         private string $userFilter = '(uid=%s)',
         private bool $useTls = false,

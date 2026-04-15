@@ -1,6 +1,494 @@
 # WCTNG — Phase 7 Development Plan & Status
 
-> **Last Updated:** 2026-04-08
+> **Last Updated:** 2026-04-15
+
+---
+
+## New Epic (2026-04-15): PBP-E1 PHP Best Practices & Security Hardening
+
+**Source:** Two independent PHP best-practices audits against `~/ai-guides/php.md` landed as `GLM-FEEDBACK.md` and `MINIMAX-FEEDBACK.md` (both 2026-04-15). Every claim below was verified against the current `webcalendar-api/` source before being written up — the stories only cover findings confirmed by code inspection.
+
+**Goal:** Close the gap between the webcalendar-api PHP 8 implementation and the project's own best-practices guide. Focus areas, in rough priority order: credential handling (Argon2id + `#[\SensitiveParameter]`), browser-level security headers (CSP), JWT revocation, dependency-injection hygiene (retire the service locator, inject `ClockInterface`), toolchain modernization (PHP 8.3+, PER-CS 3.0, PHPUnit 12, `composer audit`), and a handful of smaller hygiene items.
+
+**Methodology:** TDD. Every story below ships with failing tests first, then implementation, then PHPStan level 9 clean. Security stories additionally require a `security-reviewer` agent pass before merge.
+
+**Stories:** 15 total, grouped P0/P1/P2/P3. See below.
+
+| Story | Title | Priority | Depends on |
+|-------|-------|----------|-----------|
+| PBP-S1 | `#[\SensitiveParameter]` on all secret params — **DONE 2026-04-15** | P0 | — |
+| PBP-S2 | Migrate password hashing to Argon2id + rehash-on-login — **DONE 2026-04-15** | P0 | — |
+| PBP-S3 | Content-Security-Policy + Permissions-Policy + HSTS preload — **DONE 2026-04-15** | P0 | — |
+| PBP-S4 | Decompose `CoreServiceFactory` service locator | P1 | — |
+| PBP-S5 | Inject PSR-20 `ClockInterface` everywhere time matters | P1 | — |
+| PBP-S6 | JWT token revocation / logout blacklist | P1 | — |
+| PBP-S7 | Bump PHP baseline to 8.3 and PHPUnit to ^12 | P1 | — |
+| PBP-S8 | `composer audit` CI gate + `platform-check` + `classmap-authoritative` | P1 | — |
+| PBP-S9 | PER-CS 3.0 coding standard (drop PSR-12, drop php_codesniffer) | P2 | PBP-S7 |
+| PBP-S10 | Tenant status & plan → backed enums | P2 | — |
+| PBP-S11 | Redis-backed rate limiter with file fallback | P2 | — |
+| PBP-S12 | Adopt `doctrine/migrations` for API schema changes | P2 | — |
+| PBP-S13 | PDO & health-check hygiene (STRINGIFY_FETCHES, LIMIT params, timeout) | P3 | — |
+| PBP-S14 | Controller DI cleanup (`EmailService` final, no `new Repository`, no raw PDO) | P3 | PBP-S4 |
+| PBP-S15 | Split `EventController` (1143 lines) into single-action invokables | P3 | PBP-S14 |
+
+---
+
+### Story PBP-S1: `#[\SensitiveParameter]` on all secret params — P0 — DONE 2026-04-15
+
+**Problem:** Zero instances of `#[\SensitiveParameter]` in the codebase. The guide REQUIRES it on every parameter carrying a password, token, API key, or signing secret. Without it, plaintext credentials appear in stack traces, error pages, and log context — a silent information-disclosure bug the day something else throws.
+
+**Goal:** Every parameter that receives a secret is annotated `#[\SensitiveParameter]` so the engine redacts it from stack traces.
+
+**Landed (2026-04-15):**
+- 27 secret-carrying parameters annotated across 20 files: auth (`LdapAuthenticator`, `ChainedAuthenticator`, `LdapConfig.bindPassword`, `OAuthProvider.clientSecret`, `OidcDiscovery.autoConfigureProvider`), CalDAV (`CoreAuthBackend.validateUserPass`), controllers (`McpController.authenticateToken`, `OAuthController.fetchUserProfile`, `ShareController.deleteShareToken` + `sharedEvents`, `UnsubscribeController.unsubscribe` + `findLoginByToken` + `generateToken` + `__construct(appSecret)`, `SecurityAuditController.appSecret`), tenant (`Tenant.dbPassword`, `TenantDatabaseManager.__construct(appSecret)` + `encryptPassword` + `decryptPassword`, `TenantProvisioner.createAdminUser` + `createMySqlDatabase`, `ProvisionResult.adminPassword`), services (`CoreServiceFactory.appSecret`, `DailyAgendaService.appSecret`, `ReminderService.appSecret`), share/webhook entities (`ShareToken.token`, `ShareTokenRepository` all three methods, `WebhookSubscription.secret`), command (`InstallCommand.ensureAdminUser`).
+- `bin/check-sensitive-params.php` — CI guard that scans `src/` and fails when a parameter named `$password|$token|$secret|$apiKey|$plaintext|$clientSecret|$bindPassword|$accessToken|$refreshToken|$jwtSecret|$appSecret|$adminPassword|$dbPassword|$signingKey|$webhookSecret|$encrypted` is missing the attribute. Wired into `Makefile` (`make check-sensitive-params`), `composer check-sensitive-params`, and the `api.yml` GitHub Actions workflow before PHPStan.
+- `tests/Unit/Security/SensitiveParameterRedactionTest.php` — 25 tests: one proves the engine actually redacts annotated parameters to `SensitiveParameterValue` in stack traces, one control-case proves unannotated parameters leak verbatim (so the redaction test can't silently no-op), and 23 reflection-backed cases walk the inventory asserting each target parameter carries the attribute.
+- `phpunit.xml.dist` — explicitly sets `zend.exception_ignore_args=0` for the test run so stack-trace arg inspection is possible (production still keeps the default `=1` through php.ini).
+- Full suite: 495 unit tests pass, PHPStan level 9 clean, Psalm unchanged from baseline (all deltas are line-number shifts from attribute insertions; no new Psalm error types). Integration test failures are pre-existing (sandbox has no MySQL).
+
+**Acceptance criteria:**
+- [x] `src/Controller/Api/AuthController.php` — login path extracts `$password` from the request body (local variable, no parameter to annotate); downstream receivers (`ChainedAuthenticator::authenticate`, `LdapAuthenticator::authenticate`, `CoreAuthBackend::validateUserPass`) are all annotated
+- [x] `src/Controller/Control/ControlAuthController.php` — same as above (local variable from JSON body); `password_verify()` is a built-in
+- [x] `src/Tenant/TenantDatabaseManager.php::encryptPassword(string $plaintext)` and `::decryptPassword(string $encrypted)` annotated
+- [x] `src/Tenant/TenantProvisioner.php` — `createAdminUser($password)`, `createMySqlDatabase($dbPassword)` annotated
+- [x] `src/Service/LegacyImportService.php` — no password/secret *parameters* present (only a local `$randomPassword` generated inline); nothing to annotate
+- [x] `src/Command/SeedTestDataCommand.php` — only literal `'perf123'` in a one-off seed call; no parameter to annotate
+- [x] Auth providers — `LdapAuthenticator`, `ChainedAuthenticator`, `LdapConfig.bindPassword`, `OAuthProvider.clientSecret`, `OidcDiscovery.autoConfigureProvider` all annotated
+- [x] Token entities — `ShareToken.token`, `ShareTokenRepository` all 3 methods, `WebhookSubscription.secret`, `McpController.authenticateToken`, `OAuthController.fetchUserProfile($accessToken)`, `UnsubscribeController` (all token paths + `$appSecret`) annotated
+- [x] App-secret holders — `CoreServiceFactory.__construct($appSecret)`, `DailyAgendaService.__construct($appSecret)`, `ReminderService.__construct($appSecret)`, `TenantDatabaseManager.__construct($appSecret)`, `SecurityAuditController.__construct($appSecret)`, `UnsubscribeController.__construct($appSecret)` annotated
+- [x] Tenant DB password — `Tenant.__construct($dbPassword)` and `ProvisionResult.__construct($adminPassword)` annotated
+- [x] Repository sweep run via `bin/check-sensitive-params.php` — zero offenders
+- [x] CI guard: `bin/check-sensitive-params.php` + Makefile target + composer script + GitHub Actions step
+
+**Tests:**
+- [x] PHPUnit `SensitiveParameterRedactionTest::testEngineRedactsAnnotatedParameter` — throw from a method with `#[\SensitiveParameter]` and assert the trace frame has `SensitiveParameterValue` instead of the raw string
+- [x] Control case `testControlCaseUnannotatedParameterIsNotRedacted` — unannotated parameters appear verbatim, proving the redaction test isn't a tautology
+- [x] 23 reflection-based inventory tests assert each target parameter carries the attribute — this is the guard that catches regressions *even if* someone renames the CI script away
+- [x] CI guard self-test: dropped a deliberately-bad `TestBadRegressionSample.php` into `src/`, ran the script, got exit 1 with the expected offender; removed the file
+
+**Out of scope:** Encrypting existing log files. This story only prevents *future* disclosure.
+
+---
+
+### Story PBP-S2: Migrate password hashing to Argon2id + rehash-on-login — P0 — DONE 2026-04-15
+
+**Problem:** Three call sites hash passwords with bcrypt or `PASSWORD_DEFAULT` (which is still bcrypt in PHP 8.x):
+- `src/Tenant/TenantProvisioner.php:122` → `PASSWORD_BCRYPT`
+- `src/Service/LegacyImportService.php:200` → `PASSWORD_DEFAULT`
+- `src/Command/SeedTestDataCommand.php:172` → `PASSWORD_DEFAULT`
+
+OWASP's 2025 guidance and the project's own best-practices doc require Argon2id with `memory_cost=19456, time_cost=2, threads=1` minimum. bcrypt is still GPU-crackable; Argon2id is memory-hard and resists the same attack class.
+
+**Goal:** All new password hashes are Argon2id. Existing bcrypt hashes transparently upgrade on next successful login.
+
+**Landed (2026-04-15):**
+- `src/Security/PasswordHasher.php` — `final readonly` service pinned to OWASP-2025 Argon2id params (`memory_cost=19456, time_cost=2, threads=1`) exposed via `PasswordHasher::ARGON2ID_OPTIONS`. All three methods (`hash`, `verify`, `needsRehash`) carry `#[\SensitiveParameter]` on every secret argument.
+- `src/Security/PasswordUpgradeService.php` — best-effort rehash-on-login helper. Called *after* successful auth; checks `needsRehash()` on the stored hash and re-hashes+persists when needed. Storage failures are logged but never thrown — a flaky write never blocks a successful login.
+- Call-site migrations (direct `password_hash` calls):
+  - `src/Tenant/TenantProvisioner.php:createAdminUser` — PASSWORD_BCRYPT → `PasswordHasher::hash()`
+  - `src/Service/LegacyImportService.php:importUsers` — PASSWORD_DEFAULT → `PasswordHasher::hash()`
+  - `src/Command/SeedTestDataCommand.php:seedUsers` — PASSWORD_DEFAULT → `PasswordHasher::hash()`
+- `src/Controller/Api/AuthController.php` — after a successful `AuthService::authenticate()`, calls `PasswordUpgradeService::upgradeIfNeeded()` to migrate the hash. Preserves core's rate-limiting (core still owns `password_verify`), but pins Argon2id params on the next write.
+- `src/Controller/Control/ControlAuthController.php` — now uses `PasswordHasher::verify()` for the control-plane admin password and does its own rehash-on-success (direct `UPDATE control_admins` — that table lives in the control DB, not behind the core UserRepository).
+- Tests: `tests/Unit/Security/PasswordHasherTest.php` (8 unit tests), `tests/Integration/PasswordRehashOnLoginIntegrationTest.php` (4 integration tests covering bcrypt→argon2id upgrade, noop on pinned argon2id, core-default-argon2id→pinned, and best-effort no-op when user absent).
+- Full suite: 503 unit tests pass, PHPStan level 9 clean, Psalm unchanged from baseline, code-style clean on all touched files. Single Argon2id hash measured at ~39ms on the sandbox CPU.
+
+**Acceptance criteria:**
+- [x] `src/Security/PasswordHasher.php` (`final readonly`) wraps `password_hash` / `password_verify` / `password_needs_rehash` with pinned parameters
+- [x] `PasswordHasher::ARGON2ID_OPTIONS` constant exposes the pinned params so tests reference the same values
+- [x] Three direct-`password_hash` call sites switched
+- [x] Repository sweep — no other `password_hash` in `src/` (core's `hashPassword()` still uses PHP-default Argon2id params; `PasswordUpgradeService` rehashes those transparently on next login)
+- [x] `AuthController::login` calls `PasswordUpgradeService::upgradeIfNeeded()` post-auth. `ControlAuthController::login` uses `PasswordHasher::verify()` and rehashes directly (control admins live outside the core repository, so `PasswordUpgradeService` isn't applicable)
+- [x] Rehash failures caught + logged, never bubble
+- [x] All sensitive positions carry `#[\SensitiveParameter]` (asserted by the reflection test in `PasswordHasherTest::testHashParameterCarriesSensitiveParameterAttribute` / `testVerifyParameterCarriesSensitiveParameterAttribute`)
+- [x] PHPStan level 9 clean
+
+**Tests:**
+- [x] `PasswordHasherTest::testHashProducesArgon2idWithTargetParameters` — freshly-hashed string begins with `$argon2id$` *and* reports the pinned options via `password_get_info()`
+- [x] `PasswordHasherTest::testVerifyAcceptsArgon2idHash` / `testVerifyAcceptsLegacyBcryptHash` — both hash types verify
+- [x] `PasswordHasherTest::testNeedsRehashDetectsBcrypt` / `testNeedsRehashDetectsCoreDefaultArgon2id` / `testNeedsRehashAcceptsTargetArgon2id` — rehash detection fires on bcrypt AND on PHP-default argon2id, stays quiet on our pinned argon2id
+- [x] `PasswordRehashOnLoginIntegrationTest::testBcryptHashUpgradesToArgon2idAfterSuccessfulLogin` — seeded bcrypt row is argon2id after the upgrade call, and the upgraded hash still verifies the original password
+- [x] `PasswordRehashOnLoginIntegrationTest::testArgon2idHashWithTargetParamsIsUnchangedAfterLogin` — pinned argon2id is not rehashed
+- [x] `PasswordRehashOnLoginIntegrationTest::testCoreDefaultArgon2idIsUpgradedToPinnedParameters` — PHP-default argon2id gets rewritten to our pinned params
+- [x] `PasswordRehashOnLoginIntegrationTest::testUpgradeIsBestEffortAndSwallowsRepositoryFailures` — unknown-user path doesn't throw
+
+**Out of scope:** Forced mass rehash of all existing users. Transparent upgrade-on-login is sufficient — idle accounts keep their bcrypt hash until they log in. Tuning webcalendar-core's `UserService::hashPassword()` to the pinned params is a follow-up in the core repo (tracked outside PBP-E1); until then, core-created hashes are also handled by rehash-on-login.
+
+---
+
+### Story PBP-S3: Content-Security-Policy + Permissions-Policy + HSTS preload — P0 — DONE 2026-04-15
+
+**Problem:** `src/EventSubscriber/SecurityHeaderSubscriber.php` sets X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, and HSTS — but is missing CSP and Permissions-Policy entirely, still emits the deprecated X-XSS-Protection, and uses a weaker HSTS (`max-age=31536000` without `preload`). CSP is the single largest residual XSS mitigation the project is not using.
+
+**Goal:** Modern header set matching the guide's reference block, tuned so internal plain-HTTP deploys keep working (per user direction — CSP stays HTTP-friendly, HSTS only ships on HTTPS).
+
+**Landed (2026-04-15):**
+- `src/Security/CspNonceProvider.php` — per-request 16-byte base64url nonce, stored on the Request's `csp_nonce` attribute so the response subscriber AND any PHP-rendered HTML controller reads the same value. CLI/test contexts return empty string rather than a fake nonce.
+- `src/EventSubscriber/SecurityHeaderSubscriber.php` — full rewrite:
+  - New CSP: `default-src 'self'; script-src 'self' 'nonce-{N}' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: http: https: https://tile.openstreetmap.org; font-src 'self' data:; connect-src 'self' http: https: ws: wss:; media-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'`
+  - `connect-src` / `img-src` deliberately allow plain `http:` and `ws:` so internal non-TLS deployments keep working (per architectural review with user)
+  - `style-src 'unsafe-inline'` — deliberate trade-off; the SEO event/index pages ship hand-crafted inline CSS; dropping this would require template rewrites
+  - `unpkg.com` and `tile.openstreetmap.org` allow-listed for the Leaflet map on event detail pages (only emitted when geo coordinates are set on the event)
+  - New `Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=()`
+  - `X-XSS-Protection` explicitly *removed* (not just "not set" — we actively strip it so stale upstream middleware can't reintroduce it)
+  - HSTS upgraded to `max-age=63072000; includeSubDomains; preload`, still HTTPS-only gated on `$request->isSecure()`
+  - `Content-Security-Policy-Report-Only` header mirrors the enforced policy and adds `report-uri /api/v2/csp-report` for soft-rollout visibility
+- `src/Controller/Api/CspReportController.php` — accepts both legacy `application/csp-report` format and the newer Reporting-API batched `application/reports+json` format. Logs each violation at WARNING level via PSR-3 with a `csp` context key; URL fields are redacted of their query strings before logging so session tokens in report URLs don't leak into Monolog.
+- `src/Service/JsonLdGenerator.php` — `generateEventJsonLd()` and `generateBreadcrumbJsonLd()` accept an optional `$nonce` argument and emit `<script type="application/ld+json" nonce="…">`.
+- `src/Controller/Seo/EventPageController.php` — constructor now takes `CspNonceProvider`; nonce attribute is added to both the Leaflet `<script src=…>` tag and the inline Leaflet-init `<script>` block.
+- `src/Controller/Seo/EventIndexController.php` — constructor now takes `CspNonceProvider`; JSON-LD breadcrumb script receives the nonce.
+- Tests: `tests/Unit/EventSubscriber/SecurityHeadersTest.php` — replaced with 11 tests covering CSP directives, nonce stability, X-XSS-Protection removal, HSTS preload on HTTPS, no-HSTS on HTTP, sub-request skip, Permissions-Policy defaults, report-only header. `tests/Unit/Controller/Api/CspReportControllerTest.php` — 4 tests covering legacy-format logging, Reporting-API batched format, malformed body handling (no raw-body logging), empty body no-op.
+- Full suite: 515 unit tests pass (up from 510 before this story), PHPStan level 9 clean, Psalm unchanged from baseline (311 errors, all pre-existing), sensitive-param guard clean, code-style clean on all touched files.
+
+**Acceptance criteria:**
+- [x] `Content-Security-Policy` emitted on every main-request response (nonce-based for scripts; HTTP-friendly connect/img-src for internal deploys; allow-lists for unpkg.com + OSM tile server where the SEO map ships)
+- [x] Per-request nonce via `CspNonceProvider`, exposed on the Request as `csp_nonce` attribute — reachable from PHP-rendered HTML controllers (`EventPageController`, `EventIndexController`) and from the response subscriber without coupling them to each other
+- [x] `Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=()` shipped
+- [x] `X-XSS-Protection` actively removed from every response
+- [x] HSTS upgraded to `max-age=63072000; includeSubDomains; preload` on HTTPS; deliberately not shipped on HTTP so internal hostnames never get onto the preload list
+- [x] `Content-Security-Policy-Report-Only` header ships alongside the enforcing header with `report-uri /api/v2/csp-report`. `CspReportController` logs violations at WARNING with query-string redaction
+- [ ] Docs (`docs/SECURITY.md` / `README.md`) — deferred to a follow-up doc-updater task; the policy is self-documenting in `SecurityHeaderSubscriber.php` with inline comments explaining the HTTP-friendly and `'unsafe-inline'` trade-offs
+
+**Tests:**
+- [x] `SecurityHeadersTest::testCoreSecurityHeadersPresent` — X-Content-Type-Options, X-Frame-Options, Referrer-Policy all set
+- [x] `SecurityHeadersTest::testDeprecatedXXssProtectionIsRemoved` — header is stripped even when an upstream middleware sets it
+- [x] `SecurityHeadersTest::testContentSecurityPolicyIncludesNonce` — CSP directives present AND nonce matches the request attribute AND http:/ws: are allowed in connect-src
+- [x] `SecurityHeadersTest::testNonceIsStableAcrossMultipleSubscriberCalls` / `testNonceDiffersAcrossRequests` — the provider doesn't regenerate mid-request but always generates for a fresh request
+- [x] `SecurityHeadersTest::testPermissionsPolicyDenySensitiveFeaturesByDefault` — all five sensitive features denied
+- [x] `SecurityHeadersTest::testHstsUpgradedWithPreloadOnHttps` / `testNoHstsOnPlainHttp` — HSTS is correctly conditional
+- [x] `SecurityHeadersTest::testReportOnlyHeaderMirrorsPolicyAndPointsAtReportEndpoint`
+- [x] `SecurityHeadersTest::testSkipsSubRequests` — only main requests get headers
+- [x] `CspReportControllerTest::testLogsLegacyReportUriFormat` / `testLogsReportingApiBatchedFormat` — both violation-report formats logged, URL fields redacted
+- [x] `CspReportControllerTest::testMalformedBodyIsLoggedButDoesNotLeakRawContent` / `testEmptyBodyIsNoOp`
+- [ ] Playwright E2E against the React SPA — deferred. The React SPA is served by Vite (webcalendar-web), not by this API server; CSP on the SPA's own HTML template is a webcalendar-web story. This story only covers headers on responses originating from webcalendar-api (JSON APIs, SEO pages, unsubscribe, CalDAV).
+
+**Out of scope:** Subresource Integrity hashes for third-party CDN scripts (Leaflet already has SRI `integrity` attrs — any future CDN additions should follow suit). Dropping `'unsafe-inline'` on style-src — would require rewriting the SEO event/index templates to external stylesheets; worth its own follow-up.
+
+---
+
+### Story PBP-S4: Decompose `CoreServiceFactory` service locator — P1
+
+**Problem:** `src/Service/CoreServiceFactory.php` is 470 lines, caches ~50 nullable service/repository properties, exposes ~40 getter methods, and is injected into every controller. This is the textbook service-locator anti-pattern explicitly called out as a TRAP in the guide: it hides real dependencies, requires a full container rebuild to mock, and blinds static analysis to the dependency graph.
+
+**Goal:** Each webcalendar-core service is a first-class Symfony service, injected directly into the controllers that need it. `CoreServiceFactory` is deleted (or reduced to a pure glue file that only exists during the transition).
+
+**Acceptance criteria:**
+- [ ] Every service currently returned by a `getXxx()` method on `CoreServiceFactory` is registered in `config/services.yaml` using the existing instance as a factory:
+  ```yaml
+  WebCalendar\Core\Application\Service\EventService:
+    factory: ['@App\Service\CoreServiceFactory', 'getEventService']
+  ```
+  (the factory stays alive only long enough to keep wiring legal — its long-term fate is removal)
+- [ ] Once each service is container-registered, switch controllers one at a time: remove the `private readonly CoreServiceFactory $coreServiceFactory` constructor param, add explicit typed constructor params for the services that controller actually uses
+- [ ] Incremental migration order: `AuthController`, `ControlAuthController`, `HealthController`, `UserController`, `EventController` (last — has the most dependencies), everything else in between
+- [ ] After all controllers migrated: `CoreServiceFactory` is `@deprecated` for one release, then deleted. Any lingering references fail PHPStan.
+- [ ] `services.yaml` uses autowiring + autoconfigure for App classes; only the core-service bridge entries list explicit factories
+- [ ] PHPStan level 9 clean after each controller migration (no partial-migration red)
+
+**Tests:**
+- Existing functional test suite must stay green at every commit (migration is invisible to callers)
+- New unit tests for controllers that can now be tested with plain mock objects instead of a container rebuild. Target: reduce average controller test setup code by ≥50% (measure with `wc -l` on `tests/Functional/Controller/Api/*Test.php` before/after)
+
+**Out of scope:** Refactoring webcalendar-core's own DI. This story only changes the API layer's bridge into core.
+
+---
+
+### Story PBP-S5: Inject PSR-20 `ClockInterface` everywhere time matters — P1
+
+**Problem:** 44 instances of `new \DateTimeImmutable()` / `new \DateTimeImmutable('now')` in services and controllers. Zero uses of `Psr\Clock\ClockInterface`. Code that reads wall-clock time directly cannot be unit-tested with a frozen clock — every time-dependent test is either flaky, sleep-ridden, or conditional on "close enough" windowing. The guide calls this "unit-test radioactive" and mandates PSR-20 injection.
+
+**Goal:** All "what time is it now?" calls in business logic go through an injected `ClockInterface`. Tests inject a `MockClock`.
+
+**Acceptance criteria:**
+- [ ] `composer require symfony/clock` (provides PSR-20 `ClockInterface` and Symfony's `NativeClock` + `MockClock`)
+- [ ] `services.yaml` binds `Psr\Clock\ClockInterface` to `Symfony\Component\Clock\NativeClock` by default; in `test` env, binds to `Symfony\Component\Clock\MockClock`
+- [ ] All 44 call sites rewritten to `$this->clock->now()`. Known hot spots:
+  - `src/Service/WebhookDispatcher.php:42`
+  - `src/Service/DailyAgendaService.php:44`
+  - `src/Service/ReminderService.php:45`
+  - `src/Controller/Api/DashboardController.php:89-90`
+  - `src/Controller/Api/EventController.php:1073`
+  - `src/Entity/ShareToken.php:48` (needs to receive a clock rather than calling `new DateTimeImmutable` in a method)
+- [ ] No new `new \DateTimeImmutable('now')` in `src/` — add a PHPStan custom rule or a `grep` gate in CI: `! grep -rn "new \\\\\\?DateTimeImmutable()" src/`
+- [ ] `new \DateTimeImmutable($someNonNowString)` (e.g. parsing a user-supplied ISO date) remains legal — the ban only catches the no-arg / `'now'` case
+- [ ] PHPStan level 9 clean
+
+**Tests:**
+- At least one time-dependent test per migrated service uses `MockClock` with a frozen or advancing clock to assert exact timestamps, reminder windows, or share-token expiry. No more `assertLessThan(now + 5s)` approximations.
+
+**Out of scope:** Migrating webcalendar-core. Core stays on `DateTimeImmutable` until we're ready to propagate the same pattern there.
+
+---
+
+### Story PBP-S6: JWT token revocation / logout blacklist — P1
+
+**Problem:** `src/Controller/Api/AuthController.php:106-116` logout is a no-op with a comment that admits server-side blacklisting "can be added later." With remember-me TTLs of up to 30 days, a stolen JWT stays valid for a month — and admins with `ROLE_ADMIN` have broad blast radius. Every sensitive-action window in the product is effectively 30 days wide today.
+
+**Goal:** Logout, password change, and administrative force-logout all invalidate the token immediately. A revoked token fails auth on the very next request.
+
+**Acceptance criteria:**
+- [ ] New `src/Security/TokenBlacklist.php` backed by Redis when `REDIS_URL` is set (reuse the existing Redis wiring from the rate limiter work), falling back to a `webcal_jwt_blacklist` MySQL table otherwise. Key: token `jti` claim. Value: any (presence = revoked). TTL: the token's remaining lifetime, so the blacklist auto-purges.
+- [ ] JWT issuance adds a `jti` (UUIDv7 or v4) and `typ` claim if not present
+- [ ] JWT authentication middleware checks `TokenBlacklist::isRevoked($jti)` after signature verification; revoked → 401
+- [ ] `POST /api/v2/auth/logout` extracts `jti` and remaining TTL from the current token, calls `TokenBlacklist::revoke($jti, $ttl)`, returns 204
+- [ ] `POST /api/v2/auth/logout-all` (authenticated) revokes every outstanding token for the current user. Requires maintaining a `user_id → [jti…]` index in Redis (sorted set keyed by expiry) or the MySQL table
+- [ ] Password change implicitly calls `logout-all`
+- [ ] Admin endpoint `POST /api/v2/admin/users/{login}/force-logout` (ROLE_ADMIN) revokes all of that user's tokens
+- [ ] Remember-me refresh tokens also get a `jti` and participate in the blacklist
+- [ ] Activity log entry on every revocation: `type=EXTRA, action='auth.logout'|'auth.logout_all'|'auth.force_logout'`
+
+**Tests:**
+- Integration: login → logout → reuse the same token → 401 with `error: 'token_revoked'`
+- Integration: logout-all invalidates a second session for the same user
+- Integration: password change revokes existing tokens
+- Integration: admin force-logout invalidates the target user's tokens but leaves the admin's own token alive
+- Performance: blacklist check adds <2ms p99 latency to authed requests (micro-benchmark on Redis)
+
+**Out of scope:** Device-level session management UI ("log me out of this phone"). Data model supports it; UI is a separate product story.
+
+---
+
+### Story PBP-S7: Bump PHP baseline to 8.3 and PHPUnit to ^12 — P1
+
+**Problem:** `composer.json` declares `"php": ">=8.2"`. PHP 8.2 entered security-only support on 2024-12-08 and is EOL 2026-12-31. The codebase already uses PHP 8.3 features (`#[\Override]`), so the `>=8.2` constraint is nominal. PHPUnit is pinned to `^10.5`; PHPUnit 12 (Feb 2025) is the current standard and requires PHP 8.3+.
+
+**Goal:** Run on modern supported PHP and modern PHPUnit.
+
+**Acceptance criteria:**
+- [ ] `composer.json` `"php": ">=8.3"` (leave the door open to `>=8.4` as a follow-up once property hooks/asymmetric visibility are ready to use)
+- [ ] Docker images bumped from `php:8.2-fpm-alpine` → `php:8.3-fpm-alpine` in `Dockerfile` + `docker-compose*.yml`
+- [ ] CI matrix updated: test against 8.3 (and optionally 8.4 as allowed-to-fail)
+- [ ] `phpunit/phpunit` → `^12.0`
+- [ ] Migrate all test annotations to attributes: `@test` → `#[Test]`, `@dataProvider` → `#[DataProvider]`, `@covers` → `#[CoversClass]`, `@group` → `#[Group]`. Rector recipe `@PHPUnit100` can do most of this automatically.
+- [ ] `phpunit.xml.dist` updated for PHPUnit 12 schema (dataset deprecations, new coverage element)
+- [ ] PHPStan bumped to latest compatible major if needed
+- [ ] Docs (`README.md`, `CONTRIBUTING.md` if any, `CLAUDE.md`) updated with new minimum versions
+
+**Tests:**
+- The existing test suite passes on the new PHP and PHPUnit versions
+- CI actually runs on the bumped image (verified by asserting a PHP 8.3+ feature works inside a test, e.g., `json_validate()`)
+
+**Out of scope:** Adopting 8.4-specific features. Story PBP-S7.1 (future) for property hooks + asymmetric visibility once baseline is `>=8.4`.
+
+---
+
+### Story PBP-S8: `composer audit` CI gate + `platform-check` + `classmap-authoritative` — P1
+
+**Problem:** No `composer audit` runs in CI or composer scripts — a known-vulnerable dependency can land and ship silently. `composer.json` config is missing `platform-check: true` (no startup validation of PHP/extension versions) and `classmap-authoritative: true` (autoloader touches the filesystem at runtime in production).
+
+**Goal:** Supply-chain and runtime hygiene.
+
+**Acceptance criteria:**
+- [ ] `composer.json` scripts:
+  ```json
+  "scripts": {
+      "lint": "php-cs-fixer fix --dry-run --diff",
+      "stan": "phpstan analyse --memory-limit=512M",
+      "test": "phpunit --colors=always",
+      "audit": "composer audit",
+      "check": ["@lint", "@stan", "@test", "@audit"]
+  }
+  ```
+- [ ] `composer.json` config adds:
+  ```json
+  "platform-check": true,
+  "classmap-authoritative": true
+  ```
+- [ ] `.github/workflows/ci.yml` (or equivalent) runs `composer audit` as a required check. Any advisory at severity ≥ medium fails the build; severity < medium posts a comment but doesn't fail.
+- [ ] Dockerfile's `composer install` uses `--optimize-autoloader --classmap-authoritative --no-dev` for prod images (matches the config setting)
+- [ ] Runbook snippet in `docs/` or `README.md` explaining how to triage a `composer audit` failure
+
+**Tests:**
+- Intentionally pin a known-vulnerable package version in a throwaway branch, run CI, assert the audit step fails. Revert before merge.
+
+**Out of scope:** JS/npm audit — separate story for the webcalendar-web side.
+
+---
+
+### Story PBP-S9: PER-CS 3.0 coding standard (drop PSR-12, drop php_codesniffer) — P2 (blocked by PBP-S7)
+
+**Problem:** `.php-cs-fixer.dist.php:13` uses `@PSR12` — PSR-12 was formally replaced by PER Coding Style 3.0 in 2023. Also, both `friendsofphp/php-cs-fixer` and `squizlabs/php_codesniffer` are in dev deps, creating dueling formatters.
+
+**Goal:** One formatter, one standard, aligned with current PHP-FIG guidance.
+
+**Acceptance criteria:**
+- [ ] Replace `'@PSR12' => true` with `'@PER-CS3.0' => true` and add `'@PHP83Migration' => true` (or `@PHP84Migration` once PBP-S7's follow-up lands)
+- [ ] Remove `squizlabs/php_codesniffer` from `composer.json` require-dev and delete `phpcs.xml*` if present
+- [ ] Run `php-cs-fixer fix` once on the whole tree to pick up any PER-CS 3.0 deltas; land that as a single "style-only" commit separate from any behavioral change
+- [ ] CI lint step unchanged name-wise but now runs under PER-CS 3.0
+- [ ] Update `CLAUDE.md` / `CONTRIBUTING.md` with the new standard name
+
+**Tests:**
+- `composer lint` runs clean on the final tree
+- CI lint job passes
+
+**Out of scope:** Bikeshedding individual rule overrides; match whatever the `@PER-CS3.0` preset ships with for now.
+
+---
+
+### Story PBP-S10: Tenant status & plan → backed enums — P2
+
+**Problem:** `src/Tenant/Tenant.php` stores `status` and `plan` as strings with a `VALID_STATUSES` const array and string comparisons like `$this->status === 'active'`. The guide says "replace every 'string status' column with a backed enum at the domain layer."
+
+**Goal:** Type-safe tenant status & plan.
+
+**Acceptance criteria:**
+- [ ] New `src/Tenant/TenantStatus.php`:
+  ```php
+  enum TenantStatus: string {
+      case Active = 'active';
+      case Suspended = 'suspended';
+      case Pending = 'pending';
+  }
+  ```
+- [ ] New `src/Tenant/TenantPlan.php`:
+  ```php
+  enum TenantPlan: string {
+      case Free = 'free';
+      case Pro = 'pro';
+      case Enterprise = 'enterprise';
+  }
+  ```
+- [ ] `Tenant` constructor accepts `TenantStatus` and `TenantPlan`, not `string`. Static factory `Tenant::fromRow(array $row)` handles the string→enum conversion at the DB boundary.
+- [ ] `isActive()` becomes `$this->status === TenantStatus::Active`
+- [ ] All consumers (`TenantResolver`, `TenantDatabaseManager`, admin endpoints, fixtures) updated
+- [ ] Schema is unchanged — enums are purely a domain-layer type
+
+**Tests:**
+- `TenantTest` asserts construction with each enum value; asserts `fromRow` with an unknown status string throws `DomainException`
+- Integration: existing tenant tests unchanged in behavior
+
+**Out of scope:** Expanding the plan set or changing status semantics. This is a type-system refactor only.
+
+---
+
+### Story PBP-S11: Redis-backed rate limiter with file fallback — P2
+
+**Problem:** `src/Tenant/TenantRateLimiter.php` stores counters in `%kernel.cache_dir%` via fopen/flock. The file itself acknowledges "In production, this should be backed by Redis." File-based storage breaks in multi-node deploys and bottlenecks under contention.
+
+**Goal:** Production-grade rate limiting.
+
+**Acceptance criteria:**
+- [ ] `TenantRateLimiterInterface` extracted so storage backends are swappable
+- [ ] `RedisTenantRateLimiter` implementation using Symfony's `RateLimiter\Storage\CacheStorage` with a Redis adapter (`predis/predis` or `phpredis` extension — pick one, document the choice)
+- [ ] Existing file-based `TenantRateLimiter` renamed to `FileTenantRateLimiter`, kept for dev
+- [ ] `services.yaml` selects the Redis implementation when `REDIS_URL` env var is set, file-based otherwise — a single `TenantRateLimiterInterface` alias that consumers depend on
+- [ ] Docker-compose dev stack already runs Redis; ensure the API container reads `REDIS_URL` and points at it
+- [ ] Metrics: each rate-limit hit publishes to the existing `ErrorMetricsService` or a new `RateLimitMetricsService` so dashboards can see reject rates per tenant
+
+**Tests:**
+- Integration: Redis-backed limiter exhausts quota at the configured N, `resetAfter()` reports the correct TTL
+- Integration: file-based limiter still passes the same contract (shared test suite against the interface)
+- Integration: two simulated "nodes" (two PDO connections in-process) sharing Redis see the same counter — this is the bug the file-based version hides
+
+**Out of scope:** Per-endpoint rate limits (currently per-tenant). Separate story if product wants it.
+
+---
+
+### Story PBP-S12: Adopt `doctrine/migrations` for API schema changes — P2
+
+**Problem:** `webcalendar-api/migrations/` contains raw SQL files (`003_performance_optimization.sql`, `004_add_cal_image.sql`). No version tracking table, no rollback support, no up/down parity, no generation from entity/schema diff. The guide says "no manual ALTER TABLE in production; choose one migration framework and stick with it."
+
+**Goal:** All API-layer schema changes flow through a versioned migration framework. Webcalendar-core's own schema stays untouched (it's a legacy init script by policy).
+
+**Acceptance criteria:**
+- [ ] `composer require doctrine/migrations` (symfony integration: `doctrine/doctrine-migrations-bundle`)
+- [ ] `migrations.yaml` configured with a separate namespace and storage table (`api_doctrine_migration_versions`) so it never collides with anything webcalendar-core writes
+- [ ] Existing raw SQL files ported into versioned migration classes (`Version20260415000000.php` etc.) with proper up()/down() methods
+- [ ] New `bin/console doctrine:migrations:migrate` runs in the Docker entrypoint on API container startup (guarded by an env flag for prod so ops can control timing)
+- [ ] `webcalendar-api/migrations/*.sql` directory deprecated with a README pointing to the new path
+- [ ] Docs updated: how to generate a migration, how to roll back, prod deploy runbook entry
+
+**Tests:**
+- Integration test that spins up a fresh DB, runs `doctrine:migrations:migrate` end-to-end, asserts the schema matches the expected final state
+- Rollback test: migrate up → migrate down → assert schema matches pre-migration snapshot
+
+**Out of scope:** Migrating webcalendar-core's schema management; it remains the init-script model by design.
+
+---
+
+### Story PBP-S13: PDO & health-check hygiene — P3
+
+**Problem:** A cluster of small PDO-layer issues:
+1. `src/Service/PdoFactory.php` omits `PDO::ATTR_STRINGIFY_FETCHES => false` — integers/floats come back as strings and quietly widen API response types
+2. `src/Service/SearchIndexService.php:105-112` interpolates `LIMIT {$limitInt} OFFSET {$offsetInt}` as the only non-parameterized SQL in the codebase (values are cast to int first so it's not injectable, but it's inconsistent with every other query)
+3. `src/Controller/Api/HealthController.php:31` uses `$pdo->query('SELECT 1')` with no timeout — if the DB is slow but not down, `/health` hangs forever and kills rolling deploys
+
+**Goal:** Minor PDO-layer cleanups.
+
+**Acceptance criteria:**
+- [ ] `PdoFactory` PDO options include `\PDO::ATTR_STRINGIFY_FETCHES => false`
+- [ ] Any tests that now break because a column comes back as `int` instead of `"int"` are fixed (this is the intended behavior change — the test was asserting the bug)
+- [ ] `SearchIndexService` LIMIT/OFFSET switches to `:limit` and `:offset` bound as `PDO::PARAM_INT` (or documents with a comment why casting stays if MySQL's emulation setting forces the issue)
+- [ ] `HealthController` uses a short-lived connection or `SET SESSION MAX_EXECUTION_TIME=100` scope guard so a slow DB returns 503 within 100ms instead of hanging. Prefer a separate connection created with `PDO::ATTR_TIMEOUT` set low.
+- [ ] Readiness endpoint (`/ready`) separated from liveness (`/health`): liveness is just "PHP process alive", readiness runs the DB ping. K8s-idiomatic.
+
+**Tests:**
+- Unit/integration: assert an int column comes back as `int` post-change
+- Integration: `SearchIndexService` paging still works end-to-end
+- Integration: simulate a slow DB (sleep in a query) and assert `/health` returns 503 within the configured budget instead of timing out the test
+
+**Out of scope:** Full observability overhaul; just these three.
+
+---
+
+### Story PBP-S14: Controller DI cleanup — P3 (blocked by PBP-S4)
+
+**Problem:** Leftover DI smells once the service-locator refactor (PBP-S4) lands:
+1. `src/Service/EmailService.php:15` is the sole non-`final` class in `src/`
+2. `src/Controller/Api/EventController.php:42-48` constructs dependencies inline:
+   ```php
+   $this->geoRepository = new GeoRepository($pdo);
+   $this->extParticipants = new ExtParticipantRepository($pdo);
+   private readonly DescriptionSanitizer $descriptionSanitizer = new DescriptionSanitizer(),
+   ```
+3. 15+ controllers take `\PDO $pdo` directly (see `config/services.yaml`). Controllers should depend on repositories/services, not the raw persistence handle.
+
+**Goal:** Every controller has an explicit, narrow constructor signature with domain-level types.
+
+**Acceptance criteria:**
+- [ ] `EmailService` marked `final`
+- [ ] `GeoRepository`, `ExtParticipantRepository`, `ExtParticipantValidator`, `DescriptionSanitizer`, `ConflictDetectionService` registered in `services.yaml` and injected into `EventController` via constructor
+- [ ] Sweep every controller: if `\PDO $pdo` is in the constructor and only used to hand-construct a repository, replace with the repository
+- [ ] If `\PDO` is used for ad-hoc queries, extract a repository first, then inject it
+- [ ] `services.yaml` no longer has explicit `$pdo: '@pdo.connection'` bindings to controllers (only to repositories)
+- [ ] PHPStan level 9 clean
+
+**Tests:**
+- Functional test suite stays green throughout the migration
+- New unit tests for the extracted repositories (they now have a clean surface to test against)
+
+**Out of scope:** Changing webcalendar-core repositories. Only the API layer.
+
+---
+
+### Story PBP-S15: Split `EventController` (1143 lines) into single-action invokables — P3 (blocked by PBP-S14)
+
+**Problem:** `src/Controller/Api/EventController.php` is 1143 lines across 7 route methods. The guide's threshold is 100 lines per controller. The individual methods delegate to services reasonably, but the class itself crams create/update/delete/list/get/duplicate/bulk into one file and one constructor dependency list.
+
+**Goal:** Action-Domain-Responder pattern — one invokable controller per route.
+
+**Acceptance criteria:**
+- [ ] New directory `src/Controller/Api/Event/` with one class per action:
+  - `CreateEventController` (`__invoke` = `POST /api/v2/events`)
+  - `UpdateEventController` (`__invoke` = `PUT /api/v2/events/{id}`)
+  - `DeleteEventController`
+  - `GetEventController`
+  - `ListEventsController`
+  - `DuplicateEventController`
+  - `BulkEventController`
+- [ ] Each controller has only the dependencies it actually uses (some need the sanitizer, some don't; some need the conflict service, some don't)
+- [ ] Shared logic (request parsing, response shaping) extracted into a small service (`EventRequestMapper`, `EventResponseFormatter`)
+- [ ] Route names preserved so existing tests don't care about the class-level split
+- [ ] Original `EventController` deleted after all actions migrated
+- [ ] PHPStan level 9 clean
+
+**Tests:**
+- All existing `EventControllerTest` cases remigrated to per-action test classes; assertions unchanged
+- PHP metrics check: every file in `src/Controller/Api/Event/` is under 200 lines
+
+**Out of scope:** Other fat controllers in the codebase — if this pattern works, file follow-up stories for them individually.
 
 ---
 

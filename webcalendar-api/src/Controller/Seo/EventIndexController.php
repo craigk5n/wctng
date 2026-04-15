@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Seo;
 
+use App\Security\CspNonceProvider;
 use App\Service\CoreServiceFactory;
 use App\Service\CustomHtmlProvider;
 use App\Service\SeoEligibilityService;
@@ -24,6 +25,7 @@ final class EventIndexController
 
     public function __construct(
         private readonly CoreServiceFactory $factory,
+        private readonly ?CspNonceProvider $nonceProvider = null,
     ) {
         $this->seoService = new SeoEligibilityService($factory);
     }
@@ -133,8 +135,9 @@ ITEM;
         $metaDesc = htmlspecialchars("{$displayName}'s {$pageTitle} — {$total} events", \ENT_QUOTES, 'UTF-8');
 
         // JSON-LD breadcrumb
+        $nonce = $this->nonceProvider?->getNonce() ?? '';
         $jsonLd = new \App\Service\JsonLdGenerator();
-        $breadcrumbBlock = $seoStatus['noindex'] ? '' : $jsonLd->generateBreadcrumbJsonLd($username, $displayName, $canonical);
+        $breadcrumbBlock = $seoStatus['noindex'] ? '' : $jsonLd->generateBreadcrumbJsonLd($username, $displayName, $canonical, null, $nonce);
 
         // og:image from admin config
         $ogImageUrl = $this->factory->getConfigService()->getSetting('SEO_OG_IMAGE_URL', '') ?? '';

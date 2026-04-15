@@ -15,16 +15,17 @@ final class JsonLdGenerator
     /**
      * Generates a JSON-LD script block for an event.
      *
-     * @param array{lat: float, lon: float}|null $geo Optional geo coordinates
+     * @param array{lat: float, lon: float}|null $geo   Optional geo coordinates
+     * @param string                             $nonce Optional CSP nonce; when set, emitted as the script's `nonce` attribute
      *
      * @return string JSON-LD <script> tag ready for HTML insertion
      */
-    public function generateEventJsonLd(Event $event, User $user, string $canonicalUrl = '', ?array $geo = null): string
+    public function generateEventJsonLd(Event $event, User $user, string $canonicalUrl = '', ?array $geo = null, string $nonce = ''): string
     {
         $data = $this->buildEventData($event, $user, $canonicalUrl, $geo);
         $json = json_encode($data, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE | \JSON_THROW_ON_ERROR);
 
-        return '<script type="application/ld+json">' . $json . '</script>';
+        return $this->wrapScript($json, $nonce);
     }
 
     /**
@@ -79,12 +80,19 @@ final class JsonLdGenerator
      *
      * @param string      $eventName Optional event name for detail page breadcrumb (3rd level)
      */
-    public function generateBreadcrumbJsonLd(string $username, string $displayName, string $canonicalUrl, ?string $eventName = null): string
+    public function generateBreadcrumbJsonLd(string $username, string $displayName, string $canonicalUrl, ?string $eventName = null, string $nonce = ''): string
     {
         $data = $this->buildBreadcrumbData($username, $displayName, $canonicalUrl, $eventName);
         $json = json_encode($data, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE | \JSON_THROW_ON_ERROR);
 
-        return '<script type="application/ld+json">' . $json . '</script>';
+        return $this->wrapScript($json, $nonce);
+    }
+
+    private function wrapScript(string $json, string $nonce): string
+    {
+        $nonceAttr = $nonce !== '' ? ' nonce="' . htmlspecialchars($nonce, \ENT_QUOTES, 'UTF-8') . '"' : '';
+
+        return '<script type="application/ld+json"' . $nonceAttr . '>' . $json . '</script>';
     }
 
     /**

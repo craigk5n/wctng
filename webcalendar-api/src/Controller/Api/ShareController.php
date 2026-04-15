@@ -85,7 +85,7 @@ final class ShareController
 
     #[Route('/api/v2/calendars/share/{token}', name: 'api_share_delete', methods: ['DELETE'])]
     public function deleteShareToken(
-        string $token,
+        #[\SensitiveParameter] string $token,
         Request $request,
         #[CurrentUser] WebCalendarUser|User|null $actorOrUser = null,
     ): Response {
@@ -103,7 +103,7 @@ final class ShareController
     }
 
     #[Route('/api/v2/public/shared/{token}/events', name: 'api_shared_events', methods: ['GET'])]
-    public function sharedEvents(string $token, Request $request): JsonResponse
+    public function sharedEvents(#[\SensitiveParameter] string $token, Request $request): JsonResponse
     {
         $shareToken = $this->tokenRepo->findByToken($token);
         if ($shareToken === null) {

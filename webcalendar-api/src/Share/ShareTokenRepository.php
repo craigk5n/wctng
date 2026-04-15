@@ -52,7 +52,7 @@ final readonly class ShareTokenRepository
         return $items;
     }
 
-    public function findByToken(string $token): ?ShareToken
+    public function findByToken(#[\SensitiveParameter] string $token): ?ShareToken
     {
         $this->ensureTable();
         $stmt = $this->pdo->prepare('SELECT * FROM share_tokens WHERE token = :token');
@@ -67,7 +67,7 @@ final readonly class ShareTokenRepository
         return $this->mapRow($row);
     }
 
-    public function create(string $token, string $ownerLogin, ?string $expiresAt): ShareToken
+    public function create(#[\SensitiveParameter] string $token, string $ownerLogin, ?string $expiresAt): ShareToken
     {
         $this->ensureTable();
 
@@ -85,7 +85,7 @@ final readonly class ShareTokenRepository
         return $created;
     }
 
-    public function delete(string $token, string $ownerLogin): bool
+    public function delete(#[\SensitiveParameter] string $token, string $ownerLogin): bool
     {
         $this->ensureTable();
         $stmt = $this->pdo->prepare('DELETE FROM share_tokens WHERE token = :token AND owner_login = :login');

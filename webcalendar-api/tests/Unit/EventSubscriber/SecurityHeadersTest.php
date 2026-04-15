@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Tests\Unit\EventSubscriber;
 
 use App\EventSubscriber\SecurityHeaderSubscriber;
+use App\Security\CspNonceProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
@@ -14,35 +16,213 @@ use Symfony\Component\HttpKernel\KernelInterface;
 
 final class SecurityHeadersTest extends TestCase
 {
-    public function testAddsSecurityHeaders(): void
+    private function buildEvent(Request $request, Response $response): ResponseEvent
     {
-        $subscriber = new SecurityHeaderSubscriber();
-
-        $request = Request::create('/api/v2/events');
-        $response = new Response();
         $kernel = $this->createMock(KernelInterface::class);
-        $event = new ResponseEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST, $response);
+        return new ResponseEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST, $response);
+    }
 
-        $subscriber->onResponse($event);
+    private function subscriber(RequestStack $stack): SecurityHeaderSubscriber
+    {
+        return new SecurityHeaderSubscriber(new CspNonceProvider($stack));
+    }
+
+    public function testCoreSecurityHeadersPresent(): void
+    {
+        $request = Request::create('/api/v2/events');
+        $stack = new RequestStack();
+        $stack->push($request);
+        $response = new Response();
+
+        $this->subscriber($stack)->onResponse($this->buildEvent($request, $response));
 
         $this->assertSame('nosniff', $response->headers->get('X-Content-Type-Options'));
         $this->assertSame('DENY', $response->headers->get('X-Frame-Options'));
-        $this->assertSame('1; mode=block', $response->headers->get('X-XSS-Protection'));
         $this->assertSame('strict-origin-when-cross-origin', $response->headers->get('Referrer-Policy'));
     }
 
-    public function testNoHstsOnHttp(): void
+    public function testDeprecatedXXssProtectionIsRemoved(): void
     {
-        $subscriber = new SecurityHeaderSubscriber();
+        $request = Request::create('/api/v2/events');
+        $stack = new RequestStack();
+        $stack->push($request);
+        $response = new Response();
+        $response->headers->set('X-XSS-Protection', '1; mode=block'); // simulate a stale upstream setter
 
+        $this->subscriber($stack)->onResponse($this->buildEvent($request, $response));
+
+        $this->assertFalse(
+            $response->headers->has('X-XSS-Protection'),
+            'X-XSS-Protection is deprecated and must not be emitted'
+        );
+    }
+
+    public function testContentSecurityPolicyIncludesNonce(): void
+    {
+        $request = Request::create('/api/v2/events');
+        $stack = new RequestStack();
+        $stack->push($request);
+        $response = new Response();
+
+        $this->subscriber($stack)->onResponse($this->buildEvent($request, $response));
+
+        $csp = $response->headers->get('Content-Security-Policy');
+        $this->assertNotNull($csp);
+
+        // Core directives
+        $this->assertStringContainsString("default-src 'self'", $csp);
+        $this->assertStringContainsString("object-src 'none'", $csp);
+        $this->assertStringContainsString("base-uri 'none'", $csp);
+        $this->assertStringContainsString("frame-ancestors 'none'", $csp);
+        $this->assertStringContainsString("form-action 'self'", $csp);
+
+        // Nonce in script-src, matching the request attribute
+        $nonce = $request->attributes->get('csp_nonce');
+        $this->assertIsString($nonce);
+        $this->assertNotSame('', $nonce);
+        $this->assertMatchesRegularExpression(
+            "/script-src [^;]*'nonce-" . preg_quote($nonce, '/') . "'/",
+            $csp,
+            'script-src must include the request nonce'
+        );
+
+        // HTTP-friendly connect-src (internal deployments run on plain HTTP)
+        $this->assertMatchesRegularExpression(
+            '/connect-src [^;]*(?<![a-z])http:/',
+            $csp,
+            'connect-src must allow http: so internal HTTP deploys keep working'
+        );
+        $this->assertMatchesRegularExpression(
+            '/connect-src [^;]*(?<![a-z])ws:/',
+            $csp,
+            'connect-src must allow ws: for Mercure / websocket clients on HTTP'
+        );
+    }
+
+    public function testNonceIsStableAcrossMultipleSubscriberCalls(): void
+    {
+        $request = Request::create('/api/v2/events');
+        $stack = new RequestStack();
+        $stack->push($request);
+
+        $provider = new CspNonceProvider($stack);
+        $first = $provider->getNonce();
+        $second = $provider->getNonce();
+
+        $this->assertSame($first, $second, 'nonce must be stable within a single request');
+        $this->assertSame(
+            $first,
+            $request->attributes->get('csp_nonce'),
+            'nonce must be exposed on the request for controllers to inline'
+        );
+    }
+
+    public function testNonceDiffersAcrossRequests(): void
+    {
+        $stack = new RequestStack();
+        $provider = new CspNonceProvider($stack);
+
+        $r1 = Request::create('/a');
+        $stack->push($r1);
+        $n1 = $provider->getNonce();
+        $stack->pop();
+
+        $r2 = Request::create('/b');
+        $stack->push($r2);
+        $n2 = $provider->getNonce();
+
+        $this->assertNotSame($n1, $n2, 'fresh requests must get fresh nonces');
+    }
+
+    public function testReportOnlyHeaderMirrorsPolicyAndPointsAtReportEndpoint(): void
+    {
+        $request = Request::create('/api/v2/events');
+        $stack = new RequestStack();
+        $stack->push($request);
+        $response = new Response();
+
+        $this->subscriber($stack)->onResponse($this->buildEvent($request, $response));
+
+        $enforced = $response->headers->get('Content-Security-Policy');
+        $reportOnly = $response->headers->get('Content-Security-Policy-Report-Only');
+
+        $this->assertNotNull($reportOnly);
+        $this->assertNotNull($enforced);
+        $this->assertNotSame('', $enforced);
+        $this->assertStringContainsString('report-uri /api/v2/csp-report', $reportOnly);
+        // cast keeps Psalm happy — we've already asserted non-empty above
+        /** @var non-empty-string $enforcedPrefix */
+        $enforcedPrefix = $enforced;
+        $this->assertStringStartsWith($enforcedPrefix, $reportOnly, 'report-only policy must mirror the enforced policy');
+    }
+
+    public function testPermissionsPolicyDenySensitiveFeaturesByDefault(): void
+    {
+        $request = Request::create('/api/v2/events');
+        $stack = new RequestStack();
+        $stack->push($request);
+        $response = new Response();
+
+        $this->subscriber($stack)->onResponse($this->buildEvent($request, $response));
+
+        $pp = $response->headers->get('Permissions-Policy');
+        $this->assertNotNull($pp);
+
+        foreach (['geolocation', 'microphone', 'camera', 'payment', 'usb'] as $feature) {
+            $this->assertMatchesRegularExpression(
+                "/\\b{$feature}=\\(\\)/",
+                $pp,
+                "{$feature} must be denied by default in Permissions-Policy"
+            );
+        }
+    }
+
+    public function testHstsUpgradedWithPreloadOnHttps(): void
+    {
+        $request = Request::create('https://example.com/api/v2/events');
+        $stack = new RequestStack();
+        $stack->push($request);
+        $response = new Response();
+
+        $this->subscriber($stack)->onResponse($this->buildEvent($request, $response));
+
+        $hsts = $response->headers->get('Strict-Transport-Security');
+        $this->assertNotNull($hsts);
+        $this->assertStringContainsString('max-age=63072000', $hsts, 'HSTS must use 2-year max-age');
+        $this->assertStringContainsString('includeSubDomains', $hsts);
+        $this->assertStringContainsString('preload', $hsts);
+    }
+
+    public function testNoHstsOnPlainHttp(): void
+    {
         $request = Request::create('http://localhost/api/v2/events');
+        $stack = new RequestStack();
+        $stack->push($request);
+        $response = new Response();
+
+        $this->subscriber($stack)->onResponse($this->buildEvent($request, $response));
+
+        $this->assertFalse(
+            $response->headers->has('Strict-Transport-Security'),
+            'HSTS must not be emitted on HTTP — preload would poison the hostname forever'
+        );
+    }
+
+    public function testSkipsSubRequests(): void
+    {
+        $request = Request::create('/api/v2/events');
+        $stack = new RequestStack();
+        $stack->push($request);
         $response = new Response();
         $kernel = $this->createMock(KernelInterface::class);
-        $event = new ResponseEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST, $response);
+        $event = new ResponseEvent($kernel, $request, HttpKernelInterface::SUB_REQUEST, $response);
 
-        $subscriber->onResponse($event);
+        $this->subscriber($stack)->onResponse($event);
 
-        $this->assertNull($response->headers->get('Strict-Transport-Security'));
+        $this->assertFalse(
+            $response->headers->has('Content-Security-Policy'),
+            'sub-requests (ESI, fragments) must not re-set headers'
+        );
     }
 
     public function testSubscribesToResponseEvent(): void

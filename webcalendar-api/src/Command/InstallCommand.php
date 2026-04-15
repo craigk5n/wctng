@@ -150,7 +150,7 @@ final class InstallCommand extends Command
         return $coreDir . '/Infrastructure/Persistence/' . $fileName;
     }
 
-    private function ensureAdminUser(SymfonyStyle $io, string $password): void
+    private function ensureAdminUser(SymfonyStyle $io, #[\SensitiveParameter] string $password): void
     {
         $userService = $this->coreServiceFactory->getUserService();
         $existing = $userService->getUserByLogin(self::DEFAULT_ADMIN_LOGIN);

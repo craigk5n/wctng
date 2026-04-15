@@ -1,4 +1,4 @@
-.PHONY: test test-unit test-integration phpstan psalm cs-fix cs-check coverage ci
+.PHONY: test test-unit test-integration phpstan psalm cs-fix cs-check coverage ci check-sensitive-params
 
 ## Run PHPUnit tests
 test:
@@ -32,8 +32,12 @@ cs-check:
 coverage:
 	XDEBUG_MODE=coverage ./vendor/bin/phpunit --coverage-text --coverage-html=var/coverage
 
+## Guard: every $password/$token/$secret/etc param must carry #[\SensitiveParameter]
+check-sensitive-params:
+	php bin/check-sensitive-params.php
+
 ## Run all CI checks
-ci: cs-check phpstan psalm test
+ci: cs-check check-sensitive-params phpstan psalm test
 
 ## Show help
 help:

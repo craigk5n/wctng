@@ -289,7 +289,7 @@ final class McpController
         return $this->jsonRpcResult($id, ['date' => $dateStr, 'user' => $targetLogin, 'available_slots' => array_values($available)]);
     }
 
-    private function authenticateToken(?string $token): ?User
+    private function authenticateToken(#[\SensitiveParameter] ?string $token): ?User
     {
         if ($token === null || $token === '') {
             return null;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Security\PasswordHasher;
 use App\Service\CoreServiceFactory;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -50,6 +51,7 @@ final class SeedTestDataCommand extends Command
 
     public function __construct(
         private readonly CoreServiceFactory $factory,
+        private readonly PasswordHasher $passwordHasher = new PasswordHasher(),
     ) {
         parent::__construct();
     }
@@ -169,7 +171,7 @@ final class SeedTestDataCommand extends Command
             try {
                 $user = new User($login, $first, $last, $email, $isAdmin, true);
                 $userService->createUser($user, $admin);
-                $userRepo->setPassword($login, password_hash('perf123', \PASSWORD_DEFAULT));
+                $userRepo->setPassword($login, $this->passwordHasher->hash('perf123'));
                 $logins[] = $login;
             } catch (\Throwable) {
                 // User may already exist

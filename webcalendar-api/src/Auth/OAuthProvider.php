@@ -14,6 +14,7 @@ final readonly class OAuthProvider
         private string $name,
         private string $type, // 'oauth2' or 'oidc'
         private string $clientId,
+        #[\SensitiveParameter]
         private string $clientSecret,
         private string $authUrl,
         private string $tokenUrl,

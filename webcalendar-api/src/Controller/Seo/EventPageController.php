@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Seo;
 
+use App\Security\CspNonceProvider;
 use App\Service\CoreServiceFactory;
 use App\Service\CustomHtmlProvider;
 use App\Service\DescriptionSanitizer;
@@ -24,15 +25,18 @@ final class EventPageController
     private readonly DescriptionSanitizer $sanitizer;
     private readonly JsonLdGenerator $jsonLd;
     private readonly ?GeoRepository $geoRepo;
+    private readonly ?CspNonceProvider $nonceProvider;
 
     public function __construct(
         private readonly CoreServiceFactory $factory,
         ?GeoRepository $geoRepo = null,
+        ?CspNonceProvider $nonceProvider = null,
     ) {
         $this->seoService = new SeoEligibilityService($factory);
         $this->sanitizer = new DescriptionSanitizer();
         $this->jsonLd = new JsonLdGenerator();
         $this->geoRepo = $geoRepo;
+        $this->nonceProvider = $nonceProvider;
     }
 
     #[Route('/public/{username}/event/{id}', name: 'seo_event_detail', methods: ['GET'], requirements: ['id' => '\d+'])]
@@ -82,6 +86,10 @@ final class EventPageController
         $descriptionHtml = $description !== '' ? "<div class=\"description\">{$description}</div>" : '';
         $locationHtml = $location !== '' ? "<p class=\"meta\">📍 {$location}</p>" : '';
 
+        // CSP nonce for inline scripts on this page
+        $nonce = $this->nonceProvider?->getNonce() ?? '';
+        $nonceAttr = $nonce !== '' ? ' nonce="' . htmlspecialchars($nonce, \ENT_QUOTES, 'UTF-8') . '"' : '';
+
         // Load geo coordinates
         $geo = $this->geoRepo?->getCoordinates($id);
         $mapHtml = '';
@@ -92,13 +100,13 @@ final class EventPageController
             $lon = $geo['lon'];
             $osmUrl = "https://www.openstreetmap.org/?mlat={$lat}&mlon={$lon}#map=16/{$lat}/{$lon}";
             $mapHeadHtml = '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">' . "\n"
-                . '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>';
+                . '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""' . $nonceAttr . '></script>';
             $mapStyle = '#event-map { height: 250px; border-radius: 8px; margin-top: 1rem; } .map-link { display: block; text-align: center; margin-top: 0.5rem; font-size: 0.85rem; color: #3788d8; text-decoration: none; }';
             $escapedName = htmlspecialchars($event->name(), \ENT_QUOTES, 'UTF-8');
             $mapHtml = <<<MAP
             <div id="event-map"></div>
             <a href="{$osmUrl}" target="_blank" rel="noopener" class="map-link">View larger map on OpenStreetMap</a>
-            <script>
+            <script{$nonceAttr}>
                 var map = L.map('event-map').setView([{$lat}, {$lon}], 15);
                 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
@@ -111,8 +119,8 @@ MAP;
 
         // Generate JSON-LD structured data
         $canonicalUrl = "/public/{$username}/event/{$id}";
-        $jsonLdBlock = $seoStatus['noindex'] ? '' : $this->jsonLd->generateEventJsonLd($event, $user, $canonicalUrl, $geo);
-        $breadcrumbBlock = $seoStatus['noindex'] ? '' : $this->jsonLd->generateBreadcrumbJsonLd($username, $displayName, $canonicalUrl, $title);
+        $jsonLdBlock = $seoStatus['noindex'] ? '' : $this->jsonLd->generateEventJsonLd($event, $user, $canonicalUrl, $geo, $nonce);
+        $breadcrumbBlock = $seoStatus['noindex'] ? '' : $this->jsonLd->generateBreadcrumbJsonLd($username, $displayName, $canonicalUrl, $title, $nonce);
 
         // og:image from admin config
         $ogImageUrl = $this->factory->getConfigService()->getSetting('SEO_OG_IMAGE_URL', '') ?? '';

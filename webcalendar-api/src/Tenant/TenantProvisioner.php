@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tenant;
 
+use App\Security\PasswordHasher;
 use WebCalendar\Core\Domain\Entity\User;
 
 /**
@@ -15,6 +16,7 @@ final class TenantProvisioner
         private readonly TenantRepository $tenantRepository,
         private readonly TenantDatabaseManager $dbManager,
         private readonly string $dbDriver = 'mysql',
+        private readonly PasswordHasher $passwordHasher = new PasswordHasher(),
     ) {
     }
 
@@ -116,10 +118,10 @@ final class TenantProvisioner
         }
     }
 
-    private function createAdminUser(\PDO $pdo, string $email, string $password): void
+    private function createAdminUser(\PDO $pdo, string $email, #[\SensitiveParameter] string $password): void
     {
         $login = 'admin';
-        $hash = password_hash($password, PASSWORD_BCRYPT);
+        $hash = $this->passwordHasher->hash($password);
 
         $pdo->prepare(
             "INSERT INTO webcal_user (cal_login, cal_firstname, cal_lastname, cal_email, cal_is_admin, cal_enabled, cal_passwd)
@@ -141,7 +143,7 @@ final class TenantProvisioner
         return $coreDir . '/src/Infrastructure/Persistence/' . $fileName;
     }
 
-    private function createMySqlDatabase(string $dbName, string $dbUser, string $dbPassword): void
+    private function createMySqlDatabase(string $dbName, string $dbUser, #[\SensitiveParameter] string $dbPassword): void
     {
         // This would use a root/admin PDO connection to create the DB
         // For now, this is a placeholder — real implementation needs root credentials

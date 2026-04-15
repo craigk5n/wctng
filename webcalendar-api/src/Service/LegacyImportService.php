@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Security\PasswordHasher;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
@@ -16,6 +17,7 @@ use Psr\Log\NullLogger;
 final class LegacyImportService
 {
     private LoggerInterface $logger;
+    private PasswordHasher $passwordHasher;
 
     /** @var array<string, list<string>> Column maps per table */
     private array $columnMap = [];
@@ -26,8 +28,10 @@ final class LegacyImportService
     public function __construct(
         private readonly CoreServiceFactory $factory,
         ?LoggerInterface $logger = null,
+        ?PasswordHasher $passwordHasher = null,
     ) {
         $this->logger = $logger ?? new NullLogger();
+        $this->passwordHasher = $passwordHasher ?? new PasswordHasher();
         $this->resetStats();
     }
 
@@ -190,7 +194,7 @@ final class LegacyImportService
                 $randomPassword = bin2hex(random_bytes(16));
                 $this->factory->getUserRepository()->setPassword(
                     $login,
-                    password_hash($randomPassword, \PASSWORD_DEFAULT),
+                    $this->passwordHasher->hash($randomPassword),
                 );
 
                 $this->stats['users']['imported']++;

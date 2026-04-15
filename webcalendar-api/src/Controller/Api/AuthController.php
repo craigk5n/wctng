@@ -6,6 +6,7 @@ namespace App\Controller\Api;
 
 use App\Auth\LdapAuthenticator;
 use App\Response\ApiResponse;
+use App\Security\PasswordUpgradeService;
 use App\Security\WebCalendarUser;
 use App\Service\CoreServiceFactory;
 use App\Tenant\TenantContext;
@@ -24,6 +25,7 @@ final class AuthController
         private readonly int $jwtTtl,
         private readonly TenantContext $tenantContext,
         private readonly LdapAuthenticator $ldapAuthenticator,
+        private readonly PasswordUpgradeService $passwordUpgradeService,
     ) {
     }
 
@@ -55,6 +57,8 @@ final class AuthController
 
         if ($authenticated) {
             $coreUser = $this->coreServiceFactory->getUserService()->getUserByLogin($username);
+            // Transparently upgrade legacy (bcrypt / non-pinned Argon2id) hashes.
+            $this->passwordUpgradeService->upgradeIfNeeded($username, $password);
         }
 
         // Fallback to LDAP if local auth failed
@@ -67,6 +71,14 @@ final class AuthController
         }
 
         $rememberMe = isset($data['remember_me']) && $data['remember_me'] === true;
+
+        // Admin can globally disable the remember-me option; client flag is ignored when disabled.
+        if ($rememberMe) {
+            $disabled = $this->coreServiceFactory->getConfigService()->getSetting('DISABLE_REMEMBER_ME') ?? 'N';
+            if ($disabled === 'Y') {
+                $rememberMe = false;
+            }
+        }
 
         return $this->createTokenResponse($coreUser->login(), $coreUser->isAdmin(), $coreUser, $rememberMe);
     }

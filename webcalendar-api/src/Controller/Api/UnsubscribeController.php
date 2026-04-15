@@ -17,12 +17,13 @@ final class UnsubscribeController
 {
     public function __construct(
         private readonly CoreServiceFactory $factory,
+        #[\SensitiveParameter]
         private readonly string $appSecret,
     ) {
     }
 
     #[Route('/api/v2/unsubscribe/{token}', name: 'api_unsubscribe', methods: ['GET'])]
-    public function unsubscribe(string $token): Response
+    public function unsubscribe(#[\SensitiveParameter] string $token): Response
     {
         // Find the user this token belongs to
         $login = $this->findLoginByToken($token);
@@ -47,12 +48,12 @@ final class UnsubscribeController
     /**
      * Generate a deterministic unsubscribe token for a user.
      */
-    public static function generateToken(string $login, string $appSecret): string
+    public static function generateToken(string $login, #[\SensitiveParameter] string $appSecret): string
     {
         return hash_hmac('sha256', $login, $appSecret);
     }
 
-    private function findLoginByToken(string $token): ?string
+    private function findLoginByToken(#[\SensitiveParameter] string $token): ?string
     {
         // Check all users to find whose token matches
         try {

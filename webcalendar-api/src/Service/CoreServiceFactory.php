@@ -126,6 +126,7 @@ final class CoreServiceFactory
 
     public function __construct(
         private readonly \PDO $pdo,
+        #[\SensitiveParameter]
         private readonly string $appSecret,
         ?LoggerInterface $logger = null,
         ?TenantContext $tenantContext = null,

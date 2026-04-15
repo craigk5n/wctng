@@ -13,12 +13,13 @@ final readonly class ProvisionResult
         public bool $success,
         public string $slug,
         public string $adminEmail = '',
+        #[\SensitiveParameter]
         public string $adminPassword = '',
         public string $error = '',
     ) {
     }
 
-    public static function ok(string $slug, string $adminEmail, string $adminPassword): self
+    public static function ok(string $slug, string $adminEmail, #[\SensitiveParameter] string $adminPassword): self
     {
         return new self(success: true, slug: $slug, adminEmail: $adminEmail, adminPassword: $adminPassword);
     }

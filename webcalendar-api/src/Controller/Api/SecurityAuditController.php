@@ -21,6 +21,7 @@ final class SecurityAuditController
     public function __construct(
         private readonly CoreServiceFactory $factory,
         private readonly \PDO $pdo,
+        #[\SensitiveParameter]
         private readonly string $appSecret,
         private readonly string $environment,
     ) {

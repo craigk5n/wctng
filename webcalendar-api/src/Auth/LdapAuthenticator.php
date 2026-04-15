@@ -23,7 +23,7 @@ final class LdapAuthenticator
     /**
      * Attempts LDAP authentication. Returns the webcalendar User on success, null on failure.
      */
-    public function authenticate(string $username, string $password): ?User
+    public function authenticate(string $username, #[\SensitiveParameter] string $password): ?User
     {
         $config = $this->configRepo->get();
         if (!$config->isEnabled() || $config->host() === '') {
@@ -98,7 +98,7 @@ final class LdapAuthenticator
         return \is_string($entries[0]['dn'] ?? null) ? $entries[0]['dn'] : null;
     }
 
-    private function bindAsUser(LdapConfig $config, string $userDn, string $password): bool
+    private function bindAsUser(LdapConfig $config, string $userDn, #[\SensitiveParameter] string $password): bool
     {
         $conn = $this->connect($config);
         if ($conn === null) {

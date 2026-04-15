@@ -23,6 +23,7 @@ final class DailyAgendaService
         private readonly EmailService $emailService,
         private readonly string $baseUrl,
         ?LoggerInterface $logger = null,
+        #[\SensitiveParameter]
         private readonly string $appSecret = '',
     ) {
         $this->logger = $logger ?? new NullLogger();

@@ -74,7 +74,7 @@ final class CoreAuthBackend extends AbstractBasic
      * @param mixed $password
      */
     #[\Override]
-    protected function validateUserPass($username, $password): bool
+    protected function validateUserPass($username, #[\SensitiveParameter] $password): bool
     {
         if (!\is_string($username) || !\is_string($password)) {
             return false;

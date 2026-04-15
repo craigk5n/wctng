@@ -132,7 +132,7 @@ final class OidcDiscovery
     /**
      * Auto-configures an OAuthProvider from an OIDC issuer URL.
      */
-    public function autoConfigureProvider(string $name, string $issuerUrl, string $clientId, string $clientSecret): ?OAuthProvider
+    public function autoConfigureProvider(string $name, string $issuerUrl, string $clientId, #[\SensitiveParameter] string $clientSecret): ?OAuthProvider
     {
         $config = $this->discover($issuerUrl);
         if ($config === null) {

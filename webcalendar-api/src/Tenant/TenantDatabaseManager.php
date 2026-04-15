@@ -18,6 +18,7 @@ final class TenantDatabaseManager
     private array $connections = [];
 
     public function __construct(
+        #[\SensitiveParameter]
         private readonly string $appSecret,
     ) {
     }
@@ -52,7 +53,7 @@ final class TenantDatabaseManager
     /**
      * Encrypts a database password for storage in the tenant registry.
      */
-    public function encryptPassword(string $plaintext): string
+    public function encryptPassword(#[\SensitiveParameter] string $plaintext): string
     {
         $key = $this->deriveKey();
         /** @var int<1, max> $ivLength */
@@ -74,7 +75,7 @@ final class TenantDatabaseManager
      *
      * @throws \RuntimeException If decryption fails (wrong key or corrupted data)
      */
-    public function decryptPassword(string $encrypted): string
+    public function decryptPassword(#[\SensitiveParameter] string $encrypted): string
     {
         $key = $this->deriveKey();
         $raw = base64_decode($encrypted, true);
