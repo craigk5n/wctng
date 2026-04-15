@@ -7,6 +7,8 @@ namespace App\Tests\Unit\EventSubscriber;
 use App\EventSubscriber\RequestIdSubscriber;
 use App\Tenant\Tenant;
 use App\Tenant\TenantContext;
+use App\Tenant\TenantPlan;
+use App\Tenant\TenantStatus;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Symfony\Component\HttpFoundation\Request;
@@ -69,7 +71,7 @@ final class RequestIdSubscriberTest extends TestCase
     public function testIncludesTenantInContext(): void
     {
         $context = new TenantContext();
-        $context->setTenant(new Tenant(1, 'acme', 'Acme', '', '', '', '', 'pro', 'active'));
+        $context->setTenant(new Tenant(1, 'acme', 'Acme', '', '', '', '', TenantPlan::Pro, TenantStatus::Active));
 
         // Use a logger that captures messages
         $logged = [];

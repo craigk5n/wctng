@@ -6,8 +6,10 @@ namespace App\Tests\Unit\Tenant;
 
 use App\Tenant\Tenant;
 use App\Tenant\TenantContext;
+use App\Tenant\TenantPlan;
 use App\Tenant\TenantRepository;
 use App\Tenant\TenantResolverListener;
+use App\Tenant\TenantStatus;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -28,8 +30,8 @@ final class TenantHeaderResolverTest extends TestCase
         $pdo->exec(TenantRepository::SCHEMA_SQL);
         $this->repo = new TenantRepository($pdo);
 
-        $this->repo->save(new Tenant(0, 'acme', 'Acme', '', ':memory:', '', '', 'pro', 'active'));
-        $this->repo->save(new Tenant(0, 'globex', 'Globex', '', ':memory:', '', '', 'free', 'active'));
+        $this->repo->save(new Tenant(0, 'acme', 'Acme', '', ':memory:', '', '', TenantPlan::Pro, TenantStatus::Active));
+        $this->repo->save(new Tenant(0, 'globex', 'Globex', '', ':memory:', '', '', TenantPlan::Free, TenantStatus::Active));
     }
 
     private function createEvent(string $host, ?string $tenantHeader = null): RequestEvent

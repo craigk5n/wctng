@@ -6,6 +6,8 @@ namespace App\Tests\Unit\Tenant;
 
 use App\Tenant\Tenant;
 use App\Tenant\TenantContext;
+use App\Tenant\TenantPlan;
+use App\Tenant\TenantStatus;
 use PHPUnit\Framework\TestCase;
 
 final class TenantContextTest extends TestCase
@@ -20,7 +22,7 @@ final class TenantContextTest extends TestCase
     public function testSetAndGetTenant(): void
     {
         $ctx = new TenantContext();
-        $tenant = new Tenant(1, 'acme', 'Acme', 'h', 'd', 'u', 'p', 'pro', 'active');
+        $tenant = new Tenant(1, 'acme', 'Acme', 'h', 'd', 'u', 'p', TenantPlan::Pro, TenantStatus::Active);
 
         $ctx->setTenant($tenant);
 
@@ -31,7 +33,7 @@ final class TenantContextTest extends TestCase
     public function testResetClearsTenant(): void
     {
         $ctx = new TenantContext();
-        $tenant = new Tenant(1, 'acme', 'Acme', 'h', 'd', 'u', 'p', 'pro', 'active');
+        $tenant = new Tenant(1, 'acme', 'Acme', 'h', 'd', 'u', 'p', TenantPlan::Pro, TenantStatus::Active);
 
         $ctx->setTenant($tenant);
         $this->assertTrue($ctx->isMultiTenant());
@@ -53,7 +55,7 @@ final class TenantContextTest extends TestCase
     public function testGetTenantOrFailReturnsTenant(): void
     {
         $ctx = new TenantContext();
-        $tenant = new Tenant(1, 'acme', 'Acme', 'h', 'd', 'u', 'p', 'pro', 'active');
+        $tenant = new Tenant(1, 'acme', 'Acme', 'h', 'd', 'u', 'p', TenantPlan::Pro, TenantStatus::Active);
         $ctx->setTenant($tenant);
 
         $this->assertSame($tenant, $ctx->getTenantOrFail());

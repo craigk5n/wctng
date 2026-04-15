@@ -8,6 +8,8 @@ use App\Security\JwtTenantExtractor;
 use App\Tenant\Tenant;
 use App\Tenant\TenantContext;
 use App\Tenant\TenantJwtValidator;
+use App\Tenant\TenantPlan;
+use App\Tenant\TenantStatus;
 use Lexik\Bundle\JWTAuthenticationBundle\Event\JWTDecodedEvent;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -49,7 +51,7 @@ final class TenantScopedJwtTest extends TestCase
     public function testValidatorPassesWhenClaimMatchesTenant(): void
     {
         $context = new TenantContext();
-        $context->setTenant(new Tenant(1, 'acme', 'Acme', '', '', '', '', 'pro', 'active'));
+        $context->setTenant(new Tenant(1, 'acme', 'Acme', '', '', '', '', TenantPlan::Pro, TenantStatus::Active));
 
         $validator = new TenantJwtValidator($context);
 
@@ -67,7 +69,7 @@ final class TenantScopedJwtTest extends TestCase
     public function testValidatorRejects403WhenClaimMismatch(): void
     {
         $context = new TenantContext();
-        $context->setTenant(new Tenant(1, 'acme', 'Acme', '', '', '', '', 'pro', 'active'));
+        $context->setTenant(new Tenant(1, 'acme', 'Acme', '', '', '', '', TenantPlan::Pro, TenantStatus::Active));
 
         $validator = new TenantJwtValidator($context);
 

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Tenant;
 
 use App\Tenant\Tenant;
+use App\Tenant\TenantPlan;
 use App\Tenant\TenantRepository;
+use App\Tenant\TenantStatus;
 use PHPUnit\Framework\TestCase;
 
 final class TenantRepositoryTest extends TestCase
@@ -32,8 +34,8 @@ final class TenantRepositoryTest extends TestCase
             dbName: 'wc_acme',
             dbUser: 'wc_user',
             dbPassword: 'secret',
-            plan: 'pro',
-            status: 'active',
+            plan: TenantPlan::Pro,
+            status: TenantStatus::Active,
         );
 
         $id = $this->repo->save($tenant);
@@ -43,7 +45,7 @@ final class TenantRepositoryTest extends TestCase
         $this->assertNotNull($found);
         $this->assertSame('acme', $found->slug());
         $this->assertSame('Acme Corp', $found->name());
-        $this->assertSame('pro', $found->plan());
+        $this->assertSame(TenantPlan::Pro, $found->plan());
     }
 
     public function testFindBySlugReturnsNullForMissing(): void
@@ -53,8 +55,8 @@ final class TenantRepositoryTest extends TestCase
 
     public function testFindAllReturnsAllTenants(): void
     {
-        $this->repo->save(new Tenant(0, 'alpha', 'Alpha', 'h', 'd', 'u', 'p', 'free', 'active'));
-        $this->repo->save(new Tenant(0, 'beta', 'Beta', 'h', 'd', 'u', 'p', 'pro', 'active'));
+        $this->repo->save(new Tenant(0, 'alpha', 'Alpha', 'h', 'd', 'u', 'p', TenantPlan::Free, TenantStatus::Active));
+        $this->repo->save(new Tenant(0, 'beta', 'Beta', 'h', 'd', 'u', 'p', TenantPlan::Pro, TenantStatus::Active));
 
         $all = $this->repo->findAll();
         $this->assertCount(2, $all);
@@ -62,21 +64,21 @@ final class TenantRepositoryTest extends TestCase
 
     public function testUpdateExistingTenant(): void
     {
-        $id = $this->repo->save(new Tenant(0, 'gamma', 'Gamma', 'h', 'd', 'u', 'p', 'free', 'active'));
+        $id = $this->repo->save(new Tenant(0, 'gamma', 'Gamma', 'h', 'd', 'u', 'p', TenantPlan::Free, TenantStatus::Active));
 
-        $updated = new Tenant($id, 'gamma', 'Gamma Updated', 'h2', 'd2', 'u2', 'p2', 'pro', 'suspended');
+        $updated = new Tenant($id, 'gamma', 'Gamma Updated', 'h2', 'd2', 'u2', 'p2', TenantPlan::Pro, TenantStatus::Suspended);
         $this->repo->save($updated);
 
         $found = $this->repo->findBySlug('gamma');
         $this->assertNotNull($found);
         $this->assertSame('Gamma Updated', $found->name());
-        $this->assertSame('pro', $found->plan());
-        $this->assertSame('suspended', $found->status());
+        $this->assertSame(TenantPlan::Pro, $found->plan());
+        $this->assertSame(TenantStatus::Suspended, $found->status());
     }
 
     public function testDelete(): void
     {
-        $id = $this->repo->save(new Tenant(0, 'delta', 'Delta', 'h', 'd', 'u', 'p', 'free', 'active'));
+        $id = $this->repo->save(new Tenant(0, 'delta', 'Delta', 'h', 'd', 'u', 'p', TenantPlan::Free, TenantStatus::Active));
         $this->assertNotNull($this->repo->findBySlug('delta'));
 
         $this->repo->delete($id);

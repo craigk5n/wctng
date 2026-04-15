@@ -7,8 +7,10 @@ namespace App\Tests\Unit\Tenant;
 use App\Tenant\ControlPlaneGuard;
 use App\Tenant\Tenant;
 use App\Tenant\TenantContext;
+use App\Tenant\TenantPlan;
 use App\Tenant\TenantRepository;
 use App\Tenant\TenantResolverListener;
+use App\Tenant\TenantStatus;
 use Lexik\Bundle\JWTAuthenticationBundle\Encoder\JWTEncoderInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -30,7 +32,7 @@ final class ModeDetectionTest extends TestCase
         $pdo = new \PDO('sqlite::memory:');
         $pdo->exec(TenantRepository::SCHEMA_SQL);
         $repo = new TenantRepository($pdo);
-        $repo->save(new Tenant(0, 'acme', 'Acme', '', ':memory:', '', '', 'pro', 'active'));
+        $repo->save(new Tenant(0, 'acme', 'Acme', '', ':memory:', '', '', TenantPlan::Pro, TenantStatus::Active));
 
         $context = new TenantContext();
         $resolver = new TenantResolverListener($repo, $context, 'webcalendar.com', 'standalone');
@@ -50,7 +52,7 @@ final class ModeDetectionTest extends TestCase
         $pdo = new \PDO('sqlite::memory:');
         $pdo->exec(TenantRepository::SCHEMA_SQL);
         $repo = new TenantRepository($pdo);
-        $repo->save(new Tenant(0, 'acme', 'Acme', '', ':memory:', '', '', 'pro', 'active'));
+        $repo->save(new Tenant(0, 'acme', 'Acme', '', ':memory:', '', '', TenantPlan::Pro, TenantStatus::Active));
 
         $context = new TenantContext();
         $resolver = new TenantResolverListener($repo, $context, 'webcalendar.com', 'hosted');

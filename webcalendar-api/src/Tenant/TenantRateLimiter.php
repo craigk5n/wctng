@@ -21,14 +21,6 @@ use Symfony\Component\HttpKernel\KernelEvents;
 #[AsEventListener(event: KernelEvents::RESPONSE, priority: -10)]
 final class TenantRateLimiter
 {
-    private const PLAN_LIMITS = [
-        'free' => 100,
-        'pro' => 1000,
-        'enterprise' => 5000,
-    ];
-
-    private const DEFAULT_LIMIT = 100;
-
     private ?int $limit = null;
     private ?int $remaining = null;
     private ?int $resetAt = null;
@@ -50,8 +42,11 @@ final class TenantRateLimiter
         }
 
         $slug = $tenant->slug();
-        $plan = $tenant->plan();
-        $this->limit = self::PLAN_LIMITS[$plan] ?? self::DEFAULT_LIMIT;
+        $this->limit = match ($tenant->plan()) {
+            TenantPlan::Free => 100,
+            TenantPlan::Pro => 1000,
+            TenantPlan::Enterprise => 5000,
+        };
 
         $window = $this->getCurrentWindow();
         $this->resetAt = $window + 60;

@@ -39,8 +39,8 @@ final class TenantListCommand extends Command
             $rows[] = [
                 $tenant->slug(),
                 $tenant->name(),
-                $tenant->plan(),
-                $tenant->status(),
+                $tenant->plan()->value,
+                $tenant->status()->value,
                 $tenant->createdAt()?->format('Y-m-d H:i') ?? '—',
             ];
         }

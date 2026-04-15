@@ -9,8 +9,6 @@ namespace App\Tenant;
  */
 final readonly class Tenant
 {
-    private const VALID_STATUSES = ['active', 'suspended', 'pending'];
-
     private const RESERVED_SLUGS = [
         'admin', 'api', 'app', 'blog', 'cdn', 'control', 'dashboard',
         'docs', 'ftp', 'help', 'mail', 'mx', 'ns', 'pop', 'smtp',
@@ -26,13 +24,44 @@ final readonly class Tenant
         private string $dbUser,
         #[\SensitiveParameter]
         private string $dbPassword,
-        private string $plan,
-        private string $status,
+        private TenantPlan $plan,
+        private TenantStatus $status,
         private ?\DateTimeImmutable $createdAt = null,
         private ?\DateTimeImmutable $updatedAt = null,
     ) {
         $this->validateSlug($slug);
-        $this->validateStatus($status);
+    }
+
+    /**
+     * Static factory for hydrating from a DB row — handles the string
+     * → enum conversion at the persistence boundary. An unknown
+     * plan/status string throws `DomainException` (surfacing schema
+     * drift early) rather than silently defaulting, because a tenant
+     * whose plan we can't reason about is worse than a loud failure.
+     *
+     * @param array<string, mixed> $row
+     */
+    public static function fromRow(array $row): self
+    {
+        $plan = self::parsePlan(self::stringField($row, 'plan', 'free'));
+        $status = self::parseStatus(self::stringField($row, 'status', 'pending'));
+
+        $createdAtStr = $row['created_at'] ?? null;
+        $updatedAtStr = $row['updated_at'] ?? null;
+
+        return new self(
+            id: \is_numeric($row['id'] ?? null) ? (int) $row['id'] : 0,
+            slug: self::stringField($row, 'slug', ''),
+            name: self::stringField($row, 'name', ''),
+            dbHost: self::stringField($row, 'db_host', ''),
+            dbName: self::stringField($row, 'db_name', ''),
+            dbUser: self::stringField($row, 'db_user', ''),
+            dbPassword: self::stringField($row, 'db_password', ''),
+            plan: $plan,
+            status: $status,
+            createdAt: \is_string($createdAtStr) ? new \DateTimeImmutable($createdAtStr) : null,
+            updatedAt: \is_string($updatedAtStr) ? new \DateTimeImmutable($updatedAtStr) : null,
+        );
     }
 
     public function id(): int
@@ -70,19 +99,19 @@ final readonly class Tenant
         return $this->dbPassword;
     }
 
-    public function plan(): string
+    public function plan(): TenantPlan
     {
         return $this->plan;
     }
 
-    public function status(): string
+    public function status(): TenantStatus
     {
         return $this->status;
     }
 
     public function isActive(): bool
     {
-        return $this->status === 'active';
+        return $this->status === TenantStatus::Active;
     }
 
     public function createdAt(): ?\DateTimeImmutable
@@ -110,10 +139,37 @@ final readonly class Tenant
         }
     }
 
-    private function validateStatus(string $status): void
+    private static function parseStatus(string $value): TenantStatus
     {
-        if (!\in_array($status, self::VALID_STATUSES, true)) {
-            throw new \InvalidArgumentException("Invalid tenant status '{$status}'. Valid: " . implode(', ', self::VALID_STATUSES));
+        $status = TenantStatus::tryFrom($value);
+        if ($status === null) {
+            $valid = implode(', ', array_map(static fn(TenantStatus $s) => $s->value, TenantStatus::cases()));
+
+            throw new \DomainException("Invalid tenant status '{$value}'. Valid: {$valid}");
         }
+
+        return $status;
+    }
+
+    private static function parsePlan(string $value): TenantPlan
+    {
+        $plan = TenantPlan::tryFrom($value);
+        if ($plan === null) {
+            $valid = implode(', ', array_map(static fn(TenantPlan $p) => $p->value, TenantPlan::cases()));
+
+            throw new \DomainException("Invalid tenant plan '{$value}'. Valid: {$valid}");
+        }
+
+        return $plan;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private static function stringField(array $row, string $key, string $default): string
+    {
+        $value = $row[$key] ?? null;
+
+        return \is_string($value) ? $value : $default;
     }
 }

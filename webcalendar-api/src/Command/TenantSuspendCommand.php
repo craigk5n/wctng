@@ -6,6 +6,7 @@ namespace App\Command;
 
 use App\Tenant\Tenant;
 use App\Tenant\TenantRepository;
+use App\Tenant\TenantStatus;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -50,7 +51,7 @@ final class TenantSuspendCommand extends Command
             return Command::FAILURE;
         }
 
-        $newStatus = $action === 'activate' ? 'active' : 'suspended';
+        $newStatus = $action === 'activate' ? TenantStatus::Active : TenantStatus::Suspended;
 
         $updated = new Tenant(
             id: $existing->id(),
@@ -65,7 +66,7 @@ final class TenantSuspendCommand extends Command
         );
 
         $this->tenantRepository->save($updated);
-        $io->success("Tenant '{$slug}' is now {$newStatus}.");
+        $io->success("Tenant '{$slug}' is now {$newStatus->value}.");
 
         return Command::SUCCESS;
     }

@@ -10,6 +10,7 @@ use App\Tenant\TenantDatabaseManager;
 use App\Tenant\TenantProvisioner;
 use App\Tenant\TenantRepository;
 use App\Tenant\TenantResolverListener;
+use App\Tenant\TenantStatus;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -138,7 +139,7 @@ final class TenantProvisioningE2ETest extends TestCase
             $tenant->dbUser(),
             $tenant->dbPassword(),
             $tenant->plan(),
-            'suspended',
+            TenantStatus::Suspended,
         );
         $this->repo->save($suspended);
 

@@ -25,7 +25,7 @@
 | PBP-S7 | Bump PHP baseline to 8.3 and PHPUnit to ^12 — **DONE 2026-04-15** | P1 | — |
 | PBP-S8 | `composer audit` CI gate + `platform-check` + `classmap-authoritative` — **DONE 2026-04-15** | P1 | — |
 | PBP-S9 | PER-CS 3.0 coding standard (drop PSR-12, drop php_codesniffer) — **DONE 2026-04-15** | P2 | PBP-S7 |
-| PBP-S10 | Tenant status & plan → backed enums | P2 | — |
+| PBP-S10 | Tenant status & plan → backed enums — **DONE 2026-04-15** | P2 | — |
 | PBP-S11 | Redis-backed rate limiter with file fallback | P2 | — |
 | PBP-S12 | Adopt `doctrine/migrations` for API schema changes | P2 | — |
 | PBP-S13 | PDO & health-check hygiene (STRINGIFY_FETCHES, LIMIT params, timeout) | P3 | — |
@@ -365,37 +365,32 @@ OWASP's 2025 guidance and the project's own best-practices doc require Argon2id 
 
 ---
 
-### Story PBP-S10: Tenant status & plan → backed enums — P2
+### Story PBP-S10: Tenant status & plan → backed enums — P2 — DONE 2026-04-15
 
-**Problem:** `src/Tenant/Tenant.php` stores `status` and `plan` as strings with a `VALID_STATUSES` const array and string comparisons like `$this->status === 'active'`. The guide says "replace every 'string status' column with a backed enum at the domain layer."
+**Problem:** `src/Tenant/Tenant.php` stored `status` and `plan` as strings with a `VALID_STATUSES` const array and string comparisons like `$this->status === 'active'`. The guide said "replace every 'string status' column with a backed enum at the domain layer."
 
 **Goal:** Type-safe tenant status & plan.
 
-**Acceptance criteria:**
-- [ ] New `src/Tenant/TenantStatus.php`:
-  ```php
-  enum TenantStatus: string {
-      case Active = 'active';
-      case Suspended = 'suspended';
-      case Pending = 'pending';
-  }
-  ```
-- [ ] New `src/Tenant/TenantPlan.php`:
-  ```php
-  enum TenantPlan: string {
-      case Free = 'free';
-      case Pro = 'pro';
-      case Enterprise = 'enterprise';
-  }
-  ```
-- [ ] `Tenant` constructor accepts `TenantStatus` and `TenantPlan`, not `string`. Static factory `Tenant::fromRow(array $row)` handles the string→enum conversion at the DB boundary.
-- [ ] `isActive()` becomes `$this->status === TenantStatus::Active`
-- [ ] All consumers (`TenantResolver`, `TenantDatabaseManager`, admin endpoints, fixtures) updated
-- [ ] Schema is unchanged — enums are purely a domain-layer type
+**Landed (2026-04-15):**
+- `src/Tenant/TenantStatus.php` — backed string enum with cases `Active`, `Suspended`, `Pending`.
+- `src/Tenant/TenantPlan.php` — backed string enum with cases `Free`, `Pro`, `Enterprise`.
+- `src/Tenant/Tenant.php` — constructor now takes `TenantPlan $plan, TenantStatus $status`. Dropped the `VALID_STATUSES` const and the `validateStatus()` string-matcher. Added static `Tenant::fromRow(array $row): self` factory that calls private `parseStatus()` / `parsePlan()` helpers. `TenantStatus::tryFrom()` / `TenantPlan::tryFrom()` return `null` on unknown strings; the helpers throw `DomainException` with the list of valid values so schema drift fails loudly at the persistence boundary instead of silently defaulting. `isActive()` now compares `$this->status === TenantStatus::Active`.
+- `src/Tenant/TenantRepository.php` — `save()` writes `$tenant->plan()->value` and `$tenant->status()->value` into SQL; `mapRow()` delegates hydration to `Tenant::fromRow()`.
+- `src/Tenant/TenantProvisioner.php` — `provision()` validates the incoming plan string via `TenantPlan::tryFrom()` at the boundary (returns `ProvisionResult::fail()` on invalid), then constructs `Tenant` with `$planEnum` and `TenantStatus::Active`.
+- `src/Tenant/TenantRateLimiter.php` — replaced `PLAN_LIMITS` const array + `?? DEFAULT_LIMIT` coalesce with an exhaustive `match ($tenant->plan())` over `TenantPlan` cases. PHPStan now enforces that adding a new plan requires updating the rate limiter (the coalesce had been dead code, silently swallowing new plan values at the default).
+- `src/Command/TenantListCommand.php` — table cells use `->plan()->value` / `->status()->value`.
+- `src/Command/TenantSuspendCommand.php` — status ternary returns `TenantStatus::Active` / `TenantStatus::Suspended`; success message reads `$newStatus->value`.
+- `src/Controller/Control/TenantController.php` — `update()` validates request strings via `TenantPlan::tryFrom()` / `TenantStatus::tryFrom()` and returns HTTP 400 with `"Invalid plan: …"` / `"Invalid status: …"` on unknown values. Webhook dispatch uses enum comparison (`$status === TenantStatus::Suspended`). All response arrays serialize with `->value` so the wire format stays identical.
+- 8 test files updated to pass enum cases positionally or via named args — `TenantEntityTest`, `TenantRepositoryTest`, `TenantJwtValidatorTest`, `TenantContextTest`, `TenantResolverListenerTest`, `TenantDatabaseManagerTest`, `TenantMigratorTest`, `TenantRateLimiterTest`, `TenantScopedJwtTest`, `TenantHeaderResolverTest`, `ModeDetectionTest`, `CoreAuthBackendTest`, `RequestIdSubscriberTest`, `TenantResolutionChainTest`, `TenantProvisioningE2ETest`, `TenantProvisionerTest`.
+- `TenantEntityTest` replaced the old `testInvalidStatusRejected` (which relied on string validation inside the constructor — now impossible since the type system rejects non-enum values at compile time) with two `fromRow` tests: `testFromRowRejectsInvalidStatus` and `testFromRowRejectsInvalidPlan` both assert `DomainException` is thrown at the DB boundary for unknown strings.
+- Schema is unchanged — `VARCHAR(20) status` and `VARCHAR(50) plan` columns persist the `->value` strings, enums live purely at the domain layer.
 
-**Tests:**
-- `TenantTest` asserts construction with each enum value; asserts `fromRow` with an unknown status string throws `DomainException`
-- Integration: existing tenant tests unchanged in behavior
+**Verified:**
+- [x] 526 unit tests pass (1 skipped, pre-existing)
+- [x] 19 integration tenant tests pass
+- [x] PHPStan level 9 clean
+- [x] PHP-CS-Fixer clean (`@PER-CS3x0` + `@PHP83Migration`)
+- [x] Sensitive-param guard clean
 
 **Out of scope:** Expanding the plan set or changing status semantics. This is a type-system refactor only.
 

@@ -6,8 +6,10 @@ namespace App\Tests\Unit\Tenant;
 
 use App\Tenant\Tenant;
 use App\Tenant\TenantContext;
+use App\Tenant\TenantPlan;
 use App\Tenant\TenantRepository;
 use App\Tenant\TenantResolverListener;
+use App\Tenant\TenantStatus;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -40,7 +42,7 @@ final class TenantResolverListenerTest extends TestCase
 
     public function testResolvesSubdomain(): void
     {
-        $this->repo->save(new Tenant(0, 'acme', 'Acme', '', ':memory:', '', '', 'pro', 'active'));
+        $this->repo->save(new Tenant(0, 'acme', 'Acme', '', ':memory:', '', '', TenantPlan::Pro, TenantStatus::Active));
 
         $listener = new TenantResolverListener($this->repo, $this->context, 'webcalendar.com', 'hosted');
         $event = $this->createEvent('acme.webcalendar.com');
@@ -87,7 +89,7 @@ final class TenantResolverListenerTest extends TestCase
 
     public function testSkipsSubRequestEvents(): void
     {
-        $this->repo->save(new Tenant(0, 'acme', 'Acme', '', ':memory:', '', '', 'pro', 'active'));
+        $this->repo->save(new Tenant(0, 'acme', 'Acme', '', ':memory:', '', '', TenantPlan::Pro, TenantStatus::Active));
         $listener = new TenantResolverListener($this->repo, $this->context, 'webcalendar.com', 'hosted');
 
         $request = Request::create('http://acme.webcalendar.com/api/v2/events');
@@ -101,7 +103,7 @@ final class TenantResolverListenerTest extends TestCase
 
     public function testRejects404ForSuspendedTenant(): void
     {
-        $this->repo->save(new Tenant(0, 'suspended-co', 'Suspended', '', ':memory:', '', '', 'pro', 'suspended'));
+        $this->repo->save(new Tenant(0, 'suspended-co', 'Suspended', '', ':memory:', '', '', TenantPlan::Pro, TenantStatus::Suspended));
 
         $listener = new TenantResolverListener($this->repo, $this->context, 'webcalendar.com', 'hosted');
         $event = $this->createEvent('suspended-co.webcalendar.com');

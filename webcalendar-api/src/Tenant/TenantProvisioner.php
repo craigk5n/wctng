@@ -24,9 +24,17 @@ final class TenantProvisioner
      */
     public function provision(string $slug, string $name, string $adminEmail, string $plan = 'free'): ProvisionResult
     {
+        // Validate plan string → enum at the boundary.
+        $planEnum = TenantPlan::tryFrom($plan);
+        if ($planEnum === null) {
+            $valid = implode(', ', array_map(static fn(TenantPlan $p) => $p->value, TenantPlan::cases()));
+
+            return ProvisionResult::fail($slug, "Invalid tenant plan '{$plan}'. Valid: {$valid}");
+        }
+
         // Validate slug (Tenant constructor validates format + reserved)
         try {
-            $testTenant = new Tenant(0, $slug, $name, '', '', '', '', $plan, 'pending');
+            $testTenant = new Tenant(0, $slug, $name, '', '', '', '', $planEnum, TenantStatus::Pending);
         } catch (\InvalidArgumentException $e) {
             return ProvisionResult::fail($slug, $e->getMessage());
         }
@@ -54,8 +62,8 @@ final class TenantProvisioner
                     dbName: ':memory:',
                     dbUser: '',
                     dbPassword: '',
-                    plan: $plan,
-                    status: 'active',
+                    plan: $planEnum,
+                    status: TenantStatus::Active,
                 );
             } else {
                 // MySQL: create database and user
@@ -73,8 +81,8 @@ final class TenantProvisioner
                     dbName: $dbName,
                     dbUser: $dbUser,
                     dbPassword: $encryptedPassword,
-                    plan: $plan,
-                    status: 'active',
+                    plan: $planEnum,
+                    status: TenantStatus::Active,
                 );
             }
 

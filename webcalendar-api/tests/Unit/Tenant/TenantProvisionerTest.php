@@ -7,6 +7,7 @@ namespace App\Tests\Unit\Tenant;
 use App\Tenant\TenantDatabaseManager;
 use App\Tenant\TenantProvisioner;
 use App\Tenant\TenantRepository;
+use App\Tenant\TenantStatus;
 use PHPUnit\Framework\TestCase;
 
 final class TenantProvisionerTest extends TestCase
@@ -46,7 +47,7 @@ final class TenantProvisionerTest extends TestCase
         $tenant = $this->repo->findBySlug('newco');
         $this->assertNotNull($tenant);
         $this->assertSame('New Company', $tenant->name());
-        $this->assertSame('active', $tenant->status());
+        $this->assertSame(TenantStatus::Active, $tenant->status());
     }
 
     public function testProvisionReturnsCredentials(): void

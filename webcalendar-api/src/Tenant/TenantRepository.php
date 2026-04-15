@@ -104,8 +104,8 @@ final readonly class TenantRepository
                 'db_name' => $tenant->dbName(),
                 'db_user' => $tenant->dbUser(),
                 'db_password' => $tenant->dbPassword(),
-                'plan' => $tenant->plan(),
-                'status' => $tenant->status(),
+                'plan' => $tenant->plan()->value,
+                'status' => $tenant->status()->value,
             ]);
 
             return $tenant->id();
@@ -121,8 +121,8 @@ final readonly class TenantRepository
             'db_name' => $tenant->dbName(),
             'db_user' => $tenant->dbUser(),
             'db_password' => $tenant->dbPassword(),
-            'plan' => $tenant->plan(),
-            'status' => $tenant->status(),
+            'plan' => $tenant->plan()->value,
+            'status' => $tenant->status()->value,
         ]);
 
         return (int) $this->pdo->lastInsertId();
@@ -138,42 +138,8 @@ final readonly class TenantRepository
      */
     private function mapRow(array $row): Tenant
     {
-        /** @var string $slug */
-        $slug = $row['slug'] ?? '';
-        /** @var string $name */
-        $name = $row['name'] ?? '';
-        /** @var string $dbHost */
-        $dbHost = $row['db_host'] ?? '';
-        /** @var string $dbName */
-        $dbName = $row['db_name'] ?? '';
-        /** @var string $dbUser */
-        $dbUser = $row['db_user'] ?? '';
-        /** @var string $dbPassword */
-        $dbPassword = $row['db_password'] ?? '';
-        /** @var string $plan */
-        $plan = $row['plan'] ?? 'free';
-        /** @var string $status */
-        $status = $row['status'] ?? 'pending';
-        /** @var string|null $createdAtStr */
-        $createdAtStr = $row['created_at'] ?? null;
-        /** @var string|null $updatedAtStr */
-        $updatedAtStr = $row['updated_at'] ?? null;
-
-        $createdAt = $createdAtStr !== null ? new \DateTimeImmutable($createdAtStr) : null;
-        $updatedAt = $updatedAtStr !== null ? new \DateTimeImmutable($updatedAtStr) : null;
-
-        return new Tenant(
-            id: \is_numeric($row['id'] ?? null) ? (int) $row['id'] : 0,
-            slug: $slug,
-            name: $name,
-            dbHost: $dbHost,
-            dbName: $dbName,
-            dbUser: $dbUser,
-            dbPassword: $dbPassword,
-            plan: $plan,
-            status: $status,
-            createdAt: $createdAt,
-            updatedAt: $updatedAt,
-        );
+        // PBP-S10: delegated to Tenant::fromRow which handles the
+        // string → enum conversion (plan, status) at the DB boundary.
+        return Tenant::fromRow($row);
     }
 }

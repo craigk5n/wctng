@@ -9,8 +9,10 @@ use App\Tenant\ControlPlaneWebhook;
 use App\Tenant\Tenant;
 use App\Tenant\TenantDatabaseManager;
 use App\Tenant\TenantExportService;
+use App\Tenant\TenantPlan;
 use App\Tenant\TenantProvisioner;
 use App\Tenant\TenantRepository;
+use App\Tenant\TenantStatus;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -38,8 +40,8 @@ final class TenantController
         $items = array_map(static fn(Tenant $t): array => [
             'slug' => $t->slug(),
             'name' => $t->name(),
-            'plan' => $t->plan(),
-            'status' => $t->status(),
+            'plan' => $t->plan()->value,
+            'status' => $t->status()->value,
             'created_at' => $t->createdAt()?->format('c'),
         ], $tenants);
 
@@ -96,8 +98,8 @@ final class TenantController
         $detail = [
             'slug' => $tenant->slug(),
             'name' => $tenant->name(),
-            'plan' => $tenant->plan(),
-            'status' => $tenant->status(),
+            'plan' => $tenant->plan()->value,
+            'status' => $tenant->status()->value,
             'db_host' => $tenant->dbHost(),
             'created_at' => $tenant->createdAt()?->format('c'),
             'updated_at' => $tenant->updatedAt()?->format('c'),
@@ -136,32 +138,43 @@ final class TenantController
         $data = $decoded;
 
         $name = isset($data['name']) && \is_string($data['name']) ? $data['name'] : $tenant->name();
-        $plan = isset($data['plan']) && \is_string($data['plan']) ? $data['plan'] : $tenant->plan();
-        $status = isset($data['status']) && \is_string($data['status']) ? $data['status'] : $tenant->status();
 
-        try {
-            $updated = new Tenant(
-                id: $tenant->id(),
-                slug: $tenant->slug(),
-                name: $name,
-                dbHost: $tenant->dbHost(),
-                dbName: $tenant->dbName(),
-                dbUser: $tenant->dbUser(),
-                dbPassword: $tenant->dbPassword(),
-                plan: $plan,
-                status: $status,
-            );
-        } catch (\InvalidArgumentException $e) {
-            return ApiResponse::error(400, $e->getMessage());
+        $plan = $tenant->plan();
+        if (isset($data['plan']) && \is_string($data['plan'])) {
+            $parsed = TenantPlan::tryFrom($data['plan']);
+            if ($parsed === null) {
+                return ApiResponse::error(400, "Invalid plan: {$data['plan']}");
+            }
+            $plan = $parsed;
         }
+
+        $status = $tenant->status();
+        if (isset($data['status']) && \is_string($data['status'])) {
+            $parsed = TenantStatus::tryFrom($data['status']);
+            if ($parsed === null) {
+                return ApiResponse::error(400, "Invalid status: {$data['status']}");
+            }
+            $status = $parsed;
+        }
+
+        $updated = new Tenant(
+            id: $tenant->id(),
+            slug: $tenant->slug(),
+            name: $name,
+            dbHost: $tenant->dbHost(),
+            dbName: $tenant->dbName(),
+            dbUser: $tenant->dbUser(),
+            dbPassword: $tenant->dbPassword(),
+            plan: $plan,
+            status: $status,
+        );
 
         $this->tenantRepository->save($updated);
 
-        // Send webhook if status changed
         if ($status !== $tenant->status()) {
-            if ($status === 'suspended') {
+            if ($status === TenantStatus::Suspended) {
                 $this->webhook->tenantSuspended($slug);
-            } elseif ($status === 'active') {
+            } elseif ($status === TenantStatus::Active) {
                 $this->webhook->tenantActivated($slug);
             }
         }
@@ -169,8 +182,8 @@ final class TenantController
         return ApiResponse::success([
             'slug' => $updated->slug(),
             'name' => $updated->name(),
-            'plan' => $updated->plan(),
-            'status' => $updated->status(),
+            'plan' => $updated->plan()->value,
+            'status' => $updated->status()->value,
         ]);
     }
 

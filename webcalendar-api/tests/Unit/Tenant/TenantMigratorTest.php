@@ -7,7 +7,9 @@ namespace App\Tests\Unit\Tenant;
 use App\Tenant\Tenant;
 use App\Tenant\TenantDatabaseManager;
 use App\Tenant\TenantMigrator;
+use App\Tenant\TenantPlan;
 use App\Tenant\TenantRepository;
+use App\Tenant\TenantStatus;
 use PHPUnit\Framework\TestCase;
 
 final class TenantMigratorTest extends TestCase
@@ -48,7 +50,7 @@ final class TenantMigratorTest extends TestCase
 
     private function createTenant(string $slug): Tenant
     {
-        $tenant = new Tenant(0, $slug, ucfirst($slug), '', ':memory:', '', '', 'free', 'active');
+        $tenant = new Tenant(0, $slug, ucfirst($slug), '', ':memory:', '', '', TenantPlan::Free, TenantStatus::Active);
         $id = $this->repo->save($tenant);
         $found = $this->repo->findBySlug($slug);
         $this->assertNotNull($found);
@@ -128,7 +130,7 @@ final class TenantMigratorTest extends TestCase
         $this->writeMigration('001_test', 'CREATE TABLE t (id INTEGER PRIMARY KEY)');
 
         $this->createTenant('active-co');
-        $this->repo->save(new Tenant(0, 'frozen-co', 'Frozen', '', ':memory:', '', '', 'free', 'suspended'));
+        $this->repo->save(new Tenant(0, 'frozen-co', 'Frozen', '', ':memory:', '', '', TenantPlan::Free, TenantStatus::Suspended));
 
         $migrator = new TenantMigrator($this->repo, $this->dbManager, $this->migrationsDir);
         $results = $migrator->migrateAll();
@@ -147,7 +149,7 @@ final class TenantMigratorTest extends TestCase
     {
         $this->writeMigration('001_test', 'CREATE TABLE t (id INTEGER PRIMARY KEY)');
 
-        $badTenant = new Tenant(99, 'bad-host', 'Bad', 'nonexistent.invalid', 'nodb', 'nobody', '', 'free', 'active');
+        $badTenant = new Tenant(99, 'bad-host', 'Bad', 'nonexistent.invalid', 'nodb', 'nobody', '', TenantPlan::Free, TenantStatus::Active);
 
         $migrator = new TenantMigrator($this->repo, $this->dbManager, $this->migrationsDir);
         $result = $migrator->migrateTenant($badTenant);

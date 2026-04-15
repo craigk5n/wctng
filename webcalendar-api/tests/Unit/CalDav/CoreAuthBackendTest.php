@@ -8,6 +8,8 @@ use App\CalDav\CoreAuthBackend;
 use App\Service\CoreServiceFactory;
 use App\Tenant\Tenant;
 use App\Tenant\TenantContext;
+use App\Tenant\TenantPlan;
+use App\Tenant\TenantStatus;
 use Lexik\Bundle\JWTAuthenticationBundle\Encoder\JWTEncoderInterface;
 use PHPUnit\Framework\TestCase;
 use Sabre\DAV\Auth\Backend\AbstractBasic;
@@ -79,7 +81,7 @@ final class CoreAuthBackendTest extends TestCase
         $jwtEncoder->method('decode')->willReturn(['username' => 'alice', 'tenant' => 'acme']);
 
         $tenantContext = new TenantContext();
-        $tenantContext->setTenant(new Tenant(1, 'globex', 'Globex', '', '', '', '', 'pro', 'active'));
+        $tenantContext->setTenant(new Tenant(1, 'globex', 'Globex', '', '', '', '', TenantPlan::Pro, TenantStatus::Active));
 
         $backend = new CoreAuthBackend($factory, $jwtEncoder, $tenantContext);
 
@@ -101,7 +103,7 @@ final class CoreAuthBackendTest extends TestCase
         $jwtEncoder->method('decode')->willReturn(['username' => 'alice', 'tenant' => 'acme']);
 
         $tenantContext = new TenantContext();
-        $tenantContext->setTenant(new Tenant(1, 'acme', 'Acme', '', '', '', '', 'pro', 'active'));
+        $tenantContext->setTenant(new Tenant(1, 'acme', 'Acme', '', '', '', '', TenantPlan::Pro, TenantStatus::Active));
 
         $backend = new CoreAuthBackend($factory, $jwtEncoder, $tenantContext);
 

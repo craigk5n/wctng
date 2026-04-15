@@ -7,6 +7,8 @@ namespace App\Tests\Unit\Tenant;
 use App\Tenant\Tenant;
 use App\Tenant\TenantContext;
 use App\Tenant\TenantJwtValidator;
+use App\Tenant\TenantPlan;
+use App\Tenant\TenantStatus;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -38,7 +40,7 @@ final class TenantJwtValidatorTest extends TestCase
     public function testSkipsWhenNoJwtTenantClaim(): void
     {
         $context = new TenantContext();
-        $context->setTenant(new Tenant(1, 'acme', 'Acme', '', '', '', '', 'pro', 'active'));
+        $context->setTenant(new Tenant(1, 'acme', 'Acme', '', '', '', '', TenantPlan::Pro, TenantStatus::Active));
         $validator = new TenantJwtValidator($context);
 
         $request = Request::create('/api/v2/events');
@@ -53,7 +55,7 @@ final class TenantJwtValidatorTest extends TestCase
     public function testMatchingTenantClaimPasses(): void
     {
         $context = new TenantContext();
-        $context->setTenant(new Tenant(1, 'acme', 'Acme', '', '', '', '', 'pro', 'active'));
+        $context->setTenant(new Tenant(1, 'acme', 'Acme', '', '', '', '', TenantPlan::Pro, TenantStatus::Active));
         $validator = new TenantJwtValidator($context);
 
         $request = Request::create('/api/v2/events');
@@ -68,7 +70,7 @@ final class TenantJwtValidatorTest extends TestCase
     public function testMismatchedTenantClaimReturns403(): void
     {
         $context = new TenantContext();
-        $context->setTenant(new Tenant(1, 'acme', 'Acme', '', '', '', '', 'pro', 'active'));
+        $context->setTenant(new Tenant(1, 'acme', 'Acme', '', '', '', '', TenantPlan::Pro, TenantStatus::Active));
         $validator = new TenantJwtValidator($context);
 
         $request = Request::create('/api/v2/events');

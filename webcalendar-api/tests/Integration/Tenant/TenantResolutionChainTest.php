@@ -8,8 +8,10 @@ use App\Tenant\Tenant;
 use App\Tenant\TenantContext;
 use App\Tenant\TenantDatabaseManager;
 use App\Tenant\TenantJwtValidator;
+use App\Tenant\TenantPlan;
 use App\Tenant\TenantRepository;
 use App\Tenant\TenantResolverListener;
+use App\Tenant\TenantStatus;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -45,9 +47,9 @@ final class TenantResolutionChainTest extends TestCase
         $this->jwtValidator = new TenantJwtValidator($this->context);
 
         // Create test tenants
-        $this->repo->save(new Tenant(0, 'alpha', 'Alpha Corp', '', ':memory:', '', '', 'pro', 'active'));
-        $this->repo->save(new Tenant(0, 'beta', 'Beta Inc', '', ':memory:', '', '', 'free', 'active'));
-        $this->repo->save(new Tenant(0, 'suspended-co', 'Suspended', '', ':memory:', '', '', 'free', 'suspended'));
+        $this->repo->save(new Tenant(0, 'alpha', 'Alpha Corp', '', ':memory:', '', '', TenantPlan::Pro, TenantStatus::Active));
+        $this->repo->save(new Tenant(0, 'beta', 'Beta Inc', '', ':memory:', '', '', TenantPlan::Free, TenantStatus::Active));
+        $this->repo->save(new Tenant(0, 'suspended-co', 'Suspended', '', ':memory:', '', '', TenantPlan::Free, TenantStatus::Suspended));
     }
 
     private function createEvent(string $host, ?string $headerTenant = null, ?string $jwtTenant = null): RequestEvent

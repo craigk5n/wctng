@@ -6,6 +6,8 @@ namespace App\Tests\Unit\Tenant;
 
 use App\Tenant\Tenant;
 use App\Tenant\TenantDatabaseManager;
+use App\Tenant\TenantPlan;
+use App\Tenant\TenantStatus;
 use PHPUnit\Framework\TestCase;
 
 final class TenantDatabaseManagerTest extends TestCase
@@ -57,8 +59,8 @@ final class TenantDatabaseManagerTest extends TestCase
             dbName: ':memory:',
             dbUser: '',
             dbPassword: '',
-            plan: 'free',
-            status: 'active',
+            plan: TenantPlan::Free,
+            status: TenantStatus::Active,
         );
 
         $pdo = $manager->getConnection($tenant);
@@ -77,8 +79,8 @@ final class TenantDatabaseManagerTest extends TestCase
             dbName: ':memory:',
             dbUser: '',
             dbPassword: '',
-            plan: 'free',
-            status: 'active',
+            plan: TenantPlan::Free,
+            status: TenantStatus::Active,
         );
 
         $pdo1 = $manager->getConnection($tenant);
@@ -91,8 +93,8 @@ final class TenantDatabaseManagerTest extends TestCase
     {
         $manager = new TenantDatabaseManager(self::APP_SECRET);
 
-        $tenantA = new Tenant(1, 'tenant-aaa', 'A', '', ':memory:', '', '', 'free', 'active');
-        $tenantB = new Tenant(2, 'tenant-bbb', 'B', '', ':memory:', '', '', 'free', 'active');
+        $tenantA = new Tenant(1, 'tenant-aaa', 'A', '', ':memory:', '', '', TenantPlan::Free, TenantStatus::Active);
+        $tenantB = new Tenant(2, 'tenant-bbb', 'B', '', ':memory:', '', '', TenantPlan::Free, TenantStatus::Active);
 
         $pdoA = $manager->getConnection($tenantA);
         $pdoB = $manager->getConnection($tenantB);
@@ -113,8 +115,8 @@ final class TenantDatabaseManagerTest extends TestCase
             dbName: 'no_such_db',
             dbUser: 'nobody',
             dbPassword: $manager->encryptPassword('nope'),
-            plan: 'free',
-            status: 'active',
+            plan: TenantPlan::Free,
+            status: TenantStatus::Active,
         );
 
         $this->expectException(\RuntimeException::class);

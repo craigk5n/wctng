@@ -6,7 +6,9 @@ namespace App\Tests\Unit\Tenant;
 
 use App\Tenant\Tenant;
 use App\Tenant\TenantContext;
+use App\Tenant\TenantPlan;
 use App\Tenant\TenantRateLimiter;
+use App\Tenant\TenantStatus;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -67,7 +69,7 @@ final class TenantRateLimiterTest extends TestCase
 
     public function testAllowsRequestsUnderLimit(): void
     {
-        $this->context->setTenant(new Tenant(1, 'rate-ok', 'OK', '', '', '', '', 'free', 'active'));
+        $this->context->setTenant(new Tenant(1, 'rate-ok', 'OK', '', '', '', '', TenantPlan::Free, TenantStatus::Active));
         $limiter = new TenantRateLimiter($this->context, $this->tmpDir);
 
         $event = $this->createRequestEvent();
@@ -78,7 +80,7 @@ final class TenantRateLimiterTest extends TestCase
 
     public function testAddsRateLimitHeaders(): void
     {
-        $this->context->setTenant(new Tenant(1, 'rate-hdr', 'Headers', '', '', '', '', 'pro', 'active'));
+        $this->context->setTenant(new Tenant(1, 'rate-hdr', 'Headers', '', '', '', '', TenantPlan::Pro, TenantStatus::Active));
         $limiter = new TenantRateLimiter($this->context, $this->tmpDir);
 
         $requestEvent = $this->createRequestEvent();
@@ -97,7 +99,7 @@ final class TenantRateLimiterTest extends TestCase
     {
         // Use a tenant with very low custom limit — we'll simulate by making many requests
         // Free plan = 100 requests. We'll create a limiter and exhaust it.
-        $this->context->setTenant(new Tenant(1, 'rate-exceeded', 'Exceeded', '', '', '', '', 'free', 'active'));
+        $this->context->setTenant(new Tenant(1, 'rate-exceeded', 'Exceeded', '', '', '', '', TenantPlan::Free, TenantStatus::Active));
 
         // Pre-fill the counter file to simulate 100 requests already made
         $dir = $this->tmpDir . '/rate_limits';
@@ -118,7 +120,7 @@ final class TenantRateLimiterTest extends TestCase
     public function testDifferentPlansHaveDifferentLimits(): void
     {
         // Free plan
-        $this->context->setTenant(new Tenant(1, 'plan-free', 'Free', '', '', '', '', 'free', 'active'));
+        $this->context->setTenant(new Tenant(1, 'plan-free', 'Free', '', '', '', '', TenantPlan::Free, TenantStatus::Active));
         $limiterFree = new TenantRateLimiter($this->context, $this->tmpDir);
         $eventFree = $this->createRequestEvent();
         $limiterFree->onKernelRequest($eventFree);
@@ -128,7 +130,7 @@ final class TenantRateLimiterTest extends TestCase
 
         // Pro plan
         $this->context->reset();
-        $this->context->setTenant(new Tenant(2, 'plan-pro', 'Pro', '', '', '', '', 'pro', 'active'));
+        $this->context->setTenant(new Tenant(2, 'plan-pro', 'Pro', '', '', '', '', TenantPlan::Pro, TenantStatus::Active));
         $limiterPro = new TenantRateLimiter($this->context, $this->tmpDir);
         $eventPro = $this->createRequestEvent();
         $limiterPro->onKernelRequest($eventPro);
