@@ -41,12 +41,13 @@ final readonly class ShareToken
         return $this->createdAt;
     }
 
-    public function isExpired(): bool
+    public function isExpired(\DateTimeImmutable $now): bool
     {
         if ($this->expiresAt === null) {
             return false;
         }
-        return new \DateTimeImmutable($this->expiresAt) < new \DateTimeImmutable();
+
+        return new \DateTimeImmutable($this->expiresAt) < $now;
     }
 
     /**

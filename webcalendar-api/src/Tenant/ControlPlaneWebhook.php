@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tenant;
 
+use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use Symfony\Component\Clock\NativeClock;
 
 /**
  * Sends webhook notifications for tenant lifecycle events.
@@ -15,12 +17,15 @@ use Psr\Log\NullLogger;
 final class ControlPlaneWebhook
 {
     private LoggerInterface $logger;
+    private ClockInterface $clock;
 
     public function __construct(
         private readonly string $webhookUrl,
         ?LoggerInterface $logger = null,
+        ?ClockInterface $clock = null,
     ) {
         $this->logger = $logger ?? new NullLogger();
+        $this->clock = $clock ?? new NativeClock();
     }
 
     public function tenantProvisioned(string $slug, string $name): void
@@ -54,7 +59,7 @@ final class ControlPlaneWebhook
 
         $payload = json_encode([
             'event' => $eventType,
-            'timestamp' => (new \DateTimeImmutable())->format('c'),
+            'timestamp' => $this->clock->now()->format('c'),
             ...$data,
         ], JSON_THROW_ON_ERROR);
 

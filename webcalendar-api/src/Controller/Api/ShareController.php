@@ -8,6 +8,8 @@ use App\DTO\EventResponseDTO;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Share\ShareTokenRepository;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,6 +26,7 @@ final class ShareController
     public function __construct(
         private readonly EventRepositoryInterface $eventRepo,
         \PDO $pdo,
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {
         $this->tokenRepo = new ShareTokenRepository($pdo);
     }
@@ -40,6 +43,8 @@ final class ShareController
         $ref->setValue($instance, $tokenRepo);
         $ref = new \ReflectionProperty(self::class, 'eventRepo');
         $ref->setValue($instance, $eventRepo);
+        $ref = new \ReflectionProperty(self::class, 'clock');
+        $ref->setValue($instance, new NativeClock());
         return $instance;
     }
 
@@ -109,7 +114,7 @@ final class ShareController
             return ApiResponse::error(404, 'Share link not found');
         }
 
-        if ($shareToken->isExpired()) {
+        if ($shareToken->isExpired($this->clock->now())) {
             return ApiResponse::error(410, 'Share link has expired');
         }
 

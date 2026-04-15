@@ -7,6 +7,8 @@ namespace App\Controller\Api;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Service\ErrorMetricsService;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
@@ -21,6 +23,7 @@ final class DashboardController
         private readonly UserRepositoryInterface $userRepository,
         private readonly \PDO $pdo,
         private readonly ?ErrorMetricsService $errorMetrics = null,
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {
     }
 
@@ -53,7 +56,7 @@ final class DashboardController
         // Active users: distinct creators in last 7 days
         $active7d = 0;
         try {
-            $cutoff = (new \DateTimeImmutable('-7 days'))->format('Ymd');
+            $cutoff = $this->clock->now()->modify('-7 days')->format('Ymd');
             $stmt = $this->pdo->prepare(
                 'SELECT COUNT(DISTINCT cal_create_by) FROM webcal_entry WHERE cal_date >= :cutoff',
             );
@@ -86,8 +89,8 @@ final class DashboardController
         }
 
         try {
-            $today = (new \DateTimeImmutable())->format('Ymd');
-            $nextWeek = (new \DateTimeImmutable('+7 days'))->format('Ymd');
+            $today = $this->clock->now()->format('Ymd');
+            $nextWeek = $this->clock->now()->modify('+7 days')->format('Ymd');
             $stmt = $this->pdo->prepare(
                 'SELECT COUNT(*) FROM webcal_entry WHERE cal_date >= :today AND cal_date <= :next',
             );
@@ -104,7 +107,7 @@ final class DashboardController
     private function getEventsCreated7d(): int
     {
         try {
-            $cutoff = (new \DateTimeImmutable('-7 days'))->format('Ymd');
+            $cutoff = $this->clock->now()->modify('-7 days')->format('Ymd');
             $stmt = $this->pdo->prepare(
                 'SELECT COUNT(*) FROM webcal_entry WHERE cal_mod_date >= :cutoff',
             );

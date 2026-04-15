@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Webhook\WebhookDispatcherInterface;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use WebCalendar\Core\Domain\Entity\ActivityLogEntry;
 use WebCalendar\Core\Domain\Repository\ActivityLogRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\ActivityLogType;
@@ -42,13 +44,17 @@ final class PurgeService
         'webcal_blob',
     ];
 
+    private ClockInterface $clock;
+
     public function __construct(
         private readonly \PDO $pdo,
         private readonly ?ActivityLogRepositoryInterface $activityLog = null,
         private readonly ?WebhookDispatcherInterface $webhookDispatcher = null,
         private readonly ?CalendarPublisherInterface $calendarPublisher = null,
         private readonly ?CalDavSyncTokenRepository $syncTokens = null,
+        ?ClockInterface $clock = null,
     ) {
+        $this->clock = $clock ?? new NativeClock();
     }
 
     /**
@@ -200,7 +206,7 @@ final class PurgeService
                 login: $actor,
                 userCal: $userLogin,
                 type: ActivityLogType::EXTRA,
-                date: new \DateTimeImmutable(),
+                date: $this->clock->now(),
                 text: $text,
             ));
         } catch (\Throwable) {

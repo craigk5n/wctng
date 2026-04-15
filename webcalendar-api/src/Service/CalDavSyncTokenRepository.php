@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
+
 /**
  * Stores per-user CalDAV sync-token override values.
  *
@@ -28,9 +31,13 @@ namespace App\Service;
  */
 final class CalDavSyncTokenRepository
 {
+    private ClockInterface $clock;
+
     public function __construct(
         private readonly \PDO $pdo,
+        ?ClockInterface $clock = null,
     ) {
+        $this->clock = $clock ?? new NativeClock();
     }
 
     public function ensureSchema(): void
@@ -74,7 +81,7 @@ final class CalDavSyncTokenRepository
         }
         $this->ensureSchema();
 
-        $nowYmdHis = (int) (new \DateTimeImmutable())->format('YmdHis');
+        $nowYmdHis = (int) $this->clock->now()->format('YmdHis');
 
         foreach (array_unique($logins) as $login) {
             $existing = $this->getOverride($login) ?? 0;

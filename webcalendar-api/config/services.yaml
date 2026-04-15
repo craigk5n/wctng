@@ -18,6 +18,11 @@ services:
             - '../src/Kernel.php'
             - '../src/Security/WebCalendarUser.php'
 
+    # PBP-S5: PSR-20 Clock injection. Defaults to NativeClock; test env
+    # (see config/services_test.yaml) overrides to MockClock.
+    Psr\Clock\ClockInterface: '@Symfony\Component\Clock\NativeClock'
+    Symfony\Component\Clock\NativeClock: ~
+
     App\Controller\:
         resource: '../src/Controller/'
         tags: ['controller.service_arguments']

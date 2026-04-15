@@ -1,4 +1,4 @@
-.PHONY: test test-unit test-integration phpstan psalm cs-fix cs-check coverage ci check-sensitive-params
+.PHONY: test test-unit test-integration phpstan psalm cs-fix cs-check coverage ci check-sensitive-params check-clock-injection
 
 ## Run PHPUnit tests
 test:
@@ -36,8 +36,12 @@ coverage:
 check-sensitive-params:
 	php bin/check-sensitive-params.php
 
+## Guard: business logic must read time via injected ClockInterface, not new \DateTimeImmutable()
+check-clock-injection:
+	php bin/check-clock-injection.php
+
 ## Run all CI checks
-ci: cs-check check-sensitive-params phpstan psalm test
+ci: cs-check check-sensitive-params check-clock-injection phpstan psalm test
 
 ## Show help
 help:

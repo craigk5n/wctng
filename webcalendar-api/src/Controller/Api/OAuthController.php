@@ -8,6 +8,7 @@ use App\Auth\OAuthProviderRepository;
 use App\Response\ApiResponse;
 use App\Tenant\TenantContext;
 use Lexik\Bundle\JWTAuthenticationBundle\Encoder\JWTEncoderInterface;
+use Psr\Clock\ClockInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -28,6 +29,7 @@ final class OAuthController
         private readonly JWTEncoderInterface $jwtEncoder,
         private readonly TenantContext $tenantContext,
         private readonly int $jwtTtl,
+        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -150,7 +152,7 @@ final class OAuthController
         }
 
         $jwt = $this->jwtEncoder->encode($claims);
-        $expiresAt = new \DateTimeImmutable('+' . $this->jwtTtl . ' seconds');
+        $expiresAt = $this->clock->now()->modify('+' . $this->jwtTtl . ' seconds');
 
         $response = [
             'token' => $jwt,

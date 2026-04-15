@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -30,6 +32,7 @@ final class FeedController
         // FeedService's base URL is empty at DI time; RSS/FreeBusy methods
         // override it per request.
         private readonly FeedService $feedService,
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {
     }
 
@@ -49,6 +52,7 @@ final class FeedController
         $setProp('userRepo', $userRepo);
         $setProp('rateLimiter', $rateLimiter);
         $setProp('feedService', $feedService);
+        $setProp('clock', new NativeClock());
         return $instance;
     }
 
@@ -70,7 +74,7 @@ final class FeedController
         }
 
         $days = min(365, max(1, $request->query->getInt('days', self::DEFAULT_DAYS)));
-        $start = new \DateTimeImmutable('today');
+        $start = $this->clock->now()->setTime(0, 0);
         $end = $start->modify("+{$days} days");
         $range = new DateRange($start, $end);
 
@@ -100,7 +104,7 @@ final class FeedController
         }
 
         $days = min(365, max(1, $request->query->getInt('days', self::DEFAULT_DAYS)));
-        $start = new \DateTimeImmutable('today');
+        $start = $this->clock->now()->setTime(0, 0);
         $end = $start->modify("+{$days} days");
         $range = new DateRange($start, $end);
 

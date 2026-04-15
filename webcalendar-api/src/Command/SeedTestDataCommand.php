@@ -6,6 +6,8 @@ namespace App\Command;
 
 use App\Security\PasswordHasher;
 use App\Service\CoreServiceFactory;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -52,6 +54,7 @@ final class SeedTestDataCommand extends Command
     public function __construct(
         private readonly CoreServiceFactory $factory,
         private readonly PasswordHasher $passwordHasher = new PasswordHasher(),
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {
         parent::__construct();
     }
@@ -197,7 +200,7 @@ final class SeedTestDataCommand extends Command
         $catRepo = $this->factory->getCategoryRepository();
         $created = 0;
         $batchSize = 500;
-        $now = new \DateTimeImmutable();
+        $now = $this->clock->now();
 
         // Time distribution: events spread across 2 years
         $rangeStart = $now->modify('-1 year');

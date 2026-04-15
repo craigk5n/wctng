@@ -1,0 +1,9 @@
+services:
+    # PBP-S5: override ClockInterface binding so every service gets a
+    # deterministic clock in the test suite. Tests that need to advance
+    # time pull the same MockClock out of the container and call
+    # `sleep()` / `modify()` on it.
+    Psr\Clock\ClockInterface:
+        class: Symfony\Component\Clock\MockClock
+        public: true
+        arguments: ['2026-04-15T12:00:00+00:00']

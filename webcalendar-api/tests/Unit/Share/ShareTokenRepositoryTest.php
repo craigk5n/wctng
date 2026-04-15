@@ -39,14 +39,14 @@ final class ShareTokenRepositoryTest extends TestCase
         $token = $this->repo->create('exp-token', 'bob', $expires);
 
         $this->assertSame($expires, $token->expiresAt());
-        $this->assertFalse($token->isExpired());
+        $this->assertFalse($token->isExpired(new \DateTimeImmutable('2026-11-01 00:00:00')));
     }
 
     public function testExpiredToken(): void
     {
         $token = $this->repo->create('old-token', 'alice', '2020-01-01 00:00:00');
 
-        $this->assertTrue($token->isExpired());
+        $this->assertTrue($token->isExpired(new \DateTimeImmutable('2026-01-01 00:00:00')));
     }
 
     public function testFindByOwner(): void

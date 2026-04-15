@@ -10,6 +10,8 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use WebCalendar\Core\Application\Service\ActivityLogService;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 
@@ -17,6 +19,7 @@ final class ActivityLogController
 {
     public function __construct(
         private readonly ActivityLogService $activityLogService,
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {
     }
 
@@ -32,7 +35,7 @@ final class ActivityLogController
 
         // Default to last 30 days if no range specified
         if ($startStr === '' || $endStr === '') {
-            $end = new \DateTimeImmutable();
+            $end = $this->clock->now();
             $start = $end->modify('-30 days');
         } else {
             $start = \DateTimeImmutable::createFromFormat('Ymd', $startStr);

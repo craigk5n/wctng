@@ -78,6 +78,9 @@ jobs:
       - name: Check #[\SensitiveParameter] on secret parameters (PBP-S1)
         run: composer check-sensitive-params
 
+      - name: Check ClockInterface injection (PBP-S5)
+        run: composer check-clock-injection
+
       - name: Run PHPStan (level 9)
         run: make phpstan
 

@@ -10,6 +10,7 @@ use App\Security\PasswordUpgradeService;
 use App\Security\WebCalendarUser;
 use App\Tenant\TenantContext;
 use Lexik\Bundle\JWTAuthenticationBundle\Encoder\JWTEncoderInterface;
+use Psr\Clock\ClockInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,6 +31,7 @@ final class AuthController
         private readonly TenantContext $tenantContext,
         private readonly LdapAuthenticator $ldapAuthenticator,
         private readonly PasswordUpgradeService $passwordUpgradeService,
+        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -153,7 +155,7 @@ final class AuthController
 
         $token = $this->jwtEncoder->encode($claims);
 
-        $expiresAt = new \DateTimeImmutable('+' . $ttl . ' seconds');
+        $expiresAt = $this->clock->now()->modify('+' . $ttl . ' seconds');
 
         $response = [
             'token' => $token,

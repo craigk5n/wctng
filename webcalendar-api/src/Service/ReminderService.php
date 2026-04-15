@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use Symfony\Component\Clock\NativeClock;
 
 /**
  * Finds upcoming events and sends reminder emails.
@@ -17,6 +19,7 @@ final class ReminderService
 {
     private const DEFAULT_REMINDER_MINUTES = 30;
     private LoggerInterface $logger;
+    private ClockInterface $clock;
 
     public function __construct(
         private readonly CoreServiceFactory $coreServiceFactory,
@@ -25,8 +28,10 @@ final class ReminderService
         ?LoggerInterface $logger = null,
         #[\SensitiveParameter]
         private readonly string $appSecret = '',
+        ?ClockInterface $clock = null,
     ) {
         $this->logger = $logger ?? new NullLogger();
+        $this->clock = $clock ?? new NativeClock();
     }
 
     /**
@@ -43,7 +48,7 @@ final class ReminderService
         $pdo = $this->coreServiceFactory->getPdo();
         $this->ensureTrackingTable($pdo);
 
-        $now = new \DateTimeImmutable();
+        $now = $this->clock->now();
         $sent = 0;
 
         // Get all users with their reminder preferences

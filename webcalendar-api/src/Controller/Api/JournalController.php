@@ -7,6 +7,8 @@ namespace App\Controller\Api;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Service\DescriptionSanitizer;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,6 +26,7 @@ final class JournalController
     public function __construct(
         private readonly JournalService $journalService,
         private readonly DescriptionSanitizer $descriptionSanitizer = new DescriptionSanitizer(),
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {
     }
 
@@ -78,7 +81,7 @@ final class JournalController
         }
 
         $dateStr = isset($data['date']) && \is_string($data['date']) ? $data['date'] : null;
-        $date = $dateStr !== null ? self::parseDate($dateStr) : new \DateTimeImmutable();
+        $date = $dateStr !== null ? self::parseDate($dateStr) : $this->clock->now();
 
         if ($date === null) {
             return ApiResponse::error(400, 'Invalid date format');

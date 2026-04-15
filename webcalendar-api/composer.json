@@ -9,6 +9,7 @@
         "lexik/jwt-authentication-bundle": "^3.1",
         "nelmio/cors-bundle": "^2.4",
         "sabre/dav": "^4.7",
+        "symfony/clock": "^7.4",
         "symfony/console": "^7.2",
         "symfony/dotenv": "^7.2",
         "symfony/flex": "^2.4",
@@ -64,7 +65,8 @@
             "cache:clear": "symfony-cmd",
             "assets:install %PUBLIC_DIR%": "symfony-cmd"
         },
-        "check-sensitive-params": "php bin/check-sensitive-params.php"
+        "check-sensitive-params": "php bin/check-sensitive-params.php",
+        "check-clock-injection": "php bin/check-clock-injection.php"
     },
     "extra": {
         "symfony": {

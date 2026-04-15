@@ -6,6 +6,8 @@ namespace App\Controller\Seo;
 
 use App\Service\SeoEligibilityService;
 use App\Service\TenantAwarePdoProvider;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
@@ -25,6 +27,7 @@ final class SitemapController
         private readonly UserRepositoryInterface $userRepository,
         private readonly EventRepositoryInterface $eventRepository,
         private readonly TenantAwarePdoProvider $pdoProvider,
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {
     }
 
@@ -58,7 +61,7 @@ final class SitemapController
             return $this->emptyResponse();
         }
 
-        $now = new \DateTimeImmutable('now');
+        $now = $this->clock->now();
         $urls = [];
 
         foreach ($eligibleUsers as $login) {

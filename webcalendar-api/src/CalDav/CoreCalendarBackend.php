@@ -8,6 +8,8 @@ use App\Service\CalDavSyncTokenRepository;
 use App\Service\CoreServiceFactory;
 use App\Service\DescriptionSanitizer;
 use App\Service\ValarmHelper;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use Sabre\CalDAV\Backend\BackendInterface;
 use Sabre\CalDAV\Backend\SchedulingSupport;
 use Sabre\CalDAV\Backend\SyncSupport;
@@ -45,12 +47,15 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
     private readonly DescriptionSanitizer $descriptionSanitizer;
     private readonly ValarmHelper $valarmHelper;
     private ?CalDavSyncTokenRepository $syncTokenRepo = null;
+    private readonly ClockInterface $clock;
 
     public function __construct(
         private readonly CoreServiceFactory $coreServiceFactory,
+        ?ClockInterface $clock = null,
     ) {
         $this->descriptionSanitizer = new DescriptionSanitizer();
         $this->valarmHelper = new ValarmHelper();
+        $this->clock = $clock ?? new NativeClock();
     }
 
     private function getSyncTokenRepo(): CalDavSyncTokenRepository
@@ -140,8 +145,8 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             }
 
             $range = new DateRange(
-                new \DateTimeImmutable('-2 years'),
-                new \DateTimeImmutable('+2 years'),
+                $this->clock->now()->modify('-2 years'),
+                $this->clock->now()->modify('+2 years'),
             );
             $collection = $this->coreServiceFactory->getEventService()->getEventsInDateRange($range, $user);
 
@@ -688,7 +693,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
         $uid = (string) ($vevent->UID ?? 'caldav-' . bin2hex(random_bytes(8)));
 
         $dtstart = $vevent->DTSTART;
-        $startDate = $dtstart !== null ? $dtstart->getDateTime() : new \DateTimeImmutable();
+        $startDate = $dtstart !== null ? $dtstart->getDateTime() : $this->clock->now();
         $allDay = $dtstart !== null && isset($dtstart->parameters['VALUE']) && (string) $dtstart->parameters['VALUE'] === 'DATE';
 
         $duration = 0;
@@ -783,7 +788,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             $percentComplete = (int) (string) $vtodo->{'PERCENT-COMPLETE'};
         }
 
-        $startDate = new \DateTimeImmutable();
+        $startDate = $this->clock->now();
         if (isset($vtodo->DTSTART)) {
             $dt = $vtodo->DTSTART->getDateTime();
             $startDate = $dt instanceof \DateTimeImmutable ? $dt : \DateTimeImmutable::createFromMutable($dt);
@@ -872,7 +877,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
         $description = $this->extractDescription($vjournal);
         $uid = (string) ($vjournal->UID ?? 'caldav-journal-' . bin2hex(random_bytes(8)));
 
-        $startDate = new \DateTimeImmutable();
+        $startDate = $this->clock->now();
         if (isset($vjournal->DTSTART)) {
             $dt = $vjournal->DTSTART->getDateTime();
             $startDate = $dt instanceof \DateTimeImmutable ? $dt : \DateTimeImmutable::createFromMutable($dt);

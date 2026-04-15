@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Webhook;
 
+use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use Symfony\Component\Clock\NativeClock;
 
 /**
  * Dispatches webhook payloads to subscribed endpoints.
@@ -19,13 +21,16 @@ final class WebhookDispatcher implements WebhookDispatcherInterface
     private const RETRY_DELAYS = [1, 5, 30]; // seconds
 
     private LoggerInterface $logger;
+    private ClockInterface $clock;
 
     public function __construct(
         private readonly WebhookRepository $repository,
         private readonly \PDO $pdo,
         ?LoggerInterface $logger = null,
+        ?ClockInterface $clock = null,
     ) {
         $this->logger = $logger ?? new NullLogger();
+        $this->clock = $clock ?? new NativeClock();
     }
 
     /**
@@ -39,7 +44,7 @@ final class WebhookDispatcher implements WebhookDispatcherInterface
 
         $payload = json_encode([
             'event' => $eventType,
-            'timestamp' => (new \DateTimeImmutable())->format('c'),
+            'timestamp' => $this->clock->now()->format('c'),
             'data' => $data,
         ], JSON_THROW_ON_ERROR);
 
@@ -155,7 +160,7 @@ final class WebhookDispatcher implements WebhookDispatcherInterface
                 'wid' => $webhookId,
                 'status' => $statusCode,
                 'response' => "attempt {$attempt}",
-                'at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+                'at' => $this->clock->now()->format('Y-m-d H:i:s'),
             ]);
 
             // Keep only last 100 per webhook

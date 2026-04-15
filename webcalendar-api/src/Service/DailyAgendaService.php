@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use Symfony\Component\Clock\NativeClock;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 
 /**
@@ -17,6 +19,7 @@ use WebCalendar\Core\Domain\ValueObject\DateRange;
 final class DailyAgendaService
 {
     private LoggerInterface $logger;
+    private ClockInterface $clock;
 
     public function __construct(
         private readonly CoreServiceFactory $factory,
@@ -25,8 +28,10 @@ final class DailyAgendaService
         ?LoggerInterface $logger = null,
         #[\SensitiveParameter]
         private readonly string $appSecret = '',
+        ?ClockInterface $clock = null,
     ) {
         $this->logger = $logger ?? new NullLogger();
+        $this->clock = $clock ?? new NativeClock();
     }
 
     /**
@@ -42,7 +47,7 @@ final class DailyAgendaService
         $pdo = $this->factory->getPdo();
         $this->ensureTrackingTable($pdo);
 
-        $now = new \DateTimeImmutable();
+        $now = $this->clock->now();
         $today = $now->format('Y-m-d');
         $currentHour = (int) $now->format('G');
         $sent = 0;

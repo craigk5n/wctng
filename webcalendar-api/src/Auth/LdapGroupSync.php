@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Auth;
 
 use App\Service\CoreServiceFactory;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use WebCalendar\Core\Domain\Entity\Group;
 
 /**
@@ -15,10 +17,14 @@ use WebCalendar\Core\Domain\Entity\Group;
  */
 final class LdapGroupSync
 {
+    private ClockInterface $clock;
+
     public function __construct(
         private readonly LdapConfigRepository $configRepo,
         private readonly CoreServiceFactory $coreServiceFactory,
+        ?ClockInterface $clock = null,
     ) {
+        $this->clock = $clock ?? new NativeClock();
     }
 
     /**
@@ -72,7 +78,7 @@ final class LdapGroupSync
                     id: $id,
                     owner: 'admin',
                     name: $groupName,
-                    lastUpdate: new \DateTimeImmutable(),
+                    lastUpdate: $this->clock->now(),
                 );
                 $groupService->createGroup($group);
                 $groupService->addMember($id, $username);

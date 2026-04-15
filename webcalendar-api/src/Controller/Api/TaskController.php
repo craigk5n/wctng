@@ -7,6 +7,8 @@ namespace App\Controller\Api;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Service\DescriptionSanitizer;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,6 +26,7 @@ final class TaskController
     public function __construct(
         private readonly TaskService $taskService,
         private readonly DescriptionSanitizer $descriptionSanitizer = new DescriptionSanitizer(),
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {
     }
 
@@ -86,7 +89,7 @@ final class TaskController
             ? $this->descriptionSanitizer->sanitize($data['description'])
             : '';
 
-        $startDate = $dueDate ?? new \DateTimeImmutable();
+        $startDate = $dueDate ?? $this->clock->now();
 
         $task = new Task(
             id: new EventId(0),

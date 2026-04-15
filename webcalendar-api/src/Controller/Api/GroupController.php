@@ -11,6 +11,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use WebCalendar\Core\Application\Service\GroupService;
 use WebCalendar\Core\Domain\Entity\Group;
 
@@ -18,6 +20,7 @@ final class GroupController
 {
     public function __construct(
         private readonly GroupService $groupService,
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {
     }
 
@@ -61,7 +64,7 @@ final class GroupController
             id: $id,
             owner: $user->getUserIdentifier(),
             name: $name,
-            lastUpdate: new \DateTimeImmutable(),
+            lastUpdate: $this->clock->now(),
         );
 
         $this->groupService->createGroup($group);

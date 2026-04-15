@@ -11,6 +11,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use WebCalendar\Core\Domain\Entity\Blob;
 use WebCalendar\Core\Domain\Entity\User;
 use WebCalendar\Core\Domain\Repository\BlobRepositoryInterface;
@@ -36,6 +38,7 @@ final class AttachmentController
     public function __construct(
         private readonly EventRepositoryInterface $eventRepo,
         private readonly BlobRepositoryInterface $blobRepo,
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {
     }
 
@@ -124,7 +127,7 @@ final class AttachmentController
             size: (int) $file->getSize(),
             mimeType: $mimeType,
             type: BlobType::ATTACHMENT,
-            date: new \DateTimeImmutable(),
+            date: $this->clock->now(),
             content: $content,
         );
 

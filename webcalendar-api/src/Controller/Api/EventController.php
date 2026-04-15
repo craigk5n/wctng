@@ -18,6 +18,8 @@ use App\Service\GeoRepository;
 use App\Service\MercurePublisher;
 use App\Service\TenantAwarePdoProvider;
 use App\Webhook\WebhookDispatcher;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -58,6 +60,7 @@ final class EventController
         private readonly DescriptionSanitizer $descriptionSanitizer = new DescriptionSanitizer(),
         private readonly ConflictDetectionService $conflictService = new ConflictDetectionService(),
         private readonly ?GeocodingService $geocodingService = null,
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {
         $this->geoRepository = new GeoRepository($pdo);
         $this->extParticipants = new ExtParticipantRepository($pdo);
@@ -1086,7 +1089,7 @@ final class EventController
         // 2. Create new event starting at fromDate with same recurrence
         $newDateInt = (int) $fromDate->format('Ymd');
         $newUid = sprintf('%s-%s@split', $original->uid(), $fromDate->format('Ymd'));
-        $now = new \DateTimeImmutable();
+        $now = $this->clock->now();
 
         // Get next ID
         $stmt = $pdo->query('SELECT COALESCE(MAX(cal_id), 0) + 1 FROM webcal_entry');

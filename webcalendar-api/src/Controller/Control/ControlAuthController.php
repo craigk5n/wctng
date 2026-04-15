@@ -7,6 +7,8 @@ namespace App\Controller\Control;
 use App\Response\ApiResponse;
 use App\Security\PasswordHasher;
 use Lexik\Bundle\JWTAuthenticationBundle\Encoder\JWTEncoderInterface;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
@@ -23,6 +25,7 @@ final class ControlAuthController
         private readonly JWTEncoderInterface $jwtEncoder,
         private readonly int $jwtTtl,
         private readonly PasswordHasher $passwordHasher = new PasswordHasher(),
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {
     }
 
@@ -81,7 +84,7 @@ final class ControlAuthController
             'role' => 'super_admin',
         ]);
 
-        $expiresAt = new \DateTimeImmutable('+' . $this->jwtTtl . ' seconds');
+        $expiresAt = $this->clock->now()->modify('+' . $this->jwtTtl . ' seconds');
 
         return ApiResponse::success([
             'token' => $token,

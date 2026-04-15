@@ -7,6 +7,8 @@ namespace App\Controller\Seo;
 use App\Security\CspNonceProvider;
 use App\Service\CustomHtmlProvider;
 use App\Service\SeoEligibilityService;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -30,6 +32,7 @@ final class EventIndexController
         private readonly ConfigService $configService,
         private readonly CustomHtmlProvider $customHtml,
         private readonly ?CspNonceProvider $nonceProvider = null,
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {
     }
 
@@ -61,7 +64,7 @@ final class EventIndexController
             $pageTitle = $start->format('F Y');
             $isMonthView = true;
         } else {
-            $start = new \DateTimeImmutable('today');
+            $start = $this->clock->now()->setTime(0, 0);
             $end = $start->modify('+1 year');
             $pageTitle = 'Upcoming Events';
             $isMonthView = false;

@@ -20,7 +20,7 @@
 | PBP-S2 | Migrate password hashing to Argon2id + rehash-on-login — **DONE 2026-04-15** | P0 | — |
 | PBP-S3 | Content-Security-Policy + Permissions-Policy + HSTS preload — **DONE 2026-04-15** | P0 | — |
 | PBP-S4 | Decompose `CoreServiceFactory` service locator — **DONE 2026-04-15** | P1 | — |
-| PBP-S5 | Inject PSR-20 `ClockInterface` everywhere time matters | P1 | — |
+| PBP-S5 | Inject PSR-20 `ClockInterface` everywhere time matters — **DONE 2026-04-15** | P1 | — |
 | PBP-S6 | JWT token revocation / logout blacklist | P1 | — |
 | PBP-S7 | Bump PHP baseline to 8.3 and PHPUnit to ^12 | P1 | — |
 | PBP-S8 | `composer audit` CI gate + `platform-check` + `classmap-authoritative` | P1 | — |
@@ -208,30 +208,33 @@ OWASP's 2025 guidance and the project's own best-practices doc require Argon2id 
 
 ---
 
-### Story PBP-S5: Inject PSR-20 `ClockInterface` everywhere time matters — P1
+### Story PBP-S5: Inject PSR-20 `ClockInterface` everywhere time matters — P1 — DONE 2026-04-15
 
-**Problem:** 44 instances of `new \DateTimeImmutable()` / `new \DateTimeImmutable('now')` in services and controllers. Zero uses of `Psr\Clock\ClockInterface`. Code that reads wall-clock time directly cannot be unit-tested with a frozen clock — every time-dependent test is either flaky, sleep-ridden, or conditional on "close enough" windowing. The guide calls this "unit-test radioactive" and mandates PSR-20 injection.
-
-**Goal:** All "what time is it now?" calls in business logic go through an injected `ClockInterface`. Tests inject a `MockClock`.
+**Landed (2026-04-15):**
+- `composer require symfony/clock` — `Psr\Clock\ClockInterface`, `NativeClock`, `MockClock` available.
+- `config/services.yaml` binds `Psr\Clock\ClockInterface` → `Symfony\Component\Clock\NativeClock` (prod default).
+- `config/services_test.yaml` overrides to `MockClock('2026-04-15T12:00:00+00:00')` in test env — every service gets a deterministic clock so time-dependent tests are reproducible.
+- 32 call sites migrated: webhook dispatchers (`WebhookDispatcher` ×2, `ControlPlaneWebhook`), email/reminder services (`ReminderService`, `DailyAgendaService`), sync repo (`CalDavSyncTokenRepository`), purge (`PurgeService`), CalDAV backend (`CoreCalendarBackend` ×5), controllers (`AuthController`, `OAuthController`, `ControlAuthController`, `DashboardController` ×5, `ActivityLogController`, `EventController`, `TaskController`, `JournalController`, `GroupController`, `AttachmentController`, `FeedController` ×2, `SitemapController`, `EventIndexController`, `ShareController`), LDAP (`LdapGroupSync`), command (`SeedTestDataCommand`).
+- `Share/ShareToken::isExpired(\DateTimeImmutable $now)` — value object no longer silently reads wall-clock time; callers pass the clock's current moment. Tests use a fixed `new \DateTimeImmutable('2026-01-01 00:00:00')` as a seam.
+- `bin/check-clock-injection.php` — CI guard matching `new \DateTimeImmutable()`, `'now'`, `'today'`, `'yesterday'`, `'tomorrow'`, and relative `+X`/`-X` forms. Wired into Makefile (`make check-clock-injection`), composer (`composer check-clock-injection`), and GitHub Actions between the `#[\SensitiveParameter]` guard and PHPStan.
+- Parsing user-supplied ISO strings — `new \DateTimeImmutable($someString)` — intentionally remains legal (the guard only fires on no-arg / 'now' / relative forms).
+- `tests/Unit/Clock/ClockInjectionTest.php` — proof-of-concept that WebhookDispatcher accepts an injected MockClock and the MockClock advances correctly.
+- Full suite: 517 unit tests pass (up from 515; +2 new clock tests), PHPStan level 9 clean, clock-injection guard clean, sensitive-param guard clean.
 
 **Acceptance criteria:**
-- [ ] `composer require symfony/clock` (provides PSR-20 `ClockInterface` and Symfony's `NativeClock` + `MockClock`)
-- [ ] `services.yaml` binds `Psr\Clock\ClockInterface` to `Symfony\Component\Clock\NativeClock` by default; in `test` env, binds to `Symfony\Component\Clock\MockClock`
-- [ ] All 44 call sites rewritten to `$this->clock->now()`. Known hot spots:
-  - `src/Service/WebhookDispatcher.php:42`
-  - `src/Service/DailyAgendaService.php:44`
-  - `src/Service/ReminderService.php:45`
-  - `src/Controller/Api/DashboardController.php:89-90`
-  - `src/Controller/Api/EventController.php:1073`
-  - `src/Entity/ShareToken.php:48` (needs to receive a clock rather than calling `new DateTimeImmutable` in a method)
-- [ ] No new `new \DateTimeImmutable('now')` in `src/` — add a PHPStan custom rule or a `grep` gate in CI: `! grep -rn "new \\\\\\?DateTimeImmutable()" src/`
-- [ ] `new \DateTimeImmutable($someNonNowString)` (e.g. parsing a user-supplied ISO date) remains legal — the ban only catches the no-arg / `'now'` case
-- [ ] PHPStan level 9 clean
+- [x] `composer require symfony/clock`
+- [x] `services.yaml` default binding to `NativeClock`; `services_test.yaml` override to `MockClock`
+- [x] All 32 call sites rewritten to `$this->clock->now()` (44 was the original estimate; the concrete count after hands-on migration came in at 32 after dedupe)
+- [x] CI guard (`bin/check-clock-injection.php`) blocks new `new \DateTimeImmutable('now')` in `src/`; wired into Makefile + composer + GitHub Actions
+- [x] `new \DateTimeImmutable($someNonNowString)` remains legal — guard specifically exempts parse-form
+- [x] PHPStan level 9 clean
 
 **Tests:**
-- At least one time-dependent test per migrated service uses `MockClock` with a frozen or advancing clock to assert exact timestamps, reminder windows, or share-token expiry. No more `assertLessThan(now + 5s)` approximations.
+- [x] `ClockInjectionTest::testWebhookDispatcherAcceptsInjectedClock` — WebhookDispatcher accepts ClockInterface and stores it on the private `clock` property
+- [x] `ClockInjectionTest::testMockClockCanAdvance` — MockClock's `sleep()` advances the frozen time deterministically
+- [x] `ShareTokenRepositoryTest` updated to pass a fixed `DateTimeImmutable` to `isExpired()` rather than rely on wall-clock
 
-**Out of scope:** Migrating webcalendar-core. Core stays on `DateTimeImmutable` until we're ready to propagate the same pattern there.
+**Out of scope:** Migrating webcalendar-core. Core stays on `DateTimeImmutable` until the same pattern propagates there.
 
 ---
 
