@@ -25,8 +25,7 @@ final class ParticipantController
         private readonly EventRepositoryInterface $eventRepository,
         private readonly MercurePublisher $mercure,
         private readonly EventNotificationService $notifications,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/events/{eventId}/participants', name: 'api_participants_list', methods: ['GET'])]
     public function list(int $eventId, #[CurrentUser] ?WebCalendarUser $user): JsonResponse

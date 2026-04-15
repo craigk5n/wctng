@@ -16,8 +16,7 @@ final class HealthController
         private readonly \PDO $pdo,
         private readonly string $appMode,
         private readonly ?ErrorMetricsService $errorMetrics = null,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/health', name: 'api_health', methods: ['GET'])]
     public function __invoke(): JsonResponse

@@ -52,7 +52,7 @@ final class PublicCalendarIntegrationTest extends IntegrationTestCase
         );
         $events = $this->factory->getEventRepository()->findByDateRange($range, null, 'P', ['alice']);
 
-        $names = array_map(fn ($e) => $e->name(), $events);
+        $names = array_map(fn($e) => $e->name(), $events);
         $this->assertContains('Public Meeting', $names);
         $this->assertNotContains('Private Meeting', $names);
     }

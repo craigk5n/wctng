@@ -103,7 +103,7 @@ final class EventCrudIntegrationTest extends IntegrationTestCase
             new \DateTimeImmutable('2026-06-30'),
         );
         $results = $eventService->getEventsInDateRange($range, $this->adminUser);
-        $names = array_map(fn ($e) => $e->name(), $results->all());
+        $names = array_map(fn($e) => $e->name(), $results->all());
 
         $this->assertContains('June Event', $names);
         $this->assertNotContains('July Event', $names);

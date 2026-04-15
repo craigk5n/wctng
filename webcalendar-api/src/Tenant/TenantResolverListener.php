@@ -26,8 +26,7 @@ final readonly class TenantResolverListener
         private TenantContext $tenantContext,
         private string $baseDomain,
         private string $appMode,
-    ) {
-    }
+    ) {}
 
     public function onKernelRequest(RequestEvent $event): void
     {

@@ -7,35 +7,34 @@ namespace App\Subscription;
 final readonly class SubscriptionRepository
 {
     public const SCHEMA_SQL = <<<'SQL'
-        CREATE TABLE IF NOT EXISTS calendar_subscriptions (
-            id INTEGER PRIMARY KEY AUTO_INCREMENT,
-            user_login VARCHAR(60) NOT NULL,
-            url VARCHAR(500) NOT NULL,
-            name VARCHAR(100) NOT NULL,
-            color VARCHAR(16) NOT NULL DEFAULT '#3788d8',
-            refresh_interval INTEGER NOT NULL DEFAULT 3600,
-            last_fetched DATETIME DEFAULT NULL,
-            etag VARCHAR(255) DEFAULT NULL
-        )
-    SQL;
+            CREATE TABLE IF NOT EXISTS calendar_subscriptions (
+                id INTEGER PRIMARY KEY AUTO_INCREMENT,
+                user_login VARCHAR(60) NOT NULL,
+                url VARCHAR(500) NOT NULL,
+                name VARCHAR(100) NOT NULL,
+                color VARCHAR(16) NOT NULL DEFAULT '#3788d8',
+                refresh_interval INTEGER NOT NULL DEFAULT 3600,
+                last_fetched DATETIME DEFAULT NULL,
+                etag VARCHAR(255) DEFAULT NULL
+            )
+        SQL;
 
     public const SCHEMA_SQL_SQLITE = <<<'SQL'
-        CREATE TABLE IF NOT EXISTS calendar_subscriptions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_login VARCHAR(60) NOT NULL,
-            url VARCHAR(500) NOT NULL,
-            name VARCHAR(100) NOT NULL,
-            color VARCHAR(16) NOT NULL DEFAULT '#3788d8',
-            refresh_interval INTEGER NOT NULL DEFAULT 3600,
-            last_fetched DATETIME DEFAULT NULL,
-            etag VARCHAR(255) DEFAULT NULL
-        )
-    SQL;
+            CREATE TABLE IF NOT EXISTS calendar_subscriptions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_login VARCHAR(60) NOT NULL,
+                url VARCHAR(500) NOT NULL,
+                name VARCHAR(100) NOT NULL,
+                color VARCHAR(16) NOT NULL DEFAULT '#3788d8',
+                refresh_interval INTEGER NOT NULL DEFAULT 3600,
+                last_fetched DATETIME DEFAULT NULL,
+                etag VARCHAR(255) DEFAULT NULL
+            )
+        SQL;
 
     public function __construct(
         private \PDO $pdo,
-    ) {
-    }
+    ) {}
 
     /** @return CalendarSubscription[] */
     public function findByUser(string $login): array

@@ -23,8 +23,7 @@ final readonly class TenantAwarePdoProvider
         private \PDO $defaultPdo,
         private ?TenantContext $tenantContext = null,
         private ?TenantDatabaseManager $tenantDbManager = null,
-    ) {
-    }
+    ) {}
 
     public function get(): \PDO
     {

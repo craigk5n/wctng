@@ -17,8 +17,7 @@ final class TenantExportController
     public function __construct(
         private readonly TenantExportService $exportService,
         private readonly TenantContext $tenantContext,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/tenant/export', name: 'api_tenant_export', methods: ['GET'])]
     public function export(#[CurrentUser] ?WebCalendarUser $user): Response

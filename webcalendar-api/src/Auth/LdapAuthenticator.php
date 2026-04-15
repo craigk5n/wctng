@@ -17,8 +17,7 @@ final class LdapAuthenticator
     public function __construct(
         private readonly LdapConfigRepository $configRepo,
         private readonly CoreServiceFactory $coreServiceFactory,
-    ) {
-    }
+    ) {}
 
     /**
      * Attempts LDAP authentication. Returns the webcalendar User on success, null on failure.

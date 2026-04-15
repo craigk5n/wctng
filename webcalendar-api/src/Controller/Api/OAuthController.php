@@ -32,8 +32,7 @@ final class OAuthController
         private readonly int $jwtTtl,
         private readonly ClockInterface $clock,
         private readonly UserTokenIndex $tokenIndex,
-    ) {
-    }
+    ) {}
 
     /**
      * Redirects to the OAuth provider's authorization URL.

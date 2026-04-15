@@ -11,23 +11,22 @@ namespace App\Auth;
 final readonly class LdapConfigRepository
 {
     public const SCHEMA_SQL = <<<'SQL'
-        CREATE TABLE IF NOT EXISTS ldap_config (
-            id INTEGER PRIMARY KEY DEFAULT 1,
-            host VARCHAR(255) NOT NULL DEFAULT '',
-            port INTEGER NOT NULL DEFAULT 389,
-            base_dn VARCHAR(500) NOT NULL DEFAULT '',
-            bind_dn VARCHAR(500) NOT NULL DEFAULT '',
-            bind_password VARCHAR(500) NOT NULL DEFAULT '',
-            user_filter VARCHAR(255) NOT NULL DEFAULT '(uid=%s)',
-            use_tls INTEGER NOT NULL DEFAULT 0,
-            enabled INTEGER NOT NULL DEFAULT 0
-        )
-    SQL;
+            CREATE TABLE IF NOT EXISTS ldap_config (
+                id INTEGER PRIMARY KEY DEFAULT 1,
+                host VARCHAR(255) NOT NULL DEFAULT '',
+                port INTEGER NOT NULL DEFAULT 389,
+                base_dn VARCHAR(500) NOT NULL DEFAULT '',
+                bind_dn VARCHAR(500) NOT NULL DEFAULT '',
+                bind_password VARCHAR(500) NOT NULL DEFAULT '',
+                user_filter VARCHAR(255) NOT NULL DEFAULT '(uid=%s)',
+                use_tls INTEGER NOT NULL DEFAULT 0,
+                enabled INTEGER NOT NULL DEFAULT 0
+            )
+        SQL;
 
     public function __construct(
         private \PDO $pdo,
-    ) {
-    }
+    ) {}
 
     public function get(): LdapConfig
     {

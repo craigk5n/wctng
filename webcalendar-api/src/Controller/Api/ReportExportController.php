@@ -16,8 +16,7 @@ final class ReportExportController
 {
     public function __construct(
         private readonly ReportService $reportService,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/reports/export/{type}', name: 'api_reports_export', methods: ['GET'])]
     public function export(string $type, Request $request, #[CurrentUser] ?WebCalendarUser $user): Response

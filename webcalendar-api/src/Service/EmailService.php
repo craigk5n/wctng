@@ -18,8 +18,7 @@ class EmailService
         private readonly MailerInterface $mailer,
         private readonly string $fromAddress,
         private readonly string $fromName,
-    ) {
-    }
+    ) {}
 
     /**
      * Sends an email.

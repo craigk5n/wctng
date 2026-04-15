@@ -18,8 +18,7 @@ final class ImportController
     public function __construct(
         private readonly CategoryService $categoryService,
         private readonly ImportService $importService,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/import', name: 'api_import', methods: ['POST'])]
     public function import(Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse

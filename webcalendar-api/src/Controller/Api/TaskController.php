@@ -27,8 +27,7 @@ final class TaskController
         private readonly TaskService $taskService,
         private readonly DescriptionSanitizer $descriptionSanitizer = new DescriptionSanitizer(),
         private readonly ClockInterface $clock = new NativeClock(),
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/tasks', name: 'api_tasks_list', methods: ['GET'])]
     public function list(Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse

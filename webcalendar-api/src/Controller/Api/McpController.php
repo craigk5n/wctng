@@ -90,8 +90,7 @@ final class McpController
         private readonly BookingService $bookingService,
         private readonly EventRepositoryInterface $eventRepository,
         private readonly UserRepositoryInterface $userRepository,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/mcp', name: 'api_mcp', methods: ['POST'])]
     public function handle(Request $request): JsonResponse
@@ -289,7 +288,7 @@ final class McpController
 
         $slots = $this->bookingService->getAvailability($targetUser, $date->setTime(0, 0));
 
-        $available = array_map(fn ($slot) => [
+        $available = array_map(fn($slot) => [
             'start' => $slot->startDate()->format('H:i'),
             'end' => $slot->endDate()->format('H:i'),
         ], $slots);

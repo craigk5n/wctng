@@ -31,7 +31,7 @@ final class CalDavProtocolTest extends IntegrationTestCase
             . "UID:{$uid}\r\n"
             . "DTSTAMP:20260601T080000Z\r\n"
             . "DTSTART:{$dtstart}\r\n"
-            . "DTEND:" . substr($dtstart, 0, 9) . "100000Z\r\n"
+            . 'DTEND:' . substr($dtstart, 0, 9) . "100000Z\r\n"
             . "SUMMARY:{$summary}\r\n"
             . "END:VEVENT\r\n"
             . "END:VCALENDAR\r\n";
@@ -70,15 +70,15 @@ final class CalDavProtocolTest extends IntegrationTestCase
         // response rather than a phantom calendar that doesn't exist in
         // the database.
         $body = <<<'XML'
-<?xml version="1.0" encoding="utf-8"?>
-<c:mkcalendar xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
-  <d:set>
-    <d:prop>
-      <d:displayname>Second Calendar</d:displayname>
-    </d:prop>
-  </d:set>
-</c:mkcalendar>
-XML;
+            <?xml version="1.0" encoding="utf-8"?>
+            <c:mkcalendar xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+              <d:set>
+                <d:prop>
+                  <d:displayname>Second Calendar</d:displayname>
+                </d:prop>
+              </d:set>
+            </c:mkcalendar>
+            XML;
 
         $response = $this->harness->invoke(
             'MKCALENDAR',

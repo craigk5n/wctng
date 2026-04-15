@@ -14,8 +14,7 @@ final readonly class PurgeResult
         public bool $dryRun,
         public \DateTimeImmutable $beforeDate,
         public ?string $userLogin,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{count: int, dry_run: bool, before_date: string, user_login: ?string}

@@ -41,7 +41,7 @@ final class CustomFieldController
     public function listPublic(): JsonResponse
     {
         $fields = $this->fieldRepo->findAll();
-        return ApiResponse::success(array_map(fn ($f) => $f->toArray(), $fields));
+        return ApiResponse::success(array_map(fn($f) => $f->toArray(), $fields));
     }
 
     #[Route('/api/v2/admin/custom-fields', name: 'api_admin_custom_fields_list', methods: ['GET'])]
@@ -52,7 +52,7 @@ final class CustomFieldController
         }
 
         $fields = $this->fieldRepo->findAll();
-        return ApiResponse::success(array_map(fn ($f) => $f->toArray(), $fields));
+        return ApiResponse::success(array_map(fn($f) => $f->toArray(), $fields));
     }
 
     #[Route('/api/v2/admin/custom-fields', name: 'api_admin_custom_fields_create', methods: ['POST'])]

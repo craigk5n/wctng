@@ -16,8 +16,7 @@ final class EmailConfigController
 {
     public function __construct(
         private readonly EmailService $emailService,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/admin/email-config', name: 'api_email_config_get', methods: ['GET'])]
     public function get(#[CurrentUser] ?WebCalendarUser $user): JsonResponse

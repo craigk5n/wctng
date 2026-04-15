@@ -30,7 +30,7 @@ final class TokenRevocationServiceTest extends TestCase
         $count = $service->revokeAllFor('alice');
 
         self::assertSame(2, $count);
-        self::assertSame(['jti-1', 'jti-2'], array_map(static fn (array $p) => $p['jti'], $blocked->added));
+        self::assertSame(['jti-1', 'jti-2'], array_map(static fn(array $p) => $p['jti'], $blocked->added));
         self::assertSame([], $index->liveTokensFor('alice'), 'Alice\'s index is wiped after revocation');
         self::assertCount(1, $index->liveTokensFor('bob'), 'Bob\'s tokens untouched');
     }
@@ -80,8 +80,7 @@ final class SpyBlockedTokenManager implements BlockedTokenManagerInterface
 
     public function __construct(
         private readonly ?string $failOnJti = null,
-    ) {
-    }
+    ) {}
 
     public function add(array $payload): bool
     {
@@ -108,7 +107,7 @@ final class SpyBlockedTokenManager implements BlockedTokenManagerInterface
     {
         $this->added = array_values(array_filter(
             $this->added,
-            static fn (array $entry) => ($entry['jti'] ?? null) !== ($payload['jti'] ?? null),
+            static fn(array $entry) => ($entry['jti'] ?? null) !== ($payload['jti'] ?? null),
         ));
     }
 }

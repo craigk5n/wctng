@@ -24,8 +24,7 @@ final class SecurityAuditController
         #[\SensitiveParameter]
         private readonly string $appSecret,
         private readonly string $environment,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/admin/security-audit', name: 'api_admin_security_audit', methods: ['GET'])]
     public function __invoke(Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
@@ -69,9 +68,9 @@ final class SecurityAuditController
         $checks[] = $this->checkAdminCount();
         $checks[] = $this->checkPublicCalendars();
 
-        $passCount = \count(array_filter($checks, static fn (array $c) => $c['status'] === 'pass'));
-        $warnCount = \count(array_filter($checks, static fn (array $c) => $c['status'] === 'warn'));
-        $failCount = \count(array_filter($checks, static fn (array $c) => $c['status'] === 'fail'));
+        $passCount = \count(array_filter($checks, static fn(array $c) => $c['status'] === 'pass'));
+        $warnCount = \count(array_filter($checks, static fn(array $c) => $c['status'] === 'warn'));
+        $failCount = \count(array_filter($checks, static fn(array $c) => $c['status'] === 'fail'));
 
         return ApiResponse::success([
             'checks' => $checks,

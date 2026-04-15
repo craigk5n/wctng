@@ -48,7 +48,7 @@ final class ReportServiceTest extends TestCase
         $this->assertNotEmpty($result);
 
         // Should have entries for March 15 and 16
-        $dates = array_map(static fn ($r) => (string) $r['date'], $result);
+        $dates = array_map(static fn($r) => (string) $r['date'], $result);
         $this->assertContains('20260315', $dates);
         $this->assertContains('20260316', $dates);
 

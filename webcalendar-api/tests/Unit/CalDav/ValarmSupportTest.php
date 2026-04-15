@@ -96,19 +96,19 @@ final class ValarmSupportTest extends TestCase
         $helper = new ValarmHelper();
 
         $ics = <<<ICS
-BEGIN:VCALENDAR
-BEGIN:VEVENT
-UID:test@example.com
-SUMMARY:Test
-DTSTART:20260401T100000
-BEGIN:VALARM
-TRIGGER:-PT15M
-ACTION:DISPLAY
-DESCRIPTION:Reminder
-END:VALARM
-END:VEVENT
-END:VCALENDAR
-ICS;
+            BEGIN:VCALENDAR
+            BEGIN:VEVENT
+            UID:test@example.com
+            SUMMARY:Test
+            DTSTART:20260401T100000
+            BEGIN:VALARM
+            TRIGGER:-PT15M
+            ACTION:DISPLAY
+            DESCRIPTION:Reminder
+            END:VALARM
+            END:VEVENT
+            END:VCALENDAR
+            ICS;
 
         $vcalendar = VObject\Reader::read($ics);
         /** @var VObject\Component\VCalendar $vcalendar */
@@ -130,23 +130,23 @@ ICS;
         $helper = new ValarmHelper();
 
         $ics = <<<ICS
-BEGIN:VCALENDAR
-BEGIN:VEVENT
-UID:test@example.com
-SUMMARY:Test
-DTSTART:20260401T100000
-BEGIN:VALARM
-TRIGGER:-PT15M
-ACTION:DISPLAY
-DESCRIPTION:15 min
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-PT1H
-ACTION:AUDIO
-END:VALARM
-END:VEVENT
-END:VCALENDAR
-ICS;
+            BEGIN:VCALENDAR
+            BEGIN:VEVENT
+            UID:test@example.com
+            SUMMARY:Test
+            DTSTART:20260401T100000
+            BEGIN:VALARM
+            TRIGGER:-PT15M
+            ACTION:DISPLAY
+            DESCRIPTION:15 min
+            END:VALARM
+            BEGIN:VALARM
+            TRIGGER:-PT1H
+            ACTION:AUDIO
+            END:VALARM
+            END:VEVENT
+            END:VCALENDAR
+            ICS;
 
         $vcalendar = VObject\Reader::read($ics);
         /** @var VObject\Component\VCalendar $vcalendar */
@@ -163,14 +163,14 @@ ICS;
         $helper = new ValarmHelper();
 
         $ics = <<<ICS
-BEGIN:VCALENDAR
-BEGIN:VEVENT
-UID:test@example.com
-SUMMARY:Test
-DTSTART:20260401T100000
-END:VEVENT
-END:VCALENDAR
-ICS;
+            BEGIN:VCALENDAR
+            BEGIN:VEVENT
+            UID:test@example.com
+            SUMMARY:Test
+            DTSTART:20260401T100000
+            END:VEVENT
+            END:VCALENDAR
+            ICS;
 
         $vcalendar = VObject\Reader::read($ics);
         /** @var VObject\Component\VCalendar $vcalendar */

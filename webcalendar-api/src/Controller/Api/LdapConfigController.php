@@ -19,8 +19,7 @@ final class LdapConfigController
     public function __construct(
         private readonly LdapConfigRepository $repository,
         private readonly LdapGroupSync $groupSync,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/admin/ldap-config', name: 'api_ldap_config_get', methods: ['GET'])]
     public function get(#[CurrentUser] ?WebCalendarUser $user): JsonResponse

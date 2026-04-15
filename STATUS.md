@@ -24,7 +24,7 @@
 | PBP-S6 | JWT token revocation / logout blacklist — **DONE 2026-04-15** | P1 | — |
 | PBP-S7 | Bump PHP baseline to 8.3 and PHPUnit to ^12 — **DONE 2026-04-15** | P1 | — |
 | PBP-S8 | `composer audit` CI gate + `platform-check` + `classmap-authoritative` — **DONE 2026-04-15** | P1 | — |
-| PBP-S9 | PER-CS 3.0 coding standard (drop PSR-12, drop php_codesniffer) | P2 | PBP-S7 |
+| PBP-S9 | PER-CS 3.0 coding standard (drop PSR-12, drop php_codesniffer) — **DONE 2026-04-15** | P2 | PBP-S7 |
 | PBP-S10 | Tenant status & plan → backed enums | P2 | — |
 | PBP-S11 | Redis-backed rate limiter with file fallback | P2 | — |
 | PBP-S12 | Adopt `doctrine/migrations` for API schema changes | P2 | — |
@@ -338,24 +338,30 @@ OWASP's 2025 guidance and the project's own best-practices doc require Argon2id 
 
 ---
 
-### Story PBP-S9: PER-CS 3.0 coding standard (drop PSR-12, drop php_codesniffer) — P2 (blocked by PBP-S7)
+### Story PBP-S9: PER-CS 3.0 coding standard (drop PSR-12, drop php_codesniffer) — P2 — DONE 2026-04-15
 
-**Problem:** `.php-cs-fixer.dist.php:13` uses `@PSR12` — PSR-12 was formally replaced by PER Coding Style 3.0 in 2023. Also, both `friendsofphp/php-cs-fixer` and `squizlabs/php_codesniffer` are in dev deps, creating dueling formatters.
-
-**Goal:** One formatter, one standard, aligned with current PHP-FIG guidance.
+**Landed (2026-04-15):**
+- `.php-cs-fixer.dist.php` — `@PSR12` → `@PER-CS3x0` + `@PHP83Migration`. Using `@PER-CS3x0` (not the deprecated `@PER-CS3.0` alias) silences php-cs-fixer 3.94+ deprecation warnings. PHP 8.3 migration rules now match our PBP-S7 baseline.
+- `composer remove --dev squizlabs/php_codesniffer` — one formatter is enough. `phpcs.xml.dist` and `.phpcs-cache` deleted. No Makefile or CI references remained to update.
+- `Makefile` comments swapped from "PSR-12" to "PER-CS 3.0 via php-cs-fixer".
+- `README.md` updated in three places: the `bin/ci phpcs` quick-check → `bin/ci lint`, the PHPCS tooling row → `php-cs-fixer`, and the Code Standards bullet `PHP: PSR-12, …` → `PHP: PER-CS 3.0 (php-cs-fixer), …`.
+- `php-cs-fixer fix` ran on the whole tree — **135 of 329 files auto-reformatted** in a single style-only pass. Changes are mechanical and safe: short-arrow spacing (`fn (x)` → `fn(x)`), heredoc/nowdoc indentation, empty-body constructor collapsing (`) {\n    }` → `) {}`), blank-line tweaks. Zero behavioral changes — PHPStan level 9 still clean, 525 unit tests still pass.
+- One PHPStan error surfaced by the PER-CS pass: `json_decode(base64_decode($parts[1], true), true)` — php-cs-fixer added the `strict: true` argument to `base64_decode`, which flipped its return type from `string` to `string|false`. Fixed with a `(string)` cast on the `base64_decode` result in `AuthController::refresh()`.
 
 **Acceptance criteria:**
-- [ ] Replace `'@PSR12' => true` with `'@PER-CS3.0' => true` and add `'@PHP83Migration' => true` (or `@PHP84Migration` once PBP-S7's follow-up lands)
-- [ ] Remove `squizlabs/php_codesniffer` from `composer.json` require-dev and delete `phpcs.xml*` if present
-- [ ] Run `php-cs-fixer fix` once on the whole tree to pick up any PER-CS 3.0 deltas; land that as a single "style-only" commit separate from any behavioral change
-- [ ] CI lint step unchanged name-wise but now runs under PER-CS 3.0
-- [ ] Update `CLAUDE.md` / `CONTRIBUTING.md` with the new standard name
+- [x] `@PSR12` replaced with `@PER-CS3x0` + `@PHP83Migration`
+- [x] `squizlabs/php_codesniffer` removed from require-dev + `phpcs.xml*` files deleted
+- [x] `php-cs-fixer fix` run once on the whole tree — 135 files reformatted in a focused style-only pass
+- [x] CI lint step unchanged name-wise; now runs PER-CS 3.0 via the same `./vendor/bin/php-cs-fixer fix --dry-run --diff` command
+- [x] Docs updated (`README.md`, Makefile comments; `CLAUDE.md` and `CONTRIBUTING.md` had no PSR-12 mentions to update)
 
 **Tests:**
-- `composer lint` runs clean on the final tree
-- CI lint job passes
+- [x] `composer lint` (aka `./vendor/bin/php-cs-fixer fix --dry-run --diff`): clean — 0 of 329 files need changes
+- [x] PHPStan level 9 clean after the style pass (1 regression caught and fixed: `base64_decode` return-type narrowing)
+- [x] 525 unit tests pass on PHPUnit 11 + PHP 8.2 sandbox
+- [x] Sensitive-param guard + clock-injection guard clean
 
-**Out of scope:** Bikeshedding individual rule overrides; match whatever the `@PER-CS3.0` preset ships with for now.
+**Out of scope:** Bikeshedding individual PER-CS rule overrides. We ship whatever the `@PER-CS3x0` preset gives us; follow-up PRs can tune specific rules if a pattern bothers the team.
 
 ---
 

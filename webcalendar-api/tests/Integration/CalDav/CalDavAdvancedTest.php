@@ -224,23 +224,23 @@ final class CalDavAdvancedTest extends IntegrationTestCase
         );
 
         $body = <<<'XML'
-<?xml version="1.0" encoding="utf-8"?>
-<c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
-  <d:prop>
-    <d:getetag/>
-    <c:calendar-data/>
-  </d:prop>
-  <c:filter>
-    <c:comp-filter name="VCALENDAR">
-      <c:comp-filter name="VEVENT">
-        <c:prop-filter name="SUMMARY">
-          <c:text-match collation="i;ascii-casemap">Sprint</c:text-match>
-        </c:prop-filter>
-      </c:comp-filter>
-    </c:comp-filter>
-  </c:filter>
-</c:calendar-query>
-XML;
+            <?xml version="1.0" encoding="utf-8"?>
+            <c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+              <d:prop>
+                <d:getetag/>
+                <c:calendar-data/>
+              </d:prop>
+              <c:filter>
+                <c:comp-filter name="VCALENDAR">
+                  <c:comp-filter name="VEVENT">
+                    <c:prop-filter name="SUMMARY">
+                      <c:text-match collation="i;ascii-casemap">Sprint</c:text-match>
+                    </c:prop-filter>
+                  </c:comp-filter>
+                </c:comp-filter>
+              </c:filter>
+            </c:calendar-query>
+            XML;
 
         $response = $this->harness->invoke(
             'REPORT',

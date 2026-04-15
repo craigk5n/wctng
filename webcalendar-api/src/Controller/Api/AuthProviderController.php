@@ -18,8 +18,7 @@ final class AuthProviderController
 {
     public function __construct(
         private readonly OAuthProviderRepository $repository,
-    ) {
-    }
+    ) {}
 
     /**
      * Public endpoint: returns enabled providers (name + id only, no secrets).
@@ -46,7 +45,7 @@ final class AuthProviderController
         }
 
         $providers = $this->repository->findAll();
-        $items = array_map(static fn (OAuthProvider $p): array => $p->toArray(), $providers);
+        $items = array_map(static fn(OAuthProvider $p): array => $p->toArray(), $providers);
 
         return ApiResponse::success(array_values($items));
     }

@@ -16,8 +16,7 @@ final class SearchController
 {
     public function __construct(
         private readonly SearchIndexService $searchService,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/search', name: 'api_search', methods: ['GET'])]
     public function search(Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse

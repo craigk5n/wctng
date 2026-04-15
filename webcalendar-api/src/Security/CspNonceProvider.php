@@ -22,8 +22,7 @@ final readonly class CspNonceProvider
 
     public function __construct(
         private RequestStack $requestStack,
-    ) {
-    }
+    ) {}
 
     public function getNonce(): string
     {

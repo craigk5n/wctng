@@ -27,8 +27,7 @@ final class PublicCalendarController
         private readonly EventRepositoryInterface $eventRepo,
         private readonly UserRepositoryInterface $userRepo,
         private readonly RateLimiterInterface $rateLimiter,
-    ) {
-    }
+    ) {}
 
     /**
      * Test-only constructor that accepts individual dependencies.
@@ -119,7 +118,8 @@ final class PublicCalendarController
     public function togglePublicCalendar(
         string $login,
         Request $request,
-        #[CurrentUser] WebCalendarUser|User|null $actorOrUser = null,
+        #[CurrentUser]
+        WebCalendarUser|User|null $actorOrUser = null,
     ): JsonResponse {
         $actor = $actorOrUser instanceof WebCalendarUser
             ? $actorOrUser->getCoreUser()

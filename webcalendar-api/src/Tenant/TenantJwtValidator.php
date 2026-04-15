@@ -21,8 +21,7 @@ final readonly class TenantJwtValidator
 {
     public function __construct(
         private TenantContext $tenantContext,
-    ) {
-    }
+    ) {}
 
     public function onKernelRequest(RequestEvent $event): void
     {

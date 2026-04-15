@@ -42,8 +42,7 @@ final class CalDavServerHarness
     public function __construct(
         private readonly CoreServiceFactory $factory,
         private readonly string $currentUser = 'admin',
-    ) {
-    }
+    ) {}
 
     /**
      * Build a fresh sabre/dav Server for this request. Rebuilding per call
@@ -134,13 +133,13 @@ final class CalDavServerHarness
         }
 
         $body = <<<XML
-<?xml version="1.0" encoding="utf-8"?>
-<d:propfind xmlns:d="DAV:">
-  <d:prop>
-    {$propXml}
-  </d:prop>
-</d:propfind>
-XML;
+            <?xml version="1.0" encoding="utf-8"?>
+            <d:propfind xmlns:d="DAV:">
+              <d:prop>
+                {$propXml}
+              </d:prop>
+            </d:propfind>
+            XML;
 
         return $this->invoke('PROPFIND', $uri, $body, [
             'Depth' => (string) $depth,
@@ -189,21 +188,21 @@ XML;
     public function calendarQuery(string $uri, string $start, string $end): Response
     {
         $body = <<<XML
-<?xml version="1.0" encoding="utf-8"?>
-<c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
-  <d:prop>
-    <d:getetag/>
-    <c:calendar-data/>
-  </d:prop>
-  <c:filter>
-    <c:comp-filter name="VCALENDAR">
-      <c:comp-filter name="VEVENT">
-        <c:time-range start="{$start}" end="{$end}"/>
-      </c:comp-filter>
-    </c:comp-filter>
-  </c:filter>
-</c:calendar-query>
-XML;
+            <?xml version="1.0" encoding="utf-8"?>
+            <c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+              <d:prop>
+                <d:getetag/>
+                <c:calendar-data/>
+              </d:prop>
+              <c:filter>
+                <c:comp-filter name="VCALENDAR">
+                  <c:comp-filter name="VEVENT">
+                    <c:time-range start="{$start}" end="{$end}"/>
+                  </c:comp-filter>
+                </c:comp-filter>
+              </c:filter>
+            </c:calendar-query>
+            XML;
         return $this->invoke('REPORT', $uri, $body, [
             'Depth' => '1',
             'Content-Type' => 'application/xml',
@@ -223,15 +222,15 @@ XML;
             $hrefXml .= "<d:href>{$href}</d:href>\n  ";
         }
         $body = <<<XML
-<?xml version="1.0" encoding="utf-8"?>
-<c:calendar-multiget xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
-  <d:prop>
-    <d:getetag/>
-    <c:calendar-data/>
-  </d:prop>
-  {$hrefXml}
-</c:calendar-multiget>
-XML;
+            <?xml version="1.0" encoding="utf-8"?>
+            <c:calendar-multiget xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+              <d:prop>
+                <d:getetag/>
+                <c:calendar-data/>
+              </d:prop>
+              {$hrefXml}
+            </c:calendar-multiget>
+            XML;
         return $this->invoke('REPORT', $uri, $body, [
             'Depth' => '1',
             'Content-Type' => 'application/xml',
@@ -245,15 +244,15 @@ XML;
     {
         $token = $syncToken ?? '';
         $body = <<<XML
-<?xml version="1.0" encoding="utf-8"?>
-<d:sync-collection xmlns:d="DAV:">
-  <d:sync-token>{$token}</d:sync-token>
-  <d:sync-level>1</d:sync-level>
-  <d:prop>
-    <d:getetag/>
-  </d:prop>
-</d:sync-collection>
-XML;
+            <?xml version="1.0" encoding="utf-8"?>
+            <d:sync-collection xmlns:d="DAV:">
+              <d:sync-token>{$token}</d:sync-token>
+              <d:sync-level>1</d:sync-level>
+              <d:prop>
+                <d:getetag/>
+              </d:prop>
+            </d:sync-collection>
+            XML;
 
         return $this->invoke('REPORT', $uri, $body, [
             'Depth' => '1',
@@ -263,7 +262,7 @@ XML;
 
     private function buildAuthBackend(): AbstractBasic
     {
-        return new class($this->currentUser) extends AbstractBasic {
+        return new class ($this->currentUser) extends AbstractBasic {
             public function __construct(string $expectedUser)
             {
                 $this->principalPrefix = 'principals/';
@@ -299,4 +298,3 @@ final class NullSapi
         // Swallow — tests read the Response object directly.
     }
 }
-

@@ -11,8 +11,7 @@ final readonly class TenantExportService
 {
     public function __construct(
         private TenantDatabaseManager $dbManager,
-    ) {
-    }
+    ) {}
 
     /**
      * Exports tenant data as a ZIP file content string.

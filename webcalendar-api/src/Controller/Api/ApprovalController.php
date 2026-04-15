@@ -21,8 +21,7 @@ final class ApprovalController
 {
     public function __construct(
         private readonly EventRepositoryInterface $eventRepo,
-    ) {
-    }
+    ) {}
 
     public static function createForTest(
         EventRepositoryInterface $eventRepo,
@@ -37,7 +36,8 @@ final class ApprovalController
     #[Route('/api/v2/admin/events/pending', name: 'api_admin_events_pending', methods: ['GET'])]
     public function listPending(
         Request $request,
-        #[CurrentUser] WebCalendarUser|User|null $actorOrUser = null,
+        #[CurrentUser]
+        WebCalendarUser|User|null $actorOrUser = null,
     ): JsonResponse {
         $actor = $this->resolveUser($actorOrUser);
         if ($actor === null || !$actor->isAdmin()) {
@@ -54,7 +54,8 @@ final class ApprovalController
     public function approve(
         int $id,
         Request $request,
-        #[CurrentUser] WebCalendarUser|User|null $actorOrUser = null,
+        #[CurrentUser]
+        WebCalendarUser|User|null $actorOrUser = null,
     ): JsonResponse {
         $actor = $this->resolveUser($actorOrUser);
         if ($actor === null || !$actor->isAdmin()) {
@@ -92,7 +93,8 @@ final class ApprovalController
     public function reject(
         int $id,
         Request $request,
-        #[CurrentUser] WebCalendarUser|User|null $actorOrUser = null,
+        #[CurrentUser]
+        WebCalendarUser|User|null $actorOrUser = null,
     ): JsonResponse {
         $actor = $this->resolveUser($actorOrUser);
         if ($actor === null || !$actor->isAdmin()) {

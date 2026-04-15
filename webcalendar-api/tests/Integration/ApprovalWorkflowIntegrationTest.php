@@ -39,7 +39,7 @@ final class ApprovalWorkflowIntegrationTest extends IntegrationTestCase
 
         // Verify it shows up in pending
         $pending = $eventRepo->findByStatus('needs_approval');
-        $pendingNames = array_map(fn ($e) => $e->name(), $pending);
+        $pendingNames = array_map(fn($e) => $e->name(), $pending);
         $this->assertContains('Pending Event', $pendingNames);
 
         // Approve it
@@ -65,7 +65,7 @@ final class ApprovalWorkflowIntegrationTest extends IntegrationTestCase
 
         // No longer in pending
         $pending = $eventRepo->findByStatus('needs_approval');
-        $pendingNames = array_map(fn ($e) => $e->name(), $pending);
+        $pendingNames = array_map(fn($e) => $e->name(), $pending);
         $this->assertNotContains('Pending Event', $pendingNames);
     }
 }

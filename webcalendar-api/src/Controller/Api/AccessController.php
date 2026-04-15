@@ -15,8 +15,7 @@ final class AccessController
 {
     public function __construct(
         private readonly \PDO $pdo,
-    ) {
-    }
+    ) {}
 
     /**
      * List user-to-user access permissions for the current user's calendar.

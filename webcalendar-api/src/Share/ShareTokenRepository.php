@@ -7,29 +7,28 @@ namespace App\Share;
 final readonly class ShareTokenRepository
 {
     public const SCHEMA_SQL = <<<'SQL'
-        CREATE TABLE IF NOT EXISTS share_tokens (
-            id INTEGER PRIMARY KEY AUTO_INCREMENT,
-            token VARCHAR(36) NOT NULL UNIQUE,
-            owner_login VARCHAR(60) NOT NULL,
-            expires_at DATETIME DEFAULT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    SQL;
+            CREATE TABLE IF NOT EXISTS share_tokens (
+                id INTEGER PRIMARY KEY AUTO_INCREMENT,
+                token VARCHAR(36) NOT NULL UNIQUE,
+                owner_login VARCHAR(60) NOT NULL,
+                expires_at DATETIME DEFAULT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        SQL;
 
     public const SCHEMA_SQL_SQLITE = <<<'SQL'
-        CREATE TABLE IF NOT EXISTS share_tokens (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            token VARCHAR(36) NOT NULL UNIQUE,
-            owner_login VARCHAR(60) NOT NULL,
-            expires_at DATETIME DEFAULT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    SQL;
+            CREATE TABLE IF NOT EXISTS share_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                token VARCHAR(36) NOT NULL UNIQUE,
+                owner_login VARCHAR(60) NOT NULL,
+                expires_at DATETIME DEFAULT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        SQL;
 
     public function __construct(
         private \PDO $pdo,
-    ) {
-    }
+    ) {}
 
     /**
      * @return ShareToken[]

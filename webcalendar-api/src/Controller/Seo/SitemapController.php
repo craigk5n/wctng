@@ -28,8 +28,7 @@ final class SitemapController
         private readonly EventRepositoryInterface $eventRepository,
         private readonly TenantAwarePdoProvider $pdoProvider,
         private readonly ClockInterface $clock = new NativeClock(),
-    ) {
-    }
+    ) {}
 
     private const CACHE_TTL = 3600; // 1 hour
 

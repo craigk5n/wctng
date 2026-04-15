@@ -21,8 +21,7 @@ final class SetupController
     public function __construct(
         private readonly UserService $userService,
         private readonly UserRepositoryInterface $userRepository,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/setup/status', name: 'api_setup_status', methods: ['GET'])]
     public function status(): JsonResponse

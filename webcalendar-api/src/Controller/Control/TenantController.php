@@ -28,15 +28,14 @@ final class TenantController
         private readonly TenantDatabaseManager $dbManager,
         private readonly ControlPlaneWebhook $webhook,
         private readonly TenantExportService $exportService,
-    ) {
-    }
+    ) {}
 
     #[Route('/control/v1/tenants', name: 'control_tenants_list', methods: ['GET'])]
     public function list(): JsonResponse
     {
         $tenants = $this->tenantRepository->findAll();
 
-        $items = array_map(static fn (Tenant $t): array => [
+        $items = array_map(static fn(Tenant $t): array => [
             'slug' => $t->slug(),
             'name' => $t->name(),
             'plan' => $t->plan(),

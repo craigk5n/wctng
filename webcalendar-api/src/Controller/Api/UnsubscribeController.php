@@ -19,8 +19,7 @@ final class UnsubscribeController
         private readonly UserRepositoryInterface $userRepository,
         #[\SensitiveParameter]
         private readonly string $appSecret,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/unsubscribe/{token}', name: 'api_unsubscribe', methods: ['GET'])]
     public function unsubscribe(#[\SensitiveParameter] string $token): Response
@@ -74,29 +73,29 @@ final class UnsubscribeController
         $color = $success ? '#22c55e' : '#ef4444';
 
         $html = <<<HTML
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{$title} — WebCalendar</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #f8f9fa; color: #1a1a1a; }
-        .card { background: white; border-radius: 12px; padding: 2rem; max-width: 400px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .icon { font-size: 3rem; color: {$color}; }
-        h1 { margin: 1rem 0 0.5rem; font-size: 1.5rem; }
-        p { color: #555; line-height: 1.5; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <div class="icon">{$icon}</div>
-        <h1>{$title}</h1>
-        <p>{$message}</p>
-    </div>
-</body>
-</html>
-HTML;
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>{$title} — WebCalendar</title>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #f8f9fa; color: #1a1a1a; }
+                    .card { background: white; border-radius: 12px; padding: 2rem; max-width: 400px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+                    .icon { font-size: 3rem; color: {$color}; }
+                    h1 { margin: 1rem 0 0.5rem; font-size: 1.5rem; }
+                    p { color: #555; line-height: 1.5; }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <div class="icon">{$icon}</div>
+                    <h1>{$title}</h1>
+                    <p>{$message}</p>
+                </div>
+            </body>
+            </html>
+            HTML;
 
         return new Response($html, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
     }

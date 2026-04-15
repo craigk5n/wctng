@@ -68,7 +68,7 @@ if ($offenders === []) {
     exit(0);
 }
 
-fwrite(STDERR, "FAIL: " . count($offenders) . " site(s) reading wall-clock time without an injected ClockInterface:\n\n");
+fwrite(STDERR, 'FAIL: ' . count($offenders) . " site(s) reading wall-clock time without an injected ClockInterface:\n\n");
 foreach (array_unique($offenders) as $line) {
     fwrite(STDERR, "  {$line}\n");
 }

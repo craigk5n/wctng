@@ -22,8 +22,7 @@ final readonly class PasswordUpgradeService
         private PasswordHasher $hasher,
         private CoreServiceFactory $factory,
         private LoggerInterface $logger = new NullLogger(),
-    ) {
-    }
+    ) {}
 
     public function upgradeIfNeeded(string $login, #[\SensitiveParameter] string $password): void
     {

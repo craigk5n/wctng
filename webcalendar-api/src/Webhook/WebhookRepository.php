@@ -10,31 +10,30 @@ namespace App\Webhook;
 final readonly class WebhookRepository
 {
     public const SCHEMA_SQL = <<<'SQL'
-        CREATE TABLE IF NOT EXISTS webhooks (
-            id INTEGER PRIMARY KEY AUTO_INCREMENT,
-            url VARCHAR(500) NOT NULL,
-            events VARCHAR(500) NOT NULL DEFAULT '*',
-            secret VARCHAR(255) NOT NULL DEFAULT '',
-            enabled INTEGER NOT NULL DEFAULT 1,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    SQL;
+            CREATE TABLE IF NOT EXISTS webhooks (
+                id INTEGER PRIMARY KEY AUTO_INCREMENT,
+                url VARCHAR(500) NOT NULL,
+                events VARCHAR(500) NOT NULL DEFAULT '*',
+                secret VARCHAR(255) NOT NULL DEFAULT '',
+                enabled INTEGER NOT NULL DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        SQL;
 
     public const SCHEMA_SQL_SQLITE = <<<'SQL'
-        CREATE TABLE IF NOT EXISTS webhooks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            url VARCHAR(500) NOT NULL,
-            events VARCHAR(500) NOT NULL DEFAULT '*',
-            secret VARCHAR(255) NOT NULL DEFAULT '',
-            enabled INTEGER NOT NULL DEFAULT 1,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    SQL;
+            CREATE TABLE IF NOT EXISTS webhooks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                url VARCHAR(500) NOT NULL,
+                events VARCHAR(500) NOT NULL DEFAULT '*',
+                secret VARCHAR(255) NOT NULL DEFAULT '',
+                enabled INTEGER NOT NULL DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        SQL;
 
     public function __construct(
         private \PDO $pdo,
-    ) {
-    }
+    ) {}
 
     /**
      * @return WebhookSubscription[]
@@ -64,7 +63,7 @@ final readonly class WebhookRepository
      */
     public function findEnabled(): array
     {
-        return array_filter($this->findAll(), static fn (WebhookSubscription $w): bool => $w->isEnabled());
+        return array_filter($this->findAll(), static fn(WebhookSubscription $w): bool => $w->isEnabled());
     }
 
     public function findById(int $id): ?WebhookSubscription

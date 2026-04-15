@@ -27,8 +27,7 @@ final class ExceptionSubscriber implements EventSubscriberInterface
         private readonly string $environment,
         private readonly ?LoggerInterface $logger = null,
         private readonly ?ErrorMetricsService $errorMetrics = null,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string, array{0: string, 1: int}>

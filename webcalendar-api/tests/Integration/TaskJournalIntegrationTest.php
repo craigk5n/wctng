@@ -37,7 +37,7 @@ final class TaskJournalIntegrationTest extends IntegrationTestCase
             new \DateTimeImmutable('2026-12-31'),
         );
         $tasks = $taskService->getTasksInDateRange($range, 'admin');
-        $names = array_map(fn ($t) => $t->name(), $tasks);
+        $names = array_map(fn($t) => $t->name(), $tasks);
         $this->assertContains('Integration Task', $names);
     }
 
@@ -65,7 +65,7 @@ final class TaskJournalIntegrationTest extends IntegrationTestCase
             new \DateTimeImmutable('2026-12-31'),
         );
         $journals = $journalService->getJournalsInDateRange($range, 'admin');
-        $names = array_map(fn ($j) => $j->name(), $journals);
+        $names = array_map(fn($j) => $j->name(), $journals);
         $this->assertContains('Integration Journal', $names);
     }
 }

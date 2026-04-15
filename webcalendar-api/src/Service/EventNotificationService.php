@@ -306,15 +306,15 @@ final class EventNotificationService
         $locationHtml = $location !== '' ? "<p><strong>Location:</strong> {$location}</p>" : '';
 
         return <<<HTML
-        <h2>You're invited: {$title}</h2>
-        <p><strong>When:</strong> {$this->formatDate($date)}</p>
-        {$locationHtml}
-        <p>
-            <a href="{$acceptUrl}" style="display:inline-block;padding:8px 16px;background:#22c55e;color:#fff;text-decoration:none;border-radius:4px">Accept</a>
-            &nbsp;
-            <a href="{$declineUrl}" style="display:inline-block;padding:8px 16px;background:#ef4444;color:#fff;text-decoration:none;border-radius:4px">Decline</a>
-        </p>
-        HTML;
+            <h2>You're invited: {$title}</h2>
+            <p><strong>When:</strong> {$this->formatDate($date)}</p>
+            {$locationHtml}
+            <p>
+                <a href="{$acceptUrl}" style="display:inline-block;padding:8px 16px;background:#22c55e;color:#fff;text-decoration:none;border-radius:4px">Accept</a>
+                &nbsp;
+                <a href="{$declineUrl}" style="display:inline-block;padding:8px 16px;background:#ef4444;color:#fff;text-decoration:none;border-radius:4px">Decline</a>
+            </p>
+            HTML;
     }
 
     /**
@@ -343,7 +343,7 @@ final class EventNotificationService
             . "DTSTART:{$startDate}\r\n"
             . "STATUS:{$status}\r\n"
             . "END:VEVENT\r\n"
-            . "END:VCALENDAR";
+            . 'END:VCALENDAR';
     }
 
     private function renderExtInvitationEmail(string $title, string $date, string $location): string
@@ -351,11 +351,11 @@ final class EventNotificationService
         $locationHtml = $location !== '' ? "<p><strong>Location:</strong> {$location}</p>" : '';
 
         return <<<HTML
-        <h2>You're invited: {$title}</h2>
-        <p><strong>When:</strong> {$this->formatDate($date)}</p>
-        {$locationHtml}
-        <p>An event invitation is attached. Open it with your calendar app to add this event.</p>
-        HTML;
+            <h2>You're invited: {$title}</h2>
+            <p><strong>When:</strong> {$this->formatDate($date)}</p>
+            {$locationHtml}
+            <p>An event invitation is attached. Open it with your calendar app to add this event.</p>
+            HTML;
     }
 
     private function formatDate(string $yyyymmdd): string

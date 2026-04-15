@@ -20,8 +20,7 @@ final class SeoEligibilityService
     public function __construct(
         private readonly ConfigService $configService,
         private readonly UserRepositoryInterface $userRepository,
-    ) {
-    }
+    ) {}
 
     /**
      * Returns whether SEO pages are globally enabled by the admin.

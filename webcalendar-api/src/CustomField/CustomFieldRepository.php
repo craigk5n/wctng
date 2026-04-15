@@ -7,31 +7,30 @@ namespace App\CustomField;
 final readonly class CustomFieldRepository
 {
     public const SCHEMA_SQL = <<<'SQL'
-        CREATE TABLE IF NOT EXISTS custom_field_definitions (
-            id INTEGER PRIMARY KEY AUTO_INCREMENT,
-            name VARCHAR(60) NOT NULL UNIQUE,
-            field_type VARCHAR(20) NOT NULL DEFAULT 'text',
-            required INTEGER NOT NULL DEFAULT 0,
-            sort_order INTEGER NOT NULL DEFAULT 0,
-            options TEXT DEFAULT ''
-        )
-    SQL;
+            CREATE TABLE IF NOT EXISTS custom_field_definitions (
+                id INTEGER PRIMARY KEY AUTO_INCREMENT,
+                name VARCHAR(60) NOT NULL UNIQUE,
+                field_type VARCHAR(20) NOT NULL DEFAULT 'text',
+                required INTEGER NOT NULL DEFAULT 0,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                options TEXT DEFAULT ''
+            )
+        SQL;
 
     public const SCHEMA_SQL_SQLITE = <<<'SQL'
-        CREATE TABLE IF NOT EXISTS custom_field_definitions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name VARCHAR(60) NOT NULL UNIQUE,
-            field_type VARCHAR(20) NOT NULL DEFAULT 'text',
-            required INTEGER NOT NULL DEFAULT 0,
-            sort_order INTEGER NOT NULL DEFAULT 0,
-            options TEXT DEFAULT ''
-        )
-    SQL;
+            CREATE TABLE IF NOT EXISTS custom_field_definitions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name VARCHAR(60) NOT NULL UNIQUE,
+                field_type VARCHAR(20) NOT NULL DEFAULT 'text',
+                required INTEGER NOT NULL DEFAULT 0,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                options TEXT DEFAULT ''
+            )
+        SQL;
 
     public function __construct(
         private \PDO $pdo,
-    ) {
-    }
+    ) {}
 
     /** @return CustomFieldDefinition[] */
     public function findAll(): array

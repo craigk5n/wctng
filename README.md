@@ -144,7 +144,7 @@ bin/ci quick
 
 # Individual test suites
 bin/ci phpstan         # PHPStan level 9 static analysis
-bin/ci phpcs           # PSR-12 code style (PHP_CodeSniffer)
+bin/ci lint            # PER-CS 3.0 code style (php-cs-fixer)
 bin/ci test            # PHPUnit (432 unit + 147 integration)
 bin/ci tsc             # TypeScript strict mode
 bin/ci vitest          # Vitest (461 React/TS tests)
@@ -160,7 +160,7 @@ php vendor/bin/php-cs-fixer fix
 | Suite | Tests | What it covers |
 |-------|-------|---------------|
 | PHPStan | — | Type safety, logic errors (level 9) |
-| PHPCS | — | PSR-12 code style enforcement |
+| php-cs-fixer | — | PER-CS 3.0 code style enforcement |
 | PHPUnit | 579 | Services, controllers, DB queries, API endpoints |
 | TypeScript | — | Frontend type safety (strict mode) |
 | Vitest | 461 | React components, hooks, utilities |
@@ -290,7 +290,7 @@ The import tool:
 
 ### Code Standards
 
-- PHP: PSR-12, PHPStan level 9, `declare(strict_types=1)` on all files
+- PHP: PER-CS 3.0 (php-cs-fixer), PHPStan level 9, `declare(strict_types=1)` on all files
 - TypeScript: strict mode, no `any` types
 - Tests: write tests before implementation (TDD)
 - Commits: conventional commit messages (`feat:`, `fix:`, `perf:`, `test:`)

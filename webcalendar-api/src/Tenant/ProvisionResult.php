@@ -16,8 +16,7 @@ final readonly class ProvisionResult
         #[\SensitiveParameter]
         public string $adminPassword = '',
         public string $error = '',
-    ) {
-    }
+    ) {}
 
     public static function ok(string $slug, string $adminEmail, #[\SensitiveParameter] string $adminPassword): self
     {

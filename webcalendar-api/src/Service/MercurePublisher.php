@@ -21,8 +21,7 @@ final class MercurePublisher implements CalendarPublisherInterface
     public function __construct(
         private readonly HubInterface $hub,
         private readonly TenantContext $tenantContext,
-    ) {
-    }
+    ) {}
 
     /**
      * @param array<string, mixed> $eventData

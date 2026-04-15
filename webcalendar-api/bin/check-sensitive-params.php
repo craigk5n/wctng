@@ -54,7 +54,7 @@ foreach ($rii as $file) {
     // every local variable.
     $pattern = sprintf(
         '/(?<!#\[\\\\SensitiveParameter\]\s)(?<!#\[SensitiveParameter\]\s)(?:public|private|protected|readonly|\?\w+|\\\\?\w+|\s)+\$(%s)\b\s*[=,)]/i',
-        implode('|', array_map(static fn (string $n): string => preg_quote($n, '/'), $secretNames)),
+        implode('|', array_map(static fn(string $n): string => preg_quote($n, '/'), $secretNames)),
     );
 
     $matchCount = preg_match_all($pattern, $stripped, $matches, PREG_OFFSET_CAPTURE);
@@ -81,7 +81,7 @@ if ($offenders === []) {
     exit(0);
 }
 
-fwrite(STDERR, "FAIL: " . count($offenders) . " parameter(s) missing #[\\SensitiveParameter]:\n\n");
+fwrite(STDERR, 'FAIL: ' . count($offenders) . " parameter(s) missing #[\\SensitiveParameter]:\n\n");
 foreach ($offenders as $line) {
     fwrite(STDERR, "  {$line}\n");
 }

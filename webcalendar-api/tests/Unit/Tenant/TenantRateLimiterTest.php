@@ -101,7 +101,7 @@ final class TenantRateLimiterTest extends TestCase
 
         // Pre-fill the counter file to simulate 100 requests already made
         $dir = $this->tmpDir . '/rate_limits';
-        mkdir($dir, 0777, true);
+        mkdir($dir, 0o777, true);
         $window = (int) (floor(time() / 60) * 60);
         file_put_contents($dir . '/rate-exceeded_' . $window . '.count', '100');
 

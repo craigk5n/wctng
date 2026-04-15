@@ -17,8 +17,7 @@ final readonly class JwtTenantExtractor
 {
     public function __construct(
         private RequestStack $requestStack,
-    ) {
-    }
+    ) {}
 
     public function __invoke(JWTDecodedEvent $event): void
     {

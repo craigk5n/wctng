@@ -21,8 +21,7 @@ final class ResourceController
     public function __construct(
         private readonly ResourceService $resourceService,
         private readonly EventRepositoryInterface $eventRepository,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/admin/resources', name: 'api_admin_resources_list', methods: ['GET'])]
     public function list(#[CurrentUser] ?WebCalendarUser $user): JsonResponse
@@ -122,7 +121,7 @@ final class ResourceController
         $range = new DateRange($date->setTime(0, 0), $date->setTime(23, 59, 59));
         $events = $this->eventRepository->findByDateRange($range, null, null, [$login]);
 
-        $busy = array_map(static fn ($e) => [
+        $busy = array_map(static fn($e) => [
             'title' => $e->name(),
             'start' => $e->start()->format('H:i'),
             'end' => $e->end()->format('H:i'),

@@ -19,8 +19,7 @@ final readonly class LdapConfig
         private string $userFilter = '(uid=%s)',
         private bool $useTls = false,
         private bool $enabled = false,
-    ) {
-    }
+    ) {}
 
     public function host(): string
     {

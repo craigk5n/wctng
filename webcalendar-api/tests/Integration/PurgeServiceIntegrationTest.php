@@ -65,7 +65,7 @@ final class PurgeServiceIntegrationTest extends IntegrationTestCase
     private function fetchPurgeLogEntries(): array
     {
         $rows = $this->pdo->query(
-            "SELECT cal_login, cal_type, cal_text FROM webcal_entry_log WHERE cal_entry_id = 0 ORDER BY cal_log_id"
+            'SELECT cal_login, cal_type, cal_text FROM webcal_entry_log WHERE cal_entry_id = 0 ORDER BY cal_log_id'
         )->fetchAll(\PDO::FETCH_ASSOC);
         return \is_array($rows) ? array_values($rows) : [];
     }

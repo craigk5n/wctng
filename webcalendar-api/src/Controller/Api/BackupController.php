@@ -18,8 +18,7 @@ final class BackupController
 {
     public function __construct(
         private readonly BackupService $backupService,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/admin/backup', name: 'api_admin_backup_create', methods: ['POST'])]
     public function create(#[CurrentUser] ?WebCalendarUser $user): JsonResponse

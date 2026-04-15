@@ -26,8 +26,7 @@ final class ControlAuthController
         private readonly int $jwtTtl,
         private readonly PasswordHasher $passwordHasher = new PasswordHasher(),
         private readonly ClockInterface $clock = new NativeClock(),
-    ) {
-    }
+    ) {}
 
     #[Route('/control/v1/auth/login', name: 'control_auth_login', methods: ['POST'])]
     public function login(Request $request): JsonResponse

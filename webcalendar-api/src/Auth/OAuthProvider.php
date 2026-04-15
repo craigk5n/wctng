@@ -21,8 +21,7 @@ final readonly class OAuthProvider
         private string $userinfoUrl,
         private string $scopes,
         private bool $enabled = true,
-    ) {
-    }
+    ) {}
 
     public function id(): int
     {

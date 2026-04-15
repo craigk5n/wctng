@@ -59,7 +59,7 @@ final class CorePrincipalBackendTest extends TestCase
         $principals = $backend->getPrincipalsByPrefix('principals');
 
         $this->assertCount(2, $principals);
-        $uris = array_map(static fn (array $p) => $p['uri'], $principals);
+        $uris = array_map(static fn(array $p) => $p['uri'], $principals);
         $this->assertContains('principals/alice', $uris);
         $this->assertContains('principals/bob', $uris);
     }

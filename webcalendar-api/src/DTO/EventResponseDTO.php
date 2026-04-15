@@ -44,7 +44,7 @@ final class EventResponseDTO
             'status' => $event->status(),
             'rrule' => $event->recurrence()->rule() !== null ? $event->recurrence()->rule()->toString() : null,
             'exdates' => array_map(
-                static fn (\DateTimeImmutable $d): string => $d->format('Ymd'),
+                static fn(\DateTimeImmutable $d): string => $d->format('Ymd'),
                 $event->recurrence()->exDate()->dates(),
             ),
             'categories' => $categoryIds,
@@ -69,7 +69,7 @@ final class EventResponseDTO
     public static function fromCollection(array $events, array $categoryMap = []): array
     {
         return array_map(
-            static fn (Event $event): array => self::fromEntity(
+            static fn(Event $event): array => self::fromEntity(
                 $event,
                 $categoryMap[$event->id()->value()] ?? [],
             ),

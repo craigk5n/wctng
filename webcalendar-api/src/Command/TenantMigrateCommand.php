@@ -58,7 +58,7 @@ final class TenantMigrateCommand extends Command
         $results = $this->migrator->migrateAll();
         $this->printResults($io, $results);
 
-        $errors = array_filter($results, static fn (array $r): bool => $r['error'] !== null);
+        $errors = array_filter($results, static fn(array $r): bool => $r['error'] !== null);
         if (\count($errors) > 0) {
             $io->warning(\count($errors) . ' tenant(s) had errors.');
             return Command::FAILURE;

@@ -25,8 +25,7 @@ final class UserController
         private readonly UserRepositoryInterface $userRepository,
         private readonly AuthServiceInterface $authService,
         private readonly TokenRevocationService $tokenRevoker,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/users', name: 'api_users_list', methods: ['GET'])]
     public function list(Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
@@ -43,10 +42,10 @@ final class UserController
         if ($enabledFilter === 'true') {
             // getAllUsers throws AuthorizationException if not admin
             $users = $userService->getAllUsers($coreUser);
-            $users = array_filter($users, static fn (User $u) => $u->isEnabled());
+            $users = array_filter($users, static fn(User $u) => $u->isEnabled());
         } elseif ($enabledFilter === 'false') {
             $users = $userService->getAllUsers($coreUser);
-            $users = array_filter($users, static fn (User $u) => !$u->isEnabled());
+            $users = array_filter($users, static fn(User $u) => !$u->isEnabled());
         } else {
             $users = $userService->getAllUsers($coreUser);
         }

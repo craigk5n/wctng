@@ -12,9 +12,9 @@ final class ImportCategoryIntegrationTest extends IntegrationTestCase
     private function makeIcs(string $uid, string $title, string $categories = ''): string
     {
         $catLine = $categories !== '' ? "CATEGORIES:{$categories}\r\n" : '';
-        return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n" .
-            "BEGIN:VEVENT\r\nUID:{$uid}\r\nSUMMARY:{$title}\r\nDTSTART:20260701T100000Z\r\n" .
-            "DURATION:PT1H\r\n{$catLine}END:VEVENT\r\nEND:VCALENDAR\r\n";
+        return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n"
+            . "BEGIN:VEVENT\r\nUID:{$uid}\r\nSUMMARY:{$title}\r\nDTSTART:20260701T100000Z\r\n"
+            . "DURATION:PT1H\r\n{$catLine}END:VEVENT\r\nEND:VCALENDAR\r\n";
     }
 
     public function testImportCreatesUnknownCategoryAsPersonal(): void
@@ -45,7 +45,7 @@ final class ImportCategoryIntegrationTest extends IntegrationTestCase
 
         // Should still be only one category with that name
         $allCats = $this->factory->getCategoryService()->getCategoriesForUser('alice');
-        $matching = array_filter($allCats, static fn ($c) => $c->name() === 'ExistingCat');
+        $matching = array_filter($allCats, static fn($c) => $c->name() === 'ExistingCat');
         $this->assertCount(1, $matching);
     }
 
@@ -61,7 +61,7 @@ final class ImportCategoryIntegrationTest extends IntegrationTestCase
 
         // All categories should exist in the database
         $allCats = $this->factory->getCategoryService()->getCategoriesForUser('alice');
-        $catNames = array_map(static fn ($c) => $c->name(), $allCats);
+        $catNames = array_map(static fn($c) => $c->name(), $allCats);
 
         // At minimum, the import created some categories
         $this->assertGreaterThan(0, \count($catNames));
@@ -77,7 +77,7 @@ final class ImportCategoryIntegrationTest extends IntegrationTestCase
 
         // Category should exist exactly once
         $allCats = $this->factory->getCategoryService()->getCategoriesForUser('alice');
-        $matching = array_filter($allCats, static fn ($c) => $c->name() === 'ReimportCat');
+        $matching = array_filter($allCats, static fn($c) => $c->name() === 'ReimportCat');
         $this->assertCount(1, $matching);
     }
 }

@@ -89,7 +89,7 @@ final class CategoryMergeIntegrationTest extends IntegrationTestCase
 
         // Source gone, target still exists
         $allCats = $this->factory->getCategoryService()->getCategoriesForUser('admin');
-        $names = array_map(static fn ($c) => $c->name(), $allCats);
+        $names = array_map(static fn($c) => $c->name(), $allCats);
         $this->assertNotContains('OldCat', $names);
         $this->assertContains('NewCat', $names);
     }

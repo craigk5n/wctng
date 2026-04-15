@@ -13,8 +13,7 @@ final readonly class CustomFieldDefinition
         private bool $required,
         private int $sortOrder,
         private string $options,
-    ) {
-    }
+    ) {}
 
     public function id(): int
     {

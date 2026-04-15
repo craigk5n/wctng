@@ -27,8 +27,7 @@ final class JournalController
         private readonly JournalService $journalService,
         private readonly DescriptionSanitizer $descriptionSanitizer = new DescriptionSanitizer(),
         private readonly ClockInterface $clock = new NativeClock(),
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/journals', name: 'api_journals_list', methods: ['GET'])]
     public function list(Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse

@@ -13,44 +13,43 @@ final readonly class TenantRepository
      * SQL schema for the tenants table (SQLite-compatible for tests, MySQL-compatible for production).
      */
     public const SCHEMA_SQL = <<<'SQL'
-        CREATE TABLE IF NOT EXISTS tenants (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            slug VARCHAR(50) NOT NULL UNIQUE,
-            name VARCHAR(255) NOT NULL,
-            db_host VARCHAR(255) NOT NULL DEFAULT '',
-            db_name VARCHAR(255) NOT NULL DEFAULT '',
-            db_user VARCHAR(255) NOT NULL DEFAULT '',
-            db_password TEXT NOT NULL,
-            plan VARCHAR(50) NOT NULL DEFAULT 'free',
-            status VARCHAR(20) NOT NULL DEFAULT 'pending',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    SQL;
+            CREATE TABLE IF NOT EXISTS tenants (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                slug VARCHAR(50) NOT NULL UNIQUE,
+                name VARCHAR(255) NOT NULL,
+                db_host VARCHAR(255) NOT NULL DEFAULT '',
+                db_name VARCHAR(255) NOT NULL DEFAULT '',
+                db_user VARCHAR(255) NOT NULL DEFAULT '',
+                db_password TEXT NOT NULL,
+                plan VARCHAR(50) NOT NULL DEFAULT 'free',
+                status VARCHAR(20) NOT NULL DEFAULT 'pending',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        SQL;
 
     /**
      * MySQL-specific schema (uses AUTO_INCREMENT instead of AUTOINCREMENT).
      */
     public const SCHEMA_SQL_MYSQL = <<<'SQL'
-        CREATE TABLE IF NOT EXISTS tenants (
-            id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            slug VARCHAR(50) NOT NULL UNIQUE,
-            name VARCHAR(255) NOT NULL,
-            db_host VARCHAR(255) NOT NULL DEFAULT '',
-            db_name VARCHAR(255) NOT NULL DEFAULT '',
-            db_user VARCHAR(255) NOT NULL DEFAULT '',
-            db_password TEXT NOT NULL,
-            plan VARCHAR(50) NOT NULL DEFAULT 'free',
-            status VARCHAR(20) NOT NULL DEFAULT 'pending',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-    SQL;
+            CREATE TABLE IF NOT EXISTS tenants (
+                id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                slug VARCHAR(50) NOT NULL UNIQUE,
+                name VARCHAR(255) NOT NULL,
+                db_host VARCHAR(255) NOT NULL DEFAULT '',
+                db_name VARCHAR(255) NOT NULL DEFAULT '',
+                db_user VARCHAR(255) NOT NULL DEFAULT '',
+                db_password TEXT NOT NULL,
+                plan VARCHAR(50) NOT NULL DEFAULT 'free',
+                status VARCHAR(20) NOT NULL DEFAULT 'pending',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        SQL;
 
     public function __construct(
         private \PDO $pdo,
-    ) {
-    }
+    ) {}
 
     public function findBySlug(string $slug): ?Tenant
     {

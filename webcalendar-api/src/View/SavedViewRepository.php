@@ -7,29 +7,27 @@ namespace App\View;
 final readonly class SavedViewRepository
 {
     public const SCHEMA_SQL = <<<'SQL'
-        CREATE TABLE IF NOT EXISTS saved_views (
-            id INTEGER PRIMARY KEY AUTO_INCREMENT,
-            owner_login VARCHAR(60) NOT NULL,
-            name VARCHAR(100) NOT NULL,
-            user_logins TEXT NOT NULL,
-            is_global CHAR(1) NOT NULL DEFAULT 'N'
-        )
-    SQL;
+            CREATE TABLE IF NOT EXISTS saved_views (
+                id INTEGER PRIMARY KEY AUTO_INCREMENT,
+                owner_login VARCHAR(60) NOT NULL,
+                name VARCHAR(100) NOT NULL,
+                user_logins TEXT NOT NULL,
+                is_global CHAR(1) NOT NULL DEFAULT 'N'
+            )
+        SQL;
 
     public const SCHEMA_SQL_SQLITE = <<<'SQL'
-        CREATE TABLE IF NOT EXISTS saved_views (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            owner_login VARCHAR(60) NOT NULL,
-            name VARCHAR(100) NOT NULL,
-            user_logins TEXT NOT NULL DEFAULT '[]',
-            is_global CHAR(1) NOT NULL DEFAULT 'N',
-            category_ids TEXT NOT NULL DEFAULT '[]'
-        )
-    SQL;
+            CREATE TABLE IF NOT EXISTS saved_views (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                owner_login VARCHAR(60) NOT NULL,
+                name VARCHAR(100) NOT NULL,
+                user_logins TEXT NOT NULL DEFAULT '[]',
+                is_global CHAR(1) NOT NULL DEFAULT 'N',
+                category_ids TEXT NOT NULL DEFAULT '[]'
+            )
+        SQL;
 
-    public function __construct(private \PDO $pdo)
-    {
-    }
+    public function __construct(private \PDO $pdo) {}
 
     /** @return list<array{id: int, name: string, user_logins: list<string>, is_global: bool, owner: string, category_ids: list<int>}> */
     public function findByOwner(string $login): array

@@ -51,7 +51,8 @@ final class ShareController
     #[Route('/api/v2/calendars/share', name: 'api_share_create', methods: ['POST'])]
     public function createShareToken(
         Request $request,
-        #[CurrentUser] WebCalendarUser|User|null $actorOrUser = null,
+        #[CurrentUser]
+        WebCalendarUser|User|null $actorOrUser = null,
     ): JsonResponse {
         $login = $this->getLogin($actorOrUser);
         if ($login === null) {
@@ -71,7 +72,8 @@ final class ShareController
     #[Route('/api/v2/calendars/share', name: 'api_share_list', methods: ['GET'])]
     public function listShareTokens(
         Request $request,
-        #[CurrentUser] WebCalendarUser|User|null $actorOrUser = null,
+        #[CurrentUser]
+        WebCalendarUser|User|null $actorOrUser = null,
     ): JsonResponse {
         $login = $this->getLogin($actorOrUser);
         if ($login === null) {
@@ -80,7 +82,7 @@ final class ShareController
 
         $tokens = $this->tokenRepo->findByOwner($login);
         $items = array_map(
-            static fn ($t) => $t->toArray(),
+            static fn($t) => $t->toArray(),
             $tokens,
         );
 
@@ -89,9 +91,11 @@ final class ShareController
 
     #[Route('/api/v2/calendars/share/{token}', name: 'api_share_delete', methods: ['DELETE'])]
     public function deleteShareToken(
-        #[\SensitiveParameter] string $token,
+        #[\SensitiveParameter]
+        string $token,
         Request $request,
-        #[CurrentUser] WebCalendarUser|User|null $actorOrUser = null,
+        #[CurrentUser]
+        WebCalendarUser|User|null $actorOrUser = null,
     ): Response {
         $login = $this->getLogin($actorOrUser);
         if ($login === null) {

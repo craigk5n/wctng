@@ -17,8 +17,7 @@ final class TenantProvisioner
         private readonly TenantDatabaseManager $dbManager,
         private readonly string $dbDriver = 'mysql',
         private readonly PasswordHasher $passwordHasher = new PasswordHasher(),
-    ) {
-    }
+    ) {}
 
     /**
      * Provisions a new tenant with database, schema, and admin user.
@@ -110,7 +109,7 @@ final class TenantProvisioner
 
         $statements = array_filter(
             array_map('trim', explode(';', $sql)),
-            static fn (string $s): bool => $s !== '',
+            static fn(string $s): bool => $s !== '',
         );
 
         foreach ($statements as $statement) {

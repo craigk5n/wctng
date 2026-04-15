@@ -19,8 +19,7 @@ final class WebCalendarUserProvider implements UserProviderInterface
 {
     public function __construct(
         private readonly CoreServiceFactory $coreServiceFactory,
-    ) {
-    }
+    ) {}
 
     #[\Override]
     public function loadUserByIdentifier(string $identifier): WebCalendarUser

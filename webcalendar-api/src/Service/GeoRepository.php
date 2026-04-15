@@ -12,8 +12,7 @@ class GeoRepository
 {
     public function __construct(
         private readonly \PDO $pdo,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{lat: float, lon: float}|null

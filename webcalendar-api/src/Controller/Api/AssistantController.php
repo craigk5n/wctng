@@ -17,8 +17,7 @@ final class AssistantController
 {
     public function __construct(
         private readonly AssistantService $assistantService,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/users/{login}/assistants', name: 'api_assistants_list', methods: ['GET'])]
     public function list(string $login, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
@@ -32,8 +31,8 @@ final class AssistantController
         $bosses = $service->getBossesForAssistant($login);
 
         return ApiResponse::success([
-            'assistants' => array_map(fn (string $a) => ['login' => $a], $assistants),
-            'bosses' => array_map(fn (string $b) => ['login' => $b], $bosses),
+            'assistants' => array_map(fn(string $a) => ['login' => $a], $assistants),
+            'bosses' => array_map(fn(string $b) => ['login' => $b], $bosses),
         ]);
     }
 

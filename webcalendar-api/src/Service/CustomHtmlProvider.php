@@ -13,8 +13,7 @@ final class CustomHtmlProvider
 {
     public function __construct(
         private readonly ConfigService $configService,
-    ) {
-    }
+    ) {}
 
     public function getHeaderHtml(): string
     {

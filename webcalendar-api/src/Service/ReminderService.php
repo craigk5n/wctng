@@ -208,12 +208,12 @@ final class ReminderService
         $unsubscribeHtml = $this->renderUnsubscribeFooter($login);
 
         return <<<HTML
-        <h2>Upcoming: {$safeTitle}</h2>
-        <p><strong>When:</strong> {$date} at {$time}</p>
-        {$locationHtml}
-        <p><a href="{$this->baseUrl}">View in WebCalendar</a></p>
-        {$unsubscribeHtml}
-        HTML;
+            <h2>Upcoming: {$safeTitle}</h2>
+            <p><strong>When:</strong> {$date} at {$time}</p>
+            {$locationHtml}
+            <p><a href="{$this->baseUrl}">View in WebCalendar</a></p>
+            {$unsubscribeHtml}
+            HTML;
     }
 
     private function renderUnsubscribeFooter(string $login): string

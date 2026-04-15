@@ -19,8 +19,7 @@ final class ExportController
     public function __construct(
         private readonly EventService $eventService,
         private readonly ExportService $exportService,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/export', name: 'api_export', methods: ['GET'])]
     public function export(Request $request, #[CurrentUser] ?WebCalendarUser $user): Response

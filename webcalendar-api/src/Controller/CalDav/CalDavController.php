@@ -25,8 +25,7 @@ final class CalDavController
         private readonly CoreAuthBackend $authBackend,
         private readonly CorePrincipalBackend $principalBackend,
         private readonly CoreCalendarBackend $calendarBackend,
-    ) {
-    }
+    ) {}
 
     #[Route('/dav/{path}', name: 'caldav', methods: ['GET', 'PUT', 'DELETE', 'POST', 'PROPFIND', 'PROPPATCH', 'REPORT', 'MKCALENDAR', 'OPTIONS', 'MOVE', 'COPY', 'LOCK', 'UNLOCK'], requirements: ['path' => '.*'], defaults: ['path' => ''])]
     public function handle(Request $request): Response

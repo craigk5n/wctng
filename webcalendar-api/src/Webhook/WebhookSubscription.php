@@ -16,8 +16,7 @@ final readonly class WebhookSubscription
         #[\SensitiveParameter]
         private string $secret,
         private bool $enabled = true,
-    ) {
-    }
+    ) {}
 
     public function id(): int
     {

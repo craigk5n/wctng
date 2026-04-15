@@ -125,7 +125,7 @@ final class EventNotificationServiceTest extends TestCase
         ]);
 
         $this->assertCount(2, $mailer->sent);
-        $recipients = array_map(static fn (Email $e) => $e->getTo()[0]->getAddress(), $mailer->sent);
+        $recipients = array_map(static fn(Email $e) => $e->getTo()[0]->getAddress(), $mailer->sent);
         $this->assertContains('bob@vendor.com', $recipients);
         $this->assertContains('alice@guest.com', $recipients);
     }

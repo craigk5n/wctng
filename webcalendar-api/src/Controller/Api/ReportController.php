@@ -16,8 +16,7 @@ final class ReportController
 {
     public function __construct(
         private readonly ReportService $reportService,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/reports/activity', name: 'api_reports_activity', methods: ['GET'])]
     public function activity(Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse

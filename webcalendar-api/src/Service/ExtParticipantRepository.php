@@ -30,8 +30,7 @@ final class ExtParticipantRepository
 {
     public function __construct(
         private readonly \PDO $pdo,
-    ) {
-    }
+    ) {}
 
     /**
      * @return list<array{name: string, email: ?string}>
@@ -76,7 +75,7 @@ final class ExtParticipantRepository
         }
         $placeholders = implode(',', array_fill(0, \count($eventIds), '?'));
         $stmt = $this->pdo->prepare(
-            "SELECT cal_id, cal_fullname, cal_email FROM webcal_entry_ext_user "
+            'SELECT cal_id, cal_fullname, cal_email FROM webcal_entry_ext_user '
             . "WHERE cal_id IN ({$placeholders}) ORDER BY cal_id, cal_fullname"
         );
         $stmt->execute($eventIds);

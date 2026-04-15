@@ -42,7 +42,7 @@ final class SearchIntegrationTest extends IntegrationTestCase
         ), $this->adminUser);
 
         $results = $this->factory->getEventRepository()->search('budget', null, $this->adminUser, null, 10);
-        $names = array_map(fn ($e) => $e->name(), $results->all());
+        $names = array_map(fn($e) => $e->name(), $results->all());
 
         $this->assertContains('Budget Planning Meeting', $names);
         $this->assertNotContains('Team Standup', $names);

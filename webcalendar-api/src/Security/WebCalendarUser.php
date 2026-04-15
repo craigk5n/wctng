@@ -16,8 +16,7 @@ final class WebCalendarUser implements UserInterface, PasswordAuthenticatedUserI
     public function __construct(
         private readonly User $coreUser,
         private readonly ?string $passwordHash,
-    ) {
-    }
+    ) {}
 
     /**
      * @return non-empty-string

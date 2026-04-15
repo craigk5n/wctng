@@ -58,7 +58,7 @@ final class CategoryIntegrationTest extends IntegrationTestCase
         $catService->createCategory(new Category(id: $id3, owner: 'bob', name: 'Bob Cat', color: '#ccc'), $bobUser);
 
         $aliceCats = $catService->getCategoriesForUser('alice');
-        $names = array_map(fn ($c) => $c->name(), $aliceCats);
+        $names = array_map(fn($c) => $c->name(), $aliceCats);
 
         $this->assertContains('Global', $names);
         $this->assertContains('Alice Cat', $names);

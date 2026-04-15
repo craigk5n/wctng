@@ -61,7 +61,7 @@ trait CoreSchedulingBackend
         $this->schedulingObjects[$pUri] = array_values(
             array_filter(
                 $this->schedulingObjects[$pUri],
-                static fn (array $obj): bool => ($obj['uri'] ?? '') !== $oUri,
+                static fn(array $obj): bool => ($obj['uri'] ?? '') !== $oUri,
             ),
         );
     }

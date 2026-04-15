@@ -19,8 +19,7 @@ final readonly class SearchIndexService
 
     public function __construct(
         private CoreServiceFactory $coreServiceFactory,
-    ) {
-    }
+    ) {}
 
     /**
      * Searches calendar entries by keyword with type filtering and pagination.

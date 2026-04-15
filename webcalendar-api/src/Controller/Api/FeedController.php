@@ -33,8 +33,7 @@ final class FeedController
         // override it per request.
         private readonly FeedService $feedService,
         private readonly ClockInterface $clock = new NativeClock(),
-    ) {
-    }
+    ) {}
 
     /**
      * Test-only constructor that accepts individual dependencies.

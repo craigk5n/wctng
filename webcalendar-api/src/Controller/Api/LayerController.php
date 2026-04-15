@@ -19,8 +19,7 @@ final class LayerController
     public function __construct(
         private readonly LayerService $layerService,
         private readonly \PDO $pdo,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/layers', name: 'api_layers_list', methods: ['GET'])]
     public function list(#[CurrentUser] ?WebCalendarUser $user): JsonResponse

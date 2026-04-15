@@ -11,8 +11,7 @@ final readonly class ReportService
 {
     public function __construct(
         private CoreServiceFactory $coreServiceFactory,
-    ) {
-    }
+    ) {}
 
     /**
      * Event count grouped by date.

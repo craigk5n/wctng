@@ -33,8 +33,7 @@ final class EventIndexController
         private readonly CustomHtmlProvider $customHtml,
         private readonly ?CspNonceProvider $nonceProvider = null,
         private readonly ClockInterface $clock = new NativeClock(),
-    ) {
-    }
+    ) {}
 
     #[Route('/public/{username}/events', name: 'seo_event_index', methods: ['GET'])]
     public function index(string $username, Request $request): Response
@@ -74,7 +73,7 @@ final class EventIndexController
         $allEvents = $this->eventRepository->findByDateRange($range, null, 'P', [$username]);
 
         // Sort by date
-        usort($allEvents, fn ($a, $b) => $a->start() <=> $b->start());
+        usort($allEvents, fn($a, $b) => $a->start() <=> $b->start());
 
         $total = \count($allEvents);
         $totalPages = max(1, (int) ceil($total / self::PER_PAGE));
@@ -95,14 +94,14 @@ final class EventIndexController
             $locHtml = $loc !== '' ? "<address>📍 {$loc}</address>" : '';
 
             $eventsHtml .= <<<ITEM
-            <article class="event-item">
-                <a href="/public/{$username}/event/{$id}">
-                    <h2>{$name}</h2>
-                    <time datetime="{$event->start()->format('c')}">{$date} · {$time}</time>
-                    {$locHtml}
-                </a>
-            </article>
-ITEM;
+                            <article class="event-item">
+                                <a href="/public/{$username}/event/{$id}">
+                                    <h2>{$name}</h2>
+                                    <time datetime="{$event->start()->format('c')}">{$date} · {$time}</time>
+                                    {$locHtml}
+                                </a>
+                            </article>
+                ITEM;
         }
 
         if ($eventsHtml === '') {
@@ -156,67 +155,67 @@ ITEM;
         $customTrailer = $this->customHtml->getTrailerHtml();
 
         $html = <<<HTML
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{$pageTitle} — {$displayName}'s Calendar</title>
-    <meta name="description" content="{$metaDesc}">
-    <meta property="og:title" content="{$pageTitle} — {$displayName}'s Calendar">
-    <meta property="og:description" content="{$metaDesc}">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="{$canonical}">
-    {$ogImageTag}
-    <meta name="twitter:card" content="{$twitterCardType}">
-    <meta name="twitter:title" content="{$pageTitle} — {$displayName}'s Calendar">
-    <meta name="twitter:description" content="{$metaDesc}">
-    <link rel="canonical" href="{$canonical}">
-    {$linkTags}
-    {$noindex}
-    {$breadcrumbBlock}
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a1a; background: #f8f9fa; line-height: 1.6; }
-        .container { max-width: 680px; margin: 0 auto; padding: 2rem 1rem; }
-        .breadcrumb { font-size: 0.875rem; color: #666; margin-bottom: 1.5rem; }
-        .breadcrumb a { color: #3788d8; text-decoration: none; }
-        h1 { font-size: 1.75rem; margin-bottom: 0.5rem; }
-        .subtitle { color: #666; margin-bottom: 1.5rem; font-size: 0.9rem; }
-        .event-item { background: white; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 0.75rem; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
-        .event-item a { text-decoration: none; color: inherit; display: block; }
-        .event-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .event-item h2 { font-size: 1.1rem; color: #3788d8; margin-bottom: 0.25rem; }
-        .event-item time { font-size: 0.85rem; color: #555; }
-        .event-item address { font-size: 0.85rem; color: #777; font-style: normal; margin-top: 0.25rem; }
-        .pagination { text-align: center; margin-top: 2rem; font-size: 0.9rem; }
-        .pagination a { color: #3788d8; text-decoration: none; margin: 0 0.5rem; }
-        .pagination span { color: #999; }
-        .empty { text-align: center; color: #999; padding: 2rem; }
-        .footer { margin-top: 2rem; text-align: center; font-size: 0.8rem; color: #999; }
-        .footer a { color: #3788d8; text-decoration: none; }
-        @media (max-width: 640px) { .container { padding: 1rem; } h1 { font-size: 1.4rem; } }
-    </style>
-    {$customCssTag}
-</head>
-<body>
-    {$customHeader}
-    <div class="container">
-        <nav class="breadcrumb">
-            <a href="/public/{$username}">{$displayName}'s Calendar</a> › Events
-        </nav>
-        <h1>{$pageTitle}</h1>
-        <p class="subtitle">{$displayName}'s Calendar — {$total} events</p>
-        {$eventsHtml}
-        {$paginationHtml}
-        <div class="footer">
-            <a href="/public/{$username}">← Back to Calendar</a>
-        </div>
-    </div>
-    {$customTrailer}
-</body>
-</html>
-HTML;
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>{$pageTitle} — {$displayName}'s Calendar</title>
+                <meta name="description" content="{$metaDesc}">
+                <meta property="og:title" content="{$pageTitle} — {$displayName}'s Calendar">
+                <meta property="og:description" content="{$metaDesc}">
+                <meta property="og:type" content="website">
+                <meta property="og:url" content="{$canonical}">
+                {$ogImageTag}
+                <meta name="twitter:card" content="{$twitterCardType}">
+                <meta name="twitter:title" content="{$pageTitle} — {$displayName}'s Calendar">
+                <meta name="twitter:description" content="{$metaDesc}">
+                <link rel="canonical" href="{$canonical}">
+                {$linkTags}
+                {$noindex}
+                {$breadcrumbBlock}
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a1a; background: #f8f9fa; line-height: 1.6; }
+                    .container { max-width: 680px; margin: 0 auto; padding: 2rem 1rem; }
+                    .breadcrumb { font-size: 0.875rem; color: #666; margin-bottom: 1.5rem; }
+                    .breadcrumb a { color: #3788d8; text-decoration: none; }
+                    h1 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+                    .subtitle { color: #666; margin-bottom: 1.5rem; font-size: 0.9rem; }
+                    .event-item { background: white; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 0.75rem; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+                    .event-item a { text-decoration: none; color: inherit; display: block; }
+                    .event-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+                    .event-item h2 { font-size: 1.1rem; color: #3788d8; margin-bottom: 0.25rem; }
+                    .event-item time { font-size: 0.85rem; color: #555; }
+                    .event-item address { font-size: 0.85rem; color: #777; font-style: normal; margin-top: 0.25rem; }
+                    .pagination { text-align: center; margin-top: 2rem; font-size: 0.9rem; }
+                    .pagination a { color: #3788d8; text-decoration: none; margin: 0 0.5rem; }
+                    .pagination span { color: #999; }
+                    .empty { text-align: center; color: #999; padding: 2rem; }
+                    .footer { margin-top: 2rem; text-align: center; font-size: 0.8rem; color: #999; }
+                    .footer a { color: #3788d8; text-decoration: none; }
+                    @media (max-width: 640px) { .container { padding: 1rem; } h1 { font-size: 1.4rem; } }
+                </style>
+                {$customCssTag}
+            </head>
+            <body>
+                {$customHeader}
+                <div class="container">
+                    <nav class="breadcrumb">
+                        <a href="/public/{$username}">{$displayName}'s Calendar</a> › Events
+                    </nav>
+                    <h1>{$pageTitle}</h1>
+                    <p class="subtitle">{$displayName}'s Calendar — {$total} events</p>
+                    {$eventsHtml}
+                    {$paginationHtml}
+                    <div class="footer">
+                        <a href="/public/{$username}">← Back to Calendar</a>
+                    </div>
+                </div>
+                {$customTrailer}
+            </body>
+            </html>
+            HTML;
 
         return new Response($html, 200, [
             'Content-Type' => 'text/html; charset=UTF-8',

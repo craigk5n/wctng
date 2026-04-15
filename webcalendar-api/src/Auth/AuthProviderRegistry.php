@@ -14,8 +14,7 @@ final class AuthProviderRegistry
     public function __construct(
         private readonly OAuthProviderRepository $oauthRepo,
         private readonly LdapConfigRepository $ldapRepo,
-    ) {
-    }
+    ) {}
 
     /**
      * Returns all enabled auth methods in priority order.
@@ -60,7 +59,7 @@ final class AuthProviderRegistry
         }
 
         // Sort by priority (lowest = highest priority)
-        usort($providers, static fn (array $a, array $b): int => $a['priority'] <=> $b['priority']);
+        usort($providers, static fn(array $a, array $b): int => $a['priority'] <=> $b['priority']);
 
         return $providers;
     }
@@ -73,7 +72,7 @@ final class AuthProviderRegistry
     public function getLoginMethods(): array
     {
         return array_map(
-            static fn (array $p): array => ['type' => $p['type'], 'name' => $p['name']],
+            static fn(array $p): array => ['type' => $p['type'], 'name' => $p['name']],
             $this->getEnabledProviders(),
         );
     }

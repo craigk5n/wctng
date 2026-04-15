@@ -10,24 +10,23 @@ namespace App\Auth;
 final readonly class OAuthProviderRepository
 {
     public const SCHEMA_SQL = <<<'SQL'
-        CREATE TABLE IF NOT EXISTS oauth_providers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name VARCHAR(100) NOT NULL,
-            type VARCHAR(20) NOT NULL DEFAULT 'oauth2',
-            client_id VARCHAR(255) NOT NULL,
-            client_secret TEXT NOT NULL,
-            auth_url VARCHAR(500) NOT NULL DEFAULT '',
-            token_url VARCHAR(500) NOT NULL DEFAULT '',
-            userinfo_url VARCHAR(500) NOT NULL DEFAULT '',
-            scopes VARCHAR(500) NOT NULL DEFAULT '',
-            enabled INTEGER NOT NULL DEFAULT 1
-        )
-    SQL;
+            CREATE TABLE IF NOT EXISTS oauth_providers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name VARCHAR(100) NOT NULL,
+                type VARCHAR(20) NOT NULL DEFAULT 'oauth2',
+                client_id VARCHAR(255) NOT NULL,
+                client_secret TEXT NOT NULL,
+                auth_url VARCHAR(500) NOT NULL DEFAULT '',
+                token_url VARCHAR(500) NOT NULL DEFAULT '',
+                userinfo_url VARCHAR(500) NOT NULL DEFAULT '',
+                scopes VARCHAR(500) NOT NULL DEFAULT '',
+                enabled INTEGER NOT NULL DEFAULT 1
+            )
+        SQL;
 
     public function __construct(
         private \PDO $pdo,
-    ) {
-    }
+    ) {}
 
     public function ensureTable(): void
     {

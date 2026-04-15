@@ -24,16 +24,16 @@ final class TaskVTodoTest extends TestCase
     public function testVTodoIcsContainsSummary(): void
     {
         $ics = <<<'ICS'
-BEGIN:VCALENDAR
-VERSION:2.0
-BEGIN:VTODO
-UID:task-1@test
-SUMMARY:Buy groceries
-STATUS:NEEDS-ACTION
-PERCENT-COMPLETE:0
-END:VTODO
-END:VCALENDAR
-ICS;
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            BEGIN:VTODO
+            UID:task-1@test
+            SUMMARY:Buy groceries
+            STATUS:NEEDS-ACTION
+            PERCENT-COMPLETE:0
+            END:VTODO
+            END:VCALENDAR
+            ICS;
 
         $vcal = VObject\Reader::read($ics);
         $this->assertInstanceOf(VObject\Component\VCalendar::class, $vcal);
@@ -45,16 +45,16 @@ ICS;
     public function testVTodoIncludesPercentComplete(): void
     {
         $ics = <<<'ICS'
-BEGIN:VCALENDAR
-VERSION:2.0
-BEGIN:VTODO
-UID:task-2@test
-SUMMARY:Half done
-PERCENT-COMPLETE:50
-STATUS:IN-PROCESS
-END:VTODO
-END:VCALENDAR
-ICS;
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            BEGIN:VTODO
+            UID:task-2@test
+            SUMMARY:Half done
+            PERCENT-COMPLETE:50
+            STATUS:IN-PROCESS
+            END:VTODO
+            END:VCALENDAR
+            ICS;
 
         $vcal = VObject\Reader::read($ics);
         $vtodo = $vcal->VTODO;
@@ -65,16 +65,16 @@ ICS;
     public function testVTodoIncludesDueDate(): void
     {
         $ics = <<<'ICS'
-BEGIN:VCALENDAR
-VERSION:2.0
-BEGIN:VTODO
-UID:task-3@test
-SUMMARY:Due task
-DUE:20260401T170000Z
-STATUS:NEEDS-ACTION
-END:VTODO
-END:VCALENDAR
-ICS;
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            BEGIN:VTODO
+            UID:task-3@test
+            SUMMARY:Due task
+            DUE:20260401T170000Z
+            STATUS:NEEDS-ACTION
+            END:VTODO
+            END:VCALENDAR
+            ICS;
 
         $vcal = VObject\Reader::read($ics);
         $vtodo = $vcal->VTODO;
@@ -85,16 +85,16 @@ ICS;
     public function testVTodoCompletedStatus(): void
     {
         $ics = <<<'ICS'
-BEGIN:VCALENDAR
-VERSION:2.0
-BEGIN:VTODO
-UID:task-4@test
-SUMMARY:Done task
-PERCENT-COMPLETE:100
-STATUS:COMPLETED
-END:VTODO
-END:VCALENDAR
-ICS;
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            BEGIN:VTODO
+            UID:task-4@test
+            SUMMARY:Done task
+            PERCENT-COMPLETE:100
+            STATUS:COMPLETED
+            END:VTODO
+            END:VCALENDAR
+            ICS;
 
         $vcal = VObject\Reader::read($ics);
         $vtodo = $vcal->VTODO;
@@ -106,18 +106,18 @@ ICS;
     public function testCreateCalendarObjectWithVTodoDoesNotThrow(): void
     {
         $ics = <<<'ICS'
-BEGIN:VCALENDAR
-VERSION:2.0
-BEGIN:VTODO
-UID:task-create@test
-SUMMARY:New Task
-DTSTART:20260401T090000Z
-DUE:20260401T170000Z
-STATUS:NEEDS-ACTION
-PERCENT-COMPLETE:0
-END:VTODO
-END:VCALENDAR
-ICS;
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            BEGIN:VTODO
+            UID:task-create@test
+            SUMMARY:New Task
+            DTSTART:20260401T090000Z
+            DUE:20260401T170000Z
+            STATUS:NEEDS-ACTION
+            PERCENT-COMPLETE:0
+            END:VTODO
+            END:VCALENDAR
+            ICS;
 
         // Should not throw — may return null if DB not set up
         $result = $this->backend->createCalendarObject('alice', 'task-create.ics', $ics);

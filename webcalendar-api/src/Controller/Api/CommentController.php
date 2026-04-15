@@ -24,8 +24,7 @@ final class CommentController
         private readonly ActivityLogService $activityLogService,
         private readonly ConfigService $configService,
         private readonly \PDO $pdo,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/events/{eventId}/comments', name: 'api_event_comments_list', methods: ['GET'])]
     public function list(int $eventId, #[CurrentUser] ?WebCalendarUser $user): JsonResponse

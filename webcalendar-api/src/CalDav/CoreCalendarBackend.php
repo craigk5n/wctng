@@ -9,7 +9,6 @@ use App\Service\CoreServiceFactory;
 use App\Service\DescriptionSanitizer;
 use App\Service\ValarmHelper;
 use Psr\Clock\ClockInterface;
-use Symfony\Component\Clock\NativeClock;
 use Sabre\CalDAV\Backend\BackendInterface;
 use Sabre\CalDAV\Backend\SchedulingSupport;
 use Sabre\CalDAV\Backend\SyncSupport;
@@ -21,6 +20,7 @@ use Sabre\DAV\Exception\Forbidden;
 use Sabre\DAV\Exception\MethodNotAllowed;
 use Sabre\DAV\PropPatch;
 use Sabre\VObject;
+use Symfony\Component\Clock\NativeClock;
 use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\Entity\Journal;
 use WebCalendar\Core\Domain\Entity\Task;
@@ -82,10 +82,10 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
                 '{DAV:}displayname' => 'Calendar',
                 '{http://apple.com/ns/ical/}calendar-color' => self::DEFAULT_COLOR,
                 '{' . Plugin::NS_CALDAV . '}calendar-description' => '',
-                '{' . Plugin::NS_CALDAV . '}supported-calendar-component-set' =>
-                    new SupportedCalendarComponentSet(['VEVENT', 'VTODO', 'VJOURNAL']),
-                '{' . Plugin::NS_CALDAV . '}schedule-calendar-transp' =>
-                    new ScheduleCalendarTransp('opaque'),
+                '{' . Plugin::NS_CALDAV . '}supported-calendar-component-set'
+                    => new SupportedCalendarComponentSet(['VEVENT', 'VTODO', 'VJOURNAL']),
+                '{' . Plugin::NS_CALDAV . '}schedule-calendar-transp'
+                    => new ScheduleCalendarTransp('opaque'),
                 '{DAV:}sync-token' => $this->getSyncToken($username),
                 '{http://calendarserver.org/ns/}getctag' => $this->getSyncToken($username),
             ],
@@ -113,9 +113,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
     }
 
     #[\Override]
-    public function updateCalendar($calendarId, PropPatch $propPatch): void
-    {
-    }
+    public function updateCalendar($calendarId, PropPatch $propPatch): void {}
 
     #[\Override]
     public function deleteCalendar($calendarId): void
@@ -542,7 +540,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
 
         // Token mismatch or initial sync — return all objects as added
         $objects = $this->getCalendarObjects($calendarId);
-        $added = array_map(static fn (array $o): string => \is_string($o['uri']) ? $o['uri'] : '', $objects);
+        $added = array_map(static fn(array $o): string => \is_string($o['uri']) ? $o['uri'] : '', $objects);
 
         return [
             'syncToken' => $currentToken,

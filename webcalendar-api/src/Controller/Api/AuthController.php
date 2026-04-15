@@ -41,8 +41,7 @@ final class AuthController
         private readonly UserTokenIndex $tokenIndex,
         private readonly TokenRevocationService $revoker,
         private readonly ActivityLogService $activityLog,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/auth/login', name: 'api_auth_login', methods: ['POST'])]
     public function login(Request $request): JsonResponse
@@ -111,7 +110,7 @@ final class AuthController
             $tokenStr = substr($authHeader, 7);
             $parts = explode('.', $tokenStr);
             if (\count($parts) === 3) {
-                $payload = json_decode(base64_decode($parts[1]), true);
+                $payload = json_decode((string) base64_decode($parts[1], true), true);
                 $rememberMe = \is_array($payload) && ($payload['rem'] ?? false) === true;
             }
         }

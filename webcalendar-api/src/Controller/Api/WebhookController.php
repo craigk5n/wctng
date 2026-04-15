@@ -18,8 +18,7 @@ final class WebhookController
 {
     public function __construct(
         private readonly WebhookRepository $repository,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/admin/webhooks', name: 'api_webhooks_list', methods: ['GET'])]
     public function list(#[CurrentUser] ?WebCalendarUser $user): JsonResponse
@@ -30,7 +29,7 @@ final class WebhookController
 
         $webhooks = $this->repository->findAll();
 
-        return ApiResponse::success(array_map(static fn (WebhookSubscription $w): array => $w->toArray(), $webhooks));
+        return ApiResponse::success(array_map(static fn(WebhookSubscription $w): array => $w->toArray(), $webhooks));
     }
 
     #[Route('/api/v2/admin/webhooks', name: 'api_webhooks_create', methods: ['POST'])]

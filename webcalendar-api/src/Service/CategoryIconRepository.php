@@ -21,8 +21,7 @@ final class CategoryIconRepository
 {
     public function __construct(
         private readonly \PDO $pdo,
-    ) {
-    }
+    ) {}
 
     public function ensureSchema(): void
     {
@@ -94,7 +93,7 @@ final class CategoryIconRepository
 
         $placeholders = implode(',', array_fill(0, \count($ids), '?'));
         $stmt = $this->pdo->prepare(
-            "SELECT cat_id, cat_icon FROM webcal_category_icons "
+            'SELECT cat_id, cat_icon FROM webcal_category_icons '
             . "WHERE cat_owner = ? AND cat_id IN ({$placeholders})"
         );
         $params = array_merge([$owner ?? ''], $ids);

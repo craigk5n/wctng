@@ -17,8 +17,7 @@ final class LocationController
 {
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/users/{login}/location', name: 'api_user_location_get', methods: ['GET'])]
     public function getLocation(string $login, Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse

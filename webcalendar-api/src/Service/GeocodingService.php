@@ -19,8 +19,7 @@ final class GeocodingService
         private readonly HttpClientInterface $httpClient,
         private readonly GeoRepository $geoRepository,
         private readonly CoreServiceFactory $factory,
-    ) {
-    }
+    ) {}
 
     /**
      * Geocode a location string and return coordinates.

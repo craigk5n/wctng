@@ -258,7 +258,7 @@ final class PurgeService
     private function partitionForTruncation(array $ids, int $cutoffYmd): array
     {
         $placeholders = implode(',', array_fill(0, \count($ids), '?'));
-        $sql = "SELECT cal_id, cal_end FROM webcal_entry_repeats "
+        $sql = 'SELECT cal_id, cal_end FROM webcal_entry_repeats '
             . "WHERE cal_id IN ({$placeholders})";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($ids);

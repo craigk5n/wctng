@@ -36,8 +36,7 @@ final class SecurityHeaderSubscriber implements EventSubscriberInterface
 
     public function __construct(
         private readonly CspNonceProvider $nonceProvider,
-    ) {
-    }
+    ) {}
 
     #[\Override]
     public static function getSubscribedEvents(): array

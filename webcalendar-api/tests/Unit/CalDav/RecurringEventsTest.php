@@ -24,17 +24,17 @@ final class RecurringEventsTest extends TestCase
     public function testCreateRecurringEventWithRRule(): void
     {
         $ics = <<<'ICS'
-BEGIN:VCALENDAR
-VERSION:2.0
-BEGIN:VEVENT
-UID:recurring-1@test
-SUMMARY:Weekly Meeting
-DTSTART:20260401T100000Z
-DURATION:PT1H
-RRULE:FREQ=WEEKLY;COUNT=10
-END:VEVENT
-END:VCALENDAR
-ICS;
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            BEGIN:VEVENT
+            UID:recurring-1@test
+            SUMMARY:Weekly Meeting
+            DTSTART:20260401T100000Z
+            DURATION:PT1H
+            RRULE:FREQ=WEEKLY;COUNT=10
+            END:VEVENT
+            END:VCALENDAR
+            ICS;
 
         // createCalendarObject parses and creates — should not throw
         $etag = $this->backend->createCalendarObject('alice', 'recurring-1.ics', $ics);
@@ -49,17 +49,17 @@ ICS;
         // Create an event with recurrence directly and test eventToIcs
         // We test through the vEventToEntity → eventToIcs roundtrip
         $ics = <<<'ICS'
-BEGIN:VCALENDAR
-VERSION:2.0
-BEGIN:VEVENT
-UID:rrule-test@test
-SUMMARY:Daily Standup
-DTSTART:20260401T090000Z
-DURATION:PT15M
-RRULE:FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR
-END:VEVENT
-END:VCALENDAR
-ICS;
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            BEGIN:VEVENT
+            UID:rrule-test@test
+            SUMMARY:Daily Standup
+            DTSTART:20260401T090000Z
+            DURATION:PT15M
+            RRULE:FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR
+            END:VEVENT
+            END:VCALENDAR
+            ICS;
 
         $vcal = VObject\Reader::read($ics);
         $this->assertInstanceOf(VObject\Component\VCalendar::class, $vcal);
@@ -77,19 +77,19 @@ ICS;
     public function testExDateParsedFromIcs(): void
     {
         $ics = <<<'ICS'
-BEGIN:VCALENDAR
-VERSION:2.0
-BEGIN:VEVENT
-UID:exdate-test@test
-SUMMARY:Weekly with Exceptions
-DTSTART:20260401T100000Z
-DURATION:PT1H
-RRULE:FREQ=WEEKLY;COUNT=10
-EXDATE:20260408T100000Z
-EXDATE:20260415T100000Z
-END:VEVENT
-END:VCALENDAR
-ICS;
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            BEGIN:VEVENT
+            UID:exdate-test@test
+            SUMMARY:Weekly with Exceptions
+            DTSTART:20260401T100000Z
+            DURATION:PT1H
+            RRULE:FREQ=WEEKLY;COUNT=10
+            EXDATE:20260408T100000Z
+            EXDATE:20260415T100000Z
+            END:VEVENT
+            END:VCALENDAR
+            ICS;
 
         $vcal = VObject\Reader::read($ics);
         $this->assertInstanceOf(VObject\Component\VCalendar::class, $vcal);
@@ -105,24 +105,24 @@ ICS;
     public function testRecurrenceIdParsedFromIcs(): void
     {
         $ics = <<<'ICS'
-BEGIN:VCALENDAR
-VERSION:2.0
-BEGIN:VEVENT
-UID:recurrence-id-test@test
-SUMMARY:Weekly Meeting
-DTSTART:20260401T100000Z
-DURATION:PT1H
-RRULE:FREQ=WEEKLY;COUNT=10
-END:VEVENT
-BEGIN:VEVENT
-UID:recurrence-id-test@test
-SUMMARY:Weekly Meeting (Rescheduled)
-DTSTART:20260408T140000Z
-DURATION:PT1H
-RECURRENCE-ID:20260408T100000Z
-END:VEVENT
-END:VCALENDAR
-ICS;
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            BEGIN:VEVENT
+            UID:recurrence-id-test@test
+            SUMMARY:Weekly Meeting
+            DTSTART:20260401T100000Z
+            DURATION:PT1H
+            RRULE:FREQ=WEEKLY;COUNT=10
+            END:VEVENT
+            BEGIN:VEVENT
+            UID:recurrence-id-test@test
+            SUMMARY:Weekly Meeting (Rescheduled)
+            DTSTART:20260408T140000Z
+            DURATION:PT1H
+            RECURRENCE-ID:20260408T100000Z
+            END:VEVENT
+            END:VCALENDAR
+            ICS;
 
         $vcal = VObject\Reader::read($ics);
         $this->assertInstanceOf(VObject\Component\VCalendar::class, $vcal);

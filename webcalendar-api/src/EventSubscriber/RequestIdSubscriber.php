@@ -22,8 +22,7 @@ final class RequestIdSubscriber implements EventSubscriberInterface
     public function __construct(
         private readonly LoggerInterface $logger,
         private readonly TenantContext $tenantContext,
-    ) {
-    }
+    ) {}
 
     #[\Override]
     public static function getSubscribedEvents(): array

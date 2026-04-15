@@ -35,14 +35,14 @@ final class ResetEventsCommandTest extends TestCase
         $this->pdo->exec('CREATE TABLE webcal_blob (cal_blob_id INTEGER PRIMARY KEY, cal_id INT)');
 
         // Seed some rows so we can verify truncation.
-        $this->pdo->exec("INSERT INTO webcal_entry (cal_id, cal_date) VALUES (1, 20240101), (2, 20240102)");
+        $this->pdo->exec('INSERT INTO webcal_entry (cal_id, cal_date) VALUES (1, 20240101), (2, 20240102)');
         $this->pdo->exec("INSERT INTO webcal_entry_user (cal_id, cal_login) VALUES (1, 'admin'), (2, 'alice')");
-        $this->pdo->exec("INSERT INTO webcal_entry_categories (cal_id, cat_id) VALUES (1, 1)");
-        $this->pdo->exec("INSERT INTO webcal_reminders (cal_id, cal_date) VALUES (1, 20240101)");
-        $this->pdo->exec("INSERT INTO webcal_blob (cal_id) VALUES (1)");
+        $this->pdo->exec('INSERT INTO webcal_entry_categories (cal_id, cat_id) VALUES (1, 1)');
+        $this->pdo->exec('INSERT INTO webcal_reminders (cal_id, cal_date) VALUES (1, 20240101)');
+        $this->pdo->exec('INSERT INTO webcal_blob (cal_id) VALUES (1)');
         $this->pdo->exec("INSERT INTO webcal_entry_ext_user (cal_id, cal_fullname) VALUES (1, 'Bob')");
-        $this->pdo->exec("INSERT INTO webcal_entry_repeats (cal_id) VALUES (1)");
-        $this->pdo->exec("INSERT INTO webcal_entry_repeats_not (cal_id, cal_date) VALUES (1, 20240102)");
+        $this->pdo->exec('INSERT INTO webcal_entry_repeats (cal_id) VALUES (1)');
+        $this->pdo->exec('INSERT INTO webcal_entry_repeats_not (cal_id, cal_date) VALUES (1, 20240102)');
     }
 
     protected function tearDown(): void

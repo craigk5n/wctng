@@ -20,8 +20,7 @@ final class TenantDatabaseManager
     public function __construct(
         #[\SensitiveParameter]
         private readonly string $appSecret,
-    ) {
-    }
+    ) {}
 
     /**
      * Gets a PDO connection for a tenant, creating and caching it if needed.

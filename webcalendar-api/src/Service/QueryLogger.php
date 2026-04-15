@@ -18,8 +18,7 @@ final class QueryLogger
 
     public function __construct(
         private readonly \PDO $pdo,
-    ) {
-    }
+    ) {}
 
     public function getQueryCount(): int
     {

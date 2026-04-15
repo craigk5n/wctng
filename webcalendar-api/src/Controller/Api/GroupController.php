@@ -6,13 +6,13 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
-use Psr\Clock\ClockInterface;
-use Symfony\Component\Clock\NativeClock;
 use WebCalendar\Core\Application\Service\GroupService;
 use WebCalendar\Core\Domain\Entity\Group;
 
@@ -21,8 +21,7 @@ final class GroupController
     public function __construct(
         private readonly GroupService $groupService,
         private readonly ClockInterface $clock = new NativeClock(),
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/groups', name: 'api_groups_list', methods: ['GET'])]
     public function list(#[CurrentUser] ?WebCalendarUser $user): JsonResponse

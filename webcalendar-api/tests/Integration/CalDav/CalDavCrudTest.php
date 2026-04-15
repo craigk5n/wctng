@@ -35,7 +35,7 @@ final class CalDavCrudTest extends IntegrationTestCase
             . "UID:{$uid}\r\n"
             . "DTSTAMP:20260601T080000Z\r\n"
             . "DTSTART:{$dtstart}\r\n"
-            . "DTEND:" . substr($dtstart, 0, 9) . "100000Z\r\n"
+            . 'DTEND:' . substr($dtstart, 0, 9) . "100000Z\r\n"
             . "SUMMARY:{$summary}\r\n"
             . "END:VEVENT\r\n"
             . "END:VCALENDAR\r\n";

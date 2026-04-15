@@ -7,54 +7,52 @@ namespace App\Poll;
 final readonly class PollRepository
 {
     public const SCHEMA_SQL = <<<'SQL'
-        CREATE TABLE IF NOT EXISTS scheduling_polls (
-            id INTEGER PRIMARY KEY AUTO_INCREMENT,
-            creator_login VARCHAR(60) NOT NULL,
-            title VARCHAR(200) NOT NULL,
-            description TEXT,
-            status VARCHAR(10) NOT NULL DEFAULT 'open',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-        CREATE TABLE IF NOT EXISTS scheduling_poll_options (
-            id INTEGER PRIMARY KEY AUTO_INCREMENT,
-            poll_id INTEGER NOT NULL,
-            start_datetime DATETIME NOT NULL,
-            end_datetime DATETIME NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS scheduling_poll_votes (
-            id INTEGER PRIMARY KEY AUTO_INCREMENT,
-            option_id INTEGER NOT NULL,
-            voter_login VARCHAR(60) NOT NULL,
-            vote VARCHAR(5) NOT NULL DEFAULT 'yes'
-        )
-    SQL;
+            CREATE TABLE IF NOT EXISTS scheduling_polls (
+                id INTEGER PRIMARY KEY AUTO_INCREMENT,
+                creator_login VARCHAR(60) NOT NULL,
+                title VARCHAR(200) NOT NULL,
+                description TEXT,
+                status VARCHAR(10) NOT NULL DEFAULT 'open',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS scheduling_poll_options (
+                id INTEGER PRIMARY KEY AUTO_INCREMENT,
+                poll_id INTEGER NOT NULL,
+                start_datetime DATETIME NOT NULL,
+                end_datetime DATETIME NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS scheduling_poll_votes (
+                id INTEGER PRIMARY KEY AUTO_INCREMENT,
+                option_id INTEGER NOT NULL,
+                voter_login VARCHAR(60) NOT NULL,
+                vote VARCHAR(5) NOT NULL DEFAULT 'yes'
+            )
+        SQL;
 
     public const SCHEMA_SQL_SQLITE = <<<'SQL'
-        CREATE TABLE IF NOT EXISTS scheduling_polls (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            creator_login VARCHAR(60) NOT NULL,
-            title VARCHAR(200) NOT NULL,
-            description TEXT,
-            status VARCHAR(10) NOT NULL DEFAULT 'open',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-        CREATE TABLE IF NOT EXISTS scheduling_poll_options (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            poll_id INTEGER NOT NULL,
-            start_datetime DATETIME NOT NULL,
-            end_datetime DATETIME NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS scheduling_poll_votes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            option_id INTEGER NOT NULL,
-            voter_login VARCHAR(60) NOT NULL,
-            vote VARCHAR(5) NOT NULL DEFAULT 'yes'
-        )
-    SQL;
+            CREATE TABLE IF NOT EXISTS scheduling_polls (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                creator_login VARCHAR(60) NOT NULL,
+                title VARCHAR(200) NOT NULL,
+                description TEXT,
+                status VARCHAR(10) NOT NULL DEFAULT 'open',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS scheduling_poll_options (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                poll_id INTEGER NOT NULL,
+                start_datetime DATETIME NOT NULL,
+                end_datetime DATETIME NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS scheduling_poll_votes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                option_id INTEGER NOT NULL,
+                voter_login VARCHAR(60) NOT NULL,
+                vote VARCHAR(5) NOT NULL DEFAULT 'yes'
+            )
+        SQL;
 
-    public function __construct(private \PDO $pdo)
-    {
-    }
+    public function __construct(private \PDO $pdo) {}
 
     /**
      * @param list<array{start: string, end: string}> $options
@@ -122,7 +120,7 @@ final readonly class PollRepository
                 'start' => \is_string($row['start_datetime'] ?? null) ? $row['start_datetime'] : '',
                 'end' => \is_string($row['end_datetime'] ?? null) ? $row['end_datetime'] : '',
                 'votes' => $votes,
-                'yes_count' => \count(array_filter($votes, static fn (array $v): bool => $v['vote'] === 'yes')),
+                'yes_count' => \count(array_filter($votes, static fn(array $v): bool => $v['vote'] === 'yes')),
             ];
 
             /** @var array<string, string|int|null>|false $row */

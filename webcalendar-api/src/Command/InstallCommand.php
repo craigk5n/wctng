@@ -126,7 +126,7 @@ final class InstallCommand extends Command
         // Split by semicolons and execute each statement
         $statements = array_filter(
             array_map('trim', explode(';', $sql)),
-            static fn (string $s): bool => $s !== '',
+            static fn(string $s): bool => $s !== '',
         );
 
         foreach ($statements as $statement) {

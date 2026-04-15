@@ -24,8 +24,7 @@ final class DashboardController
         private readonly \PDO $pdo,
         private readonly ?ErrorMetricsService $errorMetrics = null,
         private readonly ClockInterface $clock = new NativeClock(),
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/admin/dashboard', name: 'api_admin_dashboard', methods: ['GET'])]
     public function __invoke(#[CurrentUser] ?WebCalendarUser $user): JsonResponse

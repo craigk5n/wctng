@@ -20,11 +20,11 @@ phpstan:
 psalm:
 	./vendor/bin/psalm --no-cache
 
-## Fix code style (PSR-12)
+## Fix code style (PER-CS 3.0 via php-cs-fixer)
 cs-fix:
 	./vendor/bin/php-cs-fixer fix
 
-## Check code style without fixing
+## Check code style without fixing (PER-CS 3.0)
 cs-check:
 	./vendor/bin/php-cs-fixer fix --dry-run --diff
 

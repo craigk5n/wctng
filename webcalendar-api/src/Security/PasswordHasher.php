@@ -33,8 +33,10 @@ final readonly class PasswordHasher
     }
 
     public function verify(
-        #[\SensitiveParameter] string $password,
-        #[\SensitiveParameter] string $hash,
+        #[\SensitiveParameter]
+        string $password,
+        #[\SensitiveParameter]
+        string $hash,
     ): bool {
         return password_verify($password, $hash);
     }

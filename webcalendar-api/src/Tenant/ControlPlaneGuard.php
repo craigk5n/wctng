@@ -24,8 +24,7 @@ final readonly class ControlPlaneGuard
     public function __construct(
         private JWTEncoderInterface $jwtEncoder,
         private string $appMode,
-    ) {
-    }
+    ) {}
 
     public function onKernelRequest(RequestEvent $event): void
     {

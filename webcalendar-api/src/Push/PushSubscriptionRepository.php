@@ -7,30 +7,28 @@ namespace App\Push;
 final readonly class PushSubscriptionRepository
 {
     public const SCHEMA_SQL = <<<'SQL'
-        CREATE TABLE IF NOT EXISTS push_subscriptions (
-            id INTEGER PRIMARY KEY AUTO_INCREMENT,
-            user_login VARCHAR(60) NOT NULL,
-            endpoint VARCHAR(500) NOT NULL UNIQUE,
-            p256dh VARCHAR(255) NOT NULL,
-            auth VARCHAR(255) NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    SQL;
+            CREATE TABLE IF NOT EXISTS push_subscriptions (
+                id INTEGER PRIMARY KEY AUTO_INCREMENT,
+                user_login VARCHAR(60) NOT NULL,
+                endpoint VARCHAR(500) NOT NULL UNIQUE,
+                p256dh VARCHAR(255) NOT NULL,
+                auth VARCHAR(255) NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        SQL;
 
     public const SCHEMA_SQL_SQLITE = <<<'SQL'
-        CREATE TABLE IF NOT EXISTS push_subscriptions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_login VARCHAR(60) NOT NULL,
-            endpoint VARCHAR(500) NOT NULL UNIQUE,
-            p256dh VARCHAR(255) NOT NULL,
-            auth VARCHAR(255) NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    SQL;
+            CREATE TABLE IF NOT EXISTS push_subscriptions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_login VARCHAR(60) NOT NULL,
+                endpoint VARCHAR(500) NOT NULL UNIQUE,
+                p256dh VARCHAR(255) NOT NULL,
+                auth VARCHAR(255) NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        SQL;
 
-    public function __construct(private \PDO $pdo)
-    {
-    }
+    public function __construct(private \PDO $pdo) {}
 
     public function subscribe(string $login, string $endpoint, string $p256dh, string $auth): void
     {

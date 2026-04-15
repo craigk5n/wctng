@@ -101,14 +101,14 @@ final class EventController
         // Include events from active layers when layers=1
         if ($request->query->getString('layers', '') === '1') {
             $layers = $this->layerService->getLayersForUser($user->getUserIdentifier());
-            $layerUsers = array_map(static fn ($l) => $l->layerUser(), $layers);
+            $layerUsers = array_map(static fn($l) => $l->layerUser(), $layers);
             if (\count($layerUsers) > 0) {
                 // Load access permissions for layered users
                 $accessMap = $this->getAccessPermissions($user->getUserIdentifier(), array_values($layerUsers));
 
                 $layerCollection = $this->eventService->getEventsInDateRange($dateRange, null, null, $layerUsers);
                 // Merge, avoiding duplicates by event ID, filtering by access
-                $existingIds = array_map(static fn ($e) => $e->id(), $allEvents);
+                $existingIds = array_map(static fn($e) => $e->id(), $allEvents);
                 foreach ($layerCollection->all() as $layerEvent) {
                     if (\in_array($layerEvent->id(), $existingIds, true)) {
                         continue;
@@ -130,7 +130,7 @@ final class EventController
         $pageItems = array_values(\array_slice($allEvents, $offset, $limit));
 
         // Load category IDs for events in this page
-        $eventIds = array_map(static fn ($e) => $e->id(), $pageItems);
+        $eventIds = array_map(static fn($e) => $e->id(), $pageItems);
         $categoryMap = [];
         if (\count($eventIds) > 0) {
             $categoryRepo = $this->categoryRepository;
@@ -143,11 +143,11 @@ final class EventController
 
         // Batch load geo coordinates
         $geoMap = $this->geoRepository->getCoordinatesBatch(
-            array_map(static fn ($e) => $e->id()->value(), $pageItems),
+            array_map(static fn($e) => $e->id()->value(), $pageItems),
         );
 
         $items = array_map(
-            static fn (\WebCalendar\Core\Domain\Entity\Event $event): array => EventResponseDTO::fromEntity(
+            static fn(\WebCalendar\Core\Domain\Entity\Event $event): array => EventResponseDTO::fromEntity(
                 $event,
                 $categoryMap[$event->id()->value()] ?? [],
                 $geoMap[$event->id()->value()] ?? null,
@@ -280,7 +280,7 @@ final class EventController
 
             if (\count($conflictList) > 0 && $conflictMode === 'block') {
                 return ApiResponse::error(409, 'Event conflicts with existing events', array_map(
-                    static fn (array $c): string => sprintf('%s (%s)', $c['title'], $c['start']),
+                    static fn(array $c): string => sprintf('%s (%s)', $c['title'], $c['start']),
                     $conflictList,
                 ));
             }
@@ -517,7 +517,7 @@ final class EventController
 
             if (\count($conflictList) > 0 && $conflictMode === 'block') {
                 return ApiResponse::error(409, 'Event conflicts with existing events', array_map(
-                    static fn (array $c): string => sprintf('%s (%s)', $c['title'], $c['start']),
+                    static fn(array $c): string => sprintf('%s (%s)', $c['title'], $c['start']),
                     $conflictList,
                 ));
             }
@@ -1135,7 +1135,7 @@ final class EventController
             $rr['cal_end'] = null;
 
             $cols = array_keys($rr);
-            $placeholders = array_map(static fn (string $c) => ':' . $c, $cols);
+            $placeholders = array_map(static fn(string $c) => ':' . $c, $cols);
             $pdo->prepare(
                 'INSERT INTO webcal_entry_repeats (' . implode(', ', $cols) . ') VALUES (' . implode(', ', $placeholders) . ')'
             )->execute($rr);

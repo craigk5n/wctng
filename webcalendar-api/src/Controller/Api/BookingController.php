@@ -16,8 +16,7 @@ final class BookingController
     public function __construct(
         private readonly UserService $userService,
         private readonly BookingService $bookingService,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/public/availability/{username}', name: 'api_public_availability', methods: ['GET'])]
     public function availability(string $username, Request $request): JsonResponse

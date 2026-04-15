@@ -36,8 +36,7 @@ final class TenantRateLimiter
     public function __construct(
         private readonly TenantContext $tenantContext,
         private readonly string $storageDir,
-    ) {
-    }
+    ) {}
 
     public function onKernelRequest(RequestEvent $event): void
     {
@@ -99,7 +98,7 @@ final class TenantRateLimiter
     {
         $dir = $this->storageDir . '/rate_limits';
         if (!is_dir($dir)) {
-            @mkdir($dir, 0777, true);
+            @mkdir($dir, 0o777, true);
         }
 
         $file = $dir . '/' . $slug . '_' . $window . '.count';

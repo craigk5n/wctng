@@ -30,7 +30,7 @@ final class SubscriptionController
         }
 
         $subs = $this->repo->findByUser($user->getUserIdentifier());
-        $items = array_map(fn ($s) => $s->toArray(), $subs);
+        $items = array_map(fn($s) => $s->toArray(), $subs);
 
         return ApiResponse::success($items);
     }

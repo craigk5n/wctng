@@ -6,12 +6,12 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
-use Psr\Clock\ClockInterface;
-use Symfony\Component\Clock\NativeClock;
 use WebCalendar\Core\Application\Service\ActivityLogService;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 
@@ -20,8 +20,7 @@ final class ActivityLogController
     public function __construct(
         private readonly ActivityLogService $activityLogService,
         private readonly ClockInterface $clock = new NativeClock(),
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/admin/activity-log', name: 'api_admin_activity_log', methods: ['GET'])]
     public function list(Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse

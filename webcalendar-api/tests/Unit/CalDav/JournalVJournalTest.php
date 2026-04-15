@@ -24,16 +24,16 @@ final class JournalVJournalTest extends TestCase
     public function testVJournalIcsContainsSummary(): void
     {
         $ics = <<<'ICS'
-BEGIN:VCALENDAR
-VERSION:2.0
-BEGIN:VJOURNAL
-UID:journal-1@test
-SUMMARY:Daily Log
-DESCRIPTION:Deployed v2.0 today.
-DTSTART:20260401
-END:VJOURNAL
-END:VCALENDAR
-ICS;
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            BEGIN:VJOURNAL
+            UID:journal-1@test
+            SUMMARY:Daily Log
+            DESCRIPTION:Deployed v2.0 today.
+            DTSTART:20260401
+            END:VJOURNAL
+            END:VCALENDAR
+            ICS;
 
         $vcal = VObject\Reader::read($ics);
         $this->assertInstanceOf(VObject\Component\VCalendar::class, $vcal);
@@ -45,16 +45,16 @@ ICS;
     public function testVJournalIncludesDescription(): void
     {
         $ics = <<<'ICS'
-BEGIN:VCALENDAR
-VERSION:2.0
-BEGIN:VJOURNAL
-UID:journal-2@test
-SUMMARY:Meeting Notes
-DESCRIPTION:Discussed Q2 roadmap and priorities.
-DTSTART:20260401
-END:VJOURNAL
-END:VCALENDAR
-ICS;
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            BEGIN:VJOURNAL
+            UID:journal-2@test
+            SUMMARY:Meeting Notes
+            DESCRIPTION:Discussed Q2 roadmap and priorities.
+            DTSTART:20260401
+            END:VJOURNAL
+            END:VCALENDAR
+            ICS;
 
         $vcal = VObject\Reader::read($ics);
         $vjournal = $vcal->VJOURNAL;
@@ -65,15 +65,15 @@ ICS;
     public function testVJournalIncludesDate(): void
     {
         $ics = <<<'ICS'
-BEGIN:VCALENDAR
-VERSION:2.0
-BEGIN:VJOURNAL
-UID:journal-3@test
-SUMMARY:Date Test
-DTSTART:20260315
-END:VJOURNAL
-END:VCALENDAR
-ICS;
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            BEGIN:VJOURNAL
+            UID:journal-3@test
+            SUMMARY:Date Test
+            DTSTART:20260315
+            END:VJOURNAL
+            END:VCALENDAR
+            ICS;
 
         $vcal = VObject\Reader::read($ics);
         $vjournal = $vcal->VJOURNAL;
@@ -84,16 +84,16 @@ ICS;
     public function testCreateCalendarObjectWithVJournalDoesNotThrow(): void
     {
         $ics = <<<'ICS'
-BEGIN:VCALENDAR
-VERSION:2.0
-BEGIN:VJOURNAL
-UID:journal-create@test
-SUMMARY:New Journal Entry
-DESCRIPTION:Some notes.
-DTSTART:20260401
-END:VJOURNAL
-END:VCALENDAR
-ICS;
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            BEGIN:VJOURNAL
+            UID:journal-create@test
+            SUMMARY:New Journal Entry
+            DESCRIPTION:Some notes.
+            DTSTART:20260401
+            END:VJOURNAL
+            END:VCALENDAR
+            ICS;
 
         $result = $this->backend->createCalendarObject('alice', 'journal-create.ics', $ics);
         $this->assertTrue($result === null || \is_string($result));

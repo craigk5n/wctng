@@ -19,8 +19,7 @@ final class CorePrincipalBackend implements BackendInterface
 {
     public function __construct(
         private readonly CoreServiceFactory $coreServiceFactory,
-    ) {
-    }
+    ) {}
 
     /**
      * @return list<array<string, mixed>>

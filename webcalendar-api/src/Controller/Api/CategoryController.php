@@ -80,7 +80,7 @@ final class CategoryController
         $iconMap = $this->loadIconsForCategories(array_values($categories));
 
         $items = array_map(
-            fn (Category $c) => self::categoryToArray($c, $iconMap[self::iconKey($c)] ?? null),
+            fn(Category $c) => self::categoryToArray($c, $iconMap[self::iconKey($c)] ?? null),
             $categories,
         );
 

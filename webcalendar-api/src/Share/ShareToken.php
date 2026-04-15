@@ -13,8 +13,7 @@ final readonly class ShareToken
         private string $ownerLogin,
         private ?string $expiresAt,
         private string $createdAt,
-    ) {
-    }
+    ) {}
 
     public function id(): int
     {

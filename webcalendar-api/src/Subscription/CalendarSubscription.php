@@ -15,8 +15,7 @@ final readonly class CalendarSubscription
         private int $refreshInterval,
         private ?string $lastFetched,
         private ?string $etag,
-    ) {
-    }
+    ) {}
 
     public function id(): int
     {

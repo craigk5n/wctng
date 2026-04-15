@@ -94,7 +94,7 @@ final class BackupService
         }
 
         // Sort newest first
-        usort($result, static fn (array $a, array $b): int => strcmp($b['created_at'], $a['created_at']));
+        usort($result, static fn(array $a, array $b): int => strcmp($b['created_at'], $a['created_at']));
 
         return $result;
     }

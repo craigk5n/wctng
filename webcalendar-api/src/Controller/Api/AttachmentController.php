@@ -6,13 +6,13 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
-use Psr\Clock\ClockInterface;
-use Symfony\Component\Clock\NativeClock;
 use WebCalendar\Core\Domain\Entity\Blob;
 use WebCalendar\Core\Domain\Entity\User;
 use WebCalendar\Core\Domain\Repository\BlobRepositoryInterface;
@@ -39,8 +39,7 @@ final class AttachmentController
         private readonly EventRepositoryInterface $eventRepo,
         private readonly BlobRepositoryInterface $blobRepo,
         private readonly ClockInterface $clock = new NativeClock(),
-    ) {
-    }
+    ) {}
 
     public static function createForTest(
         EventRepositoryInterface $eventRepo,
@@ -58,7 +57,8 @@ final class AttachmentController
     public function list(
         int $eventId,
         Request $request,
-        #[CurrentUser] WebCalendarUser|User|null $actorOrUser = null,
+        #[CurrentUser]
+        WebCalendarUser|User|null $actorOrUser = null,
     ): JsonResponse {
         if ($this->getLogin($actorOrUser) === null) {
             return ApiResponse::error(401, 'Authentication required');
@@ -79,7 +79,8 @@ final class AttachmentController
     public function upload(
         int $eventId,
         Request $request,
-        #[CurrentUser] WebCalendarUser|User|null $actorOrUser = null,
+        #[CurrentUser]
+        WebCalendarUser|User|null $actorOrUser = null,
     ): JsonResponse {
         $login = $this->getLogin($actorOrUser);
         if ($login === null) {
@@ -140,7 +141,8 @@ final class AttachmentController
     public function download(
         int $eventId,
         int $attachmentId,
-        #[CurrentUser] WebCalendarUser|User|null $actorOrUser = null,
+        #[CurrentUser]
+        WebCalendarUser|User|null $actorOrUser = null,
     ): Response {
         if ($this->getLogin($actorOrUser) === null) {
             return ApiResponse::error(401, 'Authentication required');
@@ -168,7 +170,8 @@ final class AttachmentController
         int $eventId,
         int $attachmentId,
         Request $request,
-        #[CurrentUser] WebCalendarUser|User|null $actorOrUser = null,
+        #[CurrentUser]
+        WebCalendarUser|User|null $actorOrUser = null,
     ): Response {
         $login = $this->getLogin($actorOrUser);
         if ($login === null) {

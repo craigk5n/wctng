@@ -21,8 +21,7 @@ final class AdminEventController
 {
     public function __construct(
         private readonly PurgeService $purgeService,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/admin/events/purge', name: 'api_admin_events_purge', methods: ['POST'])]
     public function purge(Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse

@@ -85,7 +85,7 @@ final class DailyAgendaService
                 $dayEvents = $events->all();
 
                 // Sort by start time
-                usort($dayEvents, static fn ($a, $b) => $a->start() <=> $b->start());
+                usort($dayEvents, static fn($a, $b) => $a->start() <=> $b->start());
 
                 // Skip empty days if user prefers
                 if (\count($dayEvents) === 0 && $prefs['skip_empty']) {
@@ -194,11 +194,11 @@ final class DailyAgendaService
 
         if (\count($events) === 0) {
             return <<<HTML
-            <h2>{$safeDisplayName}'s Agenda — {$dateFormatted}</h2>
-            <p>No events scheduled for today.</p>
-            <p><a href="{$this->baseUrl}">Open Calendar</a></p>
-            {$unsubFooter}
-            HTML;
+                <h2>{$safeDisplayName}'s Agenda — {$dateFormatted}</h2>
+                <p>No events scheduled for today.</p>
+                <p><a href="{$this->baseUrl}">Open Calendar</a></p>
+                {$unsubFooter}
+                HTML;
         }
 
         $eventListHtml = '';
@@ -214,14 +214,14 @@ final class DailyAgendaService
         $countLabel = $count === 1 ? '1 event' : "{$count} events";
 
         return <<<HTML
-        <h2>{$safeDisplayName}'s Agenda — {$dateFormatted}</h2>
-        <p>{$countLabel} today:</p>
-        <ul>
-        {$eventListHtml}
-        </ul>
-        <p><a href="{$this->baseUrl}">Open Calendar</a></p>
-        {$unsubFooter}
-        HTML;
+            <h2>{$safeDisplayName}'s Agenda — {$dateFormatted}</h2>
+            <p>{$countLabel} today:</p>
+            <ul>
+            {$eventListHtml}
+            </ul>
+            <p><a href="{$this->baseUrl}">Open Calendar</a></p>
+            {$unsubFooter}
+            HTML;
     }
 
     private function renderUnsubscribeFooter(string $login): string

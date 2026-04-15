@@ -52,7 +52,7 @@ final class ConflictDetectionService
     public function formatConflicts(array $conflicts): array
     {
         return array_values(array_map(
-            static fn (Event $e): array => [
+            static fn(Event $e): array => [
                 'id' => $e->id()->value(),
                 'title' => $e->name(),
                 'start' => $e->start()->format('Y-m-d\TH:i:s'),

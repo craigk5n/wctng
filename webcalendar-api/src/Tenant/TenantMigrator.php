@@ -59,7 +59,7 @@ final class TenantMigrator
 
                 $statements = array_filter(
                     array_map('trim', explode(';', $sql)),
-                    static fn (string $s): bool => $s !== '',
+                    static fn(string $s): bool => $s !== '',
                 );
 
                 foreach ($statements as $statement) {

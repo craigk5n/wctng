@@ -16,8 +16,7 @@ final class RequestIdProcessor implements ProcessorInterface
 {
     public function __construct(
         private readonly RequestIdSubscriber $requestIdSubscriber,
-    ) {
-    }
+    ) {}
 
     public function __invoke(LogRecord $record): LogRecord
     {
