@@ -72,6 +72,9 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist
 
+      - name: Security audit (PBP-S8) — fail on any advisory
+        run: composer audit --no-interaction
+
       - name: Generate JWT keys
         run: |
           mkdir -p config/jwt

@@ -31,8 +31,14 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # Copy composer files first for better layer caching
 COPY composer.json composer.lock ./
 
-# Install dependencies (no dev)
-RUN composer install --no-dev --no-scripts --no-interaction --optimize-autoloader
+# Install dependencies — prod builds use the authoritative classmap so
+# the autoloader never scans the filesystem at runtime (PBP-S8).
+RUN composer install \
+    --no-dev \
+    --no-scripts \
+    --no-interaction \
+    --optimize-autoloader \
+    --classmap-authoritative
 
 # Copy application code
 COPY . .

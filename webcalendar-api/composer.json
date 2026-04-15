@@ -53,10 +53,11 @@
     "config": {
         "sort-packages": true,
         "optimize-autoloader": true,
+        "classmap-authoritative": true,
         "platform": {
             "php": "8.3.30"
         },
-        "platform-check": false,
+        "platform-check": true,
         "allow-plugins": {
             "symfony/flex": true,
             "symfony/runtime": true
@@ -70,7 +71,18 @@
             "assets:install %PUBLIC_DIR%": "symfony-cmd"
         },
         "check-sensitive-params": "php bin/check-sensitive-params.php",
-        "check-clock-injection": "php bin/check-clock-injection.php"
+        "check-clock-injection": "php bin/check-clock-injection.php",
+        "lint": "./vendor/bin/php-cs-fixer fix --dry-run --diff",
+        "stan": "./vendor/bin/phpstan analyse --memory-limit=512M",
+        "test": "./vendor/bin/phpunit --colors=always",
+        "check": [
+            "@lint",
+            "@check-sensitive-params",
+            "@check-clock-injection",
+            "@stan",
+            "@composer audit --no-dev",
+            "@test"
+        ]
     },
     "extra": {
         "symfony": {
