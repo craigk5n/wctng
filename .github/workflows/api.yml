@@ -20,6 +20,12 @@ jobs:
   ci:
     name: PHP CI (PHPStan, Psalm, PHPUnit, CS)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # PBP-S7: run on 8.3 (baseline) and 8.4 (allowed-to-fail forward check).
+        php-version: ["8.3", "8.4"]
+    continue-on-error: ${{ matrix.php-version == '8.4' }}
 
     services:
       mysql:
@@ -41,11 +47,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup PHP 8.2
+      - name: Setup PHP ${{ matrix.php-version }}
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.2"
-          extensions: intl, pdo_mysql, zip, mbstring
+          php-version: ${{ matrix.php-version }}
+          extensions: intl, pdo_mysql, zip, mbstring, sodium, curl
           coverage: xdebug
           tools: composer:v2
 

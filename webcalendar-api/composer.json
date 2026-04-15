@@ -4,7 +4,7 @@
     "type": "project",
     "license": "MIT",
     "require": {
-        "php": ">=8.2",
+        "php": ">=8.3",
         "craigk5n/webcalendar-core": "^4.1",
         "lexik/jwt-authentication-bundle": "^3.1",
         "nelmio/cors-bundle": "^2.4",
@@ -27,7 +27,7 @@
         "friendsofphp/php-cs-fixer": "^3.94",
         "phpstan/phpstan": "^2.1",
         "phpstan/phpstan-symfony": "^2.0",
-        "phpunit/phpunit": "^10.5",
+        "phpunit/phpunit": "^11.0",
         "squizlabs/php_codesniffer": "^4.0",
         "symfony/browser-kit": "^7.2",
         "symfony/css-selector": "^7.2",
@@ -53,6 +53,10 @@
     "config": {
         "sort-packages": true,
         "optimize-autoloader": true,
+        "platform": {
+            "php": "8.3.30"
+        },
+        "platform-check": false,
         "allow-plugins": {
             "symfony/flex": true,
             "symfony/runtime": true

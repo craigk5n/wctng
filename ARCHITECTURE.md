@@ -29,7 +29,7 @@ webcalendar-openapi   — Shared OpenAPI spec + generated clients
 
 | Layer | Technology | Rationale |
 |-------|-----------|-----------|
-| Business Logic | webcalendar-core (PHP 8.2+) | Clean architecture, 27 services, 19 repositories, RFC 5545 |
+| Business Logic | webcalendar-core (PHP 8.3+) | Clean architecture, 27 services, 19 repositories, RFC 5545 |
 | API Framework | Symfony 7.x | Component-based, extensible auth, Mercure support, long-term stability |
 | Real-time | Mercure Hub (SSE) | Symfony-native, simpler than WebSockets, works through proxies/firewalls |
 | CalDAV | sabre/dav (future) | De facto PHP CalDAV, used by Nextcloud/ownCloud |
@@ -459,7 +459,7 @@ volumes:
 ### Standalone (Traditional Hosting)
 
 ```
-Requirements: PHP 8.2+, Apache/nginx, MySQL/PostgreSQL/SQLite
+Requirements: PHP 8.3+, Apache/nginx, MySQL/PostgreSQL/SQLite
 No Docker, no Node.js, no Mercure (real-time disabled gracefully)
 
 Installation:

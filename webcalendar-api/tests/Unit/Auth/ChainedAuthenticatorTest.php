@@ -10,6 +10,7 @@ use App\Auth\LdapAuthenticator;
 use App\Auth\LdapConfigRepository;
 use App\Auth\OAuthProviderRepository;
 use App\Service\CoreServiceFactory;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 final class ChainedAuthenticatorTest extends TestCase
@@ -38,7 +39,7 @@ final class ChainedAuthenticatorTest extends TestCase
         $this->assertNull($result);
     }
 
-    /** @group integration */
+    #[Group('integration')]
     public function testReturnsUserAndMethodOnSuccess(): void
     {
         $this->markTestSkipped('Requires full webcalendar-core schema for AuthService');

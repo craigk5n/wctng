@@ -59,7 +59,7 @@ A modern, full-featured calendar application built as a ground-up rewrite of [We
 ## Architecture
 
 ```
-webcalendar-api/     Symfony 7.x REST API (PHP 8.2+)
+webcalendar-api/     Symfony 7.x REST API (PHP 8.3+)
 webcalendar-web/     React 18 SPA (TypeScript, Vite, Tailwind CSS)
 webcalendar-core     Business logic library (Composer package from GitHub)
 docker/              Docker Compose development environment
@@ -68,7 +68,7 @@ bin/                 CI, performance, and utility scripts
 
 | Component | Technology |
 |-----------|-----------|
-| Backend | PHP 8.2+, Symfony 7.x, PDO (MySQL/SQLite) |
+| Backend | PHP 8.3+, Symfony 7.x, PDO (MySQL/SQLite) |
 | Frontend | React 18, TypeScript strict, Vite, Tailwind CSS, Shadcn/ui |
 | Calendar | FullCalendar v6 with drag-and-drop, recurrence, multi-view |
 | Rich Text | TipTap editor with link support |
@@ -84,7 +84,7 @@ bin/                 CI, performance, and utility scripts
 ### Prerequisites
 
 - Docker and Docker Compose
-- PHP 8.2+ and Composer (for local development)
+- PHP 8.3+ and Composer (for local development)
 - Node.js 18+ and npm
 
 ### Development Setup
