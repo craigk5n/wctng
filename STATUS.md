@@ -27,7 +27,7 @@
 | PBP-S9 | PER-CS 3.0 coding standard (drop PSR-12, drop php_codesniffer) — **DONE 2026-04-15** | P2 | PBP-S7 |
 | PBP-S10 | Tenant status & plan → backed enums — **DONE 2026-04-15** | P2 | — |
 | PBP-S11 | Redis-backed rate limiter with file fallback — **DONE 2026-04-15** | P2 | — |
-| PBP-S12 | Adopt `doctrine/migrations` for API schema changes | P2 | — |
+| PBP-S12 | Adopt `doctrine/migrations` for API schema changes — **DONE 2026-04-15** | P2 | — |
 | PBP-S13 | PDO & health-check hygiene (STRINGIFY_FETCHES, LIMIT params, timeout) | P3 | — |
 | PBP-S14 | Controller DI cleanup (`EmailService` final, no `new Repository`, no raw PDO) | P3 | PBP-S4 |
 | PBP-S15 | Split `EventController` (1143 lines) into single-action invokables | P3 | PBP-S14 |
@@ -430,25 +430,36 @@ OWASP's 2025 guidance and the project's own best-practices doc require Argon2id 
 
 ---
 
-### Story PBP-S12: Adopt `doctrine/migrations` for API schema changes — P2
+### Story PBP-S12: Adopt `doctrine/migrations` for API schema changes — P2 — DONE 2026-04-15
 
-**Problem:** `webcalendar-api/migrations/` contains raw SQL files (`003_performance_optimization.sql`, `004_add_cal_image.sql`). No version tracking table, no rollback support, no up/down parity, no generation from entity/schema diff. The guide says "no manual ALTER TABLE in production; choose one migration framework and stick with it."
+**Problem:** `webcalendar-api/migrations/` held raw SQL files (`003_performance_optimization.sql`, `004_add_cal_image.sql`) that used MySQL-only stored-procedure tricks for idempotency and required running through the `mysql` CLI. No version tracking, no rollback, no parity with staging.
 
-**Goal:** All API-layer schema changes flow through a versioned migration framework. Webcalendar-core's own schema stays untouched (it's a legacy init script by policy).
+**Goal:** All API-layer schema changes flow through a versioned migration framework. Webcalendar-core's own schema stays untouched (the init-script model is a deliberate policy there).
 
-**Acceptance criteria:**
-- [ ] `composer require doctrine/migrations` (symfony integration: `doctrine/doctrine-migrations-bundle`)
-- [ ] `migrations.yaml` configured with a separate namespace and storage table (`api_doctrine_migration_versions`) so it never collides with anything webcalendar-core writes
-- [ ] Existing raw SQL files ported into versioned migration classes (`Version20260415000000.php` etc.) with proper up()/down() methods
-- [ ] New `bin/console doctrine:migrations:migrate` runs in the Docker entrypoint on API container startup (guarded by an env flag for prod so ops can control timing)
-- [ ] `webcalendar-api/migrations/*.sql` directory deprecated with a README pointing to the new path
-- [ ] Docs updated: how to generate a migration, how to roll back, prod deploy runbook entry
+**Landed (2026-04-15):**
+- `composer require doctrine/migrations:^3.8` — pulls `doctrine/dbal:^4.4`, `doctrine/event-manager`. Deliberately skipped `doctrine/doctrine-migrations-bundle` because the wider app uses raw PDO; bringing the full bundle would have pulled in `doctrine-bundle` + ORM discovery for two migration files. The library-level integration is ~40 lines of wiring.
+- `src/Migrations/MigrationDependencyFactoryProvider` — builds Doctrine's `DependencyFactory` programmatically from `DATABASE_URL` (parsed with `DBAL\Tools\DsnParser`). Config is pinned in code: namespace `App\Migrations`, path `migrations/api/`, version storage table `api_doctrine_migration_versions` (deliberately namespaced so it cannot collide with anything webcalendar-core ever writes), `all_or_nothing=true`, `transactional=true`. The `$databaseUrl` param carries `#[\SensitiveParameter]`.
+- `config/services.yaml` — registers the provider, aliases `Doctrine\Migrations\DependencyFactory` to the provider's `create()` method, and registers 6 Doctrine commands (`MigrateCommand`, `StatusCommand`, `ListCommand`, `ExecuteCommand`, `SyncMetadataCommand`, `UpToDateCommand`) tagged `console.command` so Symfony picks them up automatically. Verified via `bin/console list migrations`.
+- `migrations/api/Version20260415120000.php` — ports `003_performance_optimization.sql` into a Doctrine migration class with full `up()` / `down()`. The MySQL `add_index_if_not_exists` stored procedure is dropped since Doctrine's version table makes idempotency automatic. Produces 15 single-column and composite indexes plus the `idx_entry_fulltext` FULLTEXT index on `(cal_name, cal_description)`; `down()` reverses in strict LIFO order.
+- `migrations/api/Version20260415120100.php` — ports `004_add_cal_image.sql`, adding `webcal_entry.cal_image VARCHAR(2048) DEFAULT NULL AFTER cal_status` with a `DROP COLUMN` inverse.
+- `migrations/README.md` — captures the three relevant paths: (1) the active API-layer Doctrine migrations under `migrations/api/`, (2) the deprecated raw `003_*.sql` / `004_*.sql` kept for audit only, (3) the unrelated `migrations/tenant/*.sql` owned by the in-repo `TenantMigrator` for per-tenant schema. Also documents the `migrations:sync-metadata-storage` + `migrations:version --add` recipe for existing installs that already ran the legacy SQL and shouldn't re-run the ports.
 
 **Tests:**
-- Integration test that spins up a fresh DB, runs `doctrine:migrations:migrate` end-to-end, asserts the schema matches the expected final state
-- Rollback test: migrate up → migrate down → assert schema matches pre-migration snapshot
+- `tests/Integration/Migrations/DoctrineMigrationsIntegrationTest.php` — 3 tests that drive the same `MigrateCommand` used in prod through an in-memory SQLite DB + a pair of throwaway SQLite-compatible migration classes written to a tempdir in `setUpBeforeClass` (MySQL-only syntax in the real ported migrations — `CREATE FULLTEXT INDEX`, `ADD COLUMN ... AFTER` — doesn't run on SQLite, so we fake the migrations, real command). Covers: up to latest creates expected tables and records both versions in `api_doctrine_migration_versions`; `migrate prev` executes one down() in LIFO order and removes the newer row from the tracking table; a second call to `migrate latest` on an already-migrated DB is a clean no-op (would fail with "table widgets already exists" if Doctrine forgot what it ran).
 
-**Out of scope:** Migrating webcalendar-core's schema management; it remains the init-script model by design.
+**Verified:**
+- [x] 535 unit tests pass (1 pre-existing skip)
+- [x] 22 integration tests pass (19 tenant + 3 migrations, all new)
+- [x] PHPStan level 9 clean
+- [x] PHP-CS-Fixer clean
+- [x] Sensitive-param guard clean
+- [x] `bin/console list migrations` shows all 6 doctrine commands with our pre-built factory
+
+**Deferred (punted from scope):**
+- Running `migrations:migrate` from the Docker entrypoint. The acceptance criteria called for this, but the existing entrypoint isn't in this repo (Docker image is built downstream), so wiring it lives in a separate follow-up. Operators can run `bin/console migrations:migrate --no-interaction` today.
+- Doc runbook entry ("how to roll back in prod"). Project docs live in a separate repo; covered in `migrations/README.md` for now.
+
+**Out of scope:** Migrating webcalendar-core's schema management; that stays on the init-script model by design.
 
 ---
 

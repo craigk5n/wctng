@@ -60,6 +60,42 @@ services:
         arguments:
             $appSecret: '%env(APP_SECRET)%'
 
+    # PBP-S12: doctrine/migrations wiring. We avoid the doctrine-bundle +
+    # migrations-bundle combo because the app uses raw PDO — just the
+    # migration CLI is enough. Commands get a pre-built DependencyFactory
+    # so they never fall back to file-based config loaders.
+    App\Migrations\MigrationDependencyFactoryProvider:
+        arguments:
+            $databaseUrl: '%env(DATABASE_URL)%'
+            $projectDir: '%kernel.project_dir%'
+
+    Doctrine\Migrations\DependencyFactory:
+        factory: ['@App\Migrations\MigrationDependencyFactoryProvider', 'create']
+
+    Doctrine\Migrations\Tools\Console\Command\MigrateCommand:
+        arguments: ['@Doctrine\Migrations\DependencyFactory']
+        tags: ['console.command']
+
+    Doctrine\Migrations\Tools\Console\Command\StatusCommand:
+        arguments: ['@Doctrine\Migrations\DependencyFactory']
+        tags: ['console.command']
+
+    Doctrine\Migrations\Tools\Console\Command\ListCommand:
+        arguments: ['@Doctrine\Migrations\DependencyFactory']
+        tags: ['console.command']
+
+    Doctrine\Migrations\Tools\Console\Command\ExecuteCommand:
+        arguments: ['@Doctrine\Migrations\DependencyFactory']
+        tags: ['console.command']
+
+    Doctrine\Migrations\Tools\Console\Command\SyncMetadataCommand:
+        arguments: ['@Doctrine\Migrations\DependencyFactory']
+        tags: ['console.command']
+
+    Doctrine\Migrations\Tools\Console\Command\UpToDateCommand:
+        arguments: ['@Doctrine\Migrations\DependencyFactory']
+        tags: ['console.command']
+
     # Email services
     App\Service\ReminderService:
         arguments:
