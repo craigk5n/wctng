@@ -19,12 +19,10 @@ use WebCalendar\Core\Domain\ValueObject\EventType;
 
 final class PollController
 {
-    private readonly PollRepository $pollRepo;
-
-    public function __construct(\PDO $pdo, private readonly EventService $eventService)
-    {
-        $this->pollRepo = new PollRepository($pdo);
-    }
+    public function __construct(
+        private readonly PollRepository $pollRepo,
+        private readonly EventService $eventService,
+    ) {}
 
     #[Route('/api/v2/polls', name: 'api_polls_create', methods: ['POST'])]
     public function create(Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse

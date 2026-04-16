@@ -15,12 +15,9 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class SubscriptionController
 {
-    private readonly SubscriptionRepository $repo;
-
-    public function __construct(\PDO $pdo)
-    {
-        $this->repo = new SubscriptionRepository($pdo);
-    }
+    public function __construct(
+        private readonly SubscriptionRepository $repo,
+    ) {}
 
     #[Route('/api/v2/calendars/subscriptions', name: 'api_subscriptions_list', methods: ['GET'])]
     public function list(#[CurrentUser] ?WebCalendarUser $user): JsonResponse

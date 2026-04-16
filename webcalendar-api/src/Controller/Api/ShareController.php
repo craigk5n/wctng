@@ -21,31 +21,21 @@ use WebCalendar\Core\Domain\ValueObject\DateRange;
 
 final class ShareController
 {
-    private readonly ShareTokenRepository $tokenRepo;
-
     public function __construct(
         private readonly EventRepositoryInterface $eventRepo,
-        \PDO $pdo,
+        private readonly ShareTokenRepository $tokenRepo,
         private readonly ClockInterface $clock = new NativeClock(),
-    ) {
-        $this->tokenRepo = new ShareTokenRepository($pdo);
-    }
+    ) {}
 
     /**
-     * Test-only factory.
+     * Test-only factory — kept so existing tests can inject a stubbed
+     * token repo without going through full DI.
      */
     public static function createForTest(
         ShareTokenRepository $tokenRepo,
         EventRepositoryInterface $eventRepo,
     ): self {
-        $instance = (new \ReflectionClass(self::class))->newInstanceWithoutConstructor();
-        $ref = new \ReflectionProperty(self::class, 'tokenRepo');
-        $ref->setValue($instance, $tokenRepo);
-        $ref = new \ReflectionProperty(self::class, 'eventRepo');
-        $ref->setValue($instance, $eventRepo);
-        $ref = new \ReflectionProperty(self::class, 'clock');
-        $ref->setValue($instance, new NativeClock());
-        return $instance;
+        return new self($eventRepo, $tokenRepo, new NativeClock());
     }
 
     #[Route('/api/v2/calendars/share', name: 'api_share_create', methods: ['POST'])]

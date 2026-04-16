@@ -17,23 +17,14 @@ use WebCalendar\Core\Application\Service\SiteExtraService;
 
 final class CustomFieldController
 {
-    private readonly CustomFieldRepository $fieldRepo;
-
     public function __construct(
         private readonly SiteExtraService $siteExtraService,
-        \PDO $pdo,
-    ) {
-        $this->fieldRepo = new CustomFieldRepository($pdo);
-    }
+        private readonly CustomFieldRepository $fieldRepo,
+    ) {}
 
     public static function createForTest(CustomFieldRepository $fieldRepo, SiteExtraService $siteExtraService): self
     {
-        $instance = (new \ReflectionClass(self::class))->newInstanceWithoutConstructor();
-        $ref = new \ReflectionProperty(self::class, 'fieldRepo');
-        $ref->setValue($instance, $fieldRepo);
-        $ref = new \ReflectionProperty(self::class, 'siteExtraService');
-        $ref->setValue($instance, $siteExtraService);
-        return $instance;
+        return new self($siteExtraService, $fieldRepo);
     }
 
     /** Public endpoint — returns field definitions for the event form */

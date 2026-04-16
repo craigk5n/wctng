@@ -39,10 +39,6 @@ use WebCalendar\Core\Infrastructure\Persistence\PdoCategoryRepository;
 
 final class EventController
 {
-    private readonly GeoRepository $geoRepository;
-    private readonly ExtParticipantRepository $extParticipants;
-    private readonly ExtParticipantValidator $extParticipantValidator;
-
     public function __construct(
         private readonly EventService $eventService,
         private readonly EventRepositoryInterface $eventRepository,
@@ -54,18 +50,18 @@ final class EventController
         private readonly ActivityLogService $activityLogService,
         private readonly TenantAwarePdoProvider $pdoProvider,
         private readonly MercurePublisher $mercure,
-        private readonly \PDO $pdo,
         private readonly EventNotificationService $notifications,
         private readonly WebhookDispatcher $webhookDispatcher,
-        private readonly DescriptionSanitizer $descriptionSanitizer = new DescriptionSanitizer(),
-        private readonly ConflictDetectionService $conflictService = new ConflictDetectionService(),
+        // PBP-S14: these used to be hand-constructed from a raw $pdo in the
+        // constructor body; now injected so every dep is explicit on the surface.
+        private readonly GeoRepository $geoRepository,
+        private readonly ExtParticipantRepository $extParticipants,
+        private readonly ExtParticipantValidator $extParticipantValidator,
+        private readonly DescriptionSanitizer $descriptionSanitizer,
+        private readonly ConflictDetectionService $conflictService,
         private readonly ?GeocodingService $geocodingService = null,
         private readonly ClockInterface $clock = new NativeClock(),
-    ) {
-        $this->geoRepository = new GeoRepository($pdo);
-        $this->extParticipants = new ExtParticipantRepository($pdo);
-        $this->extParticipantValidator = new ExtParticipantValidator();
-    }
+    ) {}
 
     #[Route('/api/v2/events', name: 'api_events_list', methods: ['GET'])]
     public function list(Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
@@ -860,7 +856,7 @@ final class EventController
                 WHERE cal_login IN (' . implode(', ', $placeholders) . ')
                 AND cal_other_user = :viewer';
 
-        $stmt = $this->pdo->prepare($sql);
+        $stmt = $this->pdoProvider->get()->prepare($sql);
         $stmt->execute($params);
 
         $result = [];

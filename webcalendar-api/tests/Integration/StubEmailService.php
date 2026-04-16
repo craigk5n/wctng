@@ -4,21 +4,19 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration;
 
-use App\Service\EmailService;
+use App\Service\EmailSender;
 
 /**
- * Stub EmailService that captures sent emails instead of actually sending.
+ * Test-capture stand-in for {@see \App\Service\EmailService}. Implements
+ * the narrow `EmailSender` contract instead of extending the concrete
+ * (now final) class — see PBP-S14.
  */
-class StubEmailService extends EmailService
+final class StubEmailService implements EmailSender
 {
     /** @var list<array{to: string, subject: string}> */
     public array $sent = [];
 
-    public function __construct()
-    {
-        // Skip parent constructor (needs MailerInterface)
-    }
-
+    #[\Override]
     public function send(string $to, string $subject, string $htmlBody, ?string $textBody = null): void
     {
         $this->sent[] = ['to' => $to, 'subject' => $subject];

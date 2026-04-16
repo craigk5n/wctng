@@ -15,12 +15,9 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class PushController
 {
-    private readonly PushSubscriptionRepository $repo;
-
-    public function __construct(\PDO $pdo)
-    {
-        $this->repo = new PushSubscriptionRepository($pdo);
-    }
+    public function __construct(
+        private readonly PushSubscriptionRepository $repo,
+    ) {}
 
     #[Route('/api/v2/push/subscribe', name: 'api_push_subscribe', methods: ['POST'])]
     public function subscribe(Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse

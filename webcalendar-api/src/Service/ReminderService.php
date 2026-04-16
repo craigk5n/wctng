@@ -23,7 +23,7 @@ final class ReminderService
 
     public function __construct(
         private readonly CoreServiceFactory $coreServiceFactory,
-        private readonly EmailService $emailService,
+        private readonly EmailSender $emailService,
         private readonly string $baseUrl,
         ?LoggerInterface $logger = null,
         #[\SensitiveParameter]

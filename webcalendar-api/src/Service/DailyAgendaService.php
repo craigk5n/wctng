@@ -23,7 +23,7 @@ final class DailyAgendaService
 
     public function __construct(
         private readonly CoreServiceFactory $factory,
-        private readonly EmailService $emailService,
+        private readonly EmailSender $emailService,
         private readonly string $baseUrl,
         ?LoggerInterface $logger = null,
         #[\SensitiveParameter]

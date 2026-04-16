@@ -12,7 +12,7 @@ use Symfony\Component\Mime\Email;
  *
  * Wraps MailerInterface with application-specific defaults.
  */
-class EmailService
+final class EmailService implements EmailSender
 {
     public function __construct(
         private readonly MailerInterface $mailer,
@@ -20,11 +20,7 @@ class EmailService
         private readonly string $fromName,
     ) {}
 
-    /**
-     * Sends an email.
-     *
-     * @throws \Symfony\Component\Mailer\Exception\TransportExceptionInterface
-     */
+    #[\Override]
     public function send(string $to, string $subject, string $htmlBody, ?string $textBody = null): void
     {
         $email = (new Email())

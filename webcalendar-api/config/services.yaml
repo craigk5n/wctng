@@ -155,38 +155,36 @@ services:
         arguments:
             $pdo: '@pdo.connection'
 
-    # Saved view controller needs PDO
-    App\Controller\Api\SavedViewController:
+    # PBP-S14: the four controllers below no longer take raw PDO — they
+    # autowire their respective repositories, wired once here.
+    App\View\SavedViewRepository:
         arguments:
             $pdo: '@pdo.connection'
 
-    # Push controller needs PDO for push_subscriptions table
-    App\Controller\Api\PushController:
+    App\Push\PushSubscriptionRepository:
         arguments:
             $pdo: '@pdo.connection'
 
-    # Poll controller needs PDO for scheduling_polls tables
-    App\Controller\Api\PollController:
+    App\Poll\PollRepository:
         arguments:
             $pdo: '@pdo.connection'
 
-    # Subscription controller needs PDO for subscriptions table
-    App\Controller\Api\SubscriptionController:
+    App\Subscription\SubscriptionRepository:
         arguments:
             $pdo: '@pdo.connection'
 
-    # Subscription refresh command
+    App\CustomField\CustomFieldRepository:
+        arguments:
+            $pdo: '@pdo.connection'
+
+    # Subscription refresh command still uses PDO directly (admin refresh job)
     App\Command\RefreshSubscriptionsCommand:
         arguments:
             $pdo: '@pdo.connection'
 
-    # Custom field controller needs PDO for definitions table
-    App\Controller\Api\CustomFieldController:
-        arguments:
-            $pdo: '@pdo.connection'
-
-    # Share controller needs PDO for share_tokens table
-    App\Controller\Api\ShareController:
+    # PBP-S14: ShareController used to hand-build ShareTokenRepository;
+    # now depends on the repo directly, wired once here.
+    App\Share\ShareTokenRepository:
         arguments:
             $pdo: '@pdo.connection'
 
@@ -202,6 +200,13 @@ services:
 
     # Geo services
     App\Service\GeoRepository:
+        arguments:
+            $pdo: '@pdo.connection'
+
+    # PBP-S14: previously hand-constructed inside EventController — now
+    # autowired via explicit $pdo binding so the controller's dep graph is
+    # visible on the constructor.
+    App\Service\ExtParticipantRepository:
         arguments:
             $pdo: '@pdo.connection'
 

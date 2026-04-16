@@ -8,7 +8,7 @@ namespace App\Service;
  * Direct PDO access to geo coordinate columns in webcal_entry.
  * Bypasses webcalendar-core's Event entity which doesn't expose geo data.
  */
-class GeoRepository
+final class GeoRepository
 {
     public function __construct(
         private readonly \PDO $pdo,

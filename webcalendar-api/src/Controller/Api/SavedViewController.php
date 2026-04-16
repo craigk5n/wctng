@@ -15,12 +15,9 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class SavedViewController
 {
-    private readonly SavedViewRepository $repo;
-
-    public function __construct(\PDO $pdo)
-    {
-        $this->repo = new SavedViewRepository($pdo);
-    }
+    public function __construct(
+        private readonly SavedViewRepository $repo,
+    ) {}
 
     #[Route('/api/v2/views', name: 'api_views_list', methods: ['GET'])]
     public function list(#[CurrentUser] ?WebCalendarUser $user): JsonResponse
