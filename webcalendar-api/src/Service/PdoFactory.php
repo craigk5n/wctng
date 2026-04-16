@@ -36,6 +36,7 @@ final class PdoFactory
             return new \PDO($dsn, options: [
                 \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                 \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+                \PDO::ATTR_STRINGIFY_FETCHES => false,
             ]);
         }
 
@@ -45,6 +46,10 @@ final class PdoFactory
             \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
             \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
             \PDO::ATTR_EMULATE_PREPARES => false,
+            // PBP-S13: stop returning numeric columns as strings — API response
+            // types silently widened without this. Pairs with emulated prepares
+            // being off so the MySQL client returns the native int/float.
+            \PDO::ATTR_STRINGIFY_FETCHES => false,
         ]);
     }
 }

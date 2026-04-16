@@ -259,10 +259,14 @@ services:
         arguments:
             $jwtTtl: '%env(int:JWT_TTL)%'
 
-    # Health controller needs APP_MODE + default-DB PDO
+    # PBP-S13: liveness/readiness split. ReadinessProbe owns the DB ping;
+    # HealthController no longer takes the shared PDO.
+    App\Service\ReadinessProbe:
+        arguments:
+            $databaseUrl: '%env(DATABASE_URL)%'
+
     App\Controller\Api\HealthController:
         arguments:
-            $pdo: '@pdo.connection'
             $appMode: '%env(default:app_mode_default:APP_MODE)%'
 
     # User provider for Symfony Security

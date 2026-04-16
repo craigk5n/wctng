@@ -100,18 +100,23 @@ final readonly class SearchIndexService
         $countStmt->execute($params);
         $total = (int) $countStmt->fetchColumn();
 
-        // Fetch results
-        $limitInt = (int) $limit;
-        $offsetInt = (int) $offset;
+        // PBP-S13: LIMIT/OFFSET bind as PARAM_INT. Emulated prepares are off
+        // (PdoFactory), so native prepare can accept :limit/:offset as ints —
+        // string-concat used to be the only non-parameterized SQL in the repo.
         $sql = "SELECT e.cal_id, e.cal_name, e.cal_description, e.cal_date, e.cal_time,
                        e.cal_type, e.cal_create_by, e.cal_duration
                 FROM webcal_entry e{$joins}
                 WHERE {$whereClause}
                 ORDER BY e.cal_date DESC
-                LIMIT {$limitInt} OFFSET {$offsetInt}";
+                LIMIT :limit OFFSET :offset";
 
         $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->bindValue('limit', (int) $limit, \PDO::PARAM_INT);
+        $stmt->bindValue('offset', (int) $offset, \PDO::PARAM_INT);
+        $stmt->execute();
 
         $results = [];
         /** @var array<string, mixed>|false $row */
