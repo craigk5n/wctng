@@ -239,11 +239,6 @@ services:
         arguments:
             $pdo: '@pdo.connection'
 
-    # Event controller needs PDO for access permission checks
-    App\Controller\Api\EventController:
-        arguments:
-            $pdo: '@pdo.connection'
-
     # Access controller needs direct PDO for user-to-user permissions
     App\Controller\Api\AccessController:
         arguments:

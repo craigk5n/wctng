@@ -49,8 +49,8 @@ final class QueryOptimizationTest extends TestCase
 
     public function testBatchCategoryLoadingExists(): void
     {
-        // Verify EventController uses batch loading (getForEventsBatch)
-        $controllerFile = __DIR__ . '/../../../src/Controller/Api/EventController.php';
+        // Verify ListEventsController uses batch loading (getForEventsBatch)
+        $controllerFile = __DIR__ . '/../../../src/Controller/Api/Event/ListEventsController.php';
         $content = file_get_contents($controllerFile);
         $this->assertIsString($content);
         $this->assertStringContainsString('getForEventsBatch', $content);

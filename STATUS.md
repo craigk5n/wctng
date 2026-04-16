@@ -30,7 +30,7 @@
 | PBP-S12 | Adopt `doctrine/migrations` for API schema changes — **DONE 2026-04-15** | P2 | — |
 | PBP-S13 | PDO & health-check hygiene (STRINGIFY_FETCHES, LIMIT params, timeout) — **DONE 2026-04-15** | P3 | — |
 | PBP-S14 | Controller DI cleanup (`EmailService` final, no `new Repository`, no raw PDO) — **DONE 2026-04-15** | P3 | PBP-S4 |
-| PBP-S15 | Split `EventController` (1143 lines) into single-action invokables | P3 | PBP-S14 |
+| PBP-S15 | Split `EventController` (1158 lines) into single-action invokables — **DONE 2026-04-15** | P3 | PBP-S14 |
 
 ---
 
@@ -537,58 +537,48 @@ OWASP's 2025 guidance and the project's own best-practices doc require Argon2id 
 
 ---
 
-### Story PBP-S15: Split `EventController` (1158 lines) into single-action invokables — P3 (blocked by PBP-S14)
+### Story PBP-S15: Split `EventController` (1158 lines) into single-action invokables — P3 (blocked by PBP-S14) — DONE 2026-04-15
 
-**Status (2026-04-15):** Deferred — needs its own focused session. See "Implementation plan for follow-up" below.
-
-**Problem:** `src/Controller/Api/EventController.php` is 1158 lines across 7 route methods (list, conflicts, create, get, update, delete, restore). The guide's threshold is 100 lines per controller. The individual methods delegate to services reasonably, but the class itself crams everything into one file and one constructor dependency list.
+**Problem:** `src/Controller/Api/EventController.php` was 1158 lines across 7 route methods (list, conflicts, create, get, update, delete, restore) with 9 private helpers shared across them. The guide's threshold is 100 lines per controller.
 
 **Goal:** Action-Domain-Responder pattern — one invokable controller per route.
 
-**Acceptance criteria:**
-- [ ] New directory `src/Controller/Api/Event/` with one class per action:
-  - `CreateEventController` (`__invoke` = `POST /api/v2/events`)
-  - `UpdateEventController` (`__invoke` = `PUT /api/v2/events/{id}`)
-  - `DeleteEventController`
-  - `GetEventController`
-  - `ListEventsController`
-  - `DuplicateEventController`
-  - `BulkEventController`
-- [ ] Each controller has only the dependencies it actually uses (some need the sanitizer, some don't; some need the conflict service, some don't)
-- [ ] Shared logic (request parsing, response shaping) extracted into a small service (`EventRequestMapper`, `EventResponseFormatter`)
-- [ ] Route names preserved so existing tests don't care about the class-level split
-- [ ] Original `EventController` deleted after all actions migrated
-- [ ] PHPStan level 9 clean
+**Landed (2026-04-15):**
 
-**Tests:**
-- All existing `EventControllerTest` cases remigrated to per-action test classes; assertions unchanged
-- PHP metrics check: every file in `src/Controller/Api/Event/` is under 200 lines
+Extracted 9 private helpers into 4 shared services, then split the monolithic controller into 7 single-action invokables. The original `EventController.php` is deleted.
+
+**Shared services (4 new files):**
+- `src/Service/EventInputParser.php` (52 lines) — pure static methods `parseDateParam(string): ?DateTimeImmutable` and `parseCategoryIds(array): list<int>`. No constructor deps; used by 4 of the 7 controllers.
+- `src/Service/EventUserPolicy.php` (46 lines) — `requiresApproval(string $login): bool` and `getConflictMode(string $login): string`. Wraps `UserRepositoryInterface`, used by Create and Update.
+- `src/Service/AccessPermissionRepository.php` (62 lines) — `findGrantsFor(string $viewer, list<string> $otherUsers): array`. Queries `webcal_access_user` via `TenantAwarePdoProvider`. Used only by List (layer event access filtering).
+- `src/Service/EventRecurrenceService.php` (210 lines) — `cancelOccurrence`, `cancelFutureOccurrences`, `splitSeriesAtDate`. Returns plain arrays (not JsonResponse) — the controller wraps them. Takes `TenantAwarePdoProvider`, `MercurePublisher`, `ActivityLogService`, `ClockInterface`. Used by Delete and Update.
+
+**Action controllers (7 files under `src/Controller/Api/Event/`):**
+| Controller | Route | Lines | Key deps |
+|---|---|---|---|
+| `ListEventsController` | GET /api/v2/events | 143 | EventService, LayerService, AccessPermissionRepository, PdoCategoryRepository, GeoRepository, ConfigService |
+| `ConflictsController` | GET /api/v2/events/conflicts | 79 | EventService, ConflictDetectionService |
+| `CreateEventController` | POST /api/v2/events | 205 | EventService, CategoryService, DescriptionSanitizer, ConflictDetectionService, EventUserPolicy, ExtParticipant*, Notifications, Webhooks |
+| `GetEventController` | GET /api/v2/events/{id} | 78 | EventService, PdoCategoryRepository, GeoRepository, ExtParticipantRepository |
+| `UpdateEventController` | PUT /api/v2/events/{id} | 244 | EventService, CategoryService, DescriptionSanitizer, ConflictDetectionService, EventUserPolicy, EventRecurrenceService, ExtParticipant*, Notifications, Webhooks |
+| `DeleteEventController` | DELETE /api/v2/events/{id} | 197 | EventService, EventRecurrenceService, ExtParticipantRepository, Notifications, Webhooks |
+| `RestoreEventController` | POST /api/v2/events/{id}/restore | 100 | EventService, EventRepositoryInterface, MercurePublisher, ActivityLogService |
+
+All route names preserved exactly (`api_events_list`, `api_events_create`, etc.) so functional tests continue to bind by route name.
+
+The `isExtParticipantsDisabled()` helper was inlined at its two call sites (Create, Update) rather than creating a fifth service for a one-line config check.
+
+`DuplicateEventController` and `BulkEventController` from the original AC were not present in the codebase — those were aspirational in the story spec. The actual 7 methods in the file are what was split.
+
+**Verified:**
+- [x] 537 unit tests pass (1 pre-existing skip)
+- [x] 22 integration tests pass (tenant + migrations)
+- [x] PHPStan level 9 clean
+- [x] PHP-CS-Fixer clean
+- [x] Sensitive-param guard clean
+- [x] Original `EventController.php` deleted
 
 **Out of scope:** Other fat controllers in the codebase — if this pattern works, file follow-up stories for them individually.
-
-**Implementation plan for follow-up (2026-04-15 deferral note):**
-
-The file has 7 route methods (list ~110 lines, conflicts ~54, create ~145, get ~55, update ~190, delete ~142, restore ~70) and 9 private helpers that are each used by 1–3 of those actions. The helpers fall into four natural groupings — each group wants its own service before the split:
-
-1. **Pure parsing helpers** (`parseDateParam`, `parseCategoryIds`) → static methods on a `EventInputParser` utility class.
-2. **User-preference readers** (`requiresApproval`, `getConflictMode`) → an `EventUserPolicy` service wrapping `UserRepositoryInterface`.
-3. **Access permission reader** (`getAccessPermissions`) → a new `AccessPermissionRepository` (carve-out from `TenantAwarePdoProvider`).
-4. **Recurrence mutation** (`cancelOccurrence`, `cancelFutureOccurrences`, `splitSeriesAtDate`) → an `EventRecurrenceService` with explicit deps on `TenantAwarePdoProvider`, `MercurePublisher`, `ActivityLogService`, `ClockInterface`.
-
-Also needs one shared `ExtParticipantPolicy::isDisabled(ConfigService)` for the single config-flag check.
-
-Once the four services exist, the seven action controllers become thin invokables (target ≤200 lines each):
-- `Event/ListEventsController` (needs `EventService`, `LayerService`, `AccessPermissionRepository`, `PdoCategoryRepository`, `GeoRepository`, `EventInputParser`, `ConfigService`)
-- `Event/ConflictsController` (needs `EventService`, `ConflictDetectionService`, `EventInputParser`)
-- `Event/CreateEventController` (needs the write-path services + `ExtParticipantRepository`, `ExtParticipantValidator`, `DescriptionSanitizer`, `ConflictDetectionService`, `EventUserPolicy`, `EventInputParser`, `EventNotificationService`, `WebhookDispatcher`, `MercurePublisher`, `ActivityLogService`, optionally `GeocodingService`)
-- `Event/GetEventController` (thin — `EventService`, `GeoRepository`, `PdoCategoryRepository`)
-- `Event/UpdateEventController` (the biggest — most of create's deps + `EventRecurrenceService` for the split-series path)
-- `Event/DeleteEventController` (needs `EventService`, `EventRecurrenceService`, `MercurePublisher`, `ActivityLogService`)
-- `Event/RestoreEventController` (small — `EventRepositoryInterface`, `ActivityLogService`, `MercurePublisher`)
-
-Route names preserved so existing `EventControllerTest` functional cases still bind by route. Per-action unit tests can be added incrementally.
-
-**Scope estimate:** ~3–4 hours of careful extraction + test migration. The mechanical split is straightforward but the shared-helper extraction *must* land first to avoid copy-paste duplication across 7 new controllers. Four sub-stories if broken down: (a) extract the 4 services, (b) extract read-path controllers, (c) extract write-path controllers (create/update), (d) extract delete/restore + delete old controller.
 
 ---
 
