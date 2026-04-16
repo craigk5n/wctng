@@ -537,9 +537,11 @@ OWASP's 2025 guidance and the project's own best-practices doc require Argon2id 
 
 ---
 
-### Story PBP-S15: Split `EventController` (1143 lines) into single-action invokables — P3 (blocked by PBP-S14)
+### Story PBP-S15: Split `EventController` (1158 lines) into single-action invokables — P3 (blocked by PBP-S14)
 
-**Problem:** `src/Controller/Api/EventController.php` is 1143 lines across 7 route methods. The guide's threshold is 100 lines per controller. The individual methods delegate to services reasonably, but the class itself crams create/update/delete/list/get/duplicate/bulk into one file and one constructor dependency list.
+**Status (2026-04-15):** Deferred — needs its own focused session. See "Implementation plan for follow-up" below.
+
+**Problem:** `src/Controller/Api/EventController.php` is 1158 lines across 7 route methods (list, conflicts, create, get, update, delete, restore). The guide's threshold is 100 lines per controller. The individual methods delegate to services reasonably, but the class itself crams everything into one file and one constructor dependency list.
 
 **Goal:** Action-Domain-Responder pattern — one invokable controller per route.
 
@@ -563,6 +565,30 @@ OWASP's 2025 guidance and the project's own best-practices doc require Argon2id 
 - PHP metrics check: every file in `src/Controller/Api/Event/` is under 200 lines
 
 **Out of scope:** Other fat controllers in the codebase — if this pattern works, file follow-up stories for them individually.
+
+**Implementation plan for follow-up (2026-04-15 deferral note):**
+
+The file has 7 route methods (list ~110 lines, conflicts ~54, create ~145, get ~55, update ~190, delete ~142, restore ~70) and 9 private helpers that are each used by 1–3 of those actions. The helpers fall into four natural groupings — each group wants its own service before the split:
+
+1. **Pure parsing helpers** (`parseDateParam`, `parseCategoryIds`) → static methods on a `EventInputParser` utility class.
+2. **User-preference readers** (`requiresApproval`, `getConflictMode`) → an `EventUserPolicy` service wrapping `UserRepositoryInterface`.
+3. **Access permission reader** (`getAccessPermissions`) → a new `AccessPermissionRepository` (carve-out from `TenantAwarePdoProvider`).
+4. **Recurrence mutation** (`cancelOccurrence`, `cancelFutureOccurrences`, `splitSeriesAtDate`) → an `EventRecurrenceService` with explicit deps on `TenantAwarePdoProvider`, `MercurePublisher`, `ActivityLogService`, `ClockInterface`.
+
+Also needs one shared `ExtParticipantPolicy::isDisabled(ConfigService)` for the single config-flag check.
+
+Once the four services exist, the seven action controllers become thin invokables (target ≤200 lines each):
+- `Event/ListEventsController` (needs `EventService`, `LayerService`, `AccessPermissionRepository`, `PdoCategoryRepository`, `GeoRepository`, `EventInputParser`, `ConfigService`)
+- `Event/ConflictsController` (needs `EventService`, `ConflictDetectionService`, `EventInputParser`)
+- `Event/CreateEventController` (needs the write-path services + `ExtParticipantRepository`, `ExtParticipantValidator`, `DescriptionSanitizer`, `ConflictDetectionService`, `EventUserPolicy`, `EventInputParser`, `EventNotificationService`, `WebhookDispatcher`, `MercurePublisher`, `ActivityLogService`, optionally `GeocodingService`)
+- `Event/GetEventController` (thin — `EventService`, `GeoRepository`, `PdoCategoryRepository`)
+- `Event/UpdateEventController` (the biggest — most of create's deps + `EventRecurrenceService` for the split-series path)
+- `Event/DeleteEventController` (needs `EventService`, `EventRecurrenceService`, `MercurePublisher`, `ActivityLogService`)
+- `Event/RestoreEventController` (small — `EventRepositoryInterface`, `ActivityLogService`, `MercurePublisher`)
+
+Route names preserved so existing `EventControllerTest` functional cases still bind by route. Per-action unit tests can be added incrementally.
+
+**Scope estimate:** ~3–4 hours of careful extraction + test migration. The mechanical split is straightforward but the shared-helper extraction *must* land first to avoid copy-paste duplication across 7 new controllers. Four sub-stories if broken down: (a) extract the 4 services, (b) extract read-path controllers, (c) extract write-path controllers (create/update), (d) extract delete/restore + delete old controller.
 
 ---
 
