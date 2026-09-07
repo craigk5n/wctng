@@ -12,6 +12,12 @@
         <ini name="error_reporting" value="-1" />
         <ini name="zend.exception_ignore_args" value="0" />
         <server name="APP_ENV" value="test" force="true" />
+        <!-- .env.test sets APP_MODE=hosted, but Dotenv never overrides a real
+             env var, so running the suite inside the dev php-fpm container
+             (APP_MODE=standalone) 404s every control-plane test. Forced here
+             like APP_ENV so the suite is hermetic wherever it runs; tests that
+             exercise standalone mode pass 'standalone' explicitly. -->
+        <server name="APP_MODE" value="hosted" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />
         <server name="SYMFONY_PHPUNIT_REMOVE" value="" />
         <server name="SYMFONY_PHPUNIT_VERSION" value="10" />

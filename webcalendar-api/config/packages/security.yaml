@@ -18,7 +18,7 @@ security:
             security: false
 
         health:
-            pattern: ^/api/v2/health$
+            pattern: ^/api/v2/(health|ready)$
             stateless: true
             security: false
 
@@ -94,7 +94,7 @@ security:
         - { path: ^/sitemap\.xml$, roles: PUBLIC_ACCESS }
         - { path: ^/robots\.txt$, roles: PUBLIC_ACCESS }
         - { path: ^/api/v2/auth/login$, roles: PUBLIC_ACCESS }
-        - { path: ^/api/v2/health$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/v2/(health|ready)$, roles: PUBLIC_ACCESS }
         - { path: ^/api/v2/setup/, roles: PUBLIC_ACCESS }
         - { path: ^/api/v2/public/, roles: PUBLIC_ACCESS }
         - { path: ^/api/v2/i18n/, roles: PUBLIC_ACCESS }
