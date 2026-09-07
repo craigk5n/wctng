@@ -7,6 +7,7 @@ namespace App\Controller\CalDav;
 use App\CalDav\CoreAuthBackend;
 use App\CalDav\CoreCalendarBackend;
 use App\CalDav\CorePrincipalBackend;
+use App\CalDav\NullSapi;
 use Sabre\CalDAV;
 use Sabre\DAV;
 use Sabre\DAVACL;
@@ -53,8 +54,9 @@ final class CalDavController
             new CalDAV\CalendarRoot($principalBackend, $calendarBackend),
         ];
 
-        // Create the sabre/dav server
-        $server = new DAV\Server($tree);
+        // Create the sabre/dav server. NullSapi stops sabre from writing the
+        // response to PHP output itself; Symfony sends the returned Response.
+        $server = new DAV\Server($tree, new NullSapi());
         $server->setBaseUri('/dav/');
         $server->httpRequest = $sabreRequest;
 
