@@ -1,4 +1,4 @@
-.PHONY: test test-unit test-integration phpstan psalm cs-fix cs-check coverage ci check-sensitive-params check-clock-injection
+.PHONY: test test-unit test-integration phpstan psalm cs-fix cs-check coverage ci check-sensitive-params check-clock-injection check-schema-drift
 
 ## Run PHPUnit tests
 test:
@@ -39,6 +39,11 @@ check-sensitive-params:
 ## Guard: business logic must read time via injected ClockInterface, not new \DateTimeImmutable()
 check-clock-injection:
 	php bin/check-clock-injection.php
+
+## Guard: webcalendar-core's schema must match schema/core-schema-snapshot.json
+## (add --db to check a live database instead; needs DATABASE_URL)
+check-schema-drift:
+	php bin/check-schema-drift.php
 
 ## Run all CI checks
 ci: cs-check check-sensitive-params check-clock-injection phpstan psalm test

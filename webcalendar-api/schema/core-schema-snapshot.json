@@ -1,0 +1,332 @@
+{
+    "core_version": "v4.10.0",
+    "tables": {
+        "webcal_access_function": [
+            "cal_login",
+            "cal_permissions"
+        ],
+        "webcal_access_user": [
+            "cal_can_approve",
+            "cal_can_edit",
+            "cal_can_email",
+            "cal_can_invite",
+            "cal_can_view",
+            "cal_login",
+            "cal_other_user",
+            "cal_see_time_only"
+        ],
+        "webcal_asst": [
+            "cal_assistant",
+            "cal_boss"
+        ],
+        "webcal_attendee": [
+            "attendee_checked_in",
+            "attendee_email",
+            "attendee_id",
+            "attendee_name",
+            "attendee_token",
+            "cal_id",
+            "order_id"
+        ],
+        "webcal_blob": [
+            "cal_blob",
+            "cal_blob_id",
+            "cal_description",
+            "cal_id",
+            "cal_login",
+            "cal_mime_type",
+            "cal_mod_date",
+            "cal_mod_time",
+            "cal_name",
+            "cal_size",
+            "cal_type"
+        ],
+        "webcal_categories": [
+            "cat_color",
+            "cat_icon_blob",
+            "cat_icon_mime",
+            "cat_id",
+            "cat_is_tag",
+            "cat_name",
+            "cat_owner",
+            "cat_status"
+        ],
+        "webcal_config": [
+            "cal_setting",
+            "cal_value"
+        ],
+        "webcal_entry": [
+            "cal_access",
+            "cal_color",
+            "cal_completed",
+            "cal_conference",
+            "cal_conference_label",
+            "cal_create_by",
+            "cal_created",
+            "cal_created_time",
+            "cal_date",
+            "cal_description",
+            "cal_due_date",
+            "cal_due_time",
+            "cal_duration",
+            "cal_ext_for_id",
+            "cal_geo_lat",
+            "cal_geo_lon",
+            "cal_group_id",
+            "cal_id",
+            "cal_image",
+            "cal_location",
+            "cal_mod_date",
+            "cal_mod_time",
+            "cal_name",
+            "cal_organizer",
+            "cal_organizer_id",
+            "cal_priority",
+            "cal_sequence",
+            "cal_status",
+            "cal_time",
+            "cal_transp",
+            "cal_type",
+            "cal_uid",
+            "cal_url",
+            "cal_venue_id"
+        ],
+        "webcal_entry_categories": [
+            "cal_id",
+            "cat_id",
+            "cat_order",
+            "cat_owner"
+        ],
+        "webcal_entry_ext_user": [
+            "cal_email",
+            "cal_fullname",
+            "cal_id"
+        ],
+        "webcal_entry_log": [
+            "cal_date",
+            "cal_entry_id",
+            "cal_log_id",
+            "cal_login",
+            "cal_text",
+            "cal_time",
+            "cal_type",
+            "cal_user_cal"
+        ],
+        "webcal_entry_repeats": [
+            "cal_byday",
+            "cal_byhour",
+            "cal_byminute",
+            "cal_bymonth",
+            "cal_bymonthday",
+            "cal_bysecond",
+            "cal_bysetpos",
+            "cal_byweekno",
+            "cal_byyearday",
+            "cal_count",
+            "cal_days",
+            "cal_end",
+            "cal_endtime",
+            "cal_frequency",
+            "cal_id",
+            "cal_type",
+            "cal_wkst"
+        ],
+        "webcal_entry_repeats_not": [
+            "cal_date",
+            "cal_exdate",
+            "cal_id"
+        ],
+        "webcal_entry_user": [
+            "cal_category",
+            "cal_id",
+            "cal_login",
+            "cal_percent",
+            "cal_status"
+        ],
+        "webcal_group": [
+            "cal_group_id",
+            "cal_last_update",
+            "cal_name",
+            "cal_owner"
+        ],
+        "webcal_group_user": [
+            "cal_group_id",
+            "cal_login"
+        ],
+        "webcal_import": [
+            "cal_check_date",
+            "cal_date",
+            "cal_import_id",
+            "cal_login",
+            "cal_md5",
+            "cal_name",
+            "cal_type"
+        ],
+        "webcal_import_data": [
+            "cal_external_id",
+            "cal_id",
+            "cal_import_id",
+            "cal_import_type",
+            "cal_login"
+        ],
+        "webcal_nonuser_cals": [
+            "cal_admin",
+            "cal_firstname",
+            "cal_is_public",
+            "cal_lastname",
+            "cal_login",
+            "cal_url"
+        ],
+        "webcal_organizer": [
+            "organizer_email",
+            "organizer_id",
+            "organizer_name",
+            "organizer_phone",
+            "organizer_url"
+        ],
+        "webcal_rate_limits": [
+            "cal_action",
+            "cal_attempt_at",
+            "cal_id",
+            "cal_identifier"
+        ],
+        "webcal_reminders": [
+            "cal_action",
+            "cal_attach",
+            "cal_attendee",
+            "cal_before",
+            "cal_date",
+            "cal_description",
+            "cal_duration",
+            "cal_id",
+            "cal_last_sent",
+            "cal_offset",
+            "cal_related",
+            "cal_repeats",
+            "cal_summary",
+            "cal_time",
+            "cal_times_sent"
+        ],
+        "webcal_report": [
+            "cal_allow_nav",
+            "cal_cat_id",
+            "cal_include_empty",
+            "cal_include_header",
+            "cal_is_global",
+            "cal_login",
+            "cal_report_id",
+            "cal_report_name",
+            "cal_report_type",
+            "cal_show_in_trailer",
+            "cal_time_range",
+            "cal_update_date",
+            "cal_user"
+        ],
+        "webcal_report_template": [
+            "cal_report_id",
+            "cal_template_text",
+            "cal_template_type"
+        ],
+        "webcal_site_extras": [
+            "cal_data",
+            "cal_date",
+            "cal_id",
+            "cal_name",
+            "cal_remind",
+            "cal_type"
+        ],
+        "webcal_ticket_order": [
+            "cal_id",
+            "order_amount",
+            "order_created",
+            "order_currency",
+            "order_email",
+            "order_external_ref",
+            "order_id",
+            "order_name",
+            "order_qty",
+            "order_status",
+            "ticket_type_id"
+        ],
+        "webcal_ticket_type": [
+            "cal_id",
+            "ticket_capacity",
+            "ticket_currency",
+            "ticket_name",
+            "ticket_price",
+            "ticket_sale_end",
+            "ticket_sale_start",
+            "ticket_status",
+            "ticket_type_id"
+        ],
+        "webcal_timezones": [
+            "dtend",
+            "dtstart",
+            "tzid",
+            "vtimezone"
+        ],
+        "webcal_tokens": [
+            "cal_created_at",
+            "cal_data",
+            "cal_expires_at",
+            "cal_token",
+            "cal_type"
+        ],
+        "webcal_user": [
+            "cal_address",
+            "cal_api_token",
+            "cal_birthday",
+            "cal_email",
+            "cal_enabled",
+            "cal_firstname",
+            "cal_is_admin",
+            "cal_last_login",
+            "cal_lastname",
+            "cal_login",
+            "cal_passwd",
+            "cal_telephone",
+            "cal_title"
+        ],
+        "webcal_user_layers": [
+            "cal_color",
+            "cal_dups",
+            "cal_layerid",
+            "cal_layeruser",
+            "cal_login"
+        ],
+        "webcal_user_pref": [
+            "cal_login",
+            "cal_setting",
+            "cal_value"
+        ],
+        "webcal_user_template": [
+            "cal_login",
+            "cal_template_text",
+            "cal_type"
+        ],
+        "webcal_venue": [
+            "venue_address",
+            "venue_city",
+            "venue_country",
+            "venue_id",
+            "venue_lat",
+            "venue_lon",
+            "venue_name",
+            "venue_phone",
+            "venue_state",
+            "venue_url",
+            "venue_zip"
+        ],
+        "webcal_view": [
+            "cal_is_global",
+            "cal_name",
+            "cal_owner",
+            "cal_view_id",
+            "cal_view_type"
+        ],
+        "webcal_view_user": [
+            "cal_login",
+            "cal_view_id"
+        ]
+    }
+}

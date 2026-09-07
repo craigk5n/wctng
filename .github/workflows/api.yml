@@ -90,6 +90,9 @@ jobs:
       - name: Check ClockInterface injection (PBP-S5)
         run: composer check-clock-injection
 
+      - name: Check webcalendar-core schema drift
+        run: composer check-schema-drift
+
       - name: Run PHPStan (level 9)
         run: make phpstan
 
