@@ -40,3 +40,6 @@ Thumbs.db
 
 # npm debug
 *.log
+
+# Local DB backups (contain real calendar data)
+backups/

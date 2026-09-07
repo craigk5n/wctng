@@ -21,13 +21,20 @@ final class EventControllerDeleteTest extends WebTestCase
             'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
         ]);
 
-        $this->assertResponseStatusCodeSame(204);
+        // Cancellation is a soft-delete: 200 with the result object, not 204.
+        // The web client reads `action`/`previous_status` to offer an undo.
+        $this->assertResponseStatusCodeSame(200);
+        $body = $this->decodeResponse($client);
+        $this->assertSame('cancelled', $body['action']);
+        $this->assertArrayHasKey('previous_status', $body);
 
-        // Verify it's gone
+        // Soft-delete: the row survives so the client can undo, and the
+        // event reports its cancelled status rather than 404.
         $client->request('GET', "/api/v2/events/{$eventId}", [], [], [
             'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
         ]);
-        $this->assertResponseStatusCodeSame(404);
+        $this->assertResponseIsSuccessful();
+        $this->assertSame('cancelled', $this->decodeResponse($client)['data']['status']);
     }
 
     public function testDeleteNonexistentReturns404(): void
@@ -65,10 +72,11 @@ final class EventControllerDeleteTest extends WebTestCase
             'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
         ]);
 
-        $this->assertResponseStatusCodeSame(204);
+        $this->assertResponseStatusCodeSame(200);
+        $this->assertSame('cancelled', $this->decodeResponse($client)['action']);
     }
 
-    public function testDeleteReturnsNoBody(): void
+    public function testDeleteReturnsCancellationBody(): void
     {
         $client = static::createClient();
         $token = $this->loginAndGetToken($client);
@@ -78,7 +86,9 @@ final class EventControllerDeleteTest extends WebTestCase
             'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
         ]);
 
-        $this->assertResponseStatusCodeSame(204);
-        $this->assertSame('', $client->getResponse()->getContent());
+        $this->assertResponseStatusCodeSame(200);
+        $body = $this->decodeResponse($client);
+        $this->assertSame('cancelled', $body['action']);
+        $this->assertArrayHasKey('previous_status', $body);
     }
 }

@@ -265,8 +265,18 @@ paths:
 
     delete:
       operationId: deleteEvent
-      summary: Delete an event
-      description: Deletes a calendar event. Only the owner or admin can delete.
+      summary: Cancel an event, or decline it as a participant
+      description: >-
+        Soft-cancels a calendar event rather than removing the row. The
+        organizer or an admin cancels the event; a participant who is neither
+        declines their own invitation instead. For a repeating event, `scope`
+        selects whether a single occurrence or the whole future series is
+        cancelled.
+
+
+        Unlike most endpoints, a successful response is **not** wrapped in the
+        standard `data`/`meta`/`error` envelope — the body is the result object
+        itself. Error responses do use the envelope.
       tags:
         - Events
       parameters:
@@ -276,16 +286,49 @@ paths:
           schema:
             type: integer
           description: Event ID
-        - name: mode
+        - name: scope
           in: query
           schema:
             type: string
-            enum: [single, future, all]
+            enum: [all, occurrence, future]
             default: all
-          description: Delete mode for repeating events
+          description: >-
+            Which part of a repeating event to cancel. `all` cancels the event.
+            `occurrence` cancels the single instance on `date`; `future`
+            truncates the series from `date` onward. Both restricted to the
+            organizer or an admin, and both require the event to be repeating.
+        - name: date
+          in: query
+          schema:
+            type: string
+            pattern: "^[0-9]{8}$"
+          description: >-
+            Target date as `YYYYMMDD`. Required when `scope` is `occurrence` or
+            `future`; ignored otherwise.
       responses:
-        "204":
-          description: Event deleted
+        "200":
+          description: >-
+            Event cancelled, declined, or the repeating series amended. The
+            variant returned depends on `scope` and the caller's role.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventDeleteResponse"
+        "400":
+          description: >-
+            `scope` was `occurrence` or `future` but the event is not repeating,
+            or `date` was missing or malformed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: "null"
+                  meta:
+                    type: "null"
+                  error:
+                    $ref: "#/components/schemas/ErrorResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -654,6 +697,64 @@ components:
       description: JWT token obtained from POST /auth/login
 
   schemas:
+    EventDeleteResponse:
+      description: >-
+        Body returned by `DELETE /events/{id}`, raw rather than enveloped.
+        Every variant carries `action`, which identifies which one it is.
+      oneOf:
+        - title: Cancelled
+          description: The organizer or an admin cancelled the event.
+          type: object
+          required: [action, previous_status]
+          properties:
+            action:
+              type: string
+              const: cancelled
+            previous_status:
+              type: [string, "null"]
+              description: >-
+                The event's status before cancellation, so the client can
+                offer an undo. Null when the event had no prior status.
+              example: A
+        - title: Declined
+          description: >-
+            A participant who is neither organizer nor admin declined their
+            own invitation; their participant status is set to rejected.
+          type: object
+          required: [action, previous_status]
+          properties:
+            action:
+              type: string
+              const: declined
+            previous_status:
+              type: string
+              description: The caller's participant status before declining.
+              example: A
+        - title: Occurrence cancelled
+          description: A single occurrence of a repeating event (`scope=occurrence`).
+          type: object
+          required: [action, date]
+          properties:
+            action:
+              type: string
+              const: occurrence_cancelled
+            date:
+              type: string
+              format: date
+              description: The cancelled occurrence, as `YYYY-MM-DD`.
+        - title: Future occurrences cancelled
+          description: The series truncated from a date onward (`scope=future`).
+          type: object
+          required: [action, from_date]
+          properties:
+            action:
+              type: string
+              const: future_cancelled
+            from_date:
+              type: string
+              format: date
+              description: First cancelled date, as `YYYY-MM-DD`.
+
     ErrorResponse:
       type: object
       description: Standard error object returned in the envelope when a request fails.
