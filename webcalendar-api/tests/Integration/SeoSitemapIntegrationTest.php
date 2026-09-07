@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Integration;
 
 use App\Controller\Seo\SitemapController;
+use App\Service\SeoEligibilityService;
+use App\Service\TenantAwarePdoProvider;
 use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\EventId;
@@ -18,7 +20,15 @@ final class SeoSitemapIntegrationTest extends IntegrationTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->controller = new SitemapController($this->factory);
+        $this->controller = new SitemapController(
+            new SeoEligibilityService(
+                $this->factory->getConfigService(),
+                $this->factory->getUserRepository(),
+            ),
+            $this->factory->getUserRepository(),
+            $this->factory->getEventRepository(),
+            new TenantAwarePdoProvider($this->pdo),
+        );
     }
 
     private function enableSeo(string $login = 'alice'): void

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Integration;
 
 use App\Controller\Seo\EventIndexController;
+use App\Service\CustomHtmlProvider;
+use App\Service\SeoEligibilityService;
 use Symfony\Component\HttpFoundation\Request;
 use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
@@ -19,15 +21,30 @@ final class SeoEventIndexIntegrationTest extends IntegrationTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->controller = new EventIndexController($this->factory);
+        $this->controller = new EventIndexController(
+            new SeoEligibilityService(
+                $this->factory->getConfigService(),
+                $this->factory->getUserRepository(),
+            ),
+            $this->factory->getUserService(),
+            $this->factory->getEventRepository(),
+            $this->factory->getConfigService(),
+            new CustomHtmlProvider($this->factory->getConfigService()),
+        );
 
         // Enable SEO + public calendar for alice
         $this->factory->getConfigService()->updateSetting('ENABLE_SEO_PAGES', 'Y');
         $this->factory->getUserRepository()->savePreference('alice', new UserPreference('public_calendar_enabled', 'Y'));
     }
 
-    private function createEvents(int $count): void
+    /**
+     * Events default to next month so the "upcoming" view has something to
+     * show; tests that render a specific archive month pass $base explicitly.
+     */
+    private function createEvents(int $count, ?\DateTimeImmutable $base = null): void
     {
+        $base ??= new \DateTimeImmutable('first day of next month 10:00');
+
         for ($i = 1; $i <= $count; $i++) {
             $this->factory->getEventService()->createEvent(new Event(
                 id: new EventId(0),
@@ -35,7 +52,7 @@ final class SeoEventIndexIntegrationTest extends IntegrationTestCase
                 name: "Event {$i}",
                 description: '',
                 location: "Room {$i}",
-                start: new \DateTimeImmutable("2026-06-{$i} 10:00:00"),
+                start: $base->modify('+' . ($i - 1) . ' days'),
                 duration: 60,
                 createdBy: 'alice',
                 type: EventType::EVENT,
@@ -72,7 +89,7 @@ final class SeoEventIndexIntegrationTest extends IntegrationTestCase
 
     public function testRendersMonthlyArchive(): void
     {
-        $this->createEvents(2);
+        $this->createEvents(2, new \DateTimeImmutable('2026-06-01 10:00:00'));
         $request = Request::create('/public/alice/events?month=2026-06');
         $response = $this->controller->index('alice', $request);
 

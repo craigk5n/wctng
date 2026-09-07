@@ -40,7 +40,7 @@ final class ShareTokenIntegrationTest extends IntegrationTestCase
         // Fetch by token
         $found = $tokenRepo->findByToken('test-share-token');
         $this->assertNotNull($found);
-        $this->assertFalse($found->isExpired());
+        $this->assertFalse($found->isExpired(new \DateTimeImmutable()));
 
         // Fetch shared events using the token owner
         $range = new DateRange(
@@ -63,6 +63,6 @@ final class ShareTokenIntegrationTest extends IntegrationTestCase
         $tokenRepo = new ShareTokenRepository($this->pdo);
 
         $token = $tokenRepo->create('expired-token', 'alice', '2020-01-01 00:00:00');
-        $this->assertTrue($token->isExpired());
+        $this->assertTrue($token->isExpired(new \DateTimeImmutable()));
     }
 }

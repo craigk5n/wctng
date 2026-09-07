@@ -15,7 +15,7 @@ final class UnsubscribeControllerIntegrationTest extends IntegrationTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->controller = new UnsubscribeController($this->factory, $this->appSecret);
+        $this->controller = new UnsubscribeController($this->factory->getUserRepository(), $this->appSecret);
     }
 
     public function testUnsubscribeWithValidToken(): void

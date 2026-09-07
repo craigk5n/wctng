@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Tests\Integration;
 
 use App\Controller\Seo\EventPageController;
+use App\Service\CustomHtmlProvider;
 use App\Service\GeoRepository;
+use App\Service\SeoEligibilityService;
 use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\EventId;
@@ -19,7 +21,16 @@ final class SeoEventPageIntegrationTest extends IntegrationTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->controller = new EventPageController($this->factory);
+        $this->controller = new EventPageController(
+            new SeoEligibilityService(
+                $this->factory->getConfigService(),
+                $this->factory->getUserRepository(),
+            ),
+            $this->factory->getUserService(),
+            $this->factory->getEventService(),
+            $this->factory->getConfigService(),
+            new CustomHtmlProvider($this->factory->getConfigService()),
+        );
     }
 
     private function createPublicEvent(string $title, string $createdBy = 'alice'): int
@@ -177,7 +188,17 @@ final class SeoEventPageIntegrationTest extends IntegrationTestCase
         $this->factory->getUserRepository()->savePreference('alice', new UserPreference('public_calendar_enabled', 'Y'));
 
         $geoRepo = new GeoRepository($this->pdo);
-        $controller = new EventPageController($this->factory, $geoRepo);
+        $controller = new EventPageController(
+            new SeoEligibilityService(
+                $this->factory->getConfigService(),
+                $this->factory->getUserRepository(),
+            ),
+            $this->factory->getUserService(),
+            $this->factory->getEventService(),
+            $this->factory->getConfigService(),
+            new CustomHtmlProvider($this->factory->getConfigService()),
+            $geoRepo,
+        );
 
         $eventId = $this->createPublicEvent('Map Event');
         $geoRepo->saveCoordinates($eventId, 40.7128, -74.006);
@@ -198,7 +219,17 @@ final class SeoEventPageIntegrationTest extends IntegrationTestCase
         $this->factory->getUserRepository()->savePreference('alice', new UserPreference('public_calendar_enabled', 'Y'));
 
         $geoRepo = new GeoRepository($this->pdo);
-        $controller = new EventPageController($this->factory, $geoRepo);
+        $controller = new EventPageController(
+            new SeoEligibilityService(
+                $this->factory->getConfigService(),
+                $this->factory->getUserRepository(),
+            ),
+            $this->factory->getUserService(),
+            $this->factory->getEventService(),
+            $this->factory->getConfigService(),
+            new CustomHtmlProvider($this->factory->getConfigService()),
+            $geoRepo,
+        );
 
         $eventId = $this->createPublicEvent('No Map Event');
 
@@ -301,7 +332,17 @@ final class SeoEventPageIntegrationTest extends IntegrationTestCase
         $this->factory->getUserRepository()->savePreference('alice', new UserPreference('public_calendar_enabled', 'Y'));
 
         $geoRepo = new GeoRepository($this->pdo);
-        $controller = new EventPageController($this->factory, $geoRepo);
+        $controller = new EventPageController(
+            new SeoEligibilityService(
+                $this->factory->getConfigService(),
+                $this->factory->getUserRepository(),
+            ),
+            $this->factory->getUserService(),
+            $this->factory->getEventService(),
+            $this->factory->getConfigService(),
+            new CustomHtmlProvider($this->factory->getConfigService()),
+            $geoRepo,
+        );
 
         $eventId = $this->createPublicEvent('Geo JSON-LD');
         $geoRepo->saveCoordinates($eventId, 48.8566, 2.3522);

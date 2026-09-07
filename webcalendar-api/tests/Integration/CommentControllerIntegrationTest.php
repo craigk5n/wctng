@@ -19,7 +19,11 @@ final class CommentControllerIntegrationTest extends IntegrationTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->controller = new CommentController($this->factory, $this->pdo);
+        $this->controller = new CommentController(
+            $this->factory->getActivityLogService(),
+            $this->factory->getConfigService(),
+            $this->pdo,
+        );
 
         // Create a test event
         $event = new Event(

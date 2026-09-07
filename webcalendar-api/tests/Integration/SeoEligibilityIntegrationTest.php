@@ -14,7 +14,10 @@ final class SeoEligibilityIntegrationTest extends IntegrationTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seoService = new SeoEligibilityService($this->factory);
+        $this->seoService = new SeoEligibilityService(
+            $this->factory->getConfigService(),
+            $this->factory->getUserRepository(),
+        );
     }
 
     public function testSeoDisabledByDefaultGlobally(): void
