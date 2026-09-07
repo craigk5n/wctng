@@ -3,7 +3,16 @@ services:
     # deterministic clock in the test suite. Tests that need to advance
     # time pull the same MockClock out of the container and call
     # `sleep()` / `modify()` on it.
+    #
+    # Seeded at "now" rather than a fixed date on purpose. Tokens are
+    # minted through this clock but LexikJWTAuthenticationBundle validates
+    # `exp` against real system time, so a hardcoded date silently expires
+    # every JWT once real time passes it + JWT_TTL — turning the whole
+    # authenticated functional suite into 401 "Expired JWT Token". A
+    # MockClock seeded at "now" is still frozen for the duration of a test
+    # (and still advanceable), but can never drift out of the token
+    # validity window. Tests needing a specific absolute date construct
+    # their own MockClock locally.
     Psr\Clock\ClockInterface:
         class: Symfony\Component\Clock\MockClock
         public: true
-        arguments: ['2026-04-15T12:00:00+00:00']
