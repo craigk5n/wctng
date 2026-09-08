@@ -668,6 +668,14 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             'DESCRIPTION' => $event->description(),
         ]);
 
+        // Component::add() is declared `@return Node`, and Node has no add().
+        // Adding a component by name always yields a Component at runtime, so
+        // narrow here rather than further down: every $vevent->add() below then
+        // type-checks instead of being suppressed.
+        if (!$vevent instanceof VObject\Component) {
+            return $vcalendar->serialize();
+        }
+
         $startDate = $event->start();
         if ($event->isAllDay()) {
             $vevent->add('DTSTART', $startDate->format('Ymd'), ['VALUE' => 'DATE']);
@@ -697,9 +705,6 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
 
         // Add VALARM from reminders
         try {
-            if (!$vevent instanceof VObject\Component) {
-                return $vcalendar->serialize();
-            }
             $reminderRepo = $this->reminderRepository;
             $pending = $reminderRepo->findPending();
             foreach ($pending as $entry) {
@@ -789,6 +794,14 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             'DESCRIPTION' => $task->description(),
             'PERCENT-COMPLETE' => (string) $task->percentComplete(),
         ]);
+
+        // Component::add() is declared `@return Node`, and Node has no add().
+        // Adding a component by name always yields a Component at runtime, so
+        // narrow here rather than further down: every $vtodo->add() below then
+        // type-checks instead of being suppressed.
+        if (!$vtodo instanceof VObject\Component) {
+            return $vcalendar->serialize();
+        }
 
         if ($task->dueDate() !== null) {
             $vtodo->add('DUE', $task->dueDate());

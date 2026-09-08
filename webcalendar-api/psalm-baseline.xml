@@ -98,17 +98,6 @@
       <code><![CDATA[$vevent->DTSTART]]></code>
     </UndefinedMagicPropertyFetch>
     <UndefinedMethod>
-      <code><![CDATA[add]]></code>
-      <code><![CDATA[add]]></code>
-      <code><![CDATA[add]]></code>
-      <code><![CDATA[add]]></code>
-      <code><![CDATA[add]]></code>
-      <code><![CDATA[add]]></code>
-      <code><![CDATA[add]]></code>
-      <code><![CDATA[add]]></code>
-      <code><![CDATA[add]]></code>
-      <code><![CDATA[add]]></code>
-      <code><![CDATA[add]]></code>
       <code><![CDATA[getDateTime]]></code>
       <code><![CDATA[getDateTime]]></code>
       <code><![CDATA[getDateTime]]></code>
