@@ -38,6 +38,18 @@ jobs:
         working-directory: webcalendar-api
         run: composer install --no-interaction --prefer-dist
 
+      # Must precede `compose up`. vite-dev bind-mounts ./webcalendar-web and
+      # runs `npm install` as root, so node_modules ends up root-owned and a
+      # later `npm ci` on the runner dies with
+      # EACCES: permission denied, rmdir '.../node_modules/.bin'.
+      # Installing first means the runner owns the tree and the container's
+      # install finds it already satisfied.
+      - name: Install Node dependencies and Playwright browsers
+        working-directory: webcalendar-web
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
       # var/ is gitignored, so a fresh checkout has none. The container runs as
       # www-data (uid 82) while the bind-mounted checkout belongs to the runner,
       # so Symfony cannot create it and every request 500s with "Unable to
@@ -90,12 +102,6 @@ jobs:
             php bin/console migrations:migrate --no-interaction
           docker compose -f docker-compose.dev.yml exec -T php-fpm \
             php bin/console webcalendar:install --force --admin-password=admin
-
-      - name: Install Playwright browsers
-        working-directory: webcalendar-web
-        run: |
-          npm ci
-          npx playwright install --with-deps chromium
 
       - name: Wait for services
         run: |
