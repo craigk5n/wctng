@@ -11,6 +11,12 @@ final class UserControllerCreateTest extends WebTestCase
 {
     use ApiTestTrait;
 
+    protected function tearDown(): void
+    {
+        $this->cleanupTestData();
+        parent::tearDown();
+    }
+
     public function testCreateUser(): void
     {
         $client = static::createClient();
@@ -29,6 +35,7 @@ final class UserControllerCreateTest extends WebTestCase
         ]));
 
         $this->assertResponseStatusCodeSame(201);
+        $this->trackUser($login);
         $body = $this->decodeResponse($client);
 
         $this->assertSame($login, $body['data']['login']);
@@ -54,6 +61,7 @@ final class UserControllerCreateTest extends WebTestCase
         ]));
 
         $this->assertResponseStatusCodeSame(201);
+        $this->trackUser($login);
 
         // Verify new user can log in
         $client->request('POST', '/api/v2/auth/login', [], [], [

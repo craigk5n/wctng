@@ -11,6 +11,12 @@ final class ParticipantControllerTest extends WebTestCase
 {
     use ApiTestTrait;
 
+    protected function tearDown(): void
+    {
+        $this->cleanupTestData();
+        parent::tearDown();
+    }
+
     public function testListParticipantsForEvent(): void
     {
         $client = static::createClient();
@@ -42,6 +48,7 @@ final class ParticipantControllerTest extends WebTestCase
             'password' => 'Pass123!',
             'email' => $login . '@example.com',
         ]));
+        $this->trackUser($login);
 
         $client->request('POST', "/api/v2/events/{$eventId}/participants", [], [], [
             'CONTENT_TYPE' => 'application/json',
@@ -74,6 +81,7 @@ final class ParticipantControllerTest extends WebTestCase
             'password' => 'Pass123!',
             'email' => $login . '@example.com',
         ]));
+        $this->trackUser($login);
 
         // Add then remove
         $client->request('POST', "/api/v2/events/{$eventId}/participants", [], [], [
@@ -103,6 +111,7 @@ final class ParticipantControllerTest extends WebTestCase
             'password' => 'Pass123!',
             'email' => $login . '@example.com',
         ]));
+        $this->trackUser($login);
 
         // Add participant
         $client->request('POST', "/api/v2/events/{$eventId}/participants", [], [], [

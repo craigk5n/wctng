@@ -11,6 +11,12 @@ final class LayerControllerTest extends WebTestCase
 {
     use ApiTestTrait;
 
+    protected function tearDown(): void
+    {
+        $this->cleanupTestData();
+        parent::tearDown();
+    }
+
     public function testListLayersEmpty(): void
     {
         $client = static::createClient();
@@ -41,6 +47,7 @@ final class LayerControllerTest extends WebTestCase
             'email' => $login . '@example.com',
         ]));
         $this->assertResponseStatusCodeSame(201);
+        $this->trackUser($login);
 
         $client->request('POST', '/api/v2/layers', [], [], [
             'CONTENT_TYPE' => 'application/json',
@@ -83,6 +90,7 @@ final class LayerControllerTest extends WebTestCase
             'password' => 'Pass123!',
             'email' => $login . '@example.com',
         ]));
+        $this->trackUser($login);
 
         $client->request('POST', '/api/v2/layers', [], [], [
             'CONTENT_TYPE' => 'application/json',
@@ -122,6 +130,7 @@ final class LayerControllerTest extends WebTestCase
             'password' => 'Pass123!',
             'email' => $login . '@example.com',
         ]));
+        $this->trackUser($login);
 
         $client->request('POST', '/api/v2/layers', [], [], [
             'CONTENT_TYPE' => 'application/json',
@@ -157,6 +166,7 @@ final class LayerControllerTest extends WebTestCase
             'password' => 'Pass123!',
             'email' => $login . '@example.com',
         ]));
+        $this->trackUser($login);
 
         $client->request('POST', '/api/v2/layers', [], [], [
             'CONTENT_TYPE' => 'application/json',
@@ -198,6 +208,7 @@ final class LayerControllerTest extends WebTestCase
             'password' => 'Pass123!',
             'email' => $login . '@example.com',
         ]));
+        $this->trackUser($login);
 
         // Login as the second user and create an event
         $token2 = $this->loginAndGetToken($client, $login, 'Pass123!');
@@ -211,6 +222,8 @@ final class LayerControllerTest extends WebTestCase
             'duration' => 60,
         ]));
         $this->assertResponseStatusCodeSame(201);
+        $eventBody = $this->decodeResponse($client);
+        $this->trackEvent($eventBody['data']['id']);
 
         // Login back as admin and add a layer for this user
         $client->request('POST', '/api/v2/layers', [], [], [

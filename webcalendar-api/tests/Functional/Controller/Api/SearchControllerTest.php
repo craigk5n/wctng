@@ -11,6 +11,12 @@ final class SearchControllerTest extends WebTestCase
 {
     use ApiTestTrait;
 
+    protected function tearDown(): void
+    {
+        $this->cleanupTestData();
+        parent::tearDown();
+    }
+
     public function testSearchFindsEvent(): void
     {
         $client = static::createClient();

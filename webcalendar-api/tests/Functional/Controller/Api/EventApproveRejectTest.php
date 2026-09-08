@@ -11,6 +11,12 @@ final class EventApproveRejectTest extends WebTestCase
 {
     use ApiTestTrait;
 
+    protected function tearDown(): void
+    {
+        $this->cleanupTestData();
+        parent::tearDown();
+    }
+
     /**
      * Creates a regular user and returns [login, token].
      *
@@ -28,6 +34,7 @@ final class EventApproveRejectTest extends WebTestCase
             'password' => 'Pass123!',
             'email' => $login . '@example.com',
         ]));
+        $this->trackUser($login);
 
         // Login as the new user
         $client->request('POST', '/api/v2/auth/login', [], [], [

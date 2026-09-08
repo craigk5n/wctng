@@ -11,6 +11,12 @@ final class UserControllerUpdateTest extends WebTestCase
 {
     use ApiTestTrait;
 
+    protected function tearDown(): void
+    {
+        $this->cleanupTestData();
+        parent::tearDown();
+    }
+
     /**
      * @return array{login: string, password: string, admin_token: string}
      */
@@ -28,6 +34,8 @@ final class UserControllerUpdateTest extends WebTestCase
             'firstname' => 'Regular',
             'lastname' => 'User',
         ]));
+
+        $this->trackUser($login);
 
         return ['login' => $login, 'password' => 'RegularPass1!', 'admin_token' => $adminToken];
     }

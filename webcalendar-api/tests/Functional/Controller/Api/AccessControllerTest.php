@@ -11,6 +11,12 @@ final class AccessControllerTest extends WebTestCase
 {
     use ApiTestTrait;
 
+    protected function tearDown(): void
+    {
+        $this->cleanupTestData();
+        parent::tearDown();
+    }
+
     public function testListAccessEmpty(): void
     {
         $client = static::createClient();
@@ -41,6 +47,7 @@ final class AccessControllerTest extends WebTestCase
             'email' => $login . '@example.com',
         ]));
         $this->assertResponseStatusCodeSame(201);
+        $this->trackUser($login);
 
         // Set access
         $client->request('PUT', "/api/v2/access/users/{$login}", [], [], [
@@ -87,6 +94,7 @@ final class AccessControllerTest extends WebTestCase
             'password' => 'Pass123!',
             'email' => $login . '@example.com',
         ]));
+        $this->trackUser($login);
 
         // Set initial access
         $client->request('PUT', "/api/v2/access/users/{$login}", [], [], [

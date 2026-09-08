@@ -11,6 +11,12 @@ final class GroupControllerTest extends WebTestCase
 {
     use ApiTestTrait;
 
+    protected function tearDown(): void
+    {
+        $this->cleanupTestData();
+        parent::tearDown();
+    }
+
     private function createGroup(\Symfony\Bundle\FrameworkBundle\KernelBrowser $client, string $token, string $name = 'Test Group'): int
     {
         $client->request('POST', '/api/v2/groups', [], [], [
@@ -103,6 +109,7 @@ final class GroupControllerTest extends WebTestCase
             'password' => 'Pass123!',
             'email' => $login . '@example.com',
         ]));
+        $this->trackUser($login);
 
         // Add member
         $client->request('POST', "/api/v2/groups/{$groupId}/members", [], [], [
