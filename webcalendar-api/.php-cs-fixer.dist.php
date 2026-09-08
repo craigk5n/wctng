@@ -6,7 +6,12 @@ $finder = (new PhpCsFixer\Finder())
     ->in(__DIR__)
     ->exclude('var')
     ->exclude('vendor')
-    ->exclude('config/jwt');
+    ->exclude('config/jwt')
+    // Symfony regenerates config/reference.php (composer's auto-scripts run
+    // cache:clear), and the generated form carries no declare(strict_types=1).
+    // Any checkout that has regenerated it — CI does, on every run — then
+    // fails declare_strict_types on a file nobody wrote by hand.
+    ->notPath('config/reference.php');
 
 return (new PhpCsFixer\Config())
     ->setRules([
