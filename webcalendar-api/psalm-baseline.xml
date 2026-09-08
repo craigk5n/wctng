@@ -1,0 +1,841 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<files psalm-version="6.15.1@28dc127af1b5aecd52314f6f645bafc10d0e11f9">
+  <file src="src/Auth/ChainedAuthenticator.php">
+    <DeprecatedClass>
+      <code><![CDATA[private]]></code>
+    </DeprecatedClass>
+  </file>
+  <file src="src/Auth/LdapAuthenticator.php">
+    <DeprecatedClass>
+      <code><![CDATA[private]]></code>
+    </DeprecatedClass>
+    <MixedArgument>
+      <code><![CDATA[LDAP_ESCAPE_FILTER]]></code>
+      <code><![CDATA[LDAP_OPT_NETWORK_TIMEOUT]]></code>
+      <code><![CDATA[LDAP_OPT_PROTOCOL_VERSION]]></code>
+      <code><![CDATA[LDAP_OPT_REFERRALS]]></code>
+    </MixedArgument>
+    <MixedArrayAccess>
+      <code><![CDATA[$entries[0]['dn']]]></code>
+      <code><![CDATA[$entry['cn']]]></code>
+      <code><![CDATA[$entry['cn']]]></code>
+      <code><![CDATA[$entry['cn'][0]]]></code>
+      <code><![CDATA[$entry['cn'][0]]]></code>
+      <code><![CDATA[$entry['displayname']]]></code>
+      <code><![CDATA[$entry['displayname']]]></code>
+      <code><![CDATA[$entry['displayname'][0]]]></code>
+      <code><![CDATA[$entry['displayname'][0]]]></code>
+      <code><![CDATA[$entry['givenname']]]></code>
+      <code><![CDATA[$entry['givenname']]]></code>
+      <code><![CDATA[$entry['givenname'][0]]]></code>
+      <code><![CDATA[$entry['givenname'][0]]]></code>
+      <code><![CDATA[$entry['mail']]]></code>
+      <code><![CDATA[$entry['mail']]]></code>
+      <code><![CDATA[$entry['mail'][0]]]></code>
+      <code><![CDATA[$entry['mail'][0]]]></code>
+      <code><![CDATA[$entry['sn']]]></code>
+      <code><![CDATA[$entry['sn']]]></code>
+      <code><![CDATA[$entry['sn'][0]]]></code>
+      <code><![CDATA[$entry['sn'][0]]]></code>
+    </MixedArrayAccess>
+    <MixedAssignment>
+      <code><![CDATA[$entry]]></code>
+    </MixedAssignment>
+    <MixedReturnStatement>
+      <code><![CDATA[\is_string($entries[0]['dn'] ?? null) ? $entries[0]['dn'] : null]]></code>
+      <code><![CDATA[\is_string($entries[0]['dn'] ?? null) ? $entries[0]['dn'] : null]]></code>
+    </MixedReturnStatement>
+    <MixedReturnTypeCoercion>
+      <code><![CDATA[[
+            'name' => \is_string($entry['displayname'][0] ?? null) ? $entry['displayname'][0] : (\is_string($entry['cn'][0] ?? null) ? $entry['cn'][0] : ''),
+            'email' => \is_string($entry['mail'][0] ?? null) ? $entry['mail'][0] : '',
+            'firstname' => \is_string($entry['givenname'][0] ?? null) ? $entry['givenname'][0] : '',
+            'lastname' => \is_string($entry['sn'][0] ?? null) ? $entry['sn'][0] : '',
+        ]]]></code>
+      <code><![CDATA[array{name: string, email: string, firstname: string, lastname: string}]]></code>
+    </MixedReturnTypeCoercion>
+    <UndefinedConstant>
+      <code><![CDATA[LDAP_ESCAPE_FILTER]]></code>
+      <code><![CDATA[LDAP_OPT_NETWORK_TIMEOUT]]></code>
+      <code><![CDATA[LDAP_OPT_PROTOCOL_VERSION]]></code>
+      <code><![CDATA[LDAP_OPT_REFERRALS]]></code>
+    </UndefinedConstant>
+  </file>
+  <file src="src/Auth/LdapConfigRepository.php">
+    <MixedArgument>
+      <code><![CDATA[\is_string($row['base_dn'] ?? null) ? $row['base_dn'] : '']]></code>
+      <code><![CDATA[\is_string($row['bind_dn'] ?? null) ? $row['bind_dn'] : '']]></code>
+      <code><![CDATA[\is_string($row['bind_password'] ?? null) ? $row['bind_password'] : '']]></code>
+      <code><![CDATA[\is_string($row['host'] ?? null) ? $row['host'] : '']]></code>
+      <code><![CDATA[\is_string($row['user_filter'] ?? null) ? $row['user_filter'] : '(uid=%s)']]></code>
+    </MixedArgument>
+  </file>
+  <file src="src/Auth/LdapGroupSync.php">
+    <DeprecatedClass>
+      <code><![CDATA[private]]></code>
+    </DeprecatedClass>
+    <MixedArgument>
+      <code><![CDATA[LDAP_OPT_PROTOCOL_VERSION]]></code>
+      <code><![CDATA[LDAP_OPT_REFERRALS]]></code>
+    </MixedArgument>
+    <MixedAssignment>
+      <code><![CDATA[$count]]></code>
+      <code><![CDATA[$groups[]]]></code>
+    </MixedAssignment>
+    <MixedReturnTypeCoercion>
+      <code><![CDATA[$groups]]></code>
+      <code><![CDATA[list<string>]]></code>
+    </MixedReturnTypeCoercion>
+    <UndefinedConstant>
+      <code><![CDATA[LDAP_OPT_PROTOCOL_VERSION]]></code>
+      <code><![CDATA[LDAP_OPT_REFERRALS]]></code>
+    </UndefinedConstant>
+  </file>
+  <file src="src/Auth/OAuthProviderRepository.php">
+    <MixedArgument>
+      <code><![CDATA[\is_string($row['auth_url'] ?? null) ? $row['auth_url'] : '']]></code>
+      <code><![CDATA[\is_string($row['client_id'] ?? null) ? $row['client_id'] : '']]></code>
+      <code><![CDATA[\is_string($row['client_secret'] ?? null) ? $row['client_secret'] : '']]></code>
+      <code><![CDATA[\is_string($row['name'] ?? null) ? $row['name'] : '']]></code>
+      <code><![CDATA[\is_string($row['scopes'] ?? null) ? $row['scopes'] : '']]></code>
+      <code><![CDATA[\is_string($row['token_url'] ?? null) ? $row['token_url'] : '']]></code>
+      <code><![CDATA[\is_string($row['type'] ?? null) ? $row['type'] : 'oauth2']]></code>
+      <code><![CDATA[\is_string($row['userinfo_url'] ?? null) ? $row['userinfo_url'] : '']]></code>
+    </MixedArgument>
+  </file>
+  <file src="src/Auth/OidcDiscovery.php">
+    <MixedAssignment>
+      <code><![CDATA[$aud]]></code>
+      <code><![CDATA[$iss]]></code>
+    </MixedAssignment>
+    <MixedReturnTypeCoercion>
+      <code><![CDATA[[
+            'auth_url' => \is_string($config['authorization_endpoint'] ?? null) ? $config['authorization_endpoint'] : '',
+            'token_url' => \is_string($config['token_endpoint'] ?? null) ? $config['token_endpoint'] : '',
+            'userinfo_url' => \is_string($config['userinfo_endpoint'] ?? null) ? $config['userinfo_endpoint'] : '',
+            'jwks_uri' => \is_string($config['jwks_uri'] ?? null) ? $config['jwks_uri'] : '',
+            'issuer' => \is_string($config['issuer'] ?? null) ? $config['issuer'] : '',
+        ]]]></code>
+      <code><![CDATA[array{auth_url: string, token_url: string, userinfo_url: string, jwks_uri: string, issuer: string}]]></code>
+    </MixedReturnTypeCoercion>
+  </file>
+  <file src="src/CalDav/CoreAuthBackend.php">
+    <DeprecatedClass>
+      <code><![CDATA[private]]></code>
+    </DeprecatedClass>
+  </file>
+  <file src="src/CalDav/CoreCalendarBackend.php">
+    <DeprecatedClass>
+      <code><![CDATA[private]]></code>
+    </DeprecatedClass>
+    <MissingParamType>
+      <code><![CDATA[$calendarId]]></code>
+      <code><![CDATA[$calendarId]]></code>
+      <code><![CDATA[$calendarId]]></code>
+      <code><![CDATA[$calendarId]]></code>
+      <code><![CDATA[$calendarId]]></code>
+      <code><![CDATA[$calendarUri]]></code>
+      <code><![CDATA[$limit]]></code>
+      <code><![CDATA[$objectUri]]></code>
+      <code><![CDATA[$principalUri]]></code>
+      <code><![CDATA[$principalUri]]></code>
+      <code><![CDATA[$syncLevel]]></code>
+      <code><![CDATA[$syncToken]]></code>
+    </MissingParamType>
+    <MixedArgument>
+      <code><![CDATA[$calendarData]]></code>
+      <code><![CDATA[$dt]]></code>
+      <code><![CDATA[$dt]]></code>
+      <code><![CDATA[$dt]]></code>
+      <code><![CDATA[$param->name]]></code>
+      <code><![CDATA[$startDate]]></code>
+      <code><![CDATA[$vevent]]></code>
+      <code><![CDATA[$vevent]]></code>
+      <code><![CDATA[$vjournal]]></code>
+      <code><![CDATA[$vtodo]]></code>
+    </MixedArgument>
+    <MixedAssignment>
+      <code><![CDATA[$calendarData]]></code>
+      <code><![CDATA[$calendarData]]></code>
+      <code><![CDATA[$dt]]></code>
+      <code><![CDATA[$dt]]></code>
+      <code><![CDATA[$dt]]></code>
+      <code><![CDATA[$dtstart]]></code>
+      <code><![CDATA[$exDateProp]]></code>
+      <code><![CDATA[$param]]></code>
+      <code><![CDATA[$startDate]]></code>
+      <code><![CDATA[$val]]></code>
+      <code><![CDATA[$vevent]]></code>
+      <code><![CDATA[$vevent]]></code>
+    </MixedAssignment>
+    <MixedMethodCall>
+      <code><![CDATA[getDateTime]]></code>
+      <code><![CDATA[getValue]]></code>
+    </MixedMethodCall>
+    <MixedPropertyFetch>
+      <code><![CDATA[$dtstart->parameters]]></code>
+      <code><![CDATA[$param->name]]></code>
+    </MixedPropertyFetch>
+    <MoreSpecificImplementedParamType>
+      <code><![CDATA[$filters]]></code>
+      <code><![CDATA[$properties]]></code>
+      <code><![CDATA[$uris]]></code>
+    </MoreSpecificImplementedParamType>
+    <UndefinedMagicPropertyFetch>
+      <code><![CDATA[$vcalendar->VEVENT]]></code>
+      <code><![CDATA[$vcalendar->VEVENT]]></code>
+      <code><![CDATA[$vcalendar->VJOURNAL]]></code>
+      <code><![CDATA[$vcalendar->VTODO]]></code>
+      <code><![CDATA[$vevent->DTSTART]]></code>
+    </UndefinedMagicPropertyFetch>
+    <UndefinedMethod>
+      <code><![CDATA[add]]></code>
+      <code><![CDATA[add]]></code>
+      <code><![CDATA[add]]></code>
+      <code><![CDATA[add]]></code>
+      <code><![CDATA[add]]></code>
+      <code><![CDATA[add]]></code>
+      <code><![CDATA[add]]></code>
+      <code><![CDATA[add]]></code>
+      <code><![CDATA[add]]></code>
+      <code><![CDATA[add]]></code>
+      <code><![CDATA[add]]></code>
+      <code><![CDATA[getDateTime]]></code>
+      <code><![CDATA[getDateTime]]></code>
+      <code><![CDATA[getDateTime]]></code>
+    </UndefinedMethod>
+  </file>
+  <file src="src/CalDav/CorePrincipalBackend.php">
+    <DeprecatedClass>
+      <code><![CDATA[private]]></code>
+    </DeprecatedClass>
+    <MissingParamType>
+      <code><![CDATA[$path]]></code>
+      <code><![CDATA[$prefixPath]]></code>
+      <code><![CDATA[$prefixPath]]></code>
+      <code><![CDATA[$principal]]></code>
+      <code><![CDATA[$principal]]></code>
+      <code><![CDATA[$principal]]></code>
+      <code><![CDATA[$test]]></code>
+    </MissingParamType>
+    <MixedAssignment>
+      <code><![CDATA[$value]]></code>
+    </MixedAssignment>
+    <MoreSpecificImplementedParamType>
+      <code><![CDATA[$members]]></code>
+      <code><![CDATA[$searchProperties]]></code>
+    </MoreSpecificImplementedParamType>
+  </file>
+  <file src="src/CalDav/CoreSchedulingBackend.php">
+    <ImplementedReturnTypeMismatch>
+      <code><![CDATA[array<string, mixed>|null]]></code>
+    </ImplementedReturnTypeMismatch>
+    <MissingParamType>
+      <code><![CDATA[$objectData]]></code>
+      <code><![CDATA[$objectUri]]></code>
+      <code><![CDATA[$objectUri]]></code>
+      <code><![CDATA[$objectUri]]></code>
+      <code><![CDATA[$principalUri]]></code>
+      <code><![CDATA[$principalUri]]></code>
+      <code><![CDATA[$principalUri]]></code>
+      <code><![CDATA[$principalUri]]></code>
+    </MissingParamType>
+  </file>
+  <file src="src/Command/ImportLegacyCommand.php">
+    <DeprecatedClass>
+      <code><![CDATA[private]]></code>
+    </DeprecatedClass>
+  </file>
+  <file src="src/Command/InstallCommand.php">
+    <DeprecatedClass>
+      <code><![CDATA[private]]></code>
+    </DeprecatedClass>
+  </file>
+  <file src="src/Command/OptimizeDbCommand.php">
+    <DeprecatedClass>
+      <code><![CDATA[private]]></code>
+    </DeprecatedClass>
+  </file>
+  <file src="src/Command/RefreshSubscriptionsCommand.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[protected function execute(InputInterface $input, OutputInterface $output): int]]></code>
+    </MissingOverrideAttribute>
+  </file>
+  <file src="src/Command/ResetEventsCommand.php">
+    <MixedAssignment>
+      <code><![CDATA[$driver]]></code>
+      <code><![CDATA[$name]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Command/SeedTestDataCommand.php">
+    <DeprecatedClass>
+      <code><![CDATA[private]]></code>
+    </DeprecatedClass>
+    <InvalidArrayOffset>
+      <code><![CDATA[$names[$i]]]></code>
+    </InvalidArrayOffset>
+    <InvalidOperand>
+      <code><![CDATA[$count * 0.05]]></code>
+      <code><![CDATA[($i / \count(self::FIRST_NAMES)) % \count(self::LAST_NAMES)]]></code>
+    </InvalidOperand>
+    <MixedArgument>
+      <code><![CDATA[$names[$i]]]></code>
+      <code><![CDATA[$names[$i]]]></code>
+    </MixedArgument>
+  </file>
+  <file src="src/Controller/Api/AccessController.php">
+    <MixedAssignment>
+      <code><![CDATA[$row]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Controller/Api/AdminEventController.php">
+    <RedundantCastGivenDocblockType>
+      <code><![CDATA[(string) $request->getContent()]]></code>
+    </RedundantCastGivenDocblockType>
+  </file>
+  <file src="src/Controller/Api/AssistantController.php">
+    <RedundantCastGivenDocblockType>
+      <code><![CDATA[(string) $request->getContent()]]></code>
+    </RedundantCastGivenDocblockType>
+  </file>
+  <file src="src/Controller/Api/AuthController.php">
+    <MixedAssignment>
+      <code><![CDATA[$payload]]></code>
+    </MixedAssignment>
+    <PossiblyNullArgument>
+      <code><![CDATA[$authHeader]]></code>
+      <code><![CDATA[$authHeader]]></code>
+    </PossiblyNullArgument>
+  </file>
+  <file src="src/Controller/Api/BackupController.php">
+    <MixedAssignment>
+      <code><![CDATA[$uploadedFile]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Controller/Api/BookingController.php">
+    <RedundantCastGivenDocblockType>
+      <code><![CDATA[(string) $request->getContent()]]></code>
+    </RedundantCastGivenDocblockType>
+  </file>
+  <file src="src/Controller/Api/CategoryController.php">
+    <MixedAssignment>
+      <code><![CDATA[$owner]]></code>
+      <code><![CDATA[$raw]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Controller/Api/CommentController.php">
+    <MixedAssignment>
+      <code><![CDATA[$driver]]></code>
+      <code><![CDATA[$row]]></code>
+    </MixedAssignment>
+    <RedundantCastGivenDocblockType>
+      <code><![CDATA[(string) ($data['text'] ?? '')]]></code>
+    </RedundantCastGivenDocblockType>
+  </file>
+  <file src="src/Controller/Api/ConfigController.php">
+    <RedundantCastGivenDocblockType>
+      <code><![CDATA[(string) $request->getContent()]]></code>
+    </RedundantCastGivenDocblockType>
+  </file>
+  <file src="src/Controller/Api/CustomFieldController.php">
+    <RedundantCastGivenDocblockType>
+      <code><![CDATA[(string) $request->getContent()]]></code>
+      <code><![CDATA[(string) $request->getContent()]]></code>
+      <code><![CDATA[(string) $request->getContent()]]></code>
+    </RedundantCastGivenDocblockType>
+  </file>
+  <file src="src/Controller/Api/DashboardController.php">
+    <InvalidOperand>
+      <code><![CDATA[($pageCount * $pageSize) / 1024 / 1024]]></code>
+    </InvalidOperand>
+    <MixedAssignment>
+      <code><![CDATA[$driver]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Controller/Api/EmailConfigController.php">
+    <MixedAssignment>
+      <code><![CDATA[$decoded]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Controller/Api/Event/ListEventsController.php">
+    <MixedArrayAccess>
+      <code><![CDATA[$accessMap[$createdBy]]]></code>
+      <code><![CDATA[$access['see_time_only']]]></code>
+    </MixedArrayAccess>
+    <MixedAssignment>
+      <code><![CDATA[$access]]></code>
+      <code><![CDATA[$eventAccess]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Controller/Api/LdapConfigController.php">
+    <MixedArgument>
+      <code><![CDATA[LDAP_OPT_NETWORK_TIMEOUT]]></code>
+      <code><![CDATA[LDAP_OPT_PROTOCOL_VERSION]]></code>
+      <code><![CDATA[LDAP_OPT_REFERRALS]]></code>
+    </MixedArgument>
+    <MixedAssignment>
+      <code><![CDATA[$decoded]]></code>
+    </MixedAssignment>
+    <UndefinedConstant>
+      <code><![CDATA[LDAP_OPT_NETWORK_TIMEOUT]]></code>
+      <code><![CDATA[LDAP_OPT_PROTOCOL_VERSION]]></code>
+      <code><![CDATA[LDAP_OPT_REFERRALS]]></code>
+    </UndefinedConstant>
+  </file>
+  <file src="src/Controller/Api/LocationController.php">
+    <RedundantCastGivenDocblockType>
+      <code><![CDATA[(string) $request->getContent()]]></code>
+    </RedundantCastGivenDocblockType>
+  </file>
+  <file src="src/Controller/Api/McpController.php">
+    <MixedArgument>
+      <code><![CDATA[$dateStr]]></code>
+      <code><![CDATA[$desc]]></code>
+      <code><![CDATA[$endStr]]></code>
+      <code><![CDATA[$loc]]></code>
+      <code><![CDATA[$query]]></code>
+      <code><![CDATA[$startDate]]></code>
+      <code><![CDATA[$startDate]]></code>
+      <code><![CDATA[$startStr]]></code>
+      <code><![CDATA[$startTime]]></code>
+      <code><![CDATA[$startTime ?? '']]></code>
+      <code><![CDATA[$targetLogin]]></code>
+      <code><![CDATA[$title]]></code>
+      <code><![CDATA[$title]]></code>
+      <code><![CDATA[$toolName]]></code>
+      <code><![CDATA[\is_string($args['description'] ?? null) ? $args['description'] : '']]></code>
+      <code><![CDATA[\is_string($args['location'] ?? null) ? $args['location'] : '']]></code>
+    </MixedArgument>
+    <MixedAssignment>
+      <code><![CDATA[$dateStr]]></code>
+      <code><![CDATA[$desc]]></code>
+      <code><![CDATA[$endStr]]></code>
+      <code><![CDATA[$loc]]></code>
+      <code><![CDATA[$query]]></code>
+      <code><![CDATA[$startDate]]></code>
+      <code><![CDATA[$startDate]]></code>
+      <code><![CDATA[$startStr]]></code>
+      <code><![CDATA[$startTime]]></code>
+      <code><![CDATA[$startTime]]></code>
+      <code><![CDATA[$targetLogin]]></code>
+      <code><![CDATA[$title]]></code>
+      <code><![CDATA[$title]]></code>
+      <code><![CDATA[$toolName]]></code>
+    </MixedAssignment>
+    <RedundantCastGivenDocblockType>
+      <code><![CDATA[(string) $request->getContent()]]></code>
+    </RedundantCastGivenDocblockType>
+  </file>
+  <file src="src/Controller/Api/OAuthController.php">
+    <MixedArgument>
+      <code><![CDATA[$email]]></code>
+      <code><![CDATA[$email !== '' ? $email : $sub]]></code>
+      <code><![CDATA[$name]]></code>
+    </MixedArgument>
+    <MixedAssignment>
+      <code><![CDATA[$decoded]]></code>
+      <code><![CDATA[$decoded]]></code>
+      <code><![CDATA[$email]]></code>
+      <code><![CDATA[$name]]></code>
+      <code><![CDATA[$sub]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Controller/Api/PollController.php">
+    <RedundantCastGivenDocblockType>
+      <code><![CDATA[(string) $request->getContent()]]></code>
+      <code><![CDATA[(string) $request->getContent()]]></code>
+    </RedundantCastGivenDocblockType>
+  </file>
+  <file src="src/Controller/Api/PublicCalendarController.php">
+    <RedundantCastGivenDocblockType>
+      <code><![CDATA[(string) $request->getContent()]]></code>
+    </RedundantCastGivenDocblockType>
+  </file>
+  <file src="src/Controller/Api/PushController.php">
+    <RedundantCastGivenDocblockType>
+      <code><![CDATA[(string) $request->getContent()]]></code>
+      <code><![CDATA[(string) $request->getContent()]]></code>
+    </RedundantCastGivenDocblockType>
+  </file>
+  <file src="src/Controller/Api/ReportController.php">
+    <PossiblyFalseArgument>
+      <code><![CDATA[strtotime('-30 days')]]></code>
+      <code><![CDATA[strtotime('-30 days')]]></code>
+      <code><![CDATA[strtotime('-30 days')]]></code>
+    </PossiblyFalseArgument>
+  </file>
+  <file src="src/Controller/Api/ResourceController.php">
+    <RedundantCastGivenDocblockType>
+      <code><![CDATA[(string) $request->getContent()]]></code>
+      <code><![CDATA[(string) $request->getContent()]]></code>
+    </RedundantCastGivenDocblockType>
+  </file>
+  <file src="src/Controller/Api/SavedViewController.php">
+    <RedundantCastGivenDocblockType>
+      <code><![CDATA[(string) $request->getContent()]]></code>
+      <code><![CDATA[(string) $request->getContent()]]></code>
+    </RedundantCastGivenDocblockType>
+  </file>
+  <file src="src/Controller/Api/SecurityAuditController.php">
+    <InvalidOperand>
+      <code><![CDATA[round($ttl / 3600, 1)]]></code>
+      <code><![CDATA[round($ttl / 3600, 1)]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="src/Controller/Api/ShareController.php">
+    <RedundantCastGivenDocblockType>
+      <code><![CDATA[(string) $request->getContent()]]></code>
+    </RedundantCastGivenDocblockType>
+  </file>
+  <file src="src/Controller/Api/SubscriptionController.php">
+    <RedundantCastGivenDocblockType>
+      <code><![CDATA[(string) $request->getContent()]]></code>
+    </RedundantCastGivenDocblockType>
+    <RiskyTruthyFalsyComparison>
+      <code><![CDATA[preg_match_all('/BEGIN:VEVENT(.+?)END:VEVENT/s', $icsContent, $matches)]]></code>
+    </RiskyTruthyFalsyComparison>
+  </file>
+  <file src="src/Controller/CalDav/CalDavController.php">
+    <DeprecatedMethod>
+      <code><![CDATA[exec]]></code>
+    </DeprecatedMethod>
+    <MixedArgumentTypeCoercion>
+      <code><![CDATA[$name]]></code>
+      <code><![CDATA[$name]]></code>
+    </MixedArgumentTypeCoercion>
+    <MixedAssignment>
+      <code><![CDATA[$values]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Controller/Control/TenantController.php">
+    <MixedAssignment>
+      <code><![CDATA[$val]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Controller/Seo/EventIndexController.php">
+    <MixedMethodCall>
+      <code><![CDATA[start]]></code>
+      <code><![CDATA[start]]></code>
+    </MixedMethodCall>
+  </file>
+  <file src="src/Controller/Seo/SitemapController.php">
+    <MixedAssignment>
+      <code><![CDATA[$driver]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/CustomField/CustomFieldRepository.php">
+    <MixedArgument>
+      <code><![CDATA[\is_string($row['field_type'] ?? null) ? $row['field_type'] : 'text']]></code>
+      <code><![CDATA[\is_string($row['name'] ?? null) ? $row['name'] : '']]></code>
+      <code><![CDATA[\is_string($row['options'] ?? null) ? $row['options'] : '']]></code>
+    </MixedArgument>
+    <MixedAssignment>
+      <code><![CDATA[$driver]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/DTO/EventResponseDTO.php">
+    <PossiblyNullReference>
+      <code><![CDATA[toString]]></code>
+    </PossiblyNullReference>
+  </file>
+  <file src="src/EventSubscriber/ExceptionSubscriber.php">
+    <InvalidOperand>
+      <code><![CDATA[(microtime(true) - $startTime) * 1000]]></code>
+    </InvalidOperand>
+    <MixedAssignment>
+      <code><![CDATA[$startTime]]></code>
+      <code><![CDATA[$user]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/EventSubscriber/LocaleSubscriber.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[public static function getSubscribedEvents(): array]]></code>
+    </MissingOverrideAttribute>
+  </file>
+  <file src="src/Monolog/RequestIdProcessor.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[public function __invoke(LogRecord $record): LogRecord]]></code>
+    </MissingOverrideAttribute>
+  </file>
+  <file src="src/Poll/PollRepository.php">
+    <LessSpecificReturnStatement>
+      <code><![CDATA[$polls]]></code>
+      <code><![CDATA[[
+            'id' => \is_numeric($poll['id'] ?? null) ? (int) $poll['id'] : 0,
+            'creator' => \is_string($poll['creator_login'] ?? null) ? $poll['creator_login'] : '',
+            'title' => \is_string($poll['title'] ?? null) ? $poll['title'] : '',
+            'description' => \is_string($poll['description'] ?? null) ? $poll['description'] : '',
+            'status' => \is_string($poll['status'] ?? null) ? $poll['status'] : 'open',
+            'created_at' => \is_string($poll['created_at'] ?? null) ? $poll['created_at'] : '',
+            'options' => $options,
+        ]]]></code>
+    </LessSpecificReturnStatement>
+    <MixedAssignment>
+      <code><![CDATA[$driver]]></code>
+    </MixedAssignment>
+    <MoreSpecificReturnType>
+      <code><![CDATA[array{id: int, creator: string, title: string, description: string, status: string, created_at: string, options: list<array{id: int, start: string, end: string, votes: list<array{voter: string, vote: string}>, yes_count: int}>}|null]]></code>
+      <code><![CDATA[list<array{id: int, title: string, status: string, created_at: string}>]]></code>
+    </MoreSpecificReturnType>
+  </file>
+  <file src="src/Push/PushSubscriptionRepository.php">
+    <MixedAssignment>
+      <code><![CDATA[$driver]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Security/PasswordUpgradeService.php">
+    <DeprecatedClass>
+      <code><![CDATA[private]]></code>
+    </DeprecatedClass>
+  </file>
+  <file src="src/Security/UserTokenIndex.php">
+    <MixedAssignment>
+      <code><![CDATA[$driver]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Security/WebCalendarUserProvider.php">
+    <DeprecatedClass>
+      <code><![CDATA[private]]></code>
+    </DeprecatedClass>
+  </file>
+  <file src="src/Service/AccessPermissionRepository.php">
+    <MixedAssignment>
+      <code><![CDATA[$row]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Service/BackupService.php">
+    <InvalidOperand>
+      <code><![CDATA[(microtime(true) - $start) * 1000]]></code>
+    </InvalidOperand>
+    <MixedArgument>
+      <code><![CDATA[$a['created_at']]]></code>
+      <code><![CDATA[$b['created_at']]]></code>
+    </MixedArgument>
+    <MixedArgumentTypeCoercion>
+      <code><![CDATA[$output]]></code>
+      <code><![CDATA[$output]]></code>
+    </MixedArgumentTypeCoercion>
+    <MixedAssignment>
+      <code><![CDATA[$driverName]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Service/CalDavSyncTokenRepository.php">
+    <MixedAssignment>
+      <code><![CDATA[$value]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Service/CategoryIconRepository.php">
+    <MixedAssignment>
+      <code><![CDATA[$row]]></code>
+      <code><![CDATA[$value]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Service/DailyAgendaService.php">
+    <DeprecatedClass>
+      <code><![CDATA[private]]></code>
+    </DeprecatedClass>
+    <MixedMethodCall>
+      <code><![CDATA[start]]></code>
+      <code><![CDATA[start]]></code>
+    </MixedMethodCall>
+  </file>
+  <file src="src/Service/ErrorMetricsService.php">
+    <PossiblyFalseArgument>
+      <code><![CDATA[strtotime('-30 days')]]></code>
+    </PossiblyFalseArgument>
+  </file>
+  <file src="src/Service/EventNotificationService.php">
+    <DeprecatedClass>
+      <code><![CDATA[private]]></code>
+    </DeprecatedClass>
+  </file>
+  <file src="src/Service/EventRecurrenceService.php">
+    <MixedAssignment>
+      <code><![CDATA[$rr['cal_end']]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Service/GeoRepository.php">
+    <MixedAssignment>
+      <code><![CDATA[$row]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Service/GeocodingService.php">
+    <DeprecatedClass>
+      <code><![CDATA[private]]></code>
+    </DeprecatedClass>
+  </file>
+  <file src="src/Service/LegacyImportService.php">
+    <DeprecatedClass>
+      <code><![CDATA[private]]></code>
+    </DeprecatedClass>
+    <InvalidPropertyAssignmentValue>
+      <code><![CDATA[$this->stats]]></code>
+    </InvalidPropertyAssignmentValue>
+    <MixedAssignment>
+      <code><![CDATA[$driver]]></code>
+      <code><![CDATA[$row]]></code>
+      <code><![CDATA[$row]]></code>
+    </MixedAssignment>
+    <PropertyTypeCoercion>
+      <code><![CDATA[$this->stats]]></code>
+      <code><![CDATA[$this->stats]]></code>
+      <code><![CDATA[$this->stats]]></code>
+      <code><![CDATA[[
+            'users' => ['imported' => 0, 'skipped' => 0, 'errors' => 0],
+            'events' => ['imported' => 0, 'skipped' => 0, 'errors' => 0],
+            'categories' => ['imported' => 0, 'skipped' => 0, 'icons_dropped' => 0],
+            'participants' => ['imported' => 0, 'skipped' => 0],
+            'preferences' => ['imported' => 0, 'skipped' => 0],
+        ]]]></code>
+    </PropertyTypeCoercion>
+  </file>
+  <file src="src/Service/MercurePublisher.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[public function publishCalendarPurged(array $payload): void]]></code>
+    </MissingOverrideAttribute>
+  </file>
+  <file src="src/Service/PurgeService.php">
+    <MixedAssignment>
+      <code><![CDATA[$end]]></code>
+      <code><![CDATA[$row]]></code>
+      <code><![CDATA[$row]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Service/QueryLogger.php">
+    <InvalidOperand>
+      <code><![CDATA[(microtime(true) - $start) * 1000]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="src/Service/ReadinessProbe.php">
+    <InvalidOperand>
+      <code><![CDATA[(microtime(true) - $start) * 1000]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="src/Service/ReminderService.php">
+    <DeprecatedClass>
+      <code><![CDATA[private]]></code>
+    </DeprecatedClass>
+  </file>
+  <file src="src/Service/ReportService.php">
+    <DeprecatedClass>
+      <code><![CDATA[private]]></code>
+    </DeprecatedClass>
+    <MixedReturnTypeCoercion>
+      <code><![CDATA[$results]]></code>
+      <code><![CDATA[$results]]></code>
+      <code><![CDATA[list<array{category_id: int, category_name: string, count: int}>]]></code>
+      <code><![CDATA[list<array{id: int, title: string, start_date: string, type: string}>]]></code>
+    </MixedReturnTypeCoercion>
+    <RiskyTruthyFalsyComparison>
+      <code><![CDATA[strtotime("+{$days} days")]]></code>
+    </RiskyTruthyFalsyComparison>
+  </file>
+  <file src="src/Service/SearchIndexService.php">
+    <DeprecatedClass>
+      <code><![CDATA[private]]></code>
+    </DeprecatedClass>
+    <MixedReturnTypeCoercion>
+      <code><![CDATA[$results]]></code>
+      <code><![CDATA[list<array{id: int, title: string, start_date: string, type: string}>]]></code>
+    </MixedReturnTypeCoercion>
+    <RedundantCast>
+      <code><![CDATA[(int) $limit]]></code>
+      <code><![CDATA[(int) $limit]]></code>
+      <code><![CDATA[(int) $offset]]></code>
+    </RedundantCast>
+  </file>
+  <file src="src/Service/ValarmHelper.php">
+    <MixedAssignment>
+      <code><![CDATA[$relatedParam]]></code>
+      <code><![CDATA[$trigger]]></code>
+    </MixedAssignment>
+    <MixedMethodCall>
+      <code><![CDATA[offsetGet]]></code>
+    </MixedMethodCall>
+    <UndefinedMagicPropertyFetch>
+      <code><![CDATA[$child->TRIGGER]]></code>
+    </UndefinedMagicPropertyFetch>
+  </file>
+  <file src="src/Share/ShareTokenRepository.php">
+    <MixedArgument>
+      <code><![CDATA[\is_string($row['created_at'] ?? null) ? $row['created_at'] : '']]></code>
+      <code><![CDATA[\is_string($row['expires_at'] ?? null) ? $row['expires_at'] : null]]></code>
+      <code><![CDATA[\is_string($row['owner_login'] ?? null) ? $row['owner_login'] : '']]></code>
+      <code><![CDATA[\is_string($row['token'] ?? null) ? $row['token'] : '']]></code>
+    </MixedArgument>
+    <MixedAssignment>
+      <code><![CDATA[$driver]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Subscription/SubscriptionRepository.php">
+    <MixedArgument>
+      <code><![CDATA[\is_string($row['color'] ?? null) ? $row['color'] : '#3788d8']]></code>
+      <code><![CDATA[\is_string($row['etag'] ?? null) ? $row['etag'] : null]]></code>
+      <code><![CDATA[\is_string($row['last_fetched'] ?? null) ? $row['last_fetched'] : null]]></code>
+      <code><![CDATA[\is_string($row['name'] ?? null) ? $row['name'] : '']]></code>
+      <code><![CDATA[\is_string($row['url'] ?? null) ? $row['url'] : '']]></code>
+      <code><![CDATA[\is_string($row['user_login'] ?? null) ? $row['user_login'] : '']]></code>
+    </MixedArgument>
+    <MixedAssignment>
+      <code><![CDATA[$driver]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Tenant/ControlPlaneGuard.php">
+    <PossiblyNullArgument>
+      <code><![CDATA[$authHeader]]></code>
+    </PossiblyNullArgument>
+  </file>
+  <file src="src/Tenant/ControlPlaneWebhook.php">
+    <MixedAssignment>
+      <code><![CDATA[$httpCode]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Tenant/Tenant.php">
+    <MixedAssignment>
+      <code><![CDATA[$createdAtStr]]></code>
+      <code><![CDATA[$updatedAtStr]]></code>
+      <code><![CDATA[$value]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Tenant/TenantMigrator.php">
+    <MixedAssignment>
+      <code><![CDATA[$row]]></code>
+    </MixedAssignment>
+  </file>
+  <file src="src/Tenant/TenantRateLimiter.php">
+    <InvalidOperand>
+      <code><![CDATA[floor(time() / 60) * 60]]></code>
+    </InvalidOperand>
+  </file>
+  <file src="src/View/SavedViewRepository.php">
+    <LessSpecificReturnStatement>
+      <code><![CDATA[$views]]></code>
+    </LessSpecificReturnStatement>
+    <MixedAssignment>
+      <code><![CDATA[$driver]]></code>
+      <code><![CDATA[$v]]></code>
+    </MixedAssignment>
+    <MoreSpecificReturnType>
+      <code><![CDATA[list<array{id: int, name: string, user_logins: list<string>, is_global: bool, owner: string, category_ids: list<int>}>]]></code>
+    </MoreSpecificReturnType>
+  </file>
+  <file src="src/Webhook/WebhookDispatcher.php">
+    <MissingOverrideAttribute>
+      <code><![CDATA[public function dispatch(string $eventType, array $data): void]]></code>
+    </MissingOverrideAttribute>
+    <MixedReturnTypeCoercion>
+      <code><![CDATA[$log]]></code>
+      <code><![CDATA[list<array{webhook_id: int, status_code: int, response: string, delivered_at: string}>]]></code>
+    </MixedReturnTypeCoercion>
+  </file>
+  <file src="src/Webhook/WebhookRepository.php">
+    <MixedArgument>
+      <code><![CDATA[\is_string($row['events'] ?? null) ? $row['events'] : '*']]></code>
+      <code><![CDATA[\is_string($row['secret'] ?? null) ? $row['secret'] : '']]></code>
+      <code><![CDATA[\is_string($row['url'] ?? null) ? $row['url'] : '']]></code>
+    </MixedArgument>
+    <MixedAssignment>
+      <code><![CDATA[$driver]]></code>
+    </MixedAssignment>
+  </file>
+</files>
