@@ -20,8 +20,12 @@ test.describe('Core User Flows E2E', () => {
 
     // Custom shows advanced options
     await recurrenceSelect.selectOption('custom');
-    await expect(page.getByLabel(/interval/i)).toBeVisible();
-    await expect(page.getByLabel(/end/i)).toBeVisible();
+    // By id, not label: getByLabel(/end/i) also matches any calendar event
+    // whose aria-label happens to contain "end" (a real event reading
+    // "... ends on October 1" broke this against a populated database),
+    // and /interval/i is one stray event title away from the same problem.
+    await expect(page.locator('#recurrence-interval')).toBeVisible();
+    await expect(page.locator('#recurrence-end')).toBeVisible();
 
     // Reset to none
     await recurrenceSelect.selectOption('none');

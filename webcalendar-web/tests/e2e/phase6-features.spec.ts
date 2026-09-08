@@ -143,21 +143,32 @@ test.describe('Phase 6 Features E2E', () => {
     await loginAsAdmin(page);
     await page.goto('/settings/preferences');
 
+    // Wait on the save request rather than a fixed delay: 1.5s raced the PUT,
+    // and the reload below then read back the old value.
+    const savePut = () =>
+      page.waitForResponse(
+        (r) =>
+          /\/users\/[^/]+\/preferences$/.test(new URL(r.url()).pathname) &&
+          r.request().method() !== 'GET',
+      );
+
     // Change default view to Week
     await page.getByLabel(/default view/i).selectOption('timeGridWeek');
+    const saved = savePut();
     await page.getByRole('button', { name: /save/i }).click();
-
-    // Wait for save confirmation toast
-    await page.waitForTimeout(1500);
+    await saved;
 
     // Reload and verify
     await page.reload();
-    await page.waitForTimeout(1000);
     await expect(page.getByLabel(/default view/i)).toHaveValue('timeGridWeek', { timeout: 5000 });
 
-    // Reset to Month
+    // Reset to Month -- awaited too, so the next spec does not start against a
+    // half-written preference. Leaving this unawaited is what made the
+    // settings-forms specs flaky alongside this one.
     await page.getByLabel(/default view/i).selectOption('dayGridMonth');
+    const reset = savePut();
     await page.getByRole('button', { name: /save/i }).click();
+    await reset;
   });
 
   test('admin settings — feature toggles page loads', async ({ page }) => {

@@ -37,15 +37,12 @@ jobs:
 
       # Mirrors the API's composer audit gate (PBP-S8), which had no web
       # equivalent -- which is why 24 advisories accumulated here while PHP
-      # stayed clean. Scoped to production dependencies: the remaining
-      # vite/vitest advisories are dev-server only and need a breaking
-      # upgrade, tracked separately. Set to `high` rather than `moderate`
-      # because two moderate advisories remain in react-router and
-      # react-router-dom (open redirect) that only clear with the breaking
-      # move to react-router-dom v7; tighten this to `moderate` once that
-      # lands.
-      - name: Security audit (PBP-S8) — fail on high or critical advisories
-        run: npm audit --omit=dev --audit-level=high
+      # stayed clean. Production dependencies are now clean at every level,
+      # so this gates on `moderate`. Still scoped with --omit=dev: the
+      # remaining vite/vitest advisories are dev-server only and need the
+      # breaking vite@8 / vitest@4 upgrade, tracked separately.
+      - name: Security audit (PBP-S8) — fail on moderate or worse advisories
+        run: npm audit --omit=dev --audit-level=moderate
 
       - name: TypeScript type check
         run: npx tsc --noEmit
