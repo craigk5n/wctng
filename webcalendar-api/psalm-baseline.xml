@@ -1,46 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <files psalm-version="6.15.1@28dc127af1b5aecd52314f6f645bafc10d0e11f9">
-  <file src="src/Auth/LdapAuthenticator.php">
-    <MixedArrayAccess>
-      <code><![CDATA[$entries[0]['dn']]]></code>
-      <code><![CDATA[$entry['cn']]]></code>
-      <code><![CDATA[$entry['cn']]]></code>
-      <code><![CDATA[$entry['cn'][0]]]></code>
-      <code><![CDATA[$entry['cn'][0]]]></code>
-      <code><![CDATA[$entry['displayname']]]></code>
-      <code><![CDATA[$entry['displayname']]]></code>
-      <code><![CDATA[$entry['displayname'][0]]]></code>
-      <code><![CDATA[$entry['displayname'][0]]]></code>
-      <code><![CDATA[$entry['givenname']]]></code>
-      <code><![CDATA[$entry['givenname']]]></code>
-      <code><![CDATA[$entry['givenname'][0]]]></code>
-      <code><![CDATA[$entry['givenname'][0]]]></code>
-      <code><![CDATA[$entry['mail']]]></code>
-      <code><![CDATA[$entry['mail']]]></code>
-      <code><![CDATA[$entry['mail'][0]]]></code>
-      <code><![CDATA[$entry['mail'][0]]]></code>
-      <code><![CDATA[$entry['sn']]]></code>
-      <code><![CDATA[$entry['sn']]]></code>
-      <code><![CDATA[$entry['sn'][0]]]></code>
-      <code><![CDATA[$entry['sn'][0]]]></code>
-    </MixedArrayAccess>
-    <MixedAssignment>
-      <code><![CDATA[$entry]]></code>
-    </MixedAssignment>
-    <MixedReturnStatement>
-      <code><![CDATA[\is_string($entries[0]['dn'] ?? null) ? $entries[0]['dn'] : null]]></code>
-      <code><![CDATA[\is_string($entries[0]['dn'] ?? null) ? $entries[0]['dn'] : null]]></code>
-    </MixedReturnStatement>
-    <MixedReturnTypeCoercion>
-      <code><![CDATA[[
-            'name' => \is_string($entry['displayname'][0] ?? null) ? $entry['displayname'][0] : (\is_string($entry['cn'][0] ?? null) ? $entry['cn'][0] : ''),
-            'email' => \is_string($entry['mail'][0] ?? null) ? $entry['mail'][0] : '',
-            'firstname' => \is_string($entry['givenname'][0] ?? null) ? $entry['givenname'][0] : '',
-            'lastname' => \is_string($entry['sn'][0] ?? null) ? $entry['sn'][0] : '',
-        ]]]></code>
-      <code><![CDATA[array{name: string, email: string, firstname: string, lastname: string}]]></code>
-    </MixedReturnTypeCoercion>
-  </file>
   <file src="src/Auth/LdapConfigRepository.php">
     <MixedArgument>
       <code><![CDATA[\is_string($row['base_dn'] ?? null) ? $row['base_dn'] : '']]></code>

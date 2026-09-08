@@ -96,7 +96,13 @@ final class LdapAuthenticator
             return null;
         }
 
-        return \is_string($entries[0]['dn'] ?? null) ? $entries[0]['dn'] : null;
+        if (!isset($entries[0]) || !\is_array($entries[0])) {
+            return null;
+        }
+
+        $entry = $entries[0];
+
+        return isset($entry['dn']) && \is_string($entry['dn']) ? $entry['dn'] : null;
     }
 
     private function bindAsUser(LdapConfig $config, string $userDn, #[\SensitiveParameter] string $password): bool
@@ -146,14 +152,39 @@ final class LdapAuthenticator
             return $defaults;
         }
 
+        if (!isset($entries[0]) || !\is_array($entries[0])) {
+            return $defaults;
+        }
+
         $entry = $entries[0];
 
         return [
-            'name' => \is_string($entry['displayname'][0] ?? null) ? $entry['displayname'][0] : (\is_string($entry['cn'][0] ?? null) ? $entry['cn'][0] : ''),
-            'email' => \is_string($entry['mail'][0] ?? null) ? $entry['mail'][0] : '',
-            'firstname' => \is_string($entry['givenname'][0] ?? null) ? $entry['givenname'][0] : '',
-            'lastname' => \is_string($entry['sn'][0] ?? null) ? $entry['sn'][0] : '',
+            'name' => self::firstValue($entry, 'displayname', self::firstValue($entry, 'cn')),
+            'email' => self::firstValue($entry, 'mail'),
+            'firstname' => self::firstValue($entry, 'givenname'),
+            'lastname' => self::firstValue($entry, 'sn'),
         ];
+    }
+
+    /**
+     * Reads the first value of an LDAP attribute.
+     *
+     * ldap_get_entries() is typed as a plain array, so every hop -- $entries[0],
+     * $entry[$key], $entry[$key][0] -- is mixed. Each one has to be guarded
+     * where it is read: testing `$entry[$key][0] ?? null` refines that
+     * expression, not the offset, so the value stays mixed on the way out.
+     *
+     * @param array<array-key, mixed> $entry
+     */
+    private static function firstValue(array $entry, string $key, string $default = ''): string
+    {
+        if (!isset($entry[$key]) || !\is_array($entry[$key])) {
+            return $default;
+        }
+
+        $values = $entry[$key];
+
+        return isset($values[0]) && \is_string($values[0]) ? $values[0] : $default;
     }
 
     /**
