@@ -17,6 +17,9 @@ trait CoreSchedulingBackend
     private array $schedulingObjects = [];
 
     /**
+     * @param string $principalUri
+     * @param string $objectUri
+     *
      * @return array<string, mixed>|null
      */
     public function getSchedulingObject($principalUri, $objectUri): ?array
@@ -37,6 +40,8 @@ trait CoreSchedulingBackend
     }
 
     /**
+     * @param string $principalUri
+     *
      * @return list<array<string, mixed>>
      */
     public function getSchedulingObjects($principalUri): array
@@ -47,6 +52,10 @@ trait CoreSchedulingBackend
         return $this->schedulingObjects[$pUri] ?? [];
     }
 
+    /**
+     * @param string $principalUri
+     * @param string $objectUri
+     */
     public function deleteSchedulingObject($principalUri, $objectUri): void
     {
         /** @var string $pUri */
@@ -66,6 +75,11 @@ trait CoreSchedulingBackend
         );
     }
 
+    /**
+     * @param string $principalUri
+     * @param string $objectUri
+     * @param string|resource $objectData
+     */
     public function createSchedulingObject($principalUri, $objectUri, $objectData): void
     {
         /** @var string $pUri */

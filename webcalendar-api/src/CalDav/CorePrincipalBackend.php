@@ -22,6 +22,8 @@ final class CorePrincipalBackend implements BackendInterface
     ) {}
 
     /**
+     * @param string $prefixPath
+     *
      * @return list<array<string, mixed>>
      */
     #[\Override]
@@ -47,6 +49,8 @@ final class CorePrincipalBackend implements BackendInterface
     }
 
     /**
+     * @param string $path
+     *
      * @return array<string, mixed>
      */
     #[\Override]
@@ -75,6 +79,9 @@ final class CorePrincipalBackend implements BackendInterface
 
     /**
      * @param array<string, mixed> $searchProperties
+     *
+     * @param string $prefixPath
+     * @param string $test
      *
      * @return list<string>
      */
@@ -130,6 +137,8 @@ final class CorePrincipalBackend implements BackendInterface
     }
 
     /**
+     * @param string $principal
+     *
      * @return list<string>
      */
     #[\Override]
@@ -139,6 +148,8 @@ final class CorePrincipalBackend implements BackendInterface
     }
 
     /**
+     * @param string $principal
+     *
      * @return list<string>
      */
     #[\Override]
@@ -149,6 +160,7 @@ final class CorePrincipalBackend implements BackendInterface
 
     /**
      * @param list<string> $members
+     * @param string $principal
      */
     #[\Override]
     public function setGroupMemberSet($principal, array $members): void

@@ -64,6 +64,8 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
     }
 
     /**
+     * @param string $principalUri
+     *
      * @return list<array<string, mixed>>
      */
     #[\Override]
@@ -94,6 +96,9 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
 
     /**
      * @param array<string, mixed> $properties
+     *
+     * @param string $principalUri
+     * @param string $calendarUri
      *
      * @return string
      */
@@ -128,6 +133,8 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
     }
 
     /**
+     * @param mixed $calendarId
+     *
      * @return list<array<string, mixed>>
      */
     #[\Override]
@@ -210,6 +217,9 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
     }
 
     /**
+     * @param mixed $calendarId
+     * @param string $objectUri
+     *
      * @return array<string, mixed>|null
      */
     #[\Override]
@@ -254,6 +264,8 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
 
     /**
      * @param list<string> $uris
+     *
+     * @param mixed $calendarId
      *
      * @return list<array<string, mixed>>
      */
@@ -446,6 +458,8 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
      *
      * @param array<string, mixed> $filters
      *
+     * @param mixed $calendarId
+     *
      * @return list<string>
      */
     #[\Override]
@@ -519,6 +533,11 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
     }
 
     /**
+     * @param string $calendarId
+     * @param string $syncToken
+     * @param int $syncLevel
+     * @param int|null $limit
+     *
      * @return array{syncToken: string, added: list<string>, modified: list<string>, deleted: list<string>}
      */
     #[\Override]

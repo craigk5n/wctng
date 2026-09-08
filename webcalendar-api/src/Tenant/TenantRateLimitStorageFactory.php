@@ -16,9 +16,16 @@ use Predis\Client as PredisClient;
  */
 final readonly class TenantRateLimitStorageFactory
 {
-    public static function fromEnv(string $redisUrl, string $cacheDir): TenantRateLimitStorage
+    /**
+     * $redisUrl is nullable because services.yaml passes
+     * `%env(default::REDIS_URL)%`, and Symfony's `default:` processor yields
+     * null when the variable is unset *or* empty — which is exactly what
+     * .env.test asks for (REDIS_URL=), so a non-nullable signature made the
+     * container unbuildable in the project's own test configuration.
+     */
+    public static function fromEnv(?string $redisUrl, string $cacheDir): TenantRateLimitStorage
     {
-        if ($redisUrl === '') {
+        if ($redisUrl === null || $redisUrl === '') {
             return new FileTenantRateLimitStorage($cacheDir);
         }
 
