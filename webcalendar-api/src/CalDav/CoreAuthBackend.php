@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\CalDav;
 
-use App\Service\CoreServiceFactory;
 use App\Tenant\TenantContext;
 use Lexik\Bundle\JWTAuthenticationBundle\Encoder\JWTEncoderInterface;
 use Sabre\DAV\Auth\Backend\AbstractBasic;
 use Sabre\HTTP\RequestInterface;
 use Sabre\HTTP\ResponseInterface;
+use WebCalendar\Core\Application\Contract\AuthServiceInterface;
 
 /**
  * CalDAV authentication backend supporting both HTTP Basic and Bearer token auth.
@@ -24,7 +24,7 @@ final class CoreAuthBackend extends AbstractBasic
     private ?TenantContext $tenantContext;
 
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly AuthServiceInterface $authService,
         ?JWTEncoderInterface $jwtEncoder = null,
         ?TenantContext $tenantContext = null,
     ) {
@@ -80,8 +80,6 @@ final class CoreAuthBackend extends AbstractBasic
             return false;
         }
 
-        $authService = $this->coreServiceFactory->getAuthService();
-
-        return $authService->authenticate($username, $password);
+        return $this->authService->authenticate($username, $password);
     }
 }

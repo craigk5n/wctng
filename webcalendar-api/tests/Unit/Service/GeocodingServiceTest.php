@@ -26,7 +26,7 @@ final class GeocodingServiceTest extends IntegrationTestCase
         // Enable geocoding
         $this->factory->getConfigService()->updateSetting('ENABLE_GEOCODING', 'Y');
 
-        $this->service = new GeocodingService($this->httpClient, $this->geoRepo, $this->factory);
+        $this->service = new GeocodingService($this->httpClient, $this->geoRepo, $this->factory->getConfigService());
     }
 
     public function testGeocodeReturnsCoordinates(): void
@@ -149,7 +149,7 @@ final class GeocodingServiceTest extends IntegrationTestCase
         $this->factory->getConfigService()->updateSetting('ENABLE_GEOCODING', 'N');
 
         // Re-create service with updated config
-        $service = new GeocodingService($this->httpClient, $this->geoRepo, $this->factory);
+        $service = new GeocodingService($this->httpClient, $this->geoRepo, $this->factory->getConfigService());
 
         // Should not call HTTP client
         $this->httpClient->expects($this->never())->method('request');

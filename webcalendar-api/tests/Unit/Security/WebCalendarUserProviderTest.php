@@ -23,7 +23,7 @@ final class WebCalendarUserProviderTest extends TestCase
     {
         $pdo = $this->createMock(\PDO::class);
         $factory = new CoreServiceFactory($pdo, 'test_secret');
-        $provider = new WebCalendarUserProvider($factory);
+        $provider = new WebCalendarUserProvider($factory->getUserService(), $factory->getUserRepository());
 
         $this->assertTrue($provider->supportsClass(WebCalendarUser::class));
     }
@@ -32,7 +32,7 @@ final class WebCalendarUserProviderTest extends TestCase
     {
         $pdo = $this->createMock(\PDO::class);
         $factory = new CoreServiceFactory($pdo, 'test_secret');
-        $provider = new WebCalendarUserProvider($factory);
+        $provider = new WebCalendarUserProvider($factory->getUserService(), $factory->getUserRepository());
 
         $this->assertFalse($provider->supportsClass(\stdClass::class));
     }
@@ -41,7 +41,7 @@ final class WebCalendarUserProviderTest extends TestCase
     {
         $pdo = $this->createMock(\PDO::class);
         $factory = new CoreServiceFactory($pdo, 'test_secret');
-        $provider = new WebCalendarUserProvider($factory);
+        $provider = new WebCalendarUserProvider($factory->getUserService(), $factory->getUserRepository());
 
         $otherUser = $this->createMock(\Symfony\Component\Security\Core\User\UserInterface::class);
 

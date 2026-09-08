@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Security;
 
-use App\Service\CoreServiceFactory;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\Exception\UserNotFoundException;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Core\User\UserProviderInterface;
+use WebCalendar\Core\Application\Service\UserService;
+use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 
 /**
  * Loads users from webcalendar-core's UserService for Symfony Security.
@@ -18,13 +19,14 @@ use Symfony\Component\Security\Core\User\UserProviderInterface;
 final class WebCalendarUserProvider implements UserProviderInterface
 {
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly UserService $userService,
+        private readonly UserRepositoryInterface $userRepository,
     ) {}
 
     #[\Override]
     public function loadUserByIdentifier(string $identifier): WebCalendarUser
     {
-        $coreUser = $this->coreServiceFactory->getUserService()->getUserByLogin($identifier);
+        $coreUser = $this->userService->getUserByLogin($identifier);
 
         if ($coreUser === null) {
             $exception = new UserNotFoundException(sprintf('User "%s" not found.', $identifier));
@@ -32,7 +34,7 @@ final class WebCalendarUserProvider implements UserProviderInterface
             throw $exception;
         }
 
-        $passwordHash = $this->coreServiceFactory->getUserRepository()->getPasswordHash($identifier);
+        $passwordHash = $this->userRepository->getPasswordHash($identifier);
 
         return new WebCalendarUser($coreUser, $passwordHash);
     }

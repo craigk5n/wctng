@@ -6,6 +6,7 @@ namespace App\Tests\Unit\CalDav;
 
 use App\CalDav\CoreCalendarBackend;
 use App\Service\CoreServiceFactory;
+use App\Service\TenantAwarePdoProvider;
 use PHPUnit\Framework\TestCase;
 use Sabre\CalDAV\Plugin;
 use Sabre\CalDAV\Xml\Property\SupportedCalendarComponentSet;
@@ -19,7 +20,15 @@ final class MultiComponentTest extends TestCase
     {
         $pdo = new \PDO('sqlite::memory:');
         $factory = new CoreServiceFactory($pdo, 'test');
-        $this->backend = new CoreCalendarBackend($factory);
+        $this->backend = new CoreCalendarBackend(
+            new TenantAwarePdoProvider($factory->getPdo()),
+            $factory->getUserService(),
+            $factory->getEventService(),
+            $factory->getTaskService(),
+            $factory->getJournalService(),
+            $factory->getEventRepository(),
+            $factory->getReminderRepository(),
+        );
     }
 
     public function testCalendarAdvertisesAllComponentTypes(): void

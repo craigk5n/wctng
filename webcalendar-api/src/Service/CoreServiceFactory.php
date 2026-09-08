@@ -74,9 +74,10 @@ use WebCalendar\Core\Infrastructure\Webhook\LogWebhookProvider;
  * factory. New code MUST NOT add dependencies on `CoreServiceFactory` — inject the
  * specific service (e.g. `EventService`, `UserService`, `ConfigService`) or
  * repository interface (e.g. `UserRepositoryInterface`) directly. The factory is
- * kept alive only because a handful of services/commands/auth/CalDAV backends
- * still use it internally; those will be migrated in a follow-up and then this
- * class can be deleted.
+ * kept alive as the wiring hub behind those service definitions, and because
+ * `LegacyImportService` -- and `ImportLegacyCommand`, which constructs it --
+ * still take it directly. Those two are all that remain; once they inject
+ * their services this class can be deleted.
  */
 final class CoreServiceFactory
 {

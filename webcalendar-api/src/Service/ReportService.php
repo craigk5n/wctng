@@ -10,7 +10,7 @@ namespace App\Service;
 final readonly class ReportService
 {
     public function __construct(
-        private CoreServiceFactory $coreServiceFactory,
+        private TenantAwarePdoProvider $pdoProvider,
     ) {}
 
     /**
@@ -20,7 +20,7 @@ final readonly class ReportService
      */
     public function activityReport(string $userLogin, string $start, string $end): array
     {
-        $pdo = $this->coreServiceFactory->getPdo();
+        $pdo = $this->pdoProvider->get();
         $stmt = $pdo->prepare(
             'SELECT CAST(cal_date AS CHAR) AS date, COUNT(*) AS cnt FROM webcal_entry
              WHERE cal_create_by = :user AND cal_date >= :s AND cal_date <= :e
@@ -50,7 +50,7 @@ final readonly class ReportService
      */
     public function busyHoursReport(string $userLogin, string $start, string $end): array
     {
-        $pdo = $this->coreServiceFactory->getPdo();
+        $pdo = $this->pdoProvider->get();
 
         // cal_time is stored as HHMMSS integer (e.g., 140000 = 14:00:00)
         $stmt = $pdo->prepare(
@@ -83,7 +83,7 @@ final readonly class ReportService
      */
     public function categoriesReport(string $userLogin, string $start, string $end): array
     {
-        $pdo = $this->coreServiceFactory->getPdo();
+        $pdo = $this->pdoProvider->get();
 
         $stmt = $pdo->prepare(
             'SELECT c.cat_id, c.cat_name, COUNT(*) AS cnt
@@ -118,7 +118,7 @@ final readonly class ReportService
      */
     public function upcomingReport(string $userLogin, int $days = 7): array
     {
-        $pdo = $this->coreServiceFactory->getPdo();
+        $pdo = $this->pdoProvider->get();
         $today = (int) date('Ymd');
         $endDate = (int) date('Ymd', strtotime("+{$days} days") ?: null);
 

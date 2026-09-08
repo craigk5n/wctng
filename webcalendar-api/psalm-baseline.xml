@@ -1,14 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <files psalm-version="6.15.1@28dc127af1b5aecd52314f6f645bafc10d0e11f9">
-  <file src="src/Auth/ChainedAuthenticator.php">
-    <DeprecatedClass>
-      <code><![CDATA[private]]></code>
-    </DeprecatedClass>
-  </file>
   <file src="src/Auth/LdapAuthenticator.php">
-    <DeprecatedClass>
-      <code><![CDATA[private]]></code>
-    </DeprecatedClass>
     <MixedArrayAccess>
       <code><![CDATA[$entries[0]['dn']]]></code>
       <code><![CDATA[$entry['cn']]]></code>
@@ -59,9 +51,6 @@
     </MixedArgument>
   </file>
   <file src="src/Auth/LdapGroupSync.php">
-    <DeprecatedClass>
-      <code><![CDATA[private]]></code>
-    </DeprecatedClass>
     <MixedAssignment>
       <code><![CDATA[$count]]></code>
       <code><![CDATA[$groups[]]]></code>
@@ -99,15 +88,7 @@
       <code><![CDATA[array{auth_url: string, token_url: string, userinfo_url: string, jwks_uri: string, issuer: string}]]></code>
     </MixedReturnTypeCoercion>
   </file>
-  <file src="src/CalDav/CoreAuthBackend.php">
-    <DeprecatedClass>
-      <code><![CDATA[private]]></code>
-    </DeprecatedClass>
-  </file>
   <file src="src/CalDav/CoreCalendarBackend.php">
-    <DeprecatedClass>
-      <code><![CDATA[private]]></code>
-    </DeprecatedClass>
     <MixedArgument>
       <code><![CDATA[$calendarData]]></code>
       <code><![CDATA[$dt]]></code>
@@ -175,9 +156,6 @@
     </UndefinedMethod>
   </file>
   <file src="src/CalDav/CorePrincipalBackend.php">
-    <DeprecatedClass>
-      <code><![CDATA[private]]></code>
-    </DeprecatedClass>
     <MixedAssignment>
       <code><![CDATA[$value]]></code>
     </MixedAssignment>
@@ -200,16 +178,6 @@
       <code><![CDATA[private]]></code>
     </DeprecatedClass>
   </file>
-  <file src="src/Command/InstallCommand.php">
-    <DeprecatedClass>
-      <code><![CDATA[private]]></code>
-    </DeprecatedClass>
-  </file>
-  <file src="src/Command/OptimizeDbCommand.php">
-    <DeprecatedClass>
-      <code><![CDATA[private]]></code>
-    </DeprecatedClass>
-  </file>
   <file src="src/Command/RefreshSubscriptionsCommand.php">
     <MissingOverrideAttribute>
       <code><![CDATA[protected function execute(InputInterface $input, OutputInterface $output): int]]></code>
@@ -221,9 +189,6 @@
     </MixedAssignment>
   </file>
   <file src="src/Command/SeedTestDataCommand.php">
-    <DeprecatedClass>
-      <code><![CDATA[private]]></code>
-    </DeprecatedClass>
     <InvalidArrayOffset>
       <code><![CDATA[$names[$i]]]></code>
     </InvalidArrayOffset>
@@ -436,16 +401,6 @@
       <code><![CDATA[list<array{id: int, title: string, status: string, created_at: string}>]]></code>
     </MoreSpecificReturnType>
   </file>
-  <file src="src/Security/PasswordUpgradeService.php">
-    <DeprecatedClass>
-      <code><![CDATA[private]]></code>
-    </DeprecatedClass>
-  </file>
-  <file src="src/Security/WebCalendarUserProvider.php">
-    <DeprecatedClass>
-      <code><![CDATA[private]]></code>
-    </DeprecatedClass>
-  </file>
   <file src="src/Service/AccessPermissionRepository.php">
     <RedundantCondition>
       <code><![CDATA[\is_array($row)]]></code>
@@ -478,9 +433,6 @@
     </RedundantCondition>
   </file>
   <file src="src/Service/DailyAgendaService.php">
-    <DeprecatedClass>
-      <code><![CDATA[private]]></code>
-    </DeprecatedClass>
     <MixedMethodCall>
       <code><![CDATA[start]]></code>
       <code><![CDATA[start]]></code>
@@ -490,11 +442,6 @@
     <PossiblyFalseArgument>
       <code><![CDATA[strtotime('-30 days')]]></code>
     </PossiblyFalseArgument>
-  </file>
-  <file src="src/Service/EventNotificationService.php">
-    <DeprecatedClass>
-      <code><![CDATA[private]]></code>
-    </DeprecatedClass>
   </file>
   <file src="src/Service/EventRecurrenceService.php">
     <MixedAssignment>
@@ -511,11 +458,6 @@
     <RedundantCondition>
       <code><![CDATA[\is_array($row)]]></code>
     </RedundantCondition>
-  </file>
-  <file src="src/Service/GeocodingService.php">
-    <DeprecatedClass>
-      <code><![CDATA[private]]></code>
-    </DeprecatedClass>
   </file>
   <file src="src/Service/LegacyImportService.php">
     <DeprecatedClass>
@@ -572,15 +514,7 @@
       <code><![CDATA[(microtime(true) - $start) * 1000]]></code>
     </InvalidOperand>
   </file>
-  <file src="src/Service/ReminderService.php">
-    <DeprecatedClass>
-      <code><![CDATA[private]]></code>
-    </DeprecatedClass>
-  </file>
   <file src="src/Service/ReportService.php">
-    <DeprecatedClass>
-      <code><![CDATA[private]]></code>
-    </DeprecatedClass>
     <MixedReturnTypeCoercion>
       <code><![CDATA[$results]]></code>
       <code><![CDATA[$results]]></code>
@@ -592,9 +526,6 @@
     </RiskyTruthyFalsyComparison>
   </file>
   <file src="src/Service/SearchIndexService.php">
-    <DeprecatedClass>
-      <code><![CDATA[private]]></code>
-    </DeprecatedClass>
     <MixedReturnTypeCoercion>
       <code><![CDATA[$results]]></code>
       <code><![CDATA[list<array{id: int, title: string, start_date: string, type: string}>]]></code>

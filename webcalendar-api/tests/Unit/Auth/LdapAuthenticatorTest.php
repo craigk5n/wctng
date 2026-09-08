@@ -20,7 +20,7 @@ final class LdapAuthenticatorTest extends TestCase
         // Default config has enabled=false
         $factory = new CoreServiceFactory($pdo, 'test');
 
-        $auth = new LdapAuthenticator($configRepo, $factory);
+        $auth = new LdapAuthenticator($configRepo, $factory->getUserService(), $factory->getUserRepository());
         $result = $auth->authenticate('user', 'pass');
 
         $this->assertNull($result);
@@ -34,7 +34,7 @@ final class LdapAuthenticatorTest extends TestCase
         $configRepo->save(new LdapConfig(host: '', enabled: true));
         $factory = new CoreServiceFactory($pdo, 'test');
 
-        $auth = new LdapAuthenticator($configRepo, $factory);
+        $auth = new LdapAuthenticator($configRepo, $factory->getUserService(), $factory->getUserRepository());
         $result = $auth->authenticate('user', 'pass');
 
         $this->assertNull($result);
@@ -47,7 +47,7 @@ final class LdapAuthenticatorTest extends TestCase
         $configRepo = new LdapConfigRepository($pdo);
         $factory = new CoreServiceFactory($pdo, 'test');
 
-        $auth = new LdapAuthenticator($configRepo, $factory);
+        $auth = new LdapAuthenticator($configRepo, $factory->getUserService(), $factory->getUserRepository());
         $this->assertFalse($auth->isAvailable());
     }
 
@@ -59,7 +59,7 @@ final class LdapAuthenticatorTest extends TestCase
         $configRepo->save(new LdapConfig(host: 'ldap.example.com', enabled: true));
         $factory = new CoreServiceFactory($pdo, 'test');
 
-        $auth = new LdapAuthenticator($configRepo, $factory);
+        $auth = new LdapAuthenticator($configRepo, $factory->getUserService(), $factory->getUserRepository());
 
         // Result depends on whether PHP LDAP extension is loaded
         if (\function_exists('ldap_connect')) {
@@ -87,7 +87,7 @@ final class LdapAuthenticatorTest extends TestCase
         ));
         $factory = new CoreServiceFactory($pdo, 'test');
 
-        $auth = new LdapAuthenticator($configRepo, $factory);
+        $auth = new LdapAuthenticator($configRepo, $factory->getUserService(), $factory->getUserRepository());
         $result = $auth->authenticate('testuser', 'testpass');
 
         $this->assertNull($result);

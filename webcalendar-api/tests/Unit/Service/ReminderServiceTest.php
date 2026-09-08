@@ -7,6 +7,7 @@ namespace App\Tests\Unit\Service;
 use App\Service\CoreServiceFactory;
 use App\Service\EmailService;
 use App\Service\ReminderService;
+use App\Service\TenantAwarePdoProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Mailer\MailerInterface;
 
@@ -40,7 +41,7 @@ final class ReminderServiceTest extends TestCase
         $factory = new CoreServiceFactory($pdo, 'test');
         $mailer = $this->createMock(MailerInterface::class);
         $emailService = new EmailService($mailer, 'from@test.com', 'WebCal');
-        $service = new ReminderService($factory, $emailService, 'http://localhost');
+        $service = new ReminderService(new TenantAwarePdoProvider($factory->getPdo()), $factory->getUserRepository(), $factory->getEventRepository(), $factory->getEventService(), $factory->getUserService(), $factory->getConfigService(), $emailService, 'http://localhost');
 
         return [$pdo, $factory, $service];
     }

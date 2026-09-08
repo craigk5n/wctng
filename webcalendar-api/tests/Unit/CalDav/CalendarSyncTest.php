@@ -7,6 +7,7 @@ namespace App\Tests\Unit\CalDav;
 use App\CalDav\CoreCalendarBackend;
 use App\Service\CalDavSyncTokenRepository;
 use App\Service\CoreServiceFactory;
+use App\Service\TenantAwarePdoProvider;
 use PHPUnit\Framework\TestCase;
 use Sabre\CalDAV\Backend\SyncSupport;
 
@@ -21,7 +22,15 @@ final class CalendarSyncTest extends TestCase
     {
         $pdo = new \PDO('sqlite::memory:');
         $factory = new CoreServiceFactory($pdo, 'test');
-        $backend = new CoreCalendarBackend($factory);
+        $backend = new CoreCalendarBackend(
+            new TenantAwarePdoProvider($factory->getPdo()),
+            $factory->getUserService(),
+            $factory->getEventService(),
+            $factory->getTaskService(),
+            $factory->getJournalService(),
+            $factory->getEventRepository(),
+            $factory->getReminderRepository(),
+        );
 
         $calendars = $backend->getCalendarsForUser('principals/alice');
         $this->assertCount(1, $calendars);
@@ -33,7 +42,15 @@ final class CalendarSyncTest extends TestCase
     {
         $pdo = new \PDO('sqlite::memory:');
         $factory = new CoreServiceFactory($pdo, 'test');
-        $backend = new CoreCalendarBackend($factory);
+        $backend = new CoreCalendarBackend(
+            new TenantAwarePdoProvider($factory->getPdo()),
+            $factory->getUserService(),
+            $factory->getEventService(),
+            $factory->getTaskService(),
+            $factory->getJournalService(),
+            $factory->getEventRepository(),
+            $factory->getReminderRepository(),
+        );
 
         $calendars = $backend->getCalendarsForUser('principals/alice');
         $this->assertArrayHasKey('{http://calendarserver.org/ns/}getctag', $calendars[0]);
@@ -43,7 +60,15 @@ final class CalendarSyncTest extends TestCase
     {
         $pdo = new \PDO('sqlite::memory:');
         $factory = new CoreServiceFactory($pdo, 'test');
-        $backend = new CoreCalendarBackend($factory);
+        $backend = new CoreCalendarBackend(
+            new TenantAwarePdoProvider($factory->getPdo()),
+            $factory->getUserService(),
+            $factory->getEventService(),
+            $factory->getTaskService(),
+            $factory->getJournalService(),
+            $factory->getEventRepository(),
+            $factory->getReminderRepository(),
+        );
 
         $calendars = $backend->getCalendarsForUser('principals/alice');
         $currentToken = (string) $calendars[0]['{DAV:}sync-token'];
@@ -60,7 +85,15 @@ final class CalendarSyncTest extends TestCase
     {
         $pdo = new \PDO('sqlite::memory:');
         $factory = new CoreServiceFactory($pdo, 'test');
-        $backend = new CoreCalendarBackend($factory);
+        $backend = new CoreCalendarBackend(
+            new TenantAwarePdoProvider($factory->getPdo()),
+            $factory->getUserService(),
+            $factory->getEventService(),
+            $factory->getTaskService(),
+            $factory->getJournalService(),
+            $factory->getEventRepository(),
+            $factory->getReminderRepository(),
+        );
 
         // Initial sync with null token — returns all objects as added
         $changes = $backend->getChangesForCalendar('alice', null, 1);
@@ -75,7 +108,15 @@ final class CalendarSyncTest extends TestCase
         $pdo = new \PDO('sqlite::memory:');
         $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         $factory = new CoreServiceFactory($pdo, 'test');
-        $backend = new CoreCalendarBackend($factory);
+        $backend = new CoreCalendarBackend(
+            new TenantAwarePdoProvider($factory->getPdo()),
+            $factory->getUserService(),
+            $factory->getEventService(),
+            $factory->getTaskService(),
+            $factory->getJournalService(),
+            $factory->getEventRepository(),
+            $factory->getReminderRepository(),
+        );
 
         // Bump alice's override to a known huge value, simulating a purge.
         $repo = new CalDavSyncTokenRepository($pdo);
@@ -95,7 +136,15 @@ final class CalendarSyncTest extends TestCase
     {
         $pdo = new \PDO('sqlite::memory:');
         $factory = new CoreServiceFactory($pdo, 'test');
-        $backend = new CoreCalendarBackend($factory);
+        $backend = new CoreCalendarBackend(
+            new TenantAwarePdoProvider($factory->getPdo()),
+            $factory->getUserService(),
+            $factory->getEventService(),
+            $factory->getTaskService(),
+            $factory->getJournalService(),
+            $factory->getEventRepository(),
+            $factory->getReminderRepository(),
+        );
 
         $changes = $backend->getChangesForCalendar('alice', 'sync-old-token', 1);
 

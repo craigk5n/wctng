@@ -8,6 +8,11 @@ use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Clock\NativeClock;
+use WebCalendar\Core\Application\Service\ConfigService;
+use WebCalendar\Core\Application\Service\EventService;
+use WebCalendar\Core\Application\Service\UserService;
+use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
+use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 
 /**
  * Finds upcoming events and sends reminder emails.
@@ -22,7 +27,12 @@ final class ReminderService
     private ClockInterface $clock;
 
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly TenantAwarePdoProvider $pdoProvider,
+        private readonly UserRepositoryInterface $userRepository,
+        private readonly EventRepositoryInterface $eventRepository,
+        private readonly EventService $eventService,
+        private readonly UserService $userService,
+        private readonly ConfigService $configService,
         private readonly EmailSender $emailService,
         private readonly string $baseUrl,
         ?LoggerInterface $logger = null,
@@ -45,7 +55,7 @@ final class ReminderService
             return 0;
         }
 
-        $pdo = $this->coreServiceFactory->getPdo();
+        $pdo = $this->pdoProvider->get();
         $this->ensureTrackingTable($pdo);
 
         $now = $this->clock->now();
@@ -53,7 +63,7 @@ final class ReminderService
 
         // Get all users with their reminder preferences
         try {
-            $users = $this->coreServiceFactory->getUserRepository()->findAll();
+            $users = $this->userRepository->findAll();
         } catch (\Throwable) {
             return 0;
         }
@@ -69,7 +79,7 @@ final class ReminderService
 
             try {
                 $range = new \WebCalendar\Core\Domain\ValueObject\DateRange($windowStart, $windowEnd);
-                $events = $this->coreServiceFactory->getEventService()->getEventsInDateRange($range, $user);
+                $events = $this->eventService->getEventsInDateRange($range, $user);
 
                 foreach ($events->all() as $event) {
                     $eventId = $event->id()->value();
@@ -134,7 +144,7 @@ final class ReminderService
      */
     public function isEnabled(): bool
     {
-        $value = $this->coreServiceFactory->getConfigService()->getSetting('ENABLE_EMAIL_REMINDERS');
+        $value = $this->configService->getSetting('ENABLE_EMAIL_REMINDERS');
         // Default to Y if not set
         return $value !== 'N';
     }
@@ -142,12 +152,12 @@ final class ReminderService
     private function getReminderMinutes(string $login): int
     {
         try {
-            $user = $this->coreServiceFactory->getUserService()->getUserByLogin($login);
+            $user = $this->userService->getUserByLogin($login);
             if ($user === null) {
                 return self::DEFAULT_REMINDER_MINUTES;
             }
 
-            $prefs = $this->coreServiceFactory->getUserService()->getPreferences($login, $user);
+            $prefs = $this->userService->getPreferences($login, $user);
             foreach ($prefs as $pref) {
                 if ($pref->key() === 'REMINDER_MINUTES') {
                     $val = (int) $pref->value();
@@ -155,7 +165,7 @@ final class ReminderService
                 }
             }
         } catch (\Throwable $e) {
-            $this->logger->debug('coreServiceFactory->getUserService() failed', ['exception' => $e->getMessage()]);
+            $this->logger->debug('Reading REMINDER_MINUTES preference failed', ['login' => $login, 'exception' => $e->getMessage()]);
         }
 
         return self::DEFAULT_REMINDER_MINUTES;
@@ -191,7 +201,7 @@ final class ReminderService
     {
         try {
             /** @var array<string, string> $participants */
-            $participants = $this->coreServiceFactory->getEventRepository()
+            $participants = $this->eventRepository
                 ->getParticipantsWithStatus(new \WebCalendar\Core\Domain\ValueObject\EventId($eventId));
 
             $status = $participants[$login] ?? null;

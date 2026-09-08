@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Service;
 
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+use WebCalendar\Core\Application\Service\ConfigService;
 
 /**
  * Geocodes location text to coordinates using OpenStreetMap Nominatim API.
@@ -18,7 +19,7 @@ final class GeocodingService
     public function __construct(
         private readonly HttpClientInterface $httpClient,
         private readonly GeoRepository $geoRepository,
-        private readonly CoreServiceFactory $factory,
+        private readonly ConfigService $configService,
     ) {}
 
     /**
@@ -87,7 +88,7 @@ final class GeocodingService
 
     public function isGeocodingEnabled(): bool
     {
-        $value = $this->factory->getConfigService()->getSetting('ENABLE_GEOCODING');
+        $value = $this->configService->getSetting('ENABLE_GEOCODING');
         return $value === 'Y';
     }
 

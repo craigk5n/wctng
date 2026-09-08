@@ -18,7 +18,7 @@ final readonly class SearchIndexService
     ];
 
     public function __construct(
-        private CoreServiceFactory $coreServiceFactory,
+        private TenantAwarePdoProvider $pdoProvider,
     ) {}
 
     /**
@@ -39,7 +39,7 @@ final readonly class SearchIndexService
         int $offset = 0,
         array $filters = [],
     ): array {
-        $pdo = $this->coreServiceFactory->getPdo();
+        $pdo = $this->pdoProvider->get();
 
         $params = [];
         $joins = '';
@@ -151,7 +151,7 @@ final readonly class SearchIndexService
      */
     public function suggest(string $prefix, string $userLogin, int $limit = 5): array
     {
-        $pdo = $this->coreServiceFactory->getPdo();
+        $pdo = $this->pdoProvider->get();
 
         $limitInt = (int) $limit;
         if ($this->hasFulltext($pdo)) {
@@ -197,7 +197,7 @@ final readonly class SearchIndexService
      */
     public function ensureIndex(): void
     {
-        $pdo = $this->coreServiceFactory->getPdo();
+        $pdo = $this->pdoProvider->get();
 
         try {
             $pdo->exec(

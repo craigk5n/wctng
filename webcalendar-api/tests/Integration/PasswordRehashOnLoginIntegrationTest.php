@@ -30,7 +30,7 @@ final class PasswordRehashOnLoginIntegrationTest extends IntegrationTestCase
         $authService = $this->factory->getAuthService();
         self::assertTrue($authService->authenticate('alice', 'alice-secret'));
 
-        $service = new PasswordUpgradeService(new PasswordHasher(), $this->factory, new NullLogger());
+        $service = new PasswordUpgradeService(new PasswordHasher(), $this->factory->getUserRepository(), new NullLogger());
         $service->upgradeIfNeeded('alice', 'alice-secret');
 
         $afterLogin = $this->factory->getUserRepository()->getPasswordHash('alice');
@@ -54,7 +54,7 @@ final class PasswordRehashOnLoginIntegrationTest extends IntegrationTestCase
         $argon = $hasher->hash('alice-secret');
         $this->factory->getUserRepository()->setPassword('alice', $argon);
 
-        $service = new PasswordUpgradeService($hasher, $this->factory, new NullLogger());
+        $service = new PasswordUpgradeService($hasher, $this->factory->getUserRepository(), new NullLogger());
         $service->upgradeIfNeeded('alice', 'alice-secret');
 
         $after = $this->factory->getUserRepository()->getPasswordHash('alice');
@@ -70,7 +70,7 @@ final class PasswordRehashOnLoginIntegrationTest extends IntegrationTestCase
         self::assertNotFalse($core);
         $this->factory->getUserRepository()->setPassword('alice', $core);
 
-        $service = new PasswordUpgradeService(new PasswordHasher(), $this->factory, new NullLogger());
+        $service = new PasswordUpgradeService(new PasswordHasher(), $this->factory->getUserRepository(), new NullLogger());
         $service->upgradeIfNeeded('alice', 'alice-secret');
 
         $after = $this->factory->getUserRepository()->getPasswordHash('alice');
@@ -86,7 +86,7 @@ final class PasswordRehashOnLoginIntegrationTest extends IntegrationTestCase
     {
         // No password set for this user — getPasswordHash returns null,
         // upgrade should silently no-op without throwing.
-        $service = new PasswordUpgradeService(new PasswordHasher(), $this->factory, new NullLogger());
+        $service = new PasswordUpgradeService(new PasswordHasher(), $this->factory->getUserRepository(), new NullLogger());
         $service->upgradeIfNeeded('nobody-home', 'whatever');
 
         $this->assertTrue(true, 'no exception thrown');

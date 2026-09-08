@@ -41,7 +41,7 @@ final class EventNotificationServiceTest extends TestCase
         $pdo = new \PDO('sqlite::memory:');
         $factory = new CoreServiceFactory($pdo, 'test');
 
-        $service = new EventNotificationService($mailer, $factory, 'from@test.com', 'WebCal', 'http://localhost');
+        $service = new EventNotificationService($mailer, $factory->getUserService(), 'from@test.com', 'WebCal', 'http://localhost');
 
         // No users in DB, so no emails sent
         $service->notifyParticipantsAdded(
@@ -58,7 +58,7 @@ final class EventNotificationServiceTest extends TestCase
         $pdo = new \PDO('sqlite::memory:');
         $factory = new CoreServiceFactory($pdo, 'test');
 
-        $service = new EventNotificationService($mailer, $factory, 'from@test.com', 'WebCal', 'http://localhost');
+        $service = new EventNotificationService($mailer, $factory->getUserService(), 'from@test.com', 'WebCal', 'http://localhost');
 
         // Empty participants — no emails
         $service->notifyEventUpdated(['title' => 'Updated'], []);
@@ -73,7 +73,7 @@ final class EventNotificationServiceTest extends TestCase
         $pdo = new \PDO('sqlite::memory:');
         $factory = new CoreServiceFactory($pdo, 'test');
 
-        $service = new EventNotificationService($mailer, $factory, 'from@test.com', 'WebCal', 'http://localhost');
+        $service = new EventNotificationService($mailer, $factory->getUserService(), 'from@test.com', 'WebCal', 'http://localhost');
 
         $service->notifyEventDeleted('Cancelled Event', []);
         $this->assertTrue(true);
@@ -86,7 +86,7 @@ final class EventNotificationServiceTest extends TestCase
         $pdo = new \PDO('sqlite::memory:');
         $factory = new CoreServiceFactory($pdo, 'test');
 
-        $service = new EventNotificationService($mailer, $factory, 'from@test.com', 'WebCal', 'http://localhost');
+        $service = new EventNotificationService($mailer, $factory->getUserService(), 'from@test.com', 'WebCal', 'http://localhost');
 
         // Should not throw even with no users
         $service->notifyParticipantsAdded(['id' => 1, 'title' => 'Test'], ['alice', 'bob']);
@@ -99,7 +99,7 @@ final class EventNotificationServiceTest extends TestCase
     {
         $pdo = new \PDO('sqlite::memory:');
         $factory = new CoreServiceFactory($pdo, 'test');
-        return new EventNotificationService($mailer, $factory, 'from@test.com', 'WebCal', 'http://localhost');
+        return new EventNotificationService($mailer, $factory->getUserService(), 'from@test.com', 'WebCal', 'http://localhost');
     }
 
     /** @return array{id:int,title:string,start_date:string,location:string,uid:string} */
@@ -254,7 +254,7 @@ final class EventNotificationServiceTest extends TestCase
         $pdo = new \PDO('sqlite::memory:');
         $factory = new CoreServiceFactory($pdo, 'test');
 
-        $service = new EventNotificationService($mailer, $factory, 'from@test.com', 'WebCal', 'http://localhost');
+        $service = new EventNotificationService($mailer, $factory->getUserService(), 'from@test.com', 'WebCal', 'http://localhost');
 
         // Use reflection to test token generation
         $method = new \ReflectionMethod($service, 'generateResponseToken');

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Security\PasswordHasher;
-use App\Service\CoreServiceFactory;
+use App\Service\TenantAwarePdoProvider;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -16,9 +16,14 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use WebCalendar\Core\Application\Service\EventService;
+use WebCalendar\Core\Application\Service\UserService;
 use WebCalendar\Core\Domain\Entity\Category;
 use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\Entity\User;
+use WebCalendar\Core\Domain\Repository\CategoryRepositoryInterface;
+use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
+use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\EventId;
 use WebCalendar\Core\Domain\ValueObject\EventType;
@@ -54,7 +59,12 @@ final class SeedTestDataCommand extends Command
         'Teams Call','Building 2 Room 101','Cafeteria','Offsite','Remote'];
 
     public function __construct(
-        private readonly CoreServiceFactory $factory,
+        private readonly TenantAwarePdoProvider $pdoProvider,
+        private readonly UserService $userService,
+        private readonly UserRepositoryInterface $userRepository,
+        private readonly EventService $eventService,
+        private readonly EventRepositoryInterface $eventRepository,
+        private readonly CategoryRepositoryInterface $categoryRepository,
         private readonly PasswordHasher $passwordHasher = new PasswordHasher(),
         private readonly ClockInterface $clock = new NativeClock(),
         // Defaulted so the container autowires the real logger while code
@@ -134,19 +144,18 @@ final class SeedTestDataCommand extends Command
             '#00acc1', '#6d4c41', '#546e7a', '#d81b60', '#1e88e5',
             '#7cb342', '#f4511e', '#3949ab', '#00897b', '#c0ca33'];
 
-        $catRepo = $this->factory->getCategoryRepository();
         $admin = new User('admin', 'Admin', 'User', 'admin@test.com', true, true);
         $ids = [];
 
         for ($i = 0; $i < min($count, \count($names)); $i++) {
             try {
-                $nextId = $catRepo->nextId();
+                $nextId = $this->categoryRepository->nextId();
                 $cat = new Category($nextId, null, $names[$i], $colors[$i % \count($colors)]);
-                $catRepo->save($cat);
+                $this->categoryRepository->save($cat);
                 $ids[] = $nextId;
             } catch (\Throwable $e) {
                 // Category may already exist
-                $existing = $catRepo->findByName($names[$i]);
+                $existing = $this->categoryRepository->findByName($names[$i]);
                 if ($existing !== null) {
                     $ids[] = $existing->id();
                 }
@@ -161,8 +170,6 @@ final class SeedTestDataCommand extends Command
      */
     private function seedUsers(int $count, SymfonyStyle $io): array
     {
-        $userService = $this->factory->getUserService();
-        $userRepo = $this->factory->getUserRepository();
         $admin = new User('admin', 'Admin', 'User', 'admin@test.com', true, true);
         $logins = [];
         $batchSize = 100;
@@ -178,8 +185,8 @@ final class SeedTestDataCommand extends Command
 
             try {
                 $user = new User($login, $first, $last, $email, $isAdmin, true);
-                $userService->createUser($user, $admin);
-                $userRepo->setPassword($login, $this->passwordHasher->hash('perf123'));
+                $this->userService->createUser($user, $admin);
+                $this->userRepository->setPassword($login, $this->passwordHasher->hash('perf123'));
                 $logins[] = $login;
             } catch (\Throwable) {
                 // User may already exist
@@ -201,8 +208,6 @@ final class SeedTestDataCommand extends Command
      */
     private function seedEvents(int $count, array $userLogins, array $categoryIds, SymfonyStyle $io): int
     {
-        $eventRepo = $this->factory->getEventRepository();
-        $catRepo = $this->factory->getCategoryRepository();
         $created = 0;
         $batchSize = 500;
         $now = $this->clock->now();
@@ -301,15 +306,15 @@ final class SeedTestDataCommand extends Command
                     allDay: $isAllDay,
                 );
 
-                $this->factory->getEventService()->createEvent($event, $user);
+                $this->eventService->createEvent($event, $user);
                 $created++;
 
                 // Assign category (70% of events get one)
                 if ($catId !== null && mt_rand(1, 100) <= 70) {
-                    $createdEvent = $eventRepo->findByUid($uid);
+                    $createdEvent = $this->eventRepository->findByUid($uid);
                     if ($createdEvent !== null) {
                         try {
-                            $catRepo->assignToEvent($createdEvent->id(), $login, [$catId]);
+                            $this->categoryRepository->assignToEvent($createdEvent->id(), $login, [$catId]);
                         } catch (\Throwable $e) {
                             $this->logger->warning('catRepo->assignToEvent() failed', ['exception' => $e->getMessage()]);
                         }
@@ -353,7 +358,7 @@ final class SeedTestDataCommand extends Command
     {
         $io->section('Cleaning up seeded data...');
 
-        $pdo = $this->factory->getPdo();
+        $pdo = $this->pdoProvider->get();
 
         // Delete events by perf_ users
         $stmt = $pdo->query("SELECT COUNT(*) FROM webcal_entry WHERE cal_create_by LIKE 'perf_%'");

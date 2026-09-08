@@ -7,6 +7,7 @@ namespace App\Tests\Integration\CalDav;
 use App\CalDav\CoreCalendarBackend;
 use App\CalDav\CorePrincipalBackend;
 use App\Service\CoreServiceFactory;
+use App\Service\TenantAwarePdoProvider;
 use Sabre\CalDAV;
 use Sabre\DAV;
 use Sabre\DAV\Auth\Backend\AbstractBasic;
@@ -52,8 +53,16 @@ final class CalDavServerHarness
      */
     private function buildServer(): DAV\Server
     {
-        $principalBackend = new CorePrincipalBackend($this->factory);
-        $calendarBackend = new CoreCalendarBackend($this->factory);
+        $principalBackend = new CorePrincipalBackend($this->factory->getUserService(), $this->factory->getUserRepository());
+        $calendarBackend = new CoreCalendarBackend(
+            new TenantAwarePdoProvider($this->factory->getPdo()),
+            $this->factory->getUserService(),
+            $this->factory->getEventService(),
+            $this->factory->getTaskService(),
+            $this->factory->getJournalService(),
+            $this->factory->getEventRepository(),
+            $this->factory->getReminderRepository(),
+        );
 
         $tree = [
             new DAVACL\PrincipalCollection($principalBackend),

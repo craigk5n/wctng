@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Command;
 
-use App\Service\CoreServiceFactory;
 use App\Service\PdoFactory;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -12,7 +11,9 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use WebCalendar\Core\Application\Service\UserService;
 use WebCalendar\Core\Domain\Entity\User;
+use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 
 #[AsCommand(
     name: 'webcalendar:install',
@@ -25,7 +26,8 @@ final class InstallCommand extends Command
 
     public function __construct(
         private readonly string $databaseUrl,
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly UserService $userService,
+        private readonly UserRepositoryInterface $userRepository,
     ) {
         parent::__construct();
     }
@@ -152,8 +154,7 @@ final class InstallCommand extends Command
 
     private function ensureAdminUser(SymfonyStyle $io, #[\SensitiveParameter] string $password): void
     {
-        $userService = $this->coreServiceFactory->getUserService();
-        $existing = $userService->getUserByLogin(self::DEFAULT_ADMIN_LOGIN);
+        $existing = $this->userService->getUserByLogin(self::DEFAULT_ADMIN_LOGIN);
 
         if ($existing !== null) {
             $io->note('Admin user already exists — skipping.');
@@ -170,11 +171,11 @@ final class InstallCommand extends Command
         );
 
         // Use the admin user as both the actor and the user being created
-        $userService->createUser($admin, $admin);
+        $this->userService->createUser($admin, $admin);
 
         // Set the password hash
-        $hash = $userService->hashPassword($password);
-        $this->coreServiceFactory->getUserRepository()->setPassword(self::DEFAULT_ADMIN_LOGIN, $hash);
+        $hash = $this->userService->hashPassword($password);
+        $this->userRepository->setPassword(self::DEFAULT_ADMIN_LOGIN, $hash);
 
         $io->text('Admin user created (login: admin).');
     }

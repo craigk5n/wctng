@@ -8,6 +8,9 @@ use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Clock\NativeClock;
+use WebCalendar\Core\Application\Service\ConfigService;
+use WebCalendar\Core\Application\Service\EventService;
+use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 
 /**
@@ -22,7 +25,10 @@ final class DailyAgendaService
     private ClockInterface $clock;
 
     public function __construct(
-        private readonly CoreServiceFactory $factory,
+        private readonly TenantAwarePdoProvider $pdoProvider,
+        private readonly UserRepositoryInterface $userRepository,
+        private readonly EventService $eventService,
+        private readonly ConfigService $configService,
         private readonly EmailSender $emailService,
         private readonly string $baseUrl,
         ?LoggerInterface $logger = null,
@@ -44,7 +50,7 @@ final class DailyAgendaService
             return 0;
         }
 
-        $pdo = $this->factory->getPdo();
+        $pdo = $this->pdoProvider->get();
         $this->ensureTrackingTable($pdo);
 
         $now = $this->clock->now();
@@ -53,7 +59,7 @@ final class DailyAgendaService
         $sent = 0;
 
         try {
-            $users = $this->factory->getUserRepository()->findAll();
+            $users = $this->userRepository->findAll();
         } catch (\Throwable) {
             return 0;
         }
@@ -81,7 +87,7 @@ final class DailyAgendaService
                 $dayStart = new \DateTimeImmutable("{$today} 00:00:00");
                 $dayEnd = new \DateTimeImmutable("{$today} 23:59:59");
                 $range = new DateRange($dayStart, $dayEnd);
-                $events = $this->factory->getEventService()->getEventsInDateRange($range, $user);
+                $events = $this->eventService->getEventsInDateRange($range, $user);
                 $dayEvents = $events->all();
 
                 // Sort by start time
@@ -124,7 +130,7 @@ final class DailyAgendaService
      */
     public function isEnabled(): bool
     {
-        $value = $this->factory->getConfigService()->getSetting('ENABLE_DAILY_AGENDA');
+        $value = $this->configService->getSetting('ENABLE_DAILY_AGENDA');
         // Default to N if not set (opt-in feature)
         return $value === 'Y';
     }
@@ -139,7 +145,7 @@ final class DailyAgendaService
         $skipEmpty = true;
 
         try {
-            $prefs = $this->factory->getUserRepository()->getPreferences($login);
+            $prefs = $this->userRepository->getPreferences($login);
             foreach ($prefs as $pref) {
                 if ($pref->key() === 'daily_agenda_enabled' && $pref->value() === 'Y') {
                     $enabled = true;

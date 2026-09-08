@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration;
 
 use App\Service\DailyAgendaService;
+use App\Service\TenantAwarePdoProvider;
 use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\EventId;
@@ -32,7 +33,10 @@ final class DailyAgendaServiceIntegrationTest extends IntegrationTestCase
         );
 
         $this->service = new DailyAgendaService(
-            $this->factory,
+            new TenantAwarePdoProvider($this->factory->getPdo()),
+            $this->factory->getUserRepository(),
+            $this->factory->getEventService(),
+            $this->factory->getConfigService(),
             $this->emailStub,
             'http://localhost:47180',
         );
@@ -92,7 +96,7 @@ final class DailyAgendaServiceIntegrationTest extends IntegrationTestCase
         $this->createTodayEvent('Test');
 
         // Re-create service with updated config
-        $service = new DailyAgendaService($this->factory, $this->emailStub, 'http://localhost');
+        $service = new DailyAgendaService(new TenantAwarePdoProvider($this->factory->getPdo()), $this->factory->getUserRepository(), $this->factory->getEventService(), $this->factory->getConfigService(), $this->emailStub, 'http://localhost');
         $this->assertSame(0, $service->sendAgendas());
     }
 
@@ -156,7 +160,7 @@ final class DailyAgendaServiceIntegrationTest extends IntegrationTestCase
     {
         // Reset the config
         $this->factory->getConfigService()->updateSetting('ENABLE_DAILY_AGENDA', 'N');
-        $service = new DailyAgendaService($this->factory, $this->emailStub, 'http://localhost');
+        $service = new DailyAgendaService(new TenantAwarePdoProvider($this->factory->getPdo()), $this->factory->getUserRepository(), $this->factory->getEventService(), $this->factory->getConfigService(), $this->emailStub, 'http://localhost');
         $this->assertFalse($service->isEnabled());
     }
 }

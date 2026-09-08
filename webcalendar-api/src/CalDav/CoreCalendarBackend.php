@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\CalDav;
 
 use App\Service\CalDavSyncTokenRepository;
-use App\Service\CoreServiceFactory;
 use App\Service\DescriptionSanitizer;
+use App\Service\TenantAwarePdoProvider;
 use App\Service\ValarmHelper;
 use Psr\Clock\ClockInterface;
 use Sabre\CalDAV\Backend\BackendInterface;
@@ -21,9 +21,15 @@ use Sabre\DAV\Exception\MethodNotAllowed;
 use Sabre\DAV\PropPatch;
 use Sabre\VObject;
 use Symfony\Component\Clock\NativeClock;
+use WebCalendar\Core\Application\Service\EventService;
+use WebCalendar\Core\Application\Service\JournalService;
+use WebCalendar\Core\Application\Service\TaskService;
+use WebCalendar\Core\Application\Service\UserService;
 use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\Entity\Journal;
 use WebCalendar\Core\Domain\Entity\Task;
+use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
+use WebCalendar\Core\Domain\Repository\ReminderRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 use WebCalendar\Core\Domain\ValueObject\EventId;
@@ -50,7 +56,13 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
     private readonly ClockInterface $clock;
 
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly TenantAwarePdoProvider $pdoProvider,
+        private readonly UserService $userService,
+        private readonly EventService $eventService,
+        private readonly TaskService $taskService,
+        private readonly JournalService $journalService,
+        private readonly EventRepositoryInterface $eventRepository,
+        private readonly ReminderRepositoryInterface $reminderRepository,
         ?ClockInterface $clock = null,
     ) {
         $this->descriptionSanitizer = new DescriptionSanitizer();
@@ -60,7 +72,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
 
     private function getSyncTokenRepo(): CalDavSyncTokenRepository
     {
-        return $this->syncTokenRepo ??= new CalDavSyncTokenRepository($this->coreServiceFactory->getPdo());
+        return $this->syncTokenRepo ??= new CalDavSyncTokenRepository($this->pdoProvider->get());
     }
 
     /**
@@ -144,7 +156,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
         $username = $calendarId;
 
         try {
-            $user = $this->coreServiceFactory->getUserService()->getUserByLogin($username);
+            $user = $this->userService->getUserByLogin($username);
             if ($user === null) {
                 return [];
             }
@@ -153,7 +165,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
                 $this->clock->now()->modify('-2 years'),
                 $this->clock->now()->modify('+2 years'),
             );
-            $collection = $this->coreServiceFactory->getEventService()->getEventsInDateRange($range, $user);
+            $collection = $this->eventService->getEventsInDateRange($range, $user);
 
             $objects = [];
             foreach ($collection->all() as $event) {
@@ -172,7 +184,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
 
             // Include tasks (VTODO)
             try {
-                $tasks = $this->coreServiceFactory->getTaskService()->getTasksInDateRange($range, $username);
+                $tasks = $this->taskService->getTasksInDateRange($range, $username);
                 foreach ($tasks as $task) {
                     $ics = $this->taskToIcs($task);
                     $objects[] = [
@@ -192,7 +204,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
 
             // Include journals (VJOURNAL)
             try {
-                $journals = $this->coreServiceFactory->getJournalService()->getJournalsInDateRange($range, $username);
+                $journals = $this->journalService->getJournalsInDateRange($range, $username);
                 foreach ($journals as $journal) {
                     $ics = $this->journalToIcs($journal);
                     $objects[] = [
@@ -243,7 +255,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             return null;
         }
 
-        $event = $this->coreServiceFactory->getEventService()->getEventById(new EventId($eventId));
+        $event = $this->eventService->getEventById(new EventId($eventId));
         if ($event === null) {
             return null;
         }
@@ -297,7 +309,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
                 return null;
             }
 
-            $user = $this->coreServiceFactory->getUserService()->getUserByLogin($username);
+            $user = $this->userService->getUserByLogin($username);
             if ($user === null) {
                 return null;
             }
@@ -306,7 +318,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             $vjournal = $vcalendar->VJOURNAL;
             if ($vjournal !== null) {
                 $journal = $this->vJournalToEntity($vjournal, $username);
-                $this->coreServiceFactory->getJournalService()->createJournal($journal, $user);
+                $this->journalService->createJournal($journal, $user);
                 return '"' . md5($icsString) . '"';
             }
 
@@ -314,7 +326,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             $vtodo = $vcalendar->VTODO;
             if ($vtodo !== null) {
                 $task = $this->vTodoToEntity($vtodo, $username);
-                $this->coreServiceFactory->getTaskService()->createTask($task, $user);
+                $this->taskService->createTask($task, $user);
                 return '"' . md5($icsString) . '"';
             }
 
@@ -325,7 +337,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             }
 
             $event = $this->vEventToEntity($vevent, $username);
-            $this->coreServiceFactory->getEventService()->createEvent($event, $user);
+            $this->eventService->createEvent($event, $user);
 
             // Extract and save VALARM reminders
             $this->saveValarmsForEvent($vevent, $event);
@@ -336,7 +348,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             // subsequent read (the backend regenerates ICS from the domain
             // entity, so hashing the client's upload would give a different
             // value and break If-Match optimistic concurrency).
-            $saved = $this->coreServiceFactory->getEventRepository()->findByUid($event->uid());
+            $saved = $this->eventRepository->findByUid($event->uid());
             if ($saved !== null) {
                 return '"' . md5($this->eventToIcs($saved)) . '"';
             }
@@ -360,7 +372,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
         }
 
         try {
-            $existing = $this->coreServiceFactory->getEventService()->getEventById(new EventId($eventId));
+            $existing = $this->eventService->getEventById(new EventId($eventId));
             if ($existing === null) {
                 return null;
             }
@@ -377,20 +389,20 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
 
             /** @var string $username */
             $username = $calendarId;
-            $user = $this->coreServiceFactory->getUserService()->getUserByLogin($username);
+            $user = $this->userService->getUserByLogin($username);
             if ($user === null) {
                 return null;
             }
 
             $updated = $this->vEventToEntity($vevent, $username, $eventId);
-            $this->coreServiceFactory->getEventService()->updateEvent($updated, $user);
+            $this->eventService->updateEvent($updated, $user);
 
             $this->bumpSyncToken($username);
 
             // Return the ETag computed from the regenerated ICS so it
             // matches what a subsequent GET sees (see createCalendarObject
             // for the rationale).
-            $saved = $this->coreServiceFactory->getEventService()->getEventById(new EventId($eventId));
+            $saved = $this->eventService->getEventById(new EventId($eventId));
             if ($saved !== null) {
                 return '"' . md5($this->eventToIcs($saved)) . '"';
             }
@@ -414,12 +426,12 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
         $username = $calendarId;
 
         try {
-            $user = $this->coreServiceFactory->getUserService()->getUserByLogin($username);
+            $user = $this->userService->getUserByLogin($username);
             if ($user === null) {
                 return;
             }
 
-            $this->coreServiceFactory->getEventService()->deleteEvent(new EventId($eventId), $user);
+            $this->eventService->deleteEvent(new EventId($eventId), $user);
             $this->bumpSyncToken($username);
         } catch (\Throwable) {
             // Silently ignore delete failures
@@ -516,7 +528,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
         $uidStr = $uid;
 
         try {
-            $event = $this->coreServiceFactory->getEventRepository()->findByUid($uidStr);
+            $event = $this->eventRepository->findByUid($uidStr);
             if ($event === null) {
                 return null;
             }
@@ -573,7 +585,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
     {
         $computed = 0;
         try {
-            $pdo = $this->coreServiceFactory->getPdo();
+            $pdo = $this->pdoProvider->get();
             $stmt = $pdo->prepare('SELECT MAX(cal_mod_date * 1000000 + COALESCE(cal_mod_time, 0)) AS max_mod FROM webcal_entry WHERE cal_create_by = :user');
             $stmt->execute(['user' => $username]);
             $val = $stmt->fetchColumn();
@@ -636,7 +648,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
 
         // Fall back to UID lookup for client-chosen filenames.
         try {
-            $event = $this->coreServiceFactory->getEventRepository()->findByUid($key);
+            $event = $this->eventRepository->findByUid($key);
             if ($event !== null) {
                 return $event->id()->value();
             }
@@ -688,7 +700,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             if (!$vevent instanceof VObject\Component) {
                 return $vcalendar->serialize();
             }
-            $reminderRepo = $this->coreServiceFactory->getReminderRepository();
+            $reminderRepo = $this->reminderRepository;
             $pending = $reminderRepo->findPending();
             foreach ($pending as $entry) {
                 if ($entry['reminder']->eventId() === $event->id()->value()) {
@@ -853,7 +865,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
 
         try {
             $taskId = (int) $taskIdStr;
-            $task = $this->coreServiceFactory->getTaskService()->getTaskById(new EventId($taskId));
+            $task = $this->taskService->getTaskById(new EventId($taskId));
             if ($task === null) {
                 return null;
             }
@@ -932,7 +944,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
 
         try {
             $journalId = (int) $journalIdStr;
-            $journal = $this->coreServiceFactory->getJournalService()->getJournalById(new EventId($journalId));
+            $journal = $this->journalService->getJournalById(new EventId($journalId));
             if ($journal === null) {
                 return null;
             }
@@ -966,12 +978,12 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             }
 
             // Find the created event by UID to get the real ID
-            $created = $this->coreServiceFactory->getEventRepository()->findByUid($event->uid());
+            $created = $this->eventRepository->findByUid($event->uid());
             if ($created === null) {
                 return;
             }
 
-            $reminderRepo = $this->coreServiceFactory->getReminderRepository();
+            $reminderRepo = $this->reminderRepository;
             // Save first reminder (table supports one per event)
             $reminder = $reminders[0];
             $reminderRepo->save(new \WebCalendar\Core\Domain\Entity\Reminder(

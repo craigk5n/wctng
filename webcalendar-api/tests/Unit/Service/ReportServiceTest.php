@@ -6,6 +6,7 @@ namespace App\Tests\Unit\Service;
 
 use App\Service\CoreServiceFactory;
 use App\Service\ReportService;
+use App\Service\TenantAwarePdoProvider;
 use PHPUnit\Framework\TestCase;
 
 final class ReportServiceTest extends TestCase
@@ -39,7 +40,7 @@ final class ReportServiceTest extends TestCase
         $pdo->exec('INSERT INTO webcal_entry_categories VALUES (2, 1)');
 
         $factory = new CoreServiceFactory($pdo, 'test');
-        $this->service = new ReportService($factory);
+        $this->service = new ReportService(new TenantAwarePdoProvider($factory->getPdo()));
     }
 
     public function testActivityReport(): void

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration;
 
 use App\Service\ReminderService;
+use App\Service\TenantAwarePdoProvider;
 use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\EventId;
@@ -22,7 +23,12 @@ final class ReminderServiceIntegrationTest extends IntegrationTestCase
 
         $this->emailStub = new StubEmailService();
         $this->service = new ReminderService(
-            $this->factory,
+            new TenantAwarePdoProvider($this->factory->getPdo()),
+            $this->factory->getUserRepository(),
+            $this->factory->getEventRepository(),
+            $this->factory->getEventService(),
+            $this->factory->getUserService(),
+            $this->factory->getConfigService(),
             $this->emailStub,
             'http://localhost:47180',
         );

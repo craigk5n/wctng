@@ -18,7 +18,7 @@ final class LdapGroupSyncTest extends TestCase
         $configRepo = new LdapConfigRepository($pdo);
         $factory = new CoreServiceFactory($pdo, 'test');
 
-        $sync = new LdapGroupSync($configRepo, $factory);
+        $sync = new LdapGroupSync($configRepo, $factory->getGroupService());
         $result = $sync->syncUserGroups('alice', 'cn=alice,dc=test,dc=com');
 
         $this->assertIsArray($result);
@@ -33,7 +33,7 @@ final class LdapGroupSyncTest extends TestCase
         $configRepo = new LdapConfigRepository($pdo);
         $factory = new CoreServiceFactory($pdo, 'test');
 
-        $sync = new LdapGroupSync($configRepo, $factory);
+        $sync = new LdapGroupSync($configRepo, $factory->getGroupService());
         $method = new \ReflectionMethod($sync, 'extractGroupName');
 
         $this->assertSame('Engineering', $method->invoke($sync, 'CN=Engineering,OU=Groups,DC=corp,DC=com'));
@@ -55,7 +55,7 @@ final class LdapGroupSyncTest extends TestCase
         ));
 
         $factory = new CoreServiceFactory($pdo, 'test');
-        $sync = new LdapGroupSync($configRepo, $factory);
+        $sync = new LdapGroupSync($configRepo, $factory->getGroupService());
 
         if (!\function_exists('ldap_connect')) {
             $result = $sync->syncUserGroups('user', 'cn=user,dc=test');

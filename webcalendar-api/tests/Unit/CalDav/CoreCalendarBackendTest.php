@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\CalDav;
 
 use App\CalDav\CoreCalendarBackend;
+use App\Service\TenantAwarePdoProvider;
 use PHPUnit\Framework\TestCase;
 use Sabre\CalDAV\Backend\BackendInterface;
 use Sabre\CalDAV\Plugin;
@@ -19,7 +20,15 @@ final class CoreCalendarBackendTest extends TestCase
     {
         $pdo = new \PDO('sqlite::memory:');
         $factory = new \App\Service\CoreServiceFactory($pdo, 'test');
-        $this->backend = new CoreCalendarBackend($factory);
+        $this->backend = new CoreCalendarBackend(
+            new TenantAwarePdoProvider($factory->getPdo()),
+            $factory->getUserService(),
+            $factory->getEventService(),
+            $factory->getTaskService(),
+            $factory->getJournalService(),
+            $factory->getEventRepository(),
+            $factory->getReminderRepository(),
+        );
     }
 
     public function testImplementsBackendInterface(): void

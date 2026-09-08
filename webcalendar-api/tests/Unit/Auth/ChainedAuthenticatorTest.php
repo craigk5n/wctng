@@ -23,10 +23,10 @@ final class ChainedAuthenticatorTest extends TestCase
         $oauthRepo = new OAuthProviderRepository($pdo);
         $ldapRepo = new LdapConfigRepository($pdo);
         $factory = new CoreServiceFactory($pdo, 'test');
-        $ldapAuth = new LdapAuthenticator($ldapRepo, $factory);
+        $ldapAuth = new LdapAuthenticator($ldapRepo, $factory->getUserService(), $factory->getUserRepository());
         $registry = new AuthProviderRegistry($oauthRepo, $ldapRepo);
 
-        return new ChainedAuthenticator($factory, $ldapAuth, $registry);
+        return new ChainedAuthenticator($factory->getAuthService(), $factory->getUserService(), $ldapAuth, $registry);
     }
 
     public function testReturnsNullWhenAllProvidersFail(): void
@@ -69,10 +69,10 @@ final class ChainedAuthenticatorTest extends TestCase
         $oauthRepo = new OAuthProviderRepository($pdo);
         $ldapRepo = new LdapConfigRepository($pdo);
         $factory = new CoreServiceFactory($pdo, 'test');
-        $ldapAuth = new LdapAuthenticator($ldapRepo, $factory);
+        $ldapAuth = new LdapAuthenticator($ldapRepo, $factory->getUserService(), $factory->getUserRepository());
         $registry = new AuthProviderRegistry($oauthRepo, $ldapRepo);
 
-        $chain = new ChainedAuthenticator($factory, $ldapAuth, $registry);
+        $chain = new ChainedAuthenticator($factory->getAuthService(), $factory->getUserService(), $ldapAuth, $registry);
         $result = $chain->authenticate('testuser', 'correct');
 
         $this->assertNotNull($result);

@@ -6,6 +6,7 @@ namespace App\Tests\Unit\Service;
 
 use App\Service\CoreServiceFactory;
 use App\Service\SearchIndexService;
+use App\Service\TenantAwarePdoProvider;
 use PHPUnit\Framework\TestCase;
 
 final class SearchSuggestTest extends TestCase
@@ -42,7 +43,7 @@ final class SearchSuggestTest extends TestCase
         ");
 
         $factory = new CoreServiceFactory($pdo, 'test');
-        $this->service = new SearchIndexService($factory);
+        $this->service = new SearchIndexService(new TenantAwarePdoProvider($factory->getPdo()));
     }
 
     public function testSuggestReturnsMatchingResults(): void

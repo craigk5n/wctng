@@ -26,7 +26,7 @@ final class CorePrincipalBackendTest extends TestCase
         // Create a test user
         $this->createTestUser($pdo, 'alice', 'Alice', 'Wonder', 'alice@example.com');
 
-        $backend = new CorePrincipalBackend($factory);
+        $backend = new CorePrincipalBackend($factory->getUserService(), $factory->getUserRepository());
         $principal = $backend->getPrincipalByPath('principals/alice');
 
         $this->assertNotEmpty($principal);
@@ -41,7 +41,7 @@ final class CorePrincipalBackendTest extends TestCase
         $pdo = $this->createTestPdo();
         $factory = new CoreServiceFactory($pdo, 'test_secret');
 
-        $backend = new CorePrincipalBackend($factory);
+        $backend = new CorePrincipalBackend($factory->getUserService(), $factory->getUserRepository());
         $principal = $backend->getPrincipalByPath('principals/nonexistent');
 
         $this->assertEmpty($principal);
@@ -55,7 +55,7 @@ final class CorePrincipalBackendTest extends TestCase
         $this->createTestUser($pdo, 'alice', 'Alice', 'A', 'alice@test.com');
         $this->createTestUser($pdo, 'bob', 'Bob', 'B', 'bob@test.com');
 
-        $backend = new CorePrincipalBackend($factory);
+        $backend = new CorePrincipalBackend($factory->getUserService(), $factory->getUserRepository());
         $principals = $backend->getPrincipalsByPrefix('principals');
 
         $this->assertCount(2, $principals);
@@ -69,7 +69,7 @@ final class CorePrincipalBackendTest extends TestCase
         $pdo = $this->createTestPdo();
         $factory = new CoreServiceFactory($pdo, 'test_secret');
 
-        $backend = new CorePrincipalBackend($factory);
+        $backend = new CorePrincipalBackend($factory->getUserService(), $factory->getUserRepository());
         $principals = $backend->getPrincipalsByPrefix('users');
 
         $this->assertEmpty($principals);
@@ -82,7 +82,7 @@ final class CorePrincipalBackendTest extends TestCase
 
         $this->createTestUser($pdo, 'charlie', 'Charlie', 'C', 'c@test.com');
 
-        $backend = new CorePrincipalBackend($factory);
+        $backend = new CorePrincipalBackend($factory->getUserService(), $factory->getUserRepository());
         $principal = $backend->getPrincipalByPath('principals/charlie');
 
         $this->assertArrayHasKey('{urn:ietf:params:xml:ns:caldav}calendar-home-set', $principal);

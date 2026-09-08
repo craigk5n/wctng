@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Auth;
 
-use App\Service\CoreServiceFactory;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Clock\NativeClock;
+use WebCalendar\Core\Application\Service\GroupService;
 use WebCalendar\Core\Domain\Entity\Group;
 
 /**
@@ -21,7 +21,7 @@ final class LdapGroupSync
 
     public function __construct(
         private readonly LdapConfigRepository $configRepo,
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly GroupService $groupService,
         ?ClockInterface $clock = null,
     ) {
         $this->clock = $clock ?? new NativeClock();
@@ -48,7 +48,6 @@ final class LdapGroupSync
         }
 
         $syncedGroups = [];
-        $groupService = $this->coreServiceFactory->getGroupService();
 
         foreach ($memberOfGroups as $groupDn) {
             $groupName = $this->extractGroupName($groupDn);
@@ -57,15 +56,15 @@ final class LdapGroupSync
             }
 
             // Find or create the webcalendar group
-            $existingGroups = $groupService->getAllGroups();
+            $existingGroups = $this->groupService->getAllGroups();
             $found = false;
             foreach ($existingGroups as $g) {
                 if ($g->name() === $groupName) {
                     $found = true;
                     // Add member if not already
-                    $members = $groupService->getGroupMembers($g->id());
+                    $members = $this->groupService->getGroupMembers($g->id());
                     if (!\in_array($username, $members, true)) {
-                        $groupService->addMember($g->id(), $username);
+                        $this->groupService->addMember($g->id(), $username);
                     }
                     break;
                 }
@@ -80,8 +79,8 @@ final class LdapGroupSync
                     name: $groupName,
                     lastUpdate: $this->clock->now(),
                 );
-                $groupService->createGroup($group);
-                $groupService->addMember($id, $username);
+                $this->groupService->createGroup($group);
+                $this->groupService->addMember($id, $username);
             }
 
             $syncedGroups[] = $groupName;

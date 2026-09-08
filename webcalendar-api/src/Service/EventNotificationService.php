@@ -8,6 +8,7 @@ use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
+use WebCalendar\Core\Application\Service\UserService;
 
 /**
  * Sends email notifications for event lifecycle changes.
@@ -20,7 +21,7 @@ final class EventNotificationService
 
     public function __construct(
         private readonly MailerInterface $mailer,
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly UserService $userService,
         private readonly string $fromAddress,
         private readonly string $fromName,
         private readonly string $baseUrl,
@@ -48,7 +49,7 @@ final class EventNotificationService
 
         foreach ($participantLogins as $login) {
             try {
-                $user = $this->coreServiceFactory->getUserService()->getUserByLogin($login);
+                $user = $this->userService->getUserByLogin($login);
             } catch (\Throwable) {
                 continue;
             }
@@ -92,7 +93,7 @@ final class EventNotificationService
 
         foreach ($participants as $p) {
             try {
-                $user = $this->coreServiceFactory->getUserService()->getUserByLogin($p['login']);
+                $user = $this->userService->getUserByLogin($p['login']);
             } catch (\Throwable) {
                 continue;
             }
@@ -121,7 +122,7 @@ final class EventNotificationService
     {
         foreach ($participants as $p) {
             try {
-                $user = $this->coreServiceFactory->getUserService()->getUserByLogin($p['login']);
+                $user = $this->userService->getUserByLogin($p['login']);
             } catch (\Throwable) {
                 continue;
             }
@@ -272,9 +273,9 @@ final class EventNotificationService
     private function hasOptedOut(string $login, string $type): bool
     {
         try {
-            $prefs = $this->coreServiceFactory->getUserService()->getPreferences(
+            $prefs = $this->userService->getPreferences(
                 $login,
-                $this->coreServiceFactory->getUserService()->getUserByLogin($login) ?? new \WebCalendar\Core\Domain\Entity\User(
+                $this->userService->getUserByLogin($login) ?? new \WebCalendar\Core\Domain\Entity\User(
                     login: $login,
                     firstName: '',
                     lastName: '',

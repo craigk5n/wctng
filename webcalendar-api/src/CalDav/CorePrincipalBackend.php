@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\CalDav;
 
-use App\Service\CoreServiceFactory;
 use Sabre\DAV\PropPatch;
 use Sabre\DAVACL\PrincipalBackend\BackendInterface;
+use WebCalendar\Core\Application\Service\UserService;
 use WebCalendar\Core\Domain\Entity\User;
+use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 
 /**
  * Maps webcalendar users to CalDAV principals.
@@ -18,7 +19,8 @@ use WebCalendar\Core\Domain\Entity\User;
 final class CorePrincipalBackend implements BackendInterface
 {
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly UserService $userService,
+        private readonly UserRepositoryInterface $userRepository,
     ) {}
 
     /**
@@ -36,7 +38,7 @@ final class CorePrincipalBackend implements BackendInterface
         $principals = [];
 
         try {
-            $users = $this->coreServiceFactory->getUserRepository()->findAll();
+            $users = $this->userRepository->findAll();
 
             foreach ($users as $user) {
                 $principals[] = $this->userToPrincipal($user);
@@ -62,7 +64,7 @@ final class CorePrincipalBackend implements BackendInterface
         }
 
         $login = $parts[1];
-        $user = $this->coreServiceFactory->getUserService()->getUserByLogin($login);
+        $user = $this->userService->getUserByLogin($login);
 
         if ($user === null) {
             return [];

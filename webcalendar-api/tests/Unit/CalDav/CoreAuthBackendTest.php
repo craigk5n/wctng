@@ -27,7 +27,7 @@ final class CoreAuthBackendTest extends TestCase
         $pdo = new \PDO('sqlite::memory:');
         $factory = new CoreServiceFactory($pdo, 'test_secret');
 
-        $backend = new CoreAuthBackend($factory);
+        $backend = new CoreAuthBackend($factory->getAuthService());
         $method = new \ReflectionMethod($backend, 'validateUserPass');
 
         $this->assertFalse($method->invoke($backend, null, null));
@@ -42,7 +42,7 @@ final class CoreAuthBackendTest extends TestCase
         $jwtEncoder = $this->createMock(JWTEncoderInterface::class);
         $jwtEncoder->method('decode')->willReturn(['username' => 'alice']);
 
-        $backend = new CoreAuthBackend($factory, $jwtEncoder);
+        $backend = new CoreAuthBackend($factory->getAuthService(), $jwtEncoder);
 
         $request = new HTTP\Request('GET', '/dav/', ['Authorization' => 'Bearer fake-jwt-token']);
         $response = new HTTP\Response();
@@ -61,7 +61,7 @@ final class CoreAuthBackendTest extends TestCase
         $jwtEncoder = $this->createMock(JWTEncoderInterface::class);
         $jwtEncoder->method('decode')->willThrowException(new \Exception('Invalid token'));
 
-        $backend = new CoreAuthBackend($factory, $jwtEncoder);
+        $backend = new CoreAuthBackend($factory->getAuthService(), $jwtEncoder);
 
         $request = new HTTP\Request('GET', '/dav/', ['Authorization' => 'Bearer bad-token']);
         $response = new HTTP\Response();
@@ -83,7 +83,7 @@ final class CoreAuthBackendTest extends TestCase
         $tenantContext = new TenantContext();
         $tenantContext->setTenant(new Tenant(1, 'globex', 'Globex', '', '', '', '', TenantPlan::Pro, TenantStatus::Active));
 
-        $backend = new CoreAuthBackend($factory, $jwtEncoder, $tenantContext);
+        $backend = new CoreAuthBackend($factory->getAuthService(), $jwtEncoder, $tenantContext);
 
         $request = new HTTP\Request('GET', '/dav/', ['Authorization' => 'Bearer jwt-wrong-tenant']);
         $response = new HTTP\Response();
@@ -105,7 +105,7 @@ final class CoreAuthBackendTest extends TestCase
         $tenantContext = new TenantContext();
         $tenantContext->setTenant(new Tenant(1, 'acme', 'Acme', '', '', '', '', TenantPlan::Pro, TenantStatus::Active));
 
-        $backend = new CoreAuthBackend($factory, $jwtEncoder, $tenantContext);
+        $backend = new CoreAuthBackend($factory->getAuthService(), $jwtEncoder, $tenantContext);
 
         $request = new HTTP\Request('GET', '/dav/', ['Authorization' => 'Bearer jwt-correct-tenant']);
         $response = new HTTP\Response();

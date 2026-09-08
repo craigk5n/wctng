@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Security;
 
-use App\Service\CoreServiceFactory;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 
 /**
  * Transparently upgrades legacy password hashes to Argon2id on successful
@@ -20,15 +20,14 @@ final readonly class PasswordUpgradeService
 {
     public function __construct(
         private PasswordHasher $hasher,
-        private CoreServiceFactory $factory,
+        private UserRepositoryInterface $userRepository,
         private LoggerInterface $logger = new NullLogger(),
     ) {}
 
     public function upgradeIfNeeded(string $login, #[\SensitiveParameter] string $password): void
     {
         try {
-            $repo = $this->factory->getUserRepository();
-            $currentHash = $repo->getPasswordHash($login);
+            $currentHash = $this->userRepository->getPasswordHash($login);
 
             if ($currentHash === null) {
                 return;
@@ -39,7 +38,7 @@ final readonly class PasswordUpgradeService
             }
 
             $newHash = $this->hasher->hash($password);
-            $repo->setPassword($login, $newHash);
+            $this->userRepository->setPassword($login, $newHash);
 
             $this->logger->info('Upgraded password hash to pinned Argon2id parameters', [
                 'login' => $login,

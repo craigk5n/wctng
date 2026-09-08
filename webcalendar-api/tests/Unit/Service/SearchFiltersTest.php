@@ -6,6 +6,7 @@ namespace App\Tests\Unit\Service;
 
 use App\Service\CoreServiceFactory;
 use App\Service\SearchIndexService;
+use App\Service\TenantAwarePdoProvider;
 use PHPUnit\Framework\TestCase;
 
 final class SearchFiltersTest extends TestCase
@@ -36,7 +37,7 @@ final class SearchFiltersTest extends TestCase
         $pdo->exec("INSERT INTO webcal_entry_user VALUES (2, 'alice', 'A')");
 
         $factory = new CoreServiceFactory($pdo, 'test');
-        $this->service = new SearchIndexService($factory);
+        $this->service = new SearchIndexService(new TenantAwarePdoProvider($factory->getPdo()));
     }
 
     public function testFilterByDateRange(): void

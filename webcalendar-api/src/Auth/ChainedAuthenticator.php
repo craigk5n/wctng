@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Auth;
 
-use App\Service\CoreServiceFactory;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use WebCalendar\Core\Application\Contract\AuthServiceInterface;
+use WebCalendar\Core\Application\Service\UserService;
 use WebCalendar\Core\Domain\Entity\User;
 
 /**
@@ -18,7 +19,8 @@ final class ChainedAuthenticator
     private LoggerInterface $logger;
 
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly AuthServiceInterface $authService,
+        private readonly UserService $userService,
         private readonly LdapAuthenticator $ldapAuth,
         private readonly AuthProviderRegistry $registry,
         ?LoggerInterface $logger = null,
@@ -62,11 +64,10 @@ final class ChainedAuthenticator
 
     private function tryPasswordAuth(string $username, #[\SensitiveParameter] string $password): ?User
     {
-        $authService = $this->coreServiceFactory->getAuthService();
-        if (!$authService->authenticate($username, $password)) {
+        if (!$this->authService->authenticate($username, $password)) {
             return null;
         }
 
-        return $this->coreServiceFactory->getUserService()->getUserByLogin($username);
+        return $this->userService->getUserByLogin($username);
     }
 }

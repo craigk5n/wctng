@@ -6,6 +6,7 @@ namespace App\Tests\Unit\Service;
 
 use App\Service\CoreServiceFactory;
 use App\Service\SearchIndexService;
+use App\Service\TenantAwarePdoProvider;
 use PHPUnit\Framework\TestCase;
 
 final class SearchIndexServiceTest extends TestCase
@@ -41,7 +42,7 @@ final class SearchIndexServiceTest extends TestCase
         ");
 
         $factory = new CoreServiceFactory($this->pdo, 'test');
-        $this->service = new SearchIndexService($factory);
+        $this->service = new SearchIndexService(new TenantAwarePdoProvider($factory->getPdo()));
     }
 
     public function testSearchByTitle(): void
@@ -96,7 +97,7 @@ final class SearchIndexServiceTest extends TestCase
     {
         // generateSnippet via reflection
         $factory = new CoreServiceFactory($this->pdo, 'test');
-        $service = new SearchIndexService($factory);
+        $service = new SearchIndexService(new TenantAwarePdoProvider($factory->getPdo()));
         $method = new \ReflectionMethod($service, 'generateSnippet');
 
         $snippet = $method->invoke($service, 'Title', 'No matching text here', 'zzzzz');

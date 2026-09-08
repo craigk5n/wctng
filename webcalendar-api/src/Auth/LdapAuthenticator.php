@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Auth;
 
-use App\Service\CoreServiceFactory;
+use WebCalendar\Core\Application\Service\UserService;
 use WebCalendar\Core\Domain\Entity\User;
+use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 
 /**
  * Authenticates users against an LDAP directory.
@@ -16,7 +17,8 @@ final class LdapAuthenticator
 {
     public function __construct(
         private readonly LdapConfigRepository $configRepo,
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly UserService $userService,
+        private readonly UserRepositoryInterface $userRepository,
     ) {}
 
     /**
@@ -159,8 +161,7 @@ final class LdapAuthenticator
      */
     private function provisionOrSync(string $username, array $attrs): ?User
     {
-        $userService = $this->coreServiceFactory->getUserService();
-        $existing = $userService->getUserByLogin($username);
+        $existing = $this->userService->getUserByLogin($username);
 
         $firstName = $attrs['firstname'] !== '' ? $attrs['firstname'] : ($attrs['name'] !== '' ? $attrs['name'] : $username);
         $lastName = $attrs['lastname'];
@@ -178,12 +179,12 @@ final class LdapAuthenticator
             );
 
             try {
-                $userService->updateUser($updated, $updated);
+                $this->userService->updateUser($updated, $updated);
             } catch (\Throwable) {
                 // Non-fatal — user still authenticated
             }
 
-            return $userService->getUserByLogin($username);
+            return $this->userService->getUserByLogin($username);
         }
 
         // Auto-provision new user
@@ -197,12 +198,12 @@ final class LdapAuthenticator
         );
 
         try {
-            $userService->createUser($newUser, $newUser);
+            $this->userService->createUser($newUser, $newUser);
             // Set random password (user authenticates via LDAP)
-            $hash = $userService->hashPassword(bin2hex(random_bytes(32)));
-            $this->coreServiceFactory->getUserRepository()->setPassword($username, $hash);
+            $hash = $this->userService->hashPassword(bin2hex(random_bytes(32)));
+            $this->userRepository->setPassword($username, $hash);
 
-            return $userService->getUserByLogin($username);
+            return $this->userService->getUserByLogin($username);
         } catch (\Throwable) {
             return null;
         }

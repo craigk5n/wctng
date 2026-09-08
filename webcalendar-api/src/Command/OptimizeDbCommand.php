@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
-use App\Service\CoreServiceFactory;
+use App\Service\TenantAwarePdoProvider;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -18,7 +18,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 final class OptimizeDbCommand extends Command
 {
     public function __construct(
-        private readonly CoreServiceFactory $coreServiceFactory,
+        private readonly TenantAwarePdoProvider $pdoProvider,
     ) {
         parent::__construct();
     }
@@ -27,7 +27,7 @@ final class OptimizeDbCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $pdo = $this->coreServiceFactory->getPdo();
+        $pdo = $this->pdoProvider->get();
 
         $indexes = [
             'CREATE INDEX IF NOT EXISTS idx_entry_date ON webcal_entry (cal_date)',
