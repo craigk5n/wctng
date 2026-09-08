@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { loginAsAdmin, loginAsUser } from './fixtures/auth';
+import { cleanupEvents } from './fixtures/db';
 
 const BASE = 'http://localhost:47180';
 const SECOND_USER = 'e2etester';
@@ -24,6 +25,14 @@ async function ensureSecondUser(page: import('@playwright/test').Page) {
 }
 
 test.describe('Multi-User & Collaboration E2E', () => {
+
+  // Specs share one database, so an event left behind overlaps the next run's
+  // event in the time grid and intercepts its click.
+  const created: number[] = [];
+
+  test.afterEach(async ({ request }) => {
+    await cleanupEvents(request, created);
+  });
 
   test.beforeAll(async ({ browser }) => {
     const page = await browser.newPage();
@@ -84,16 +93,18 @@ test.describe('Multi-User & Collaboration E2E', () => {
     const token = await getToken(page);
 
     // Create a public event
-    await page.request.post(`${BASE}/api/v2/events`, {
+    const pubRes = await page.request.post(`${BASE}/api/v2/events`, {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       data: { title: `PubEvent-${Date.now()}`, start_date: '20260801', start_time: '100000', duration: 60, access: 'P' },
     });
+    created.push((await pubRes.json())?.data?.id);
 
     // Create a private event
-    await page.request.post(`${BASE}/api/v2/events`, {
+    const privRes = await page.request.post(`${BASE}/api/v2/events`, {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       data: { title: `PrivEvent-${Date.now()}`, start_date: '20260801', start_time: '140000', duration: 60, access: 'R' },
     });
+    created.push((await privRes.json())?.data?.id);
 
     // Visit public calendar (no auth needed)
     await page.goto('/public/admin');
@@ -123,6 +134,7 @@ test.describe('Multi-User & Collaboration E2E', () => {
     });
     const eventData = await createRes.json();
     const eventId = eventData?.data?.id;
+    created.push(eventId);
     expect(eventId).toBeTruthy();
 
     // Visit SSR page (no auth, server-rendered HTML)
@@ -164,6 +176,7 @@ test.describe('Multi-User & Collaboration E2E', () => {
     });
     const eventData = await createRes.json();
     const eventId = eventData?.data?.id;
+    created.push(eventId);
 
     // Add participant
     if (eventId) {

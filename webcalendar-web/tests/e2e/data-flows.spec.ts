@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { loginAsAdmin } from './fixtures/auth';
+import { cleanupEvents } from './fixtures/db';
 
 const BASE = 'http://localhost:47180';
 
@@ -12,6 +13,14 @@ async function getToken(page: import('@playwright/test').Page): Promise<string> 
 }
 
 test.describe('Data Flows E2E', () => {
+
+  // Specs share one database, so an event left behind overlaps the next run's
+  // event in the time grid and intercepts its click.
+  const created: number[] = [];
+
+  test.afterEach(async ({ request }) => {
+    await cleanupEvents(request, created);
+  });
 
   // --- Export ---
 
@@ -44,10 +53,11 @@ test.describe('Data Flows E2E', () => {
     // Create a searchable event via API
     const token = await getToken(page);
     const title = `SearchTarget-${Date.now().toString().slice(-6)}`;
-    await page.request.post(`${BASE}/api/v2/events`, {
+    const searchRes = await page.request.post(`${BASE}/api/v2/events`, {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       data: { title, start_date: '20261101', start_time: '100000', duration: 60 },
     });
+    created.push((await searchRes.json())?.data?.id);
 
     await page.goto('/');
     await page.waitForSelector('.fc');
@@ -108,6 +118,7 @@ test.describe('Data Flows E2E', () => {
     });
     expect(res.ok()).toBe(true);
     const body = await res.json();
+    created.push(body?.data?.id);
     expect(body?.data?.rrule).toBe('FREQ=DAILY;COUNT=5');
     expect(body?.data?.title).toBe(title);
   });

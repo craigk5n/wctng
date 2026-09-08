@@ -1,8 +1,16 @@
 import { test, expect } from '@playwright/test';
 import { loginAsAdmin } from './fixtures/auth';
-import { getAdminToken, createTestEvent } from './fixtures/db';
+import { getAdminToken, createTestEvent, cleanupEvents } from './fixtures/db';
 
 test.describe('Phase 6 Features E2E', () => {
+
+  // Specs share one database, so an event left behind overlaps the next run's
+  // event in the time grid and intercepts its click.
+  const created: number[] = [];
+
+  test.afterEach(async ({ request }) => {
+    await cleanupEvents(request, created);
+  });
 
   test('rich text editor — toolbar renders in event dialog', async ({ page }) => {
     await loginAsAdmin(page);
@@ -32,12 +40,13 @@ test.describe('Phase 6 Features E2E', () => {
 
     // Create an event
     const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    await createTestEvent(request, token, {
+    const publicEventId = await createTestEvent(request, token, {
       title: 'E2E Public Event ' + Date.now(),
       start_date: today,
       start_time: '120000',
       duration: 30,
     });
+    created.push(publicEventId);
 
     // Visit public calendar (no login needed)
     await page.goto('/public/admin');
@@ -95,12 +104,13 @@ test.describe('Phase 6 Features E2E', () => {
     const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
 
     // Create first event
-    await createTestEvent(request, token, {
+    const conflictAId = await createTestEvent(request, token, {
       title: 'E2E Conflict A ' + Date.now(),
       start_date: today,
       start_time: '100000',
       duration: 60,
     });
+    created.push(conflictAId);
 
     // Create overlapping event — response should include conflicts in meta
     const res = await request.post('http://localhost:47180/api/v2/events', {
@@ -115,6 +125,7 @@ test.describe('Phase 6 Features E2E', () => {
     expect(res.ok()).toBeTruthy();
 
     const body = await res.json();
+    created.push(body?.data?.id);
     // In warn mode (default), event is created but meta may contain conflicts
     expect(body.data).toBeDefined();
   });

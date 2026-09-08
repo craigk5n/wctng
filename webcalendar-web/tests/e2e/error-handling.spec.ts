@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { loginAsAdmin, loginAsUser } from './fixtures/auth';
+import { cleanupEvents } from './fixtures/db';
 
 const BASE = 'http://localhost:47180';
 
@@ -12,6 +13,14 @@ async function getToken(page: import('@playwright/test').Page): Promise<string> 
 }
 
 test.describe('Error Handling & Edge Cases E2E', () => {
+
+  // Specs share one database, so an event left behind overlaps the next run's
+  // event in the time grid and intercepts its click.
+  const created: number[] = [];
+
+  test.afterEach(async ({ request }) => {
+    await cleanupEvents(request, created);
+  });
 
   test('create event with empty title shows validation', async ({ page }) => {
     await loginAsAdmin(page);
@@ -97,6 +106,7 @@ test.describe('Error Handling & Edge Cases E2E', () => {
         duration: 60,
       },
     });
+    created.push((await res.json())?.data?.id);
     expect(res.ok()).toBe(true);
   });
 
@@ -113,6 +123,10 @@ test.describe('Error Handling & Edge Cases E2E', () => {
         duration: 60,
       },
     });
+    if (res.ok()) {
+      created.push((await res.json())?.data?.id);
+    }
+
     // Should either succeed or return a client/server error — not crash
     expect([200, 201, 400, 500]).toContain(res.status());
   });

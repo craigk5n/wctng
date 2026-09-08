@@ -57,3 +57,25 @@ export async function deleteTestEvent(
     headers: { Authorization: `Bearer ${token}` },
   });
 }
+
+/**
+ * Deletes every event id collected during a test and empties the list.
+ *
+ * Specs share one database, so an event left on the calendar overlaps the
+ * next run's event in the time grid and intercepts its click. Call this from
+ * test.afterEach with the array the test pushed its ids into.
+ */
+export async function cleanupEvents(
+  request: APIRequestContext,
+  created: number[],
+): Promise<void> {
+  if (created.length === 0) return;
+
+  const token = await getAdminToken(request);
+
+  for (const id of created.splice(0)) {
+    // Creation can fail mid-test; skip the undefined ids that leaves behind.
+    if (!id) continue;
+    await deleteTestEvent(request, token, id);
+  }
+}

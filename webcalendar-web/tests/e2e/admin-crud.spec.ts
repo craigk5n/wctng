@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { loginAsAdmin } from './fixtures/auth';
+import { cleanupEvents } from './fixtures/db';
 
 // Helper: get JWT token for direct API calls
 async function getToken(page: import('@playwright/test').Page): Promise<string> {
@@ -11,6 +12,14 @@ async function getToken(page: import('@playwright/test').Page): Promise<string> 
 }
 
 test.describe('Admin CRUD E2E', () => {
+
+  // Specs share one database, so an event left behind overlaps the next run's
+  // event in the time grid and intercepts its click.
+  const created: number[] = [];
+
+  test.afterEach(async ({ request }) => {
+    await cleanupEvents(request, created);
+  });
 
   // --- User Management ---
 
@@ -206,7 +215,7 @@ test.describe('Admin CRUD E2E', () => {
 
     // Create event via API to generate log entry
     const token = await getToken(page);
-    await page.request.post('http://localhost:47180/api/v2/events', {
+    const logRes = await page.request.post('http://localhost:47180/api/v2/events', {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       data: {
         title: `LogTest-${Date.now()}`,
@@ -215,6 +224,7 @@ test.describe('Admin CRUD E2E', () => {
         duration: 60,
       },
     });
+    created.push((await logRes.json())?.data?.id);
 
     await page.goto('/admin/activity-log');
     await expect(page.getByRole('heading', { name: /activity log/i })).toBeVisible();

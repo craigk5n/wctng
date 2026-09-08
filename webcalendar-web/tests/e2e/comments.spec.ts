@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { loginAsAdmin } from './fixtures/auth';
+import { cleanupEvents } from './fixtures/db';
 
 const BASE = 'http://localhost:47180';
 
@@ -13,6 +14,14 @@ async function getToken(page: import('@playwright/test').Page): Promise<string> 
 
 test.describe('Event Comments E2E', () => {
 
+  // Specs share one database, so an event left behind overlaps the next run's
+  // event in the time grid and intercepts its click.
+  const created: number[] = [];
+
+  test.afterEach(async ({ request }) => {
+    await cleanupEvents(request, created);
+  });
+
   test('post a comment on an event and see it', async ({ page }) => {
     await loginAsAdmin(page);
 
@@ -25,6 +34,7 @@ test.describe('Event Comments E2E', () => {
       data: { title, start_date: today, start_time: '100000', duration: 60 },
     });
     const eventId = (await createRes.json())?.data?.id;
+    created.push(eventId);
     expect(eventId).toBeTruthy();
 
     // Post a comment via API
@@ -54,6 +64,7 @@ test.describe('Event Comments E2E', () => {
       data: { title: 'DelComment', start_date: today, start_time: '110000', duration: 60 },
     });
     const eventId = (await createRes.json())?.data?.id;
+    created.push(eventId);
 
     // Post comment
     const postRes = await page.request.post(`${BASE}/api/v2/events/${eventId}/comments`, {
