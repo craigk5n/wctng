@@ -15,9 +15,15 @@ when@dev:
     monolog:
         handlers:
             main:
-                type: stream
+                # rotating_file, not stream: the dev log had grown to 3.1 GB
+                # unrotated. Also filters the same channels the console handler
+                # does — the file had no filter, so event-dispatcher debug lines
+                # (about 95% of the volume) accumulated forever.
+                type: rotating_file
                 path: '%kernel.logs_dir%/%kernel.environment%.log'
+                max_files: 5
                 level: debug
+                channels: ['!event', '!doctrine']
             console:
                 type: console
                 process_psr_3_messages: false

@@ -5,6 +5,13 @@
     "license": "MIT",
     "require": {
         "php": ">=8.3",
+        "ext-curl": "*",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "ext-openssl": "*",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*",
+        "ext-zip": "*",
         "craigk5n/webcalendar-core": "^4.1",
         "doctrine/migrations": "^3.8",
         "lexik/jwt-authentication-bundle": "^3.1",
@@ -86,6 +93,9 @@
             "@composer audit --no-dev",
             "@test"
         ]
+    },
+    "suggest": {
+        "ext-ldap": "LDAP authentication and group sync; every call site degrades gracefully without it"
     },
     "extra": {
         "symfony": {

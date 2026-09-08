@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b632350f3c982b5ba7eeb172ec10c69d",
+    "content-hash": "c66541f581b83d3bf3618edfc5bf562d",
     "packages": [
         {
             "name": "craigk5n/php-icalendar-core",
@@ -11895,7 +11895,14 @@
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
-        "php": ">=8.3"
+        "php": ">=8.3",
+        "ext-curl": "*",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "ext-openssl": "*",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*",
+        "ext-zip": "*"
     },
     "platform-dev": [],
     "platform-overrides": {
