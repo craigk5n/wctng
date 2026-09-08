@@ -50,7 +50,7 @@ final class ShareController
         }
 
         /** @var array{expires_at?: string} $body */
-        $body = json_decode((string) $request->getContent(), true) ?? [];
+        $body = json_decode($request->getContent(), true) ?? [];
         $expiresAt = $body['expires_at'] ?? null;
 
         $uuid = $this->generateUuid();

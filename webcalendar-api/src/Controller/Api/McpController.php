@@ -107,7 +107,7 @@ final class McpController
         }
 
         /** @var array{jsonrpc?: string, method?: string, params?: array<string, mixed>, id?: string|int|null} $body */
-        $body = json_decode((string) $request->getContent(), true) ?? [];
+        $body = json_decode($request->getContent(), true) ?? [];
 
         $method = $body['method'] ?? '';
         $params = $body['params'] ?? [];

@@ -31,7 +31,7 @@ final class AdminEventController
         }
 
         /** @var array<string,mixed> $data */
-        $data = json_decode((string) $request->getContent(), true) ?? [];
+        $data = json_decode($request->getContent(), true) ?? [];
 
         $beforeDateRaw = isset($data['before_date']) && \is_string($data['before_date'])
             ? $data['before_date']

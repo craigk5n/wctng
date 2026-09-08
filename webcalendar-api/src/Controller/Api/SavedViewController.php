@@ -36,7 +36,7 @@ final class SavedViewController
         }
 
         /** @var array{name?: string, user_logins?: list<string>, is_global?: bool, category_ids?: list<int>} $data */
-        $data = json_decode((string) $request->getContent(), true) ?? [];
+        $data = json_decode($request->getContent(), true) ?? [];
         $name = $data['name'] ?? '';
         if ($name === '') {
             return ApiResponse::error(400, 'Missing required field: name');
@@ -66,7 +66,7 @@ final class SavedViewController
         }
 
         /** @var array{name?: string, user_logins?: list<string>, is_global?: bool, category_ids?: list<int>} $data */
-        $data = json_decode((string) $request->getContent(), true) ?? [];
+        $data = json_decode($request->getContent(), true) ?? [];
         $name = $data['name'] ?? '';
         if ($name === '') {
             return ApiResponse::error(400, 'Missing required field: name');

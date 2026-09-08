@@ -50,7 +50,7 @@ final class AssistantController
         }
 
         /** @var array{assistant?: string} $data */
-        $data = json_decode((string) $request->getContent(), true) ?? [];
+        $data = json_decode($request->getContent(), true) ?? [];
         $asstLogin = $data['assistant'] ?? '';
         if ($asstLogin === '') {
             return ApiResponse::error(400, 'Missing required field: assistant');

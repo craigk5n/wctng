@@ -134,7 +134,7 @@ final class PublicCalendarController
         }
 
         /** @var array{enabled?: bool} $body */
-        $body = json_decode((string) $request->getContent(), true) ?? [];
+        $body = json_decode($request->getContent(), true) ?? [];
         $enabled = ($body['enabled'] ?? false) === true;
 
         $this->userRepo->savePreference(

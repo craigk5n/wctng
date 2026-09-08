@@ -43,7 +43,7 @@ final class ResourceController
         }
 
         /** @var array{login?: string, name?: string, admin?: string, is_public?: bool, url?: string} $data */
-        $data = json_decode((string) $request->getContent(), true) ?? [];
+        $data = json_decode($request->getContent(), true) ?? [];
 
         $login = $data['login'] ?? '';
         $name = $data['name'] ?? '';
@@ -76,7 +76,7 @@ final class ResourceController
         }
 
         /** @var array{name?: string, admin?: string, is_public?: bool, url?: string} $data */
-        $data = json_decode((string) $request->getContent(), true) ?? [];
+        $data = json_decode($request->getContent(), true) ?? [];
 
         $updated = new CalResource(
             login: $login,

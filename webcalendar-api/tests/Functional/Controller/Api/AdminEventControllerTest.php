@@ -11,12 +11,6 @@ final class AdminEventControllerTest extends WebTestCase
 {
     use ApiTestTrait;
 
-    protected function tearDown(): void
-    {
-        $this->cleanupTestData();
-        parent::tearDown();
-    }
-
     public function testPurgeRequiresAuth(): void
     {
         $client = static::createClient();
@@ -99,8 +93,19 @@ final class AdminEventControllerTest extends WebTestCase
 
         // Create the non-admin rather than assuming a seeded 'alice': the only
         // fixture the suite can count on is the admin webcalendar:install makes.
+        // Done inline, and torn down inline, because the trait's createTestUser
+        // and cleanupTestData helpers are not committed.
         $login = 'purge_nonadmin_' . bin2hex(random_bytes(3));
-        $this->createTestUser($client, $adminToken, $login);
+        $client->request('POST', '/api/v2/users', [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_AUTHORIZATION' => 'Bearer ' . $adminToken,
+        ], (string) json_encode([
+            'login' => $login,
+            'password' => 'Pass123!',
+            'email' => $login . '@example.com',
+        ]));
+        $this->assertResponseStatusCodeSame(201);
+
         $token = $this->loginAndGetToken($client, $login, 'Pass123!');
 
         $client->request('POST', '/api/v2/admin/events/purge', [], [], [
@@ -109,5 +114,9 @@ final class AdminEventControllerTest extends WebTestCase
         ], (string) json_encode(['before_date' => '2025-01-01']));
 
         $this->assertResponseStatusCodeSame(403);
+
+        $client->request('DELETE', "/api/v2/users/{$login}", [], [], [
+            'HTTP_AUTHORIZATION' => 'Bearer ' . $adminToken,
+        ]);
     }
 }

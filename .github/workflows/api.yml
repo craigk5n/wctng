@@ -122,7 +122,11 @@ jobs:
           JWT_PUBLIC_KEY: "%kernel.project_dir%/config/jwt/public.pem"
           JWT_PASSPHRASE: ci_passphrase
           JWT_TTL: 3600
-          CORS_ALLOW_ORIGIN: "http://localhost"
+          # CORS_ALLOW_ORIGIN deliberately not set: .env.test defines it as
+          # http://localhost:47173 and CorsTest asserts that exact origin is
+          # echoed back. Overriding it here made the origin disallowed, so no
+          # header came back and the test failed. Unlike DATABASE_URL and the
+          # JWT paths, this has no CI-specific reason to differ.
         run: make coverage
 
       - name: Upload coverage report

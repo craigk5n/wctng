@@ -54,7 +54,7 @@ final class CustomFieldController
         }
 
         /** @var array<string, mixed> $data */
-        $data = json_decode((string) $request->getContent(), true) ?? [];
+        $data = json_decode($request->getContent(), true) ?? [];
 
         $name = isset($data['name']) && \is_string($data['name']) ? trim($data['name']) : '';
         if ($name === '') {
@@ -86,7 +86,7 @@ final class CustomFieldController
         }
 
         /** @var array<string, mixed> $data */
-        $data = json_decode((string) $request->getContent(), true) ?? [];
+        $data = json_decode($request->getContent(), true) ?? [];
 
         $name = isset($data['name']) && \is_string($data['name']) ? trim($data['name']) : $existing->name();
         $fieldType = isset($data['field_type']) && \is_string($data['field_type']) ? $data['field_type'] : $existing->fieldType();
@@ -125,7 +125,7 @@ final class CustomFieldController
         }
 
         /** @var array<string, mixed> $data */
-        $data = json_decode((string) $request->getContent(), true) ?? [];
+        $data = json_decode($request->getContent(), true) ?? [];
 
         $this->siteExtraService->saveExtrasForEvent($eventId, $data);
 

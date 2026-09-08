@@ -63,7 +63,7 @@ final class BookingController
         }
 
         /** @var array{name?: string, email?: string, date?: string, time?: string, duration?: int, description?: string} $data */
-        $data = json_decode((string) $request->getContent(), true) ?? [];
+        $data = json_decode($request->getContent(), true) ?? [];
 
         $name = $data['name'] ?? '';
         $email = $data['email'] ?? '';

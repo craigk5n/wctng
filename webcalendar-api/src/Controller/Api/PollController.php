@@ -32,7 +32,7 @@ final class PollController
         }
 
         /** @var array{title?: string, description?: string, options?: list<array{start: string, end: string}>, participants?: list<string>} $data */
-        $data = json_decode((string) $request->getContent(), true) ?? [];
+        $data = json_decode($request->getContent(), true) ?? [];
 
         $title = $data['title'] ?? '';
         if ($title === '') {
@@ -99,7 +99,7 @@ final class PollController
         }
 
         /** @var array{votes?: array<int, string>} $data */
-        $data = json_decode((string) $request->getContent(), true) ?? [];
+        $data = json_decode($request->getContent(), true) ?? [];
         $votes = $data['votes'] ?? [];
 
         if (\count($votes) === 0) {

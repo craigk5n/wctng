@@ -68,7 +68,7 @@ final class ConfigController
         }
 
         /** @var array<string, string> $data */
-        $data = json_decode((string) $request->getContent(), true) ?? [];
+        $data = json_decode($request->getContent(), true) ?? [];
 
         $configService = $this->configService;
         foreach ($data as $key => $value) {

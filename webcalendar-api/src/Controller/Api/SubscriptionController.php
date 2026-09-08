@@ -40,7 +40,7 @@ final class SubscriptionController
         }
 
         /** @var array{url?: string, name?: string, color?: string, refresh_interval?: int} $data */
-        $data = json_decode((string) $request->getContent(), true) ?? [];
+        $data = json_decode($request->getContent(), true) ?? [];
 
         $url = $data['url'] ?? '';
         $name = $data['name'] ?? '';

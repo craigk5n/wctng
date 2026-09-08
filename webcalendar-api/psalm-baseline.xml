@@ -242,16 +242,6 @@
       <code><![CDATA[$row]]></code>
     </MixedAssignment>
   </file>
-  <file src="src/Controller/Api/AdminEventController.php">
-    <RedundantCastGivenDocblockType>
-      <code><![CDATA[(string) $request->getContent()]]></code>
-    </RedundantCastGivenDocblockType>
-  </file>
-  <file src="src/Controller/Api/AssistantController.php">
-    <RedundantCastGivenDocblockType>
-      <code><![CDATA[(string) $request->getContent()]]></code>
-    </RedundantCastGivenDocblockType>
-  </file>
   <file src="src/Controller/Api/AuthController.php">
     <MixedAssignment>
       <code><![CDATA[$payload]]></code>
@@ -266,11 +256,6 @@
       <code><![CDATA[$uploadedFile]]></code>
     </MixedAssignment>
   </file>
-  <file src="src/Controller/Api/BookingController.php">
-    <RedundantCastGivenDocblockType>
-      <code><![CDATA[(string) $request->getContent()]]></code>
-    </RedundantCastGivenDocblockType>
-  </file>
   <file src="src/Controller/Api/CategoryController.php">
     <MixedAssignment>
       <code><![CDATA[$owner]]></code>
@@ -284,18 +269,6 @@
     </MixedAssignment>
     <RedundantCastGivenDocblockType>
       <code><![CDATA[(string) ($data['text'] ?? '')]]></code>
-    </RedundantCastGivenDocblockType>
-  </file>
-  <file src="src/Controller/Api/ConfigController.php">
-    <RedundantCastGivenDocblockType>
-      <code><![CDATA[(string) $request->getContent()]]></code>
-    </RedundantCastGivenDocblockType>
-  </file>
-  <file src="src/Controller/Api/CustomFieldController.php">
-    <RedundantCastGivenDocblockType>
-      <code><![CDATA[(string) $request->getContent()]]></code>
-      <code><![CDATA[(string) $request->getContent()]]></code>
-      <code><![CDATA[(string) $request->getContent()]]></code>
     </RedundantCastGivenDocblockType>
   </file>
   <file src="src/Controller/Api/DashboardController.php">
@@ -325,11 +298,6 @@
     <MixedAssignment>
       <code><![CDATA[$decoded]]></code>
     </MixedAssignment>
-  </file>
-  <file src="src/Controller/Api/LocationController.php">
-    <RedundantCastGivenDocblockType>
-      <code><![CDATA[(string) $request->getContent()]]></code>
-    </RedundantCastGivenDocblockType>
   </file>
   <file src="src/Controller/Api/McpController.php">
     <MixedArgument>
@@ -366,9 +334,6 @@
       <code><![CDATA[$title]]></code>
       <code><![CDATA[$toolName]]></code>
     </MixedAssignment>
-    <RedundantCastGivenDocblockType>
-      <code><![CDATA[(string) $request->getContent()]]></code>
-    </RedundantCastGivenDocblockType>
   </file>
   <file src="src/Controller/Api/OAuthController.php">
     <MixedArgument>
@@ -384,23 +349,6 @@
       <code><![CDATA[$sub]]></code>
     </MixedAssignment>
   </file>
-  <file src="src/Controller/Api/PollController.php">
-    <RedundantCastGivenDocblockType>
-      <code><![CDATA[(string) $request->getContent()]]></code>
-      <code><![CDATA[(string) $request->getContent()]]></code>
-    </RedundantCastGivenDocblockType>
-  </file>
-  <file src="src/Controller/Api/PublicCalendarController.php">
-    <RedundantCastGivenDocblockType>
-      <code><![CDATA[(string) $request->getContent()]]></code>
-    </RedundantCastGivenDocblockType>
-  </file>
-  <file src="src/Controller/Api/PushController.php">
-    <RedundantCastGivenDocblockType>
-      <code><![CDATA[(string) $request->getContent()]]></code>
-      <code><![CDATA[(string) $request->getContent()]]></code>
-    </RedundantCastGivenDocblockType>
-  </file>
   <file src="src/Controller/Api/ReportController.php">
     <PossiblyFalseArgument>
       <code><![CDATA[strtotime('-30 days')]]></code>
@@ -408,33 +356,13 @@
       <code><![CDATA[strtotime('-30 days')]]></code>
     </PossiblyFalseArgument>
   </file>
-  <file src="src/Controller/Api/ResourceController.php">
-    <RedundantCastGivenDocblockType>
-      <code><![CDATA[(string) $request->getContent()]]></code>
-      <code><![CDATA[(string) $request->getContent()]]></code>
-    </RedundantCastGivenDocblockType>
-  </file>
-  <file src="src/Controller/Api/SavedViewController.php">
-    <RedundantCastGivenDocblockType>
-      <code><![CDATA[(string) $request->getContent()]]></code>
-      <code><![CDATA[(string) $request->getContent()]]></code>
-    </RedundantCastGivenDocblockType>
-  </file>
   <file src="src/Controller/Api/SecurityAuditController.php">
     <InvalidOperand>
       <code><![CDATA[round($ttl / 3600, 1)]]></code>
       <code><![CDATA[round($ttl / 3600, 1)]]></code>
     </InvalidOperand>
   </file>
-  <file src="src/Controller/Api/ShareController.php">
-    <RedundantCastGivenDocblockType>
-      <code><![CDATA[(string) $request->getContent()]]></code>
-    </RedundantCastGivenDocblockType>
-  </file>
   <file src="src/Controller/Api/SubscriptionController.php">
-    <RedundantCastGivenDocblockType>
-      <code><![CDATA[(string) $request->getContent()]]></code>
-    </RedundantCastGivenDocblockType>
     <RiskyTruthyFalsyComparison>
       <code><![CDATA[preg_match_all('/BEGIN:VEVENT(.+?)END:VEVENT/s', $icsContent, $matches)]]></code>
     </RiskyTruthyFalsyComparison>

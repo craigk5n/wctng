@@ -57,7 +57,7 @@ final class LocationController
         }
 
         /** @var array{date?: string, location?: string} $data */
-        $data = json_decode((string) $request->getContent(), true) ?? [];
+        $data = json_decode($request->getContent(), true) ?? [];
 
         $date = $data['date'] ?? date('Y-m-d');
         $location = $data['location'] ?? 'office';

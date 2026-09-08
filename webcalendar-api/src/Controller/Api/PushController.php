@@ -27,7 +27,7 @@ final class PushController
         }
 
         /** @var array{endpoint?: string, keys?: array{p256dh?: string, auth?: string}} $data */
-        $data = json_decode((string) $request->getContent(), true) ?? [];
+        $data = json_decode($request->getContent(), true) ?? [];
 
         $endpoint = $data['endpoint'] ?? '';
         $p256dh = $data['keys']['p256dh'] ?? '';
@@ -50,7 +50,7 @@ final class PushController
         }
 
         /** @var array{endpoint?: string} $data */
-        $data = json_decode((string) $request->getContent(), true) ?? [];
+        $data = json_decode($request->getContent(), true) ?? [];
         $endpoint = $data['endpoint'] ?? '';
 
         if ($endpoint !== '') {
