@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Webhook;
 
+use App\Security\OutboundUrlValidator;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -26,7 +27,7 @@ final class WebhookDispatcher implements WebhookDispatcherInterface
     public function __construct(
         private readonly WebhookRepository $repository,
         private readonly \PDO $pdo,
-        private readonly WebhookUrlValidator $urlValidator,
+        private readonly OutboundUrlValidator $urlValidator,
         ?LoggerInterface $logger = null,
         ?ClockInterface $clock = null,
     ) {
@@ -156,22 +157,7 @@ final class WebhookDispatcher implements WebhookDispatcherInterface
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => 10,
             CURLOPT_CONNECTTIMEOUT => 5,
-            // curl speaks far more than HTTP; without this a target could name
-            // file:// or gopher://. Redirects stay off, so a 302 cannot walk
-            // the request somewhere the checks above never saw.
-            CURLOPT_PROTOCOLS_STR => 'http,https',
-            CURLOPT_REDIR_PROTOCOLS_STR => 'http,https',
-            CURLOPT_FOLLOWLOCATION => false,
-        ];
-
-        if ($target['ip'] !== null) {
-            // Pin the connection to the address that was just validated, so a
-            // second DNS answer between the check and the connect cannot point
-            // this request back inside the network.
-            $options[CURLOPT_RESOLVE] = [
-                sprintf('%s:%d:%s', $target['host'], $target['port'], $target['ip']),
-            ];
-        }
+        ] + OutboundUrlValidator::curlSecurityOptions($target);
 
         curl_setopt_array($ch, $options);
 

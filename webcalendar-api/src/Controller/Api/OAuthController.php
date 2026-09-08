@@ -6,6 +6,7 @@ namespace App\Controller\Api;
 
 use App\Auth\OAuthProviderRepository;
 use App\Response\ApiResponse;
+use App\Security\OutboundUrlValidator;
 use App\Security\UserTokenIndex;
 use App\Tenant\TenantContext;
 use Lexik\Bundle\JWTAuthenticationBundle\Encoder\JWTEncoderInterface;
@@ -32,6 +33,7 @@ final class OAuthController
         private readonly int $jwtTtl,
         private readonly ClockInterface $clock,
         private readonly UserTokenIndex $tokenIndex,
+        private readonly OutboundUrlValidator $urlValidator,
     ) {}
 
     /**
@@ -194,6 +196,15 @@ final class OAuthController
             return null;
         }
 
+        // $params carries the client secret, so an attacker-controlled token_url
+        // would not merely reach inside the network, it would be handed the
+        // provider credentials.
+        try {
+            $target = $this->urlValidator->validate($tokenUrl);
+        } catch (\InvalidArgumentException) {
+            return null;
+        }
+
         $ch = curl_init($tokenUrl);
         if ($ch === false) {
             return null;
@@ -205,7 +216,7 @@ final class OAuthController
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER => ['Accept: application/json'],
             CURLOPT_TIMEOUT => 10,
-        ]);
+        ] + OutboundUrlValidator::curlSecurityOptions($target));
 
         $response = curl_exec($ch);
         curl_close($ch);
@@ -229,6 +240,14 @@ final class OAuthController
             return null;
         }
 
+        // The access token rides in the Authorization header, so the same
+        // reasoning as exchangeCode() applies.
+        try {
+            $target = $this->urlValidator->validate($userinfoUrl);
+        } catch (\InvalidArgumentException) {
+            return null;
+        }
+
         $ch = curl_init($userinfoUrl);
         if ($ch === false) {
             return null;
@@ -238,7 +257,7 @@ final class OAuthController
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER => ["Authorization: Bearer {$accessToken}", 'Accept: application/json'],
             CURLOPT_TIMEOUT => 10,
-        ]);
+        ] + OutboundUrlValidator::curlSecurityOptions($target));
 
         $response = curl_exec($ch);
         curl_close($ch);

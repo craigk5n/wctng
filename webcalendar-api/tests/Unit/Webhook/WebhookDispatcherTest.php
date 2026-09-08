@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Webhook;
 
+use App\Security\OutboundUrlValidator;
 use App\Webhook\WebhookDispatcher;
 use App\Webhook\WebhookRepository;
 use App\Webhook\WebhookSubscription;
-use App\Webhook\WebhookUrlValidator;
 use PHPUnit\Framework\TestCase;
 
 final class WebhookDispatcherTest extends TestCase
@@ -27,7 +27,7 @@ final class WebhookDispatcherTest extends TestCase
         $this->dispatcher = new WebhookDispatcher(
             $this->repo,
             $this->pdo,
-            new WebhookUrlValidator('standalone'),
+            new OutboundUrlValidator('standalone'),
         );
     }
 
@@ -100,7 +100,7 @@ final class WebhookDispatcherTest extends TestCase
         $dispatcher = new WebhookDispatcher(
             $this->repo,
             $this->pdo,
-            new WebhookUrlValidator('hosted'),
+            new OutboundUrlValidator('hosted'),
         );
 
         $id = $this->repo->save(

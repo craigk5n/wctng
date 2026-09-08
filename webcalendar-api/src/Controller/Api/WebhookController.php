@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
+use App\Security\OutboundUrlValidator;
 use App\Security\WebCalendarUser;
 use App\Webhook\WebhookRepository;
 use App\Webhook\WebhookSubscription;
-use App\Webhook\WebhookUrlValidator;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,7 +19,7 @@ final class WebhookController
 {
     public function __construct(
         private readonly WebhookRepository $repository,
-        private readonly WebhookUrlValidator $urlValidator,
+        private readonly OutboundUrlValidator $urlValidator,
     ) {}
 
     /**

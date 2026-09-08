@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Auth;
 
+use App\Security\OutboundUrlValidator;
+
 /**
  * OpenID Connect discovery and ID token validation.
  *
@@ -14,6 +16,8 @@ final class OidcDiscovery
 {
     /** @var array<string, array<string, mixed>> */
     private array $configCache = [];
+
+    public function __construct(private readonly OutboundUrlValidator $urlValidator) {}
 
     /**
      * Discovers OIDC configuration from the provider's issuer URL.
@@ -28,6 +32,14 @@ final class OidcDiscovery
 
         $wellKnownUrl = rtrim($issuerUrl, '/') . '/.well-known/openid-configuration';
 
+        // The issuer is stored through the admin auth-provider API, so it is
+        // attacker-reachable input in hosted mode, not operator configuration.
+        try {
+            $target = $this->urlValidator->validate($wellKnownUrl);
+        } catch (\InvalidArgumentException) {
+            return null;
+        }
+
         $ch = curl_init($wellKnownUrl);
         if ($ch === false) {
             return null;
@@ -37,7 +49,7 @@ final class OidcDiscovery
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => 10,
             CURLOPT_HTTPHEADER => ['Accept: application/json'],
-        ]);
+        ] + OutboundUrlValidator::curlSecurityOptions($target));
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

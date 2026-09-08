@@ -7,6 +7,7 @@ namespace App\Controller\Api;
 use App\Auth\OAuthProvider;
 use App\Auth\OAuthProviderRepository;
 use App\Response\ApiResponse;
+use App\Security\OutboundUrlValidator;
 use App\Security\WebCalendarUser;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,7 +19,35 @@ final class AuthProviderController
 {
     public function __construct(
         private readonly OAuthProviderRepository $repository,
+        private readonly OutboundUrlValidator $urlValidator,
     ) {}
+
+    /**
+     * OAuthController fetches token_url and userinfo_url server-side, carrying
+     * the client secret and access token, so a rejected target must not be
+     * storable. auth_url is only ever handed to the browser, but the scheme
+     * rules apply to it for the same reason they apply anywhere else.
+     *
+     * Empty is allowed: the fields are optional and default to ''.
+     *
+     * @param array<string, string> $urls field name => URL
+     */
+    private function rejectUnsafeUrls(array $urls): ?JsonResponse
+    {
+        foreach ($urls as $field => $url) {
+            if ($url === '') {
+                continue;
+            }
+
+            try {
+                $this->urlValidator->validate($url);
+            } catch (\InvalidArgumentException $e) {
+                return ApiResponse::error(400, sprintf('%s: %s', $field, $e->getMessage()));
+            }
+        }
+
+        return null;
+    }
 
     /**
      * Public endpoint: returns enabled providers (name + id only, no secrets).
@@ -72,15 +101,29 @@ final class AuthProviderController
             return ApiResponse::error(400, 'Missing required fields: name, client_id');
         }
 
+        $authUrl = isset($data['auth_url']) && \is_string($data['auth_url']) ? $data['auth_url'] : '';
+        $tokenUrl = isset($data['token_url']) && \is_string($data['token_url']) ? $data['token_url'] : '';
+        $userinfoUrl = isset($data['userinfo_url']) && \is_string($data['userinfo_url']) ? $data['userinfo_url'] : '';
+
+        $rejected = $this->rejectUnsafeUrls([
+            'auth_url' => $authUrl,
+            'token_url' => $tokenUrl,
+            'userinfo_url' => $userinfoUrl,
+        ]);
+
+        if ($rejected !== null) {
+            return $rejected;
+        }
+
         $provider = new OAuthProvider(
             id: 0,
             name: $name,
             type: isset($data['type']) && \is_string($data['type']) ? $data['type'] : 'oauth2',
             clientId: $clientId,
             clientSecret: isset($data['client_secret']) && \is_string($data['client_secret']) ? $data['client_secret'] : '',
-            authUrl: isset($data['auth_url']) && \is_string($data['auth_url']) ? $data['auth_url'] : '',
-            tokenUrl: isset($data['token_url']) && \is_string($data['token_url']) ? $data['token_url'] : '',
-            userinfoUrl: isset($data['userinfo_url']) && \is_string($data['userinfo_url']) ? $data['userinfo_url'] : '',
+            authUrl: $authUrl,
+            tokenUrl: $tokenUrl,
+            userinfoUrl: $userinfoUrl,
             scopes: isset($data['scopes']) && \is_string($data['scopes']) ? $data['scopes'] : '',
             enabled: !isset($data['enabled']) || (bool) $data['enabled'],
         );
@@ -111,15 +154,29 @@ final class AuthProviderController
         /** @var array<string, mixed> $data */
         $data = $decoded;
 
+        $authUrl = isset($data['auth_url']) && \is_string($data['auth_url']) ? $data['auth_url'] : $existing->authUrl();
+        $tokenUrl = isset($data['token_url']) && \is_string($data['token_url']) ? $data['token_url'] : $existing->tokenUrl();
+        $userinfoUrl = isset($data['userinfo_url']) && \is_string($data['userinfo_url']) ? $data['userinfo_url'] : $existing->userinfoUrl();
+
+        $rejected = $this->rejectUnsafeUrls([
+            'auth_url' => $authUrl,
+            'token_url' => $tokenUrl,
+            'userinfo_url' => $userinfoUrl,
+        ]);
+
+        if ($rejected !== null) {
+            return $rejected;
+        }
+
         $updated = new OAuthProvider(
             id: $id,
             name: isset($data['name']) && \is_string($data['name']) ? $data['name'] : $existing->name(),
             type: isset($data['type']) && \is_string($data['type']) ? $data['type'] : $existing->type(),
             clientId: isset($data['client_id']) && \is_string($data['client_id']) ? $data['client_id'] : $existing->clientId(),
             clientSecret: isset($data['client_secret']) && \is_string($data['client_secret']) ? $data['client_secret'] : $existing->clientSecret(),
-            authUrl: isset($data['auth_url']) && \is_string($data['auth_url']) ? $data['auth_url'] : $existing->authUrl(),
-            tokenUrl: isset($data['token_url']) && \is_string($data['token_url']) ? $data['token_url'] : $existing->tokenUrl(),
-            userinfoUrl: isset($data['userinfo_url']) && \is_string($data['userinfo_url']) ? $data['userinfo_url'] : $existing->userinfoUrl(),
+            authUrl: $authUrl,
+            tokenUrl: $tokenUrl,
+            userinfoUrl: $userinfoUrl,
             scopes: isset($data['scopes']) && \is_string($data['scopes']) ? $data['scopes'] : $existing->scopes(),
             enabled: isset($data['enabled']) ? (bool) $data['enabled'] : $existing->isEnabled(),
         );

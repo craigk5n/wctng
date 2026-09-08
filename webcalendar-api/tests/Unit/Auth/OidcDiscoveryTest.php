@@ -5,13 +5,23 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Auth;
 
 use App\Auth\OidcDiscovery;
+use App\Security\OutboundUrlValidator;
 use PHPUnit\Framework\TestCase;
 
 final class OidcDiscoveryTest extends TestCase
 {
+    /**
+     * standalone: these tests reach 127.0.0.1 to exercise the unreachable path,
+     * which hosted mode would refuse to dial at all.
+     */
+    private function discovery(): OidcDiscovery
+    {
+        return new OidcDiscovery(new OutboundUrlValidator('standalone'));
+    }
+
     public function testExtractEndpointsFromConfig(): void
     {
-        $discovery = new OidcDiscovery();
+        $discovery = $this->discovery();
 
         $config = [
             'issuer' => 'https://accounts.google.com',
@@ -32,7 +42,7 @@ final class OidcDiscoveryTest extends TestCase
 
     public function testExtractEndpointsHandlesMissingFields(): void
     {
-        $discovery = new OidcDiscovery();
+        $discovery = $this->discovery();
 
         $endpoints = $discovery->extractEndpoints([]);
 
@@ -43,7 +53,7 @@ final class OidcDiscoveryTest extends TestCase
 
     public function testValidateIdTokenWithValidClaims(): void
     {
-        $discovery = new OidcDiscovery();
+        $discovery = $this->discovery();
 
         // Create a mock JWT (header.payload.signature)
         $header = base64_encode(json_encode(['alg' => 'RS256', 'typ' => 'JWT'], JSON_THROW_ON_ERROR));
@@ -68,7 +78,7 @@ final class OidcDiscoveryTest extends TestCase
 
     public function testValidateIdTokenRejectsExpired(): void
     {
-        $discovery = new OidcDiscovery();
+        $discovery = $this->discovery();
 
         $header = base64_encode(json_encode(['alg' => 'RS256'], JSON_THROW_ON_ERROR));
         $payload = base64_encode(json_encode([
@@ -85,7 +95,7 @@ final class OidcDiscoveryTest extends TestCase
 
     public function testValidateIdTokenRejectsWrongIssuer(): void
     {
-        $discovery = new OidcDiscovery();
+        $discovery = $this->discovery();
 
         $header = base64_encode(json_encode(['alg' => 'RS256'], JSON_THROW_ON_ERROR));
         $payload = base64_encode(json_encode([
@@ -102,7 +112,7 @@ final class OidcDiscoveryTest extends TestCase
 
     public function testValidateIdTokenRejectsWrongAudience(): void
     {
-        $discovery = new OidcDiscovery();
+        $discovery = $this->discovery();
 
         $header = base64_encode(json_encode(['alg' => 'RS256'], JSON_THROW_ON_ERROR));
         $payload = base64_encode(json_encode([
@@ -119,7 +129,7 @@ final class OidcDiscoveryTest extends TestCase
 
     public function testValidateIdTokenRejectsInvalidFormat(): void
     {
-        $discovery = new OidcDiscovery();
+        $discovery = $this->discovery();
 
         $this->assertNull($discovery->validateIdToken('not-a-jwt', '', ''));
         $this->assertNull($discovery->validateIdToken('a.b', '', ''));
@@ -127,7 +137,7 @@ final class OidcDiscoveryTest extends TestCase
 
     public function testValidateIdTokenAcceptsArrayAudience(): void
     {
-        $discovery = new OidcDiscovery();
+        $discovery = $this->discovery();
 
         $header = base64_encode(json_encode(['alg' => 'RS256'], JSON_THROW_ON_ERROR));
         $payload = base64_encode(json_encode([
@@ -143,9 +153,19 @@ final class OidcDiscoveryTest extends TestCase
 
     public function testDiscoverReturnsNullForUnreachableUrl(): void
     {
-        $discovery = new OidcDiscovery();
+        $discovery = $this->discovery();
 
         $result = $discovery->discover('http://127.0.0.1:19999');
         $this->assertNull($result);
+    }
+    public function testHostedModeRefusesInternalIssuer(): void
+    {
+        // The issuer is admin-supplied through the auth-provider API, so in
+        // hosted mode discovery must not be usable to probe the network. This
+        // is refused before curl is dialled at all.
+        $discovery = new OidcDiscovery(new OutboundUrlValidator('hosted'));
+
+        $this->assertNull($discovery->discover('http://169.254.169.254'));
+        $this->assertNull($discovery->discover('file:///etc/passwd'));
     }
 }

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Unit\Webhook;
+namespace App\Tests\Unit\Security;
 
-use App\Webhook\WebhookUrlValidator;
+use App\Security\OutboundUrlValidator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -12,16 +12,16 @@ use PHPUnit\Framework\TestCase;
  * IP literals throughout, so these stay hermetic: a hostname would put a real
  * DNS lookup in the middle of the assertion.
  */
-final class WebhookUrlValidatorTest extends TestCase
+final class OutboundUrlValidatorTest extends TestCase
 {
-    private function hosted(): WebhookUrlValidator
+    private function hosted(): OutboundUrlValidator
     {
-        return new WebhookUrlValidator('hosted');
+        return new OutboundUrlValidator('hosted');
     }
 
-    private function standalone(): WebhookUrlValidator
+    private function standalone(): OutboundUrlValidator
     {
-        return new WebhookUrlValidator('standalone');
+        return new OutboundUrlValidator('standalone');
     }
 
     /** @return list<array{string}> */
