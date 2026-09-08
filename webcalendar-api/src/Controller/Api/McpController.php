@@ -118,7 +118,7 @@ final class McpController
         }
 
         if ($method === 'tools/call') {
-            $toolName = \is_string($params['name'] ?? null) ? $params['name'] : '';
+            $toolName = self::stringArg($params, 'name');
             /** @var array<string, mixed> $toolArgs */
             $toolArgs = \is_array($params['arguments'] ?? null) ? $params['arguments'] : [];
             return $this->callTool($rpcId, $toolName, $toolArgs, $user);
@@ -152,8 +152,8 @@ final class McpController
     /** @param array<string, mixed> $args */
     private function listEvents(string|int|null $id, array $args, User $user): JsonResponse
     {
-        $startStr = \is_string($args['start_date'] ?? null) ? $args['start_date'] : '';
-        $endStr = \is_string($args['end_date'] ?? null) ? $args['end_date'] : '';
+        $startStr = self::stringArg($args, 'start_date');
+        $endStr = self::stringArg($args, 'end_date');
 
         $start = \DateTimeImmutable::createFromFormat('Ymd', $startStr);
         $end = \DateTimeImmutable::createFromFormat('Ymd', $endStr);
@@ -181,13 +181,13 @@ final class McpController
     /** @param array<string, mixed> $args */
     private function createEvent(string|int|null $id, array $args, User $user): JsonResponse
     {
-        $title = \is_string($args['title'] ?? null) ? $args['title'] : '';
-        $startDate = \is_string($args['start_date'] ?? null) ? $args['start_date'] : '';
+        $title = self::stringArg($args, 'title');
+        $startDate = self::stringArg($args, 'start_date');
         if ($title === '' || $startDate === '') {
             return $this->jsonRpcError($id, -32602, 'title and start_date are required');
         }
 
-        $startTime = \is_string($args['start_time'] ?? null) ? $args['start_time'] : '';
+        $startTime = self::stringArg($args, 'start_time');
         $allDay = $startTime === '';
         $start = $this->parseDateTime($startDate, $startTime);
         if ($start === null) {
@@ -198,8 +198,8 @@ final class McpController
             id: new EventId(0),
             uid: sprintf('mcp-%s@webcalendar', bin2hex(random_bytes(8))),
             name: $title,
-            description: \is_string($args['description'] ?? null) ? $args['description'] : '',
-            location: \is_string($args['location'] ?? null) ? $args['location'] : '',
+            description: self::stringArg($args, 'description'),
+            location: self::stringArg($args, 'location'),
             start: $start,
             duration: \is_numeric($args['duration'] ?? null) ? (int) $args['duration'] : 60,
             createdBy: $user->login(),
@@ -226,13 +226,13 @@ final class McpController
             return $this->jsonRpcError($id, -32602, 'Event not found');
         }
 
-        $title = \is_string($args['title'] ?? null) ? $args['title'] : $existing->name();
-        $desc = \is_string($args['description'] ?? null) ? $args['description'] : $existing->description();
-        $loc = \is_string($args['location'] ?? null) ? $args['location'] : $existing->location();
+        $title = self::stringArg($args, 'title', $existing->name());
+        $desc = self::stringArg($args, 'description', $existing->description());
+        $loc = self::stringArg($args, 'location', $existing->location());
         $dur = \is_numeric($args['duration'] ?? null) ? (int) $args['duration'] : $existing->duration();
 
-        $startDate = \is_string($args['start_date'] ?? null) ? $args['start_date'] : null;
-        $startTime = \is_string($args['start_time'] ?? null) ? $args['start_time'] : null;
+        $startDate = self::nullableStringArg($args, 'start_date');
+        $startTime = self::nullableStringArg($args, 'start_time');
         $start = $startDate !== null ? ($this->parseDateTime($startDate, $startTime ?? '') ?? $existing->start()) : $existing->start();
 
         $updated = new Event(
@@ -265,7 +265,7 @@ final class McpController
     /** @param array<string, mixed> $args */
     private function searchEvents(string|int|null $id, array $args, User $user): JsonResponse
     {
-        $query = \is_string($args['query'] ?? null) ? $args['query'] : '';
+        $query = self::stringArg($args, 'query');
         if ($query === '') {
             return $this->jsonRpcError($id, -32602, 'query parameter required');
         }
@@ -277,13 +277,13 @@ final class McpController
     /** @param array<string, mixed> $args */
     private function getAvailability(string|int|null $id, array $args, User $user): JsonResponse
     {
-        $dateStr = \is_string($args['date'] ?? null) ? $args['date'] : '';
+        $dateStr = self::stringArg($args, 'date');
         $date = \DateTimeImmutable::createFromFormat('Ymd', $dateStr);
         if ($date === false) {
             return $this->jsonRpcError($id, -32602, 'Invalid date. Use YYYYMMDD.');
         }
 
-        $targetLogin = \is_string($args['user'] ?? null) ? $args['user'] : $user->login();
+        $targetLogin = self::stringArg($args, 'user', $user->login());
         $targetUser = $this->userService->getUserByLogin($targetLogin) ?? $user;
 
         $slots = $this->bookingService->getAvailability($targetUser, $date->setTime(0, 0));
@@ -338,6 +338,41 @@ final class McpController
             ];
         }
         return $tools;
+    }
+
+    /**
+     * Reads a string argument, falling back when the key is absent or holds a
+     * non-string.
+     *
+     * Guards the offset itself. The `\is_string($args[$key] ?? null) ? ... : ...`
+     * form these call sites used refines the `?? null` expression rather than
+     * `$args[$key]`, so re-reading the offset in the true branch still yielded
+     * mixed -- which is where this file's 30 baselined Mixed* issues came from.
+     *
+     * @param array<string, mixed> $args
+     */
+    private static function stringArg(array $args, string $key, string $default = ''): string
+    {
+        if (isset($args[$key]) && \is_string($args[$key])) {
+            return $args[$key];
+        }
+
+        return $default;
+    }
+
+    /**
+     * Same as stringArg(), but absent/non-string yields null so callers can tell
+     * "not supplied" from "supplied empty".
+     *
+     * @param array<string, mixed> $args
+     */
+    private static function nullableStringArg(array $args, string $key): ?string
+    {
+        if (isset($args[$key]) && \is_string($args[$key])) {
+            return $args[$key];
+        }
+
+        return null;
     }
 
     private function parseDateTime(string $date, string $time): ?\DateTimeImmutable

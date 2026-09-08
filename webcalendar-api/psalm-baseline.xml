@@ -261,42 +261,6 @@
       <code><![CDATA[$decoded]]></code>
     </MixedAssignment>
   </file>
-  <file src="src/Controller/Api/McpController.php">
-    <MixedArgument>
-      <code><![CDATA[$dateStr]]></code>
-      <code><![CDATA[$desc]]></code>
-      <code><![CDATA[$endStr]]></code>
-      <code><![CDATA[$loc]]></code>
-      <code><![CDATA[$query]]></code>
-      <code><![CDATA[$startDate]]></code>
-      <code><![CDATA[$startDate]]></code>
-      <code><![CDATA[$startStr]]></code>
-      <code><![CDATA[$startTime]]></code>
-      <code><![CDATA[$startTime ?? '']]></code>
-      <code><![CDATA[$targetLogin]]></code>
-      <code><![CDATA[$title]]></code>
-      <code><![CDATA[$title]]></code>
-      <code><![CDATA[$toolName]]></code>
-      <code><![CDATA[\is_string($args['description'] ?? null) ? $args['description'] : '']]></code>
-      <code><![CDATA[\is_string($args['location'] ?? null) ? $args['location'] : '']]></code>
-    </MixedArgument>
-    <MixedAssignment>
-      <code><![CDATA[$dateStr]]></code>
-      <code><![CDATA[$desc]]></code>
-      <code><![CDATA[$endStr]]></code>
-      <code><![CDATA[$loc]]></code>
-      <code><![CDATA[$query]]></code>
-      <code><![CDATA[$startDate]]></code>
-      <code><![CDATA[$startDate]]></code>
-      <code><![CDATA[$startStr]]></code>
-      <code><![CDATA[$startTime]]></code>
-      <code><![CDATA[$startTime]]></code>
-      <code><![CDATA[$targetLogin]]></code>
-      <code><![CDATA[$title]]></code>
-      <code><![CDATA[$title]]></code>
-      <code><![CDATA[$toolName]]></code>
-    </MixedAssignment>
-  </file>
   <file src="src/Controller/Api/OAuthController.php">
     <MixedArgument>
       <code><![CDATA[$email]]></code>
