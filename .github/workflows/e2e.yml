@@ -21,17 +21,37 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Setup PHP 8.2
+      - name: Setup PHP 8.3
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.2"
+          php-version: "8.3"
           extensions: intl, pdo_mysql, zip, mbstring
           tools: composer:v2
+
+      # Must precede `compose up`. The stack bind-mounts ./webcalendar-api, and
+      # vendor/ is gitignored, so without this php-fpm boots with no autoloader
+      # and nginx never passes its healthcheck. MySQL is affected too: its init
+      # script is mounted from vendor/craigk5n/webcalendar-core, and Docker
+      # silently creates a directory in place of a missing bind-mount source,
+      # which the entrypoint skips — leaving the database empty.
+      - name: Install PHP dependencies
+        working-directory: webcalendar-api
+        run: composer install --no-interaction --prefer-dist
 
       - name: Start Docker Compose stack
         run: |
           docker compose -f docker-compose.dev.yml up -d --build --wait
         timeout-minutes: 10
+
+      # MySQL initialises from webcalendar-core's schema, which seeds no users,
+      # but every spec signs in as admin/admin (tests/e2e/fixtures/auth.ts).
+      # Same provisioning the API workflow does.
+      - name: Apply migrations and seed admin fixture
+        run: |
+          docker compose -f docker-compose.dev.yml exec -T php-fpm \
+            php bin/console migrations:migrate --no-interaction
+          docker compose -f docker-compose.dev.yml exec -T php-fpm \
+            php bin/console webcalendar:install --force --admin-password=admin
 
       - name: Install Playwright browsers
         working-directory: webcalendar-web

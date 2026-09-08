@@ -6,7 +6,9 @@ test('login with valid credentials redirects to calendar', async ({ page }) => {
   await page.getByLabel('Password').fill('admin');
   await page.getByRole('button', { name: /sign in/i }).click();
   await expect(page).toHaveURL('/');
-  await expect(page.getByText('admin')).toBeVisible();
+  // exact:true is case-sensitive, so this matches the username span and not
+  // the 'Admin' nav-section heading, which would be a strict-mode violation.
+  await expect(page.getByText('admin', { exact: true })).toBeVisible();
 });
 
 test('login with invalid credentials shows error', async ({ page }) => {
@@ -41,5 +43,7 @@ test('session persists across page reload', async ({ page }) => {
   await expect(page).toHaveURL('/');
   await page.reload();
   await expect(page).toHaveURL('/');
-  await expect(page.getByText('admin')).toBeVisible();
+  // exact:true is case-sensitive, so this matches the username span and not
+  // the 'Admin' nav-section heading, which would be a strict-mode violation.
+  await expect(page.getByText('admin', { exact: true })).toBeVisible();
 });
