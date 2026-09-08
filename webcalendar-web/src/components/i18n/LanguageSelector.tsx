@@ -1,27 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { changeLocale } from '../../i18n';
-
-interface LocaleOption {
-  code: string;
-  name: string;
-  rtl: boolean;
-}
-
-const LOCALES: LocaleOption[] = [
-  { code: 'en', name: 'English', rtl: false },
-  { code: 'fr', name: 'Français', rtl: false },
-  { code: 'de', name: 'Deutsch', rtl: false },
-  { code: 'es', name: 'Español', rtl: false },
-  { code: 'ar', name: 'العربية', rtl: true },
-  { code: 'he', name: 'עברית', rtl: true },
-];
-
-const RTL_LOCALES = new Set(LOCALES.filter((l) => l.rtl).map((l) => l.code));
-
-export function isRtlLocale(locale: string): boolean {
-  return RTL_LOCALES.has(locale);
-}
+import { isRtlLocale, LOCALES } from './locales';
 
 export function LanguageSelector() {
   const { i18n } = useTranslation();

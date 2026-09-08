@@ -44,9 +44,11 @@ export function CategoryFilterPopover({ onChange }: CategoryFilterPopoverProps) 
   }, []);
 
   // Notify parent
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- onChange is stable via useCallback, excluding to prevent infinite loops
   useEffect(() => {
     if (loaded) onChange(Array.from(activeIds));
+    // onChange excluded to prevent infinite loops. As above, the disable must
+    // be on the dependency-array line to apply.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIds, loaded]);
 
   // Sync when the sidebar panel (or another component) changes localStorage

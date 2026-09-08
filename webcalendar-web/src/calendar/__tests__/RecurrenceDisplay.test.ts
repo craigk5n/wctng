@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { rruleToHuman } from '../RecurrenceEditor';
+import { rruleToHuman } from '../rrule';
 
 describe('rruleToHuman', () => {
   it('returns empty for no rrule', () => {

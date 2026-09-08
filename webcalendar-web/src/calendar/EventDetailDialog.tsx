@@ -4,7 +4,7 @@ import { ParticipantList } from './ParticipantList';
 import { RichTextDisplay } from '../components/editor/RichTextDisplay';
 import { AttachmentSection } from './AttachmentSection';
 import { CommentSection } from './CommentSection';
-import { rruleToHuman } from './RecurrenceEditor';
+import { rruleToHuman } from './rrule';
 
 const ACCESS_LABELS: Record<string, string> = {
   P: 'Public',

@@ -62,9 +62,13 @@ export function CategoryFilter({ onChange }: CategoryFilterProps) {
   }, []);
 
   // Notify parent when filter changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- onChange excluded to prevent infinite loops
   useEffect(() => {
     if (loaded) onChange(Array.from(activeIds));
+    // onChange excluded to prevent infinite loops: parents pass an inline
+    // callback, so including it would re-run this effect every render.
+    // The disable has to sit on the dependency-array line — that is where
+    // exhaustive-deps reports, so above the useEffect it had no effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIds, loaded]);
 
   const persist = useCallback((ids: Set<number>) => {

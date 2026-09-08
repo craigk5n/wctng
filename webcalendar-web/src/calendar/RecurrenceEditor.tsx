@@ -1,22 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { DAYS, parseRrule, type EndType } from './rrule';
+
 interface RecurrenceEditorProps {
   value: string; // RRULE string or empty
   onChange: (rrule: string) => void;
 }
 
 type Preset = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
-type EndType = 'never' | 'count' | 'until';
 
-const DAYS = [
-  { key: 'MO', label: 'Mon' },
-  { key: 'TU', label: 'Tue' },
-  { key: 'WE', label: 'Wed' },
-  { key: 'TH', label: 'Thu' },
-  { key: 'FR', label: 'Fri' },
-  { key: 'SA', label: 'Sat' },
-  { key: 'SU', label: 'Sun' },
-];
 
 function detectPreset(rrule: string): Preset {
   if (!rrule) return 'none';
@@ -28,29 +20,7 @@ function detectPreset(rrule: string): Preset {
   return 'custom';
 }
 
-function parseRrule(rrule: string): { freq: string; interval: number; byDay: string[]; endType: EndType; count: number; until: string } {
-  const parts: Record<string, string> = {};
-  for (const part of rrule.split(';')) {
-    const [k, v] = part.split('=');
-    if (k && v) parts[k.toUpperCase()] = v;
-  }
-  return {
-    freq: parts['FREQ'] ?? 'WEEKLY',
-    interval: parseInt(parts['INTERVAL'] ?? '1', 10) || 1,
-    byDay: parts['BYDAY'] ? parts['BYDAY'].split(',') : [],
-    endType: parts['COUNT'] ? 'count' : parts['UNTIL'] ? 'until' : 'never',
-    count: parseInt(parts['COUNT'] ?? '10', 10) || 10,
-    until: parts['UNTIL'] ? formatUntilForInput(parts['UNTIL']) : '',
-  };
-}
 
-function formatUntilForInput(until: string): string {
-  // Convert YYYYMMDD to YYYY-MM-DD
-  if (until.length >= 8) {
-    return `${until.slice(0, 4)}-${until.slice(4, 6)}-${until.slice(6, 8)}`;
-  }
-  return until;
-}
 
 export function RecurrenceEditor({ value, onChange }: RecurrenceEditorProps) {
   const [preset, setPreset] = useState<Preset>(detectPreset(value));
@@ -72,7 +42,20 @@ export function RecurrenceEditor({ value, onChange }: RecurrenceEditorProps) {
       setCount(parsed.count);
       setUntil(parsed.until);
     }
-  }, []); // Only on mount
+    // Intentionally mount-only: this seeds the custom-mode fields from the
+    // incoming RRULE once. Adding `value` would re-parse on every change this
+    // component itself emits, overwriting what the user is editing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const buildCustomRrule = useCallback(() => {
+    const parts = [`FREQ=${freq}`];
+    if (interval > 1) parts.push(`INTERVAL=${interval}`);
+    if (byDay.length > 0 && freq === 'WEEKLY') parts.push(`BYDAY=${byDay.join(',')}`);
+    if (endType === 'count') parts.push(`COUNT=${count}`);
+    if (endType === 'until' && until) parts.push(`UNTIL=${until.replace(/-/g, '')}`);
+    onChange(parts.join(';'));
+  }, [freq, interval, byDay, endType, count, until, onChange]);
 
   const handlePresetChange = useCallback((newPreset: Preset) => {
     setPreset(newPreset);
@@ -84,16 +67,7 @@ export function RecurrenceEditor({ value, onChange }: RecurrenceEditorProps) {
       case 'yearly': onChange('FREQ=YEARLY'); break;
       case 'custom': buildCustomRrule(); break;
     }
-  }, [onChange]);
-
-  const buildCustomRrule = useCallback(() => {
-    const parts = [`FREQ=${freq}`];
-    if (interval > 1) parts.push(`INTERVAL=${interval}`);
-    if (byDay.length > 0 && freq === 'WEEKLY') parts.push(`BYDAY=${byDay.join(',')}`);
-    if (endType === 'count') parts.push(`COUNT=${count}`);
-    if (endType === 'until' && until) parts.push(`UNTIL=${until.replace(/-/g, '')}`);
-    onChange(parts.join(';'));
-  }, [freq, interval, byDay, endType, count, until, onChange]);
+  }, [onChange, buildCustomRrule]);
 
   // Rebuild RRULE when custom fields change
   useEffect(() => {
@@ -227,28 +201,3 @@ export function RecurrenceEditor({ value, onChange }: RecurrenceEditorProps) {
 /**
  * Converts an RRULE string to a human-readable description.
  */
-export function rruleToHuman(rrule: string): string {
-  if (!rrule) return '';
-  const parsed = parseRrule(rrule);
-  const freqLabels: Record<string, string> = {
-    DAILY: 'day', WEEKLY: 'week', MONTHLY: 'month', YEARLY: 'year',
-  };
-  const freqLabel = freqLabels[parsed.freq] ?? parsed.freq.toLowerCase();
-
-  let desc = parsed.interval > 1
-    ? `Every ${parsed.interval} ${freqLabel}s`
-    : `Every ${freqLabel}`;
-
-  if (parsed.byDay.length > 0) {
-    const dayNames = parsed.byDay.map((d) => DAYS.find((dd) => dd.key === d)?.label ?? d);
-    desc += ` on ${dayNames.join(', ')}`;
-  }
-
-  if (parsed.endType === 'count') {
-    desc += `, ${parsed.count} times`;
-  } else if (parsed.endType === 'until' && parsed.until) {
-    desc += `, until ${parsed.until}`;
-  }
-
-  return desc;
-}
