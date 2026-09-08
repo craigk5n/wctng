@@ -6,6 +6,8 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
@@ -24,6 +26,9 @@ final class SecurityAuditController
         #[\SensitiveParameter]
         private readonly string $appSecret,
         private readonly string $environment,
+        // Defaulted so the container autowires the real logger while code
+        // that constructs this directly keeps working.
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {}
 
     #[Route('/api/v2/admin/security-audit', name: 'api_admin_security_audit', methods: ['GET'])]
@@ -94,7 +99,8 @@ final class SecurityAuditController
             if (\is_string($hash) && password_verify('admin', $hash)) {
                 $isDefault = true;
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('pdo->prepare() failed', ['exception' => $e->getMessage()]);
         }
 
         return [
@@ -443,7 +449,8 @@ final class SecurityAuditController
                 $val = $stmt->fetchColumn();
                 $count = $val !== false ? (int) $val : 0;
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('pdo->query() failed', ['exception' => $e->getMessage()]);
         }
 
         return [
@@ -467,7 +474,8 @@ final class SecurityAuditController
                 $val = $stmt->fetchColumn();
                 $count = $val !== false ? (int) $val : 0;
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('pdo->query() failed', ['exception' => $e->getMessage()]);
         }
 
         return [

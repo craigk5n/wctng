@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Service;
 
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use WebCalendar\Core\Application\Service\ActivityLogService;
 use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\ValueObject\ActivityLogType;
@@ -16,6 +18,9 @@ final readonly class EventRecurrenceService
         private MercurePublisher $mercure,
         private ActivityLogService $activityLogService,
         private ClockInterface $clock,
+        // Defaulted so the container autowires the real logger while code
+        // that constructs this directly keeps working.
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {}
 
     /**
@@ -44,7 +49,8 @@ final readonly class EventRecurrenceService
 
         try {
             $this->mercure->publishEventUpdated($id, ['action' => 'exdate_added']);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('mercure->publishEventUpdated() failed', ['exception' => $e->getMessage()]);
         }
 
         try {
@@ -55,7 +61,8 @@ final readonly class EventRecurrenceService
                 ActivityLogType::UPDATE,
                 'Cancelled occurrence ' . $date->format('Y-m-d') . ' of: ' . $event->name(),
             );
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('activityLogService->log() failed', ['exception' => $e->getMessage()]);
         }
 
         return [
@@ -90,7 +97,8 @@ final readonly class EventRecurrenceService
 
         try {
             $this->mercure->publishEventUpdated($id, ['action' => 'series_truncated']);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('mercure->publishEventUpdated() failed', ['exception' => $e->getMessage()]);
         }
 
         try {
@@ -101,7 +109,8 @@ final readonly class EventRecurrenceService
                 ActivityLogType::UPDATE,
                 'Truncated series at ' . $fromDate->format('Y-m-d') . ': ' . $event->name(),
             );
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('activityLogService->log() failed', ['exception' => $e->getMessage()]);
         }
 
         return [
@@ -202,7 +211,8 @@ final readonly class EventRecurrenceService
                 ActivityLogType::UPDATE,
                 'Split series at ' . $fromDate->format('Y-m-d') . ': ' . $original->name() . ' → new event #' . $newId,
             );
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('activityLogService->log() failed', ['exception' => $e->getMessage()]);
         }
 
         return ['original_id' => $originalId, 'new_id' => $newId];

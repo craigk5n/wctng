@@ -7,6 +7,8 @@ namespace App\Command;
 use App\Security\PasswordHasher;
 use App\Service\CoreServiceFactory;
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -55,6 +57,9 @@ final class SeedTestDataCommand extends Command
         private readonly CoreServiceFactory $factory,
         private readonly PasswordHasher $passwordHasher = new PasswordHasher(),
         private readonly ClockInterface $clock = new NativeClock(),
+        // Defaulted so the container autowires the real logger while code
+        // that constructs this directly keeps working.
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {
         parent::__construct();
     }
@@ -305,7 +310,8 @@ final class SeedTestDataCommand extends Command
                     if ($createdEvent !== null) {
                         try {
                             $catRepo->assignToEvent($createdEvent->id(), $login, [$catId]);
-                        } catch (\Throwable) {
+                        } catch (\Throwable $e) {
+                            $this->logger->warning('catRepo->assignToEvent() failed', ['exception' => $e->getMessage()]);
                         }
                     }
                 }

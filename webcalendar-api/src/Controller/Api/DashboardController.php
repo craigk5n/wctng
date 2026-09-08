@@ -8,6 +8,8 @@ use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Service\ErrorMetricsService;
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
@@ -24,6 +26,9 @@ final class DashboardController
         private readonly \PDO $pdo,
         private readonly ?ErrorMetricsService $errorMetrics = null,
         private readonly ClockInterface $clock = new NativeClock(),
+        // Defaulted so the container autowires the real logger while code
+        // that constructs this directly keeps working.
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {}
 
     #[Route('/api/v2/admin/dashboard', name: 'api_admin_dashboard', methods: ['GET'])]
@@ -49,7 +54,8 @@ final class DashboardController
         $total = 0;
         try {
             $total = \count($this->userRepository->findAll());
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->debug('userRepository->findAll() failed', ['exception' => $e->getMessage()]);
         }
 
         // Active users: distinct creators in last 7 days
@@ -63,7 +69,8 @@ final class DashboardController
             /** @var numeric-string|false $val */
             $val = $stmt->fetchColumn();
             $active7d = $val !== false ? (int) $val : 0;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('clock->now() failed', ['exception' => $e->getMessage()]);
         }
 
         return ['total' => $total, 'active_7d' => $active7d, 'created_7d' => $this->getEventsCreated7d()];
@@ -84,7 +91,8 @@ final class DashboardController
                 $val = $stmt->fetchColumn();
                 $total = $val !== false ? (int) $val : 0;
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('pdo->query() failed', ['exception' => $e->getMessage()]);
         }
 
         try {
@@ -97,7 +105,8 @@ final class DashboardController
             /** @var numeric-string|false $val */
             $val = $stmt->fetchColumn();
             $upcoming7d = $val !== false ? (int) $val : 0;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('clock->now() failed', ['exception' => $e->getMessage()]);
         }
 
         return ['total' => $total, 'created_7d' => $this->getEventsCreated7d(), 'upcoming_7d' => $upcoming7d];
@@ -144,13 +153,15 @@ final class DashboardController
                 $pageSize = $stmt2 !== false ? (int) $stmt2->fetchColumn() : 0;
                 $dbSize = round(($pageCount * $pageSize) / 1024 / 1024, 1);
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('pdo->query() failed', ['exception' => $e->getMessage()]);
         }
 
         $recentErrors = 0;
         try {
             $recentErrors = $this->errorMetrics?->getRecentErrorCount(7) ?? 0;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->debug('errorMetrics->getRecentErrorCount() failed', ['exception' => $e->getMessage()]);
         }
 
         return [
@@ -176,7 +187,8 @@ final class DashboardController
             /** @var numeric-string|false $val */
             $val = $stmt->fetchColumn();
             $remindersSent = $val !== false ? (int) $val : 0;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('pdo->prepare() failed', ['exception' => $e->getMessage()]);
         }
 
         try {
@@ -186,7 +198,8 @@ final class DashboardController
             /** @var numeric-string|false $val */
             $val = $stmt->fetchColumn();
             $agendaSent = $val !== false ? (int) $val : 0;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('pdo->prepare() failed', ['exception' => $e->getMessage()]);
         }
 
         return ['reminders_sent_7d' => $remindersSent, 'agenda_sent_7d' => $agendaSent];

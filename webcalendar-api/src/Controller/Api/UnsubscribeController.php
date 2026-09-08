@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
@@ -19,6 +21,9 @@ final class UnsubscribeController
         private readonly UserRepositoryInterface $userRepository,
         #[\SensitiveParameter]
         private readonly string $appSecret,
+        // Defaulted so the container autowires the real logger while code
+        // that constructs this directly keeps working.
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {}
 
     #[Route('/api/v2/unsubscribe/{token}', name: 'api_unsubscribe', methods: ['GET'])]
@@ -61,7 +66,8 @@ final class UnsubscribeController
                     return $user->login();
                 }
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->debug('userRepository->findAll() failed', ['exception' => $e->getMessage()]);
         }
 
         return null;

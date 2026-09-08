@@ -6,6 +6,8 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,6 +26,9 @@ final class CommentController
         private readonly ActivityLogService $activityLogService,
         private readonly ConfigService $configService,
         private readonly \PDO $pdo,
+        // Defaulted so the container autowires the real logger while code
+        // that constructs this directly keeps working.
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {}
 
     #[Route('/api/v2/events/{eventId}/comments', name: 'api_event_comments_list', methods: ['GET'])]
@@ -110,7 +115,8 @@ final class CommentController
                 ActivityLogType::UPDATE,
                 'Comment: ' . mb_substr($text, 0, 100),
             );
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('activityLogService->log() failed', ['exception' => $e->getMessage()]);
         }
 
         return ApiResponse::success([

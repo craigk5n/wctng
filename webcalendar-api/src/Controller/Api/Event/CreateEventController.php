@@ -19,6 +19,8 @@ use App\Service\GeocodingService;
 use App\Service\GeoRepository;
 use App\Service\MercurePublisher;
 use App\Webhook\WebhookDispatcher;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -50,6 +52,9 @@ final class CreateEventController
         private readonly WebhookDispatcher $webhookDispatcher,
         private readonly MercurePublisher $mercure,
         private readonly ActivityLogService $activityLogService,
+        // Defaulted so the container autowires the real logger while code
+        // that constructs this directly keeps working.
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {}
 
     #[Route('/api/v2/events', name: 'api_events_create', methods: ['POST'])]
@@ -87,7 +92,8 @@ final class CreateEventController
         try {
             $value = $this->configService->getSetting('DISABLE_EXT_PARTICIPANTS_FIELD', 'N');
             $isExtParticipantsDisabled = $value === 'Y';
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->debug('configService->getSetting() failed', ['exception' => $e->getMessage()]);
         }
         if ($extParticipants !== [] && $isExtParticipantsDisabled) {
             return ApiResponse::error(403, 'External participants are disabled by the administrator');
@@ -165,7 +171,8 @@ final class CreateEventController
                 $this->geocodingService->geocodeEvent($created->id()->value(), $created->location());
                 $geo = $this->geoRepository->getCoordinates($created->id()->value());
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('geocodingService->geocodeEvent() failed', ['exception' => $e->getMessage()]);
         }
 
         $responseData = EventResponseDTO::fromEntity($created, $categoryIds, $geo);
@@ -173,18 +180,21 @@ final class CreateEventController
 
         try {
             $this->mercure->publishEventCreated($created->id()->value(), $responseData);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('mercure->publishEventCreated() failed', ['exception' => $e->getMessage()]);
         }
 
         try {
             $this->webhookDispatcher->dispatch('event.created', $responseData);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('webhookDispatcher->dispatch() failed', ['exception' => $e->getMessage()]);
         }
 
         // Send invitations to external (email-only) participants
         try {
             $this->notifications->notifyExtParticipantsAdded($responseData, $extParticipants);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('notifications->notifyExtParticipantsAdded() failed', ['exception' => $e->getMessage()]);
         }
 
         // Log activity
@@ -196,7 +206,8 @@ final class CreateEventController
                 ActivityLogType::CREATE,
                 'Created event: ' . $created->name(),
             );
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('activityLogService->log() failed', ['exception' => $e->getMessage()]);
         }
 
         $meta = \count($conflictList) > 0 ? ['conflicts' => $conflictList] : null;

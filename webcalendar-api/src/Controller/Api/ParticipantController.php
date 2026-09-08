@@ -8,6 +8,8 @@ use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Service\EventNotificationService;
 use App\Service\MercurePublisher;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,6 +27,9 @@ final class ParticipantController
         private readonly EventRepositoryInterface $eventRepository,
         private readonly MercurePublisher $mercure,
         private readonly EventNotificationService $notifications,
+        // Defaulted so the container autowires the real logger while code
+        // that constructs this directly keeps working.
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {}
 
     #[Route('/api/v2/events/{eventId}/participants', name: 'api_participants_list', methods: ['GET'])]
@@ -87,7 +92,8 @@ final class ParticipantController
 
         try {
             $this->mercure->publishParticipantChanged($eventId, ['action' => 'added', 'participants' => $participantList]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('mercure->publishParticipantChanged() failed', ['exception' => $e->getMessage()]);
         }
 
         // Send invitation emails to new participants
@@ -97,7 +103,8 @@ final class ParticipantController
                 $eventData = \App\DTO\EventResponseDTO::fromEntity($eventEntity);
                 $this->notifications->notifyParticipantsAdded($eventData, $participantList);
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->debug('eventService->getEventById() failed', ['exception' => $e->getMessage()]);
         }
 
         return ApiResponse::success(['message' => 'Participants added']);
@@ -120,7 +127,8 @@ final class ParticipantController
 
         try {
             $this->mercure->publishParticipantChanged($eventId, ['action' => 'removed', 'login' => $login]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('mercure->publishParticipantChanged() failed', ['exception' => $e->getMessage()]);
         }
 
         return ApiResponse::noContent();
@@ -188,7 +196,8 @@ final class ParticipantController
 
         try {
             $this->mercure->publishParticipantChanged($eventId, ['action' => 'approved', 'login' => $coreUser->login()]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('mercure->publishParticipantChanged() failed', ['exception' => $e->getMessage()]);
         }
 
         return ApiResponse::success(['login' => $coreUser->login(), 'status' => 'A']);
@@ -215,7 +224,8 @@ final class ParticipantController
 
         try {
             $this->mercure->publishParticipantChanged($eventId, ['action' => 'rejected', 'login' => $coreUser->login()]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('mercure->publishParticipantChanged() failed', ['exception' => $e->getMessage()]);
         }
 
         return ApiResponse::success(['login' => $coreUser->login(), 'status' => 'R']);

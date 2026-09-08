@@ -20,6 +20,8 @@ use App\Service\GeocodingService;
 use App\Service\GeoRepository;
 use App\Service\MercurePublisher;
 use App\Webhook\WebhookDispatcher;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
@@ -52,6 +54,9 @@ final class UpdateEventController
         private readonly MercurePublisher $mercure,
         private readonly ActivityLogService $activityLogService,
         private readonly EventRecurrenceService $recurrenceService,
+        // Defaulted so the container autowires the real logger while code
+        // that constructs this directly keeps working.
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {}
 
     /**
@@ -133,7 +138,8 @@ final class UpdateEventController
             try {
                 $value = $this->configService->getSetting('DISABLE_EXT_PARTICIPANTS_FIELD', 'N');
                 $isExtParticipantsDisabled = $value === 'Y';
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                $this->logger->debug('configService->getSetting() failed', ['exception' => $e->getMessage()]);
             }
             if ($extParticipantsUpdate !== [] && $isExtParticipantsDisabled) {
                 return ApiResponse::error(403, 'External participants are disabled by the administrator');
@@ -190,7 +196,8 @@ final class UpdateEventController
                 $this->geocodingService->geocodeEvent($id, $saved->location());
             }
             $geo = $this->geoRepository->getCoordinates($id);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('geocodingService->geocodeEvent() failed', ['exception' => $e->getMessage()]);
         }
 
         $responseData = EventResponseDTO::fromEntity($saved, $categoryIds, $geo);
@@ -198,12 +205,14 @@ final class UpdateEventController
 
         try {
             $this->mercure->publishEventUpdated($id, $responseData);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('mercure->publishEventUpdated() failed', ['exception' => $e->getMessage()]);
         }
 
         try {
             $this->webhookDispatcher->dispatch('event.updated', $responseData);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('webhookDispatcher->dispatch() failed', ['exception' => $e->getMessage()]);
         }
 
         // Notify participants of update
@@ -215,14 +224,16 @@ final class UpdateEventController
                 $pList[] = ['login' => $login, 'status' => $status];
             }
             $this->notifications->notifyEventUpdated($responseData, $pList);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->debug('eventRepository->getParticipantsWithStatus() failed', ['exception' => $e->getMessage()]);
         }
 
         // Notify external participants of update
         if ($extParticipantsUpdate !== null) {
             try {
                 $this->notifications->notifyExtParticipantsUpdated($responseData, $extParticipantsUpdate);
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                $this->logger->warning('notifications->notifyExtParticipantsUpdated() failed', ['exception' => $e->getMessage()]);
             }
         }
 
@@ -235,7 +246,8 @@ final class UpdateEventController
                 ActivityLogType::UPDATE,
                 'Updated event: ' . $saved->name(),
             );
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('activityLogService->log() failed', ['exception' => $e->getMessage()]);
         }
 
         $meta = \count($conflictList) > 0 ? ['conflicts' => $conflictList] : null;

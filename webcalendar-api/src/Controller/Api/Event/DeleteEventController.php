@@ -13,6 +13,8 @@ use App\Service\ExtParticipantRepository;
 use App\Service\MercurePublisher;
 use App\Service\TenantAwarePdoProvider;
 use App\Webhook\WebhookDispatcher;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
@@ -51,6 +53,9 @@ final class DeleteEventController
         private readonly MercurePublisher $mercure,
         private readonly ActivityLogService $activityLogService,
         private readonly TenantAwarePdoProvider $pdoProvider,
+        // Defaulted so the container autowires the real logger while code
+        // that constructs this directly keeps working.
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {}
 
     #[Route('/api/v2/events/{id}', name: 'api_events_delete', methods: ['DELETE'])]
@@ -110,7 +115,8 @@ final class DeleteEventController
 
             try {
                 $this->mercure->publishParticipantChanged($id, ['action' => 'declined', 'login' => $login]);
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                $this->logger->warning('mercure->publishParticipantChanged() failed', ['exception' => $e->getMessage()]);
             }
 
             try {
@@ -121,7 +127,8 @@ final class DeleteEventController
                     ActivityLogType::UPDATE,
                     'Declined event: ' . $existing->name(),
                 );
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                $this->logger->warning('activityLogService->log() failed', ['exception' => $e->getMessage()]);
             }
 
             return new JsonResponse([
@@ -150,7 +157,8 @@ final class DeleteEventController
                 $pList[] = ['login' => $pLogin, 'status' => $status];
             }
             $this->notifications->notifyEventDeleted($existing->name(), $pList);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->debug('eventRepository->getParticipantsWithStatus() failed', ['exception' => $e->getMessage()]);
         }
 
         // Notify external participants
@@ -165,17 +173,20 @@ final class DeleteEventController
                 ],
                 $extParticipants,
             );
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->debug('extParticipants->findForEvent() failed', ['exception' => $e->getMessage()]);
         }
 
         try {
             $this->mercure->publishEventDeleted($id);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('mercure->publishEventDeleted() failed', ['exception' => $e->getMessage()]);
         }
 
         try {
             $this->webhookDispatcher->dispatch('event.cancelled', ['id' => $id]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('webhookDispatcher->dispatch() failed', ['exception' => $e->getMessage()]);
         }
 
         try {
@@ -186,7 +197,8 @@ final class DeleteEventController
                 ActivityLogType::UPDATE,
                 'Cancelled event: ' . $existing->name(),
             );
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('activityLogService->log() failed', ['exception' => $e->getMessage()]);
         }
 
         return new JsonResponse([

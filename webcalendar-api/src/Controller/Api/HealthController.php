@@ -7,6 +7,8 @@ namespace App\Controller\Api;
 use App\Service\ErrorMetricsService;
 use App\Service\ReadinessProbe;
 use App\Tenant\TenantContext;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -27,6 +29,9 @@ final class HealthController
         private readonly ReadinessProbe $probe,
         private readonly string $appMode,
         private readonly ?ErrorMetricsService $errorMetrics = null,
+        // Defaulted so the container autowires the real logger while code
+        // that constructs this directly keeps working.
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {}
 
     #[Route('/api/v2/health', name: 'api_health', methods: ['GET'])]
@@ -61,7 +66,8 @@ final class HealthController
         $recentErrors = 0;
         try {
             $recentErrors = $this->errorMetrics?->getRecentErrorCount() ?? 0;
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->debug('errorMetrics->getRecentErrorCount() failed', ['exception' => $e->getMessage()]);
         }
 
         $response = [

@@ -152,7 +152,8 @@ final class DailyAgendaService
                     $skipEmpty = false;
                 }
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->debug('factory->getUserRepository() failed', ['exception' => $e->getMessage()]);
         }
 
         return ['enabled' => $enabled, 'hour' => $hour, 'skip_empty' => $skipEmpty];

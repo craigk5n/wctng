@@ -8,6 +8,8 @@ use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Service\MercurePublisher;
 use App\Service\TenantAwarePdoProvider;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
@@ -29,6 +31,9 @@ final class RestoreEventController
         private readonly MercurePublisher $mercure,
         private readonly ActivityLogService $activityLogService,
         private readonly TenantAwarePdoProvider $pdoProvider,
+        // Defaulted so the container autowires the real logger while code
+        // that constructs this directly keeps working.
+        private readonly LoggerInterface $logger = new NullLogger(),
     ) {}
 
     #[Route('/api/v2/events/{id}/restore', name: 'api_events_restore', methods: ['POST'])]
@@ -68,7 +73,8 @@ final class RestoreEventController
 
             try {
                 $this->mercure->publishEventUpdated($id, ['action' => 'restored']);
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                $this->logger->warning('mercure->publishEventUpdated() failed', ['exception' => $e->getMessage()]);
             }
 
             try {
@@ -79,7 +85,8 @@ final class RestoreEventController
                     ActivityLogType::UPDATE,
                     'Restored event: ' . $existing->name(),
                 );
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                $this->logger->warning('activityLogService->log() failed', ['exception' => $e->getMessage()]);
             }
 
             return ApiResponse::success(['restored' => true]);
@@ -92,7 +99,8 @@ final class RestoreEventController
 
         try {
             $this->mercure->publishParticipantChanged($id, ['action' => 'restored', 'login' => $login]);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('mercure->publishParticipantChanged() failed', ['exception' => $e->getMessage()]);
         }
 
         return ApiResponse::success(['restored' => true]);

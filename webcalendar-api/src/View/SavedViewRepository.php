@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\View;
 
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
+
 final readonly class SavedViewRepository
 {
     public const SCHEMA_SQL = <<<'SQL'
@@ -30,7 +33,12 @@ final readonly class SavedViewRepository
             )
         SQL;
 
-    public function __construct(private \PDO $pdo) {}
+    public function __construct(
+        private \PDO $pdo,
+        // Defaulted so the container autowires the real logger while tests that
+        // build this by hand keep working.
+        private LoggerInterface $logger = new NullLogger(),
+    ) {}
 
     /** @return list<array{id: int, name: string, user_logins: list<string>, is_global: bool, owner: string, category_ids: list<int>}> */
     public function findByOwner(string $login): array
@@ -129,13 +137,17 @@ final readonly class SavedViewRepository
         $driver = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
         $this->pdo->exec($driver === 'sqlite' ? self::SCHEMA_SQL_SQLITE : self::SCHEMA_SQL);
 
-        // Add is_global column if it doesn't exist (upgrade from older schema)
+        // Add is_global column if it doesn't exist (upgrade from older schema).
+        // The probe throwing is the normal "column absent" signal, not a fault.
         try {
             $this->pdo->query('SELECT is_global FROM saved_views LIMIT 1');
         } catch (\PDOException) {
             try {
                 $this->pdo->exec("ALTER TABLE saved_views ADD COLUMN is_global CHAR(1) DEFAULT 'N'");
-            } catch (\PDOException) {
+            } catch (\PDOException $e) {
+                $this->logger->warning('saved_views: could not add is_global column', [
+                    'exception' => $e->getMessage(),
+                ]);
             }
         }
 
@@ -148,7 +160,12 @@ final readonly class SavedViewRepository
                 // With one, MySQL raised 1101 and the empty catch below hid it,
                 // leaving every saved-view write failing on "Unknown column".
                 $this->pdo->exec('ALTER TABLE saved_views ADD COLUMN category_ids TEXT');
-            } catch (\PDOException) {
+            } catch (\PDOException $e) {
+                // Swallowing this is what hid MySQL error 1101 and left every
+                // saved-view write failing on "Unknown column 'category_ids'".
+                $this->logger->warning('saved_views: could not add category_ids column', [
+                    'exception' => $e->getMessage(),
+                ]);
             }
         }
     }

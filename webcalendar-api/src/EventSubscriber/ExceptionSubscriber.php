@@ -78,7 +78,8 @@ final class ExceptionSubscriber implements EventSubscriberInterface
         if ($statusCode >= 500) {
             try {
                 $this->errorMetrics?->recordError();
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                $this->logger?->warning('errorMetrics->recordError() failed', ['exception' => $e->getMessage()]);
             }
         }
     }

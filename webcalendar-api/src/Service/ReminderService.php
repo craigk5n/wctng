@@ -154,7 +154,8 @@ final class ReminderService
                     return $val >= 0 ? $val : 0; // 0 = disabled
                 }
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->debug('coreServiceFactory->getUserService() failed', ['exception' => $e->getMessage()]);
         }
 
         return self::DEFAULT_REMINDER_MINUTES;
