@@ -22,9 +22,6 @@ final class LegacyImportService
     /** @var array<string, list<string>> Column maps per table */
     private array $columnMap = [];
 
-    /** @var array<string, \DateTimeZone> Legacy TIMEZONE preferences per user login */
-    private array $userTimezones = [];
-
     /** @var array{users: array{imported: int, skipped: int, errors: int}, events: array{imported: int, skipped: int, errors: int}, categories: array{imported: int, skipped: int}, participants: array{imported: int, skipped: int}, preferences: array{imported: int, skipped: int}} */
     private array $stats;
 
@@ -51,11 +48,7 @@ final class LegacyImportService
         $this->probeSchema($legacyPdo);
         $this->validateSchema();
 
-        // Step 2: Load user timezones so event times can be converted from
-        // legacy GMT storage to each owner's local wall clock.
-        $this->userTimezones = $this->loadUserTimezones($legacyPdo);
-
-        // Step 3: Import in dependency order
+        // Step 2: Import in dependency order
         $this->importUsers($legacyPdo, $dryRun);
         $this->importCategories($legacyPdo, $dryRun);
         $this->importEvents($legacyPdo, $dryRun);
@@ -262,7 +255,6 @@ final class LegacyImportService
         }
 
         $catService = $this->factory->getCategoryService();
-        $catRepo = $this->factory->getCategoryRepository();
         $adminUser = new \WebCalendar\Core\Domain\Entity\User('admin', 'Admin', 'Import', 'admin@import.local', true, true);
 
         while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
@@ -276,32 +268,18 @@ final class LegacyImportService
                 continue;
             }
 
-            $color = isset($row['cat_color']) && \is_string($row['cat_color']) && $row['cat_color'] !== '' ? $row['cat_color'] : null;
-            $owner = isset($row['cat_owner']) && \is_string($row['cat_owner']) && $row['cat_owner'] !== '' ? $row['cat_owner'] : null;
-            // cat_status: 'A' = active (default), anything else = disabled (added in 1.9.11)
-            $enabled = !isset($row['cat_status']) || $row['cat_status'] === 'A';
-
             if ($dryRun) {
                 $this->stats['categories']['imported']++;
                 $this->logger->info("[DRY RUN] Would import category: {$name}");
                 continue;
             }
 
-            // Idempotent: skip if a category with the same (name, owner) already
-            // exists in the destination. Dedupe by name because the destination
-            // uses its own id-space — legacy cat_id is not preserved.
-            if ($catRepo->findByName($name, $owner ?? '') !== null) {
-                $this->stats['categories']['skipped']++;
-                continue;
-            }
-
             try {
-                // Assign a fresh id from the destination. Passing id=0 would
-                // collide with the composite PK (cat_id, cat_owner) and cause
-                // save() to UPDATE each subsequent row, collapsing all
-                // same-owner categories into one.
-                $newId = $catRepo->nextId();
-                $category = new \WebCalendar\Core\Domain\Entity\Category($newId, $owner, $name, $color, $enabled);
+                $color = isset($row['cat_color']) && \is_string($row['cat_color']) && $row['cat_color'] !== '' ? $row['cat_color'] : null;
+                $owner = isset($row['cat_owner']) && \is_string($row['cat_owner']) && $row['cat_owner'] !== '' ? $row['cat_owner'] : null;
+                // cat_status: 'A' = active (default), anything else = disabled (added in 1.9.11)
+                $enabled = !isset($row['cat_status']) || $row['cat_status'] === 'A';
+                $category = new \WebCalendar\Core\Domain\Entity\Category(0, $owner, $name, $color, $enabled);
                 $catService->createCategory($category, $adminUser);
                 $this->stats['categories']['imported']++;
             } catch (\Throwable $e) {
@@ -365,9 +343,7 @@ final class LegacyImportService
             try {
                 $date = (string) ($row['cal_date'] ?? '');
                 $time = (string) ($row['cal_time'] ?? '-1');
-                $creator = (string) ($row['cal_create_by'] ?? 'admin');
-                $tz = $this->userTimezones[$creator] ?? new \DateTimeZone('UTC');
-                $start = $this->parseLegacyDateTime($date, $time, $tz);
+                $start = $this->parseLegacyDateTime($date, $time);
 
                 $accessChar = (string) ($row['cal_access'] ?? 'P');
                 $typeChar = (string) ($row['cal_type'] ?? 'E');
@@ -523,7 +499,7 @@ final class LegacyImportService
         }
     }
 
-    private function parseLegacyDateTime(string $date, string $time, \DateTimeZone $tz): \DateTimeImmutable
+    private function parseLegacyDateTime(string $date, string $time): \DateTimeImmutable
     {
         // Legacy format: date = YYYYMMDD (int), time = HHMMSS (int, -1 for all-day)
         $y = substr($date, 0, 4);
@@ -532,7 +508,6 @@ final class LegacyImportService
 
         $timeInt = (int) $time;
         if ($timeInt < 0) {
-            // All-day events have no time component — no TZ shift applies.
             return new \DateTimeImmutable("{$y}-{$m}-{$d} 00:00:00");
         }
 
@@ -541,56 +516,7 @@ final class LegacyImportService
         $min = substr($timeStr, 2, 2);
         $s = substr($timeStr, 4, 2);
 
-        // Legacy WebCalendar stored cal_time/cal_date in GMT
-        // (see legacy includes/functions.php — gmdate/gmmktime everywhere).
-        // The rewrite stores wall-clock HHMMSS in the owner's local TZ, so
-        // interpret the legacy values as UTC and shift into the owner's
-        // preferred zone. setTimezone() handles DST correctly and will roll
-        // the date forward or backward when the conversion crosses midnight.
-        $utc = new \DateTimeImmutable("{$y}-{$m}-{$d} {$h}:{$min}:{$s}", new \DateTimeZone('UTC'));
-        return $utc->setTimezone($tz);
-    }
-
-    /**
-     * @return array<string, \DateTimeZone>
-     */
-    private function loadUserTimezones(\PDO $legacyPdo): array
-    {
-        if (($this->columnMap['webcal_user_pref'] ?? []) === []) {
-            return [];
-        }
-
-        $map = [];
-        try {
-            $stmt = $legacyPdo->query(
-                "SELECT cal_login, cal_value FROM webcal_user_pref WHERE cal_setting = 'TIMEZONE'"
-            );
-        } catch (\Throwable) {
-            return [];
-        }
-        if ($stmt === false) {
-            return [];
-        }
-
-        while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-            if (!\is_array($row)) {
-                continue;
-            }
-            /** @var array<string, string|int|null> $row */
-            $login = (string) ($row['cal_login'] ?? '');
-            $value = (string) ($row['cal_value'] ?? '');
-            if ($login === '' || $value === '') {
-                continue;
-            }
-            try {
-                $map[$login] = new \DateTimeZone($value);
-            } catch (\Throwable) {
-                $this->logger->warning(
-                    "Invalid TIMEZONE value '{$value}' for user {$login} — treating events as UTC"
-                );
-            }
-        }
-        return $map;
+        return new \DateTimeImmutable("{$y}-{$m}-{$d} {$h}:{$min}:{$s}");
     }
 
     private function mapAccessLevel(string $access): \WebCalendar\Core\Domain\ValueObject\AccessLevel
