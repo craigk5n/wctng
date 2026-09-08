@@ -39,8 +39,7 @@ final class ConfigController
 
     public function __construct(
         private readonly ConfigService $configService,
-    ) {
-    }
+    ) {}
 
     #[Route('/api/v2/admin/config', name: 'api_admin_config_get', methods: ['GET'])]
     public function getConfig(#[CurrentUser] ?WebCalendarUser $user): JsonResponse

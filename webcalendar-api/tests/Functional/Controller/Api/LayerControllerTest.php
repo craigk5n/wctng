@@ -229,7 +229,7 @@ final class LayerControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         $body = $this->decodeResponse($client);
-        $titles = array_map(static fn ($e) => $e['title'], $body['data']);
+        $titles = array_map(static fn($e) => $e['title'], $body['data']);
         $this->assertContains('Layer Test Event', $titles);
     }
 }
