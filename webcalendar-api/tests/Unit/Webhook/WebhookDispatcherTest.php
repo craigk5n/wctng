@@ -7,6 +7,7 @@ namespace App\Tests\Unit\Webhook;
 use App\Webhook\WebhookDispatcher;
 use App\Webhook\WebhookRepository;
 use App\Webhook\WebhookSubscription;
+use App\Webhook\WebhookUrlValidator;
 use PHPUnit\Framework\TestCase;
 
 final class WebhookDispatcherTest extends TestCase
@@ -21,7 +22,13 @@ final class WebhookDispatcherTest extends TestCase
         $this->pdo = new \PDO('sqlite::memory:');
         $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         $this->repo = new WebhookRepository($this->pdo);
-        $this->dispatcher = new WebhookDispatcher($this->repo, $this->pdo);
+        // standalone: these cases target 127.0.0.1 to exercise the unreachable
+        // path, which hosted mode would refuse to dial at all.
+        $this->dispatcher = new WebhookDispatcher(
+            $this->repo,
+            $this->pdo,
+            new WebhookUrlValidator('standalone'),
+        );
     }
 
     public function testDispatchWithNoWebhooksDoesNothing(): void
@@ -87,5 +94,25 @@ final class WebhookDispatcherTest extends TestCase
         // Verify the signature format
         $this->assertSame(64, \strlen($signature));
         $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $signature);
+    }
+    public function testHostedModeBlocksDeliveryToInternalAddress(): void
+    {
+        $dispatcher = new WebhookDispatcher(
+            $this->repo,
+            $this->pdo,
+            new WebhookUrlValidator('hosted'),
+        );
+
+        $id = $this->repo->save(
+            new WebhookSubscription(0, 'http://169.254.169.254/latest/meta-data/', '*', 'secret', true)
+        );
+
+        $dispatcher->dispatch('event.created', ['id' => 1]);
+
+        // Logged as a failed delivery rather than silently dropped, and the
+        // request is never dialled.
+        $log = $dispatcher->getDeliveryLog($id);
+        $this->assertNotEmpty($log);
+        $this->assertSame(0, $log[0]['status_code']);
     }
 }

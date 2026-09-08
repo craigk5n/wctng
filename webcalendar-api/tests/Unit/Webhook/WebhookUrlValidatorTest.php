@@ -1,0 +1,135 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Tests\Unit\Webhook;
+
+use App\Webhook\WebhookUrlValidator;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * IP literals throughout, so these stay hermetic: a hostname would put a real
+ * DNS lookup in the middle of the assertion.
+ */
+final class WebhookUrlValidatorTest extends TestCase
+{
+    private function hosted(): WebhookUrlValidator
+    {
+        return new WebhookUrlValidator('hosted');
+    }
+
+    private function standalone(): WebhookUrlValidator
+    {
+        return new WebhookUrlValidator('standalone');
+    }
+
+    /** @return list<array{string}> */
+    public static function blockedSchemes(): array
+    {
+        return [
+            ['file:///etc/passwd'],
+            ['gopher://127.0.0.1:11211/'],
+            ['ftp://example.com/x'],
+            ['dict://127.0.0.1:11211/'],
+        ];
+    }
+
+    #[DataProvider('blockedSchemes')]
+    public function testHostedModeRejectsNonHttpSchemes(string $url): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->hosted()->validate($url);
+    }
+
+    #[DataProvider('blockedSchemes')]
+    public function testStandaloneModeAlsoRejectsNonHttpSchemes(string $url): void
+    {
+        // No deployment has a reason to let a webhook reach file:// or gopher://.
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->standalone()->validate($url);
+    }
+
+    public function testRejectsEmbeddedCredentials(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('must not embed credentials');
+
+        $this->standalone()->validate('https://user:pass@example.com/hook');
+    }
+
+    public function testRejectsRelativeUrl(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->standalone()->validate('/not-absolute');
+    }
+
+    /** @return list<array{string}> */
+    public static function internalAddresses(): array
+    {
+        return [
+            ['http://127.0.0.1/hook'],            // loopback
+            ['http://169.254.169.254/latest/'],   // cloud metadata
+            ['http://10.0.0.5/hook'],             // RFC 1918
+            ['http://192.168.1.10/hook'],
+            ['http://172.16.0.9/hook'],
+            ['http://100.64.0.1/hook'],           // RFC 6598 shared address space
+            ['http://0.0.0.0/hook'],
+            ['http://[::1]/hook'],                // IPv6 loopback
+            ['http://[fd00::1]/hook'],            // IPv6 unique local
+            ['http://[fe80::1]/hook'],            // IPv6 link local
+        ];
+    }
+
+    #[DataProvider('internalAddresses')]
+    public function testHostedModeBlocksInternalAddresses(string $url): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->hosted()->validate($url);
+    }
+
+    #[DataProvider('internalAddresses')]
+    public function testStandaloneModeAllowsInternalAddresses(string $url): void
+    {
+        // Self-hosted installs legitimately post to services on their own
+        // network, so only the scheme and credential rules apply there.
+        $result = $this->standalone()->validate($url);
+
+        self::assertNull($result['ip'], 'standalone does not pin, because it does not resolve');
+    }
+
+    public function testHostedModeAllowsPublicAddressAndReturnsPin(): void
+    {
+        $result = $this->hosted()->validate('https://8.8.8.8/hook');
+
+        self::assertSame('8.8.8.8', $result['host']);
+        self::assertSame(443, $result['port']);
+        self::assertSame('8.8.8.8', $result['ip'], 'delivery pins to the validated address');
+    }
+
+    public function testPortDefaultsPerSchemeAndExplicitPortWins(): void
+    {
+        self::assertSame(80, $this->hosted()->validate('http://8.8.8.8/hook')['port']);
+        self::assertSame(443, $this->hosted()->validate('https://8.8.8.8/hook')['port']);
+        self::assertSame(8443, $this->hosted()->validate('https://8.8.8.8:8443/hook')['port']);
+    }
+
+    public function testHostedModeFailsClosedOnUnresolvableHost(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('does not resolve');
+
+        // .invalid is reserved by RFC 2606 and never resolves.
+        $this->hosted()->validate('https://webhook-target.invalid/hook');
+    }
+
+    public function testEnforcementFlagFollowsAppMode(): void
+    {
+        self::assertTrue($this->hosted()->enforcesNetworkRules());
+        self::assertFalse($this->standalone()->enforcesNetworkRules());
+    }
+}

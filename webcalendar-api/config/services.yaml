@@ -123,6 +123,13 @@ services:
         arguments:
             $pdo: '@pdo.connection'
 
+    # SSRF guard for outbound webhook targets. Standalone deployments may
+    # legitimately point a webhook at an internal host, so the network checks
+    # key off APP_MODE the same way ControlPlaneGuard does.
+    App\Webhook\WebhookUrlValidator:
+        arguments:
+            $appMode: '%env(default:app_mode_default:APP_MODE)%'
+
     App\Webhook\WebhookRepository:
         arguments:
             $pdo: '@pdo.connection'

@@ -8,6 +8,7 @@ use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Webhook\WebhookRepository;
 use App\Webhook\WebhookSubscription;
+use App\Webhook\WebhookUrlValidator;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,7 +19,24 @@ final class WebhookController
 {
     public function __construct(
         private readonly WebhookRepository $repository,
+        private readonly WebhookUrlValidator $urlValidator,
     ) {}
+
+    /**
+     * The dispatcher re-checks before every delivery; rejecting here as well
+     * turns an unusable subscription into an immediate 400 instead of a
+     * webhook that silently never fires.
+     */
+    private function rejectUnsafeUrl(string $url): ?JsonResponse
+    {
+        try {
+            $this->urlValidator->validate($url);
+        } catch (\InvalidArgumentException $e) {
+            return ApiResponse::error(400, $e->getMessage());
+        }
+
+        return null;
+    }
 
     #[Route('/api/v2/admin/webhooks', name: 'api_webhooks_list', methods: ['GET'])]
     public function list(#[CurrentUser] ?WebCalendarUser $user): JsonResponse
@@ -50,6 +68,10 @@ final class WebhookController
         $url = isset($data['url']) && \is_string($data['url']) ? $data['url'] : null;
         if ($url === null || $url === '') {
             return ApiResponse::error(400, 'Missing required field: url');
+        }
+
+        if (($rejected = $this->rejectUnsafeUrl($url)) !== null) {
+            return $rejected;
         }
 
         $webhook = new WebhookSubscription(
@@ -86,9 +108,15 @@ final class WebhookController
         /** @var array<string, mixed> $data */
         $data = $decoded;
 
+        $url = isset($data['url']) && \is_string($data['url']) ? $data['url'] : $existing->url();
+
+        if (($rejected = $this->rejectUnsafeUrl($url)) !== null) {
+            return $rejected;
+        }
+
         $updated = new WebhookSubscription(
             id: $id,
-            url: isset($data['url']) && \is_string($data['url']) ? $data['url'] : $existing->url(),
+            url: $url,
             events: isset($data['events']) && \is_string($data['events']) ? $data['events'] : $existing->events(),
             secret: isset($data['secret']) && \is_string($data['secret']) ? $data['secret'] : $existing->secret(),
             enabled: isset($data['enabled']) ? (bool) $data['enabled'] : $existing->isEnabled(),

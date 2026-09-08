@@ -6,6 +6,7 @@ namespace App\Tests\Unit\Clock;
 
 use App\Webhook\WebhookDispatcher;
 use App\Webhook\WebhookRepository;
+use App\Webhook\WebhookUrlValidator;
 use PHPUnit\Framework\TestCase;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Clock\MockClock;
@@ -26,7 +27,7 @@ final class ClockInjectionTest extends TestCase
         $pdo = new \PDO('sqlite::memory:');
         $repo = new WebhookRepository($pdo);
 
-        $dispatcher = new WebhookDispatcher($repo, $pdo, null, $fixed);
+        $dispatcher = new WebhookDispatcher($repo, $pdo, new WebhookUrlValidator('standalone'), null, $fixed);
 
         $ref = new \ReflectionProperty(WebhookDispatcher::class, 'clock');
         $this->assertInstanceOf(ClockInterface::class, $ref->getValue($dispatcher));
