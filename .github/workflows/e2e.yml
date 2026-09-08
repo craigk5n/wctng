@@ -48,7 +48,10 @@ jobs:
         working-directory: webcalendar-web
         run: |
           npm ci
-          npx playwright install --with-deps chromium
+          # webkit as well as chromium: mobile.spec.ts does test.use(devices
+          # ['iPhone 13']), whose defaultBrowserType is webkit, so all five of
+          # its tests died with "Executable doesn't exist at .../webkit-2248".
+          npx playwright install --with-deps chromium webkit
 
       # var/ is gitignored, so a fresh checkout has none. The container runs as
       # www-data (uid 82) while the bind-mounted checkout belongs to the runner,

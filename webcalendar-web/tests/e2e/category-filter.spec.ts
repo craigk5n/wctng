@@ -31,11 +31,15 @@ test.describe('Category Filter E2E', () => {
     await expect(filterBtn).toBeVisible({ timeout: 5000 });
     await filterBtn.click();
 
-    // Popover should open with All/None and checkboxes
-    await expect(page.getByRole('button', { name: /^all$/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /^none$/i })).toBeVisible();
+    // The sidebar CategoryFilter renders its own All/None buttons and
+    // aria-labelled checkboxes, so match within the popover that belongs to
+    // this button rather than across the whole page.
+    const popover = filterBtn.locator('xpath=..');
 
-    const checkboxes = page.locator('input[type="checkbox"][aria-label]');
+    await expect(popover.getByRole('button', { name: /^all$/i })).toBeVisible();
+    await expect(popover.getByRole('button', { name: /^none$/i })).toBeVisible();
+
+    const checkboxes = popover.locator('input[type="checkbox"][aria-label]');
     expect(await checkboxes.count()).toBeGreaterThan(0);
   });
 
@@ -61,15 +65,19 @@ test.describe('Category Filter E2E', () => {
     await expect(filterBtn).toBeVisible({ timeout: 5000 });
     await filterBtn.click();
 
+    // Scope to this popover: the sidebar filter duplicates every one of these
+    // controls, including the Uncategorized checkbox.
+    const popover = filterBtn.locator('xpath=..');
+
     // Click None — all checkboxes should uncheck
-    await page.getByRole('button', { name: /^none$/i }).click();
+    await popover.getByRole('button', { name: /^none$/i }).click();
     await page.waitForTimeout(300);
 
-    const uncategorizedCheckbox = page.locator('input[aria-label="Uncategorized"]');
+    const uncategorizedCheckbox = popover.locator('input[aria-label="Uncategorized"]');
     await expect(uncategorizedCheckbox).not.toBeChecked();
 
     // Click All — all checkboxes should recheck
-    await page.getByRole('button', { name: /^all$/i }).click();
+    await popover.getByRole('button', { name: /^all$/i }).click();
     await page.waitForTimeout(300);
     await expect(uncategorizedCheckbox).toBeChecked();
   });

@@ -127,6 +127,11 @@ test.describe('Error Handling & Edge Cases E2E', () => {
     expect(res.ok()).toBe(true);
     const body = await res.json();
     expect(body.status).toBe('ok');
-    expect(body.components?.database).toBe('ok');
+
+    // PBP-S13 split liveness from readiness: /health reports status only,
+    // while components.database moved to /ready.
+    const ready = await page.request.get(`${BASE}/api/v2/ready`);
+    const readyBody = await ready.json();
+    expect(readyBody.components?.database).toBe('ok');
   });
 });

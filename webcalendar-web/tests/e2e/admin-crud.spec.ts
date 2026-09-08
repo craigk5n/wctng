@@ -47,7 +47,9 @@ test.describe('Admin CRUD E2E', () => {
     await page.getByLabel(/name/i).fill(catName);
     await page.getByRole('button', { name: /^create$|^save$/i }).click();
 
-    await expect(page.getByText(catName)).toBeVisible({ timeout: 5000 });
+    // The name renders in more than one place on this page, so assert on the
+    // first match rather than requiring a globally unique node.
+    await expect(page.getByText(catName).first()).toBeVisible({ timeout: 5000 });
   });
 
   test('delete category removes it', async ({ page }) => {

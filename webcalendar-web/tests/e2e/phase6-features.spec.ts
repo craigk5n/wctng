@@ -123,8 +123,9 @@ test.describe('Phase 6 Features E2E', () => {
     await loginAsAdmin(page);
     await page.goto('/admin/activity-log');
     await expect(page.getByRole('heading', { name: /activity log/i })).toBeVisible();
-    // Table or empty state should render
-    await expect(page.locator('table, p')).toBeVisible();
+    // Table or empty state should render. `table, p` matches several nodes on
+    // this page, so assert that at least one is visible rather than exactly one.
+    await expect(page.locator('table, p').first()).toBeVisible();
   });
 
   test('settings — change and verify preference persists', async ({ page }) => {

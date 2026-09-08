@@ -12,7 +12,10 @@ final readonly class SavedViewRepository
                 owner_login VARCHAR(60) NOT NULL,
                 name VARCHAR(100) NOT NULL,
                 user_logins TEXT NOT NULL,
-                is_global CHAR(1) NOT NULL DEFAULT 'N'
+                is_global CHAR(1) NOT NULL DEFAULT 'N',
+                -- No DEFAULT: MySQL rejects one on TEXT (error 1101). Reads
+                -- coalesce a missing value to '[]'.
+                category_ids TEXT
             )
         SQL;
 
@@ -141,7 +144,10 @@ final readonly class SavedViewRepository
             $this->pdo->query('SELECT category_ids FROM saved_views LIMIT 1');
         } catch (\PDOException) {
             try {
-                $this->pdo->exec("ALTER TABLE saved_views ADD COLUMN category_ids TEXT DEFAULT '[]'");
+                // Same restriction as above: no DEFAULT on a TEXT column.
+                // With one, MySQL raised 1101 and the empty catch below hid it,
+                // leaving every saved-view write failing on "Unknown column".
+                $this->pdo->exec('ALTER TABLE saved_views ADD COLUMN category_ids TEXT');
             } catch (\PDOException) {
             }
         }

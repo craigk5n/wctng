@@ -11,18 +11,25 @@ test.describe('Event CRUD', () => {
 
     // Fill the form
     const uniqueTitle = 'E2E Create ' + Date.now();
-    await page.getByLabel(/title/i).fill(uniqueTitle);
+    await page.locator('#event-title').fill(uniqueTitle);
 
     // Set date to today
     const today = new Date();
     const dateValue = today.toISOString().slice(0, 10); // YYYY-MM-DD
-    await page.getByLabel(/date/i).fill(dateValue);
+    // Target the field by id: /date/i also matches any calendar event whose
+    // aria-label contains "Updated", which this spec itself creates.
+    await page.locator('#event-date').fill(dateValue);
 
     // Set time
-    await page.getByLabel(/start time/i).fill('15:00');
+    // 19:00: specs share today's calendar and none clean up, so an event at a
+    // time another spec uses (SearchableEvent at 15:00, E2E LogCheck at 16:00)
+    // overlaps in the time grid and intercepts the click on this one.
+    await page.locator('#event-time').fill('19:00');
 
     // Submit
-    await page.getByRole('button', { name: /create event/i }).click();
+    // Exact match: QuickAddInput's sparkle button is labelled "Parse and
+    // create event", so a loose /create event/i matches two buttons.
+    await page.getByRole('button', { name: 'Create Event', exact: true }).click();
 
     // Wait for dialog to close and event to appear
     await page.waitForTimeout(1000);
@@ -31,10 +38,12 @@ test.describe('Event CRUD', () => {
     await page.locator('.fc-timeGridDay-button').click();
 
     // Verify event appears on the calendar grid
-    await expect(page.locator('.fc-event-title', { hasText: uniqueTitle })).toBeVisible({ timeout: 10000 });
+    // FullCalendar can render one event in more than one region, so assert
+    // on the first match rather than requiring a single node.
+    await expect(page.locator('.fc-event-title', { hasText: uniqueTitle }).first()).toBeVisible({ timeout: 10000 });
 
     // Click on the event to open detail dialog
-    await page.locator('.fc-event-title', { hasText: uniqueTitle }).click();
+    await page.locator('.fc-event-title', { hasText: uniqueTitle }).first().click();
     await expect(page.getByRole('heading', { name: uniqueTitle })).toBeVisible();
   });
 
@@ -55,7 +64,7 @@ test.describe('Event CRUD', () => {
 
     // Navigate to day view
     await page.locator('.fc-timeGridDay-button').click();
-    await expect(page.locator('.fc-event-title', { hasText: originalTitle })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.fc-event-title', { hasText: originalTitle }).first()).toBeVisible({ timeout: 10000 });
 
     // Click event to open detail
     await page.locator('.fc-event', { hasText: originalTitle }).click({ force: true });
@@ -65,7 +74,7 @@ test.describe('Event CRUD', () => {
 
     // Change title
     const updatedTitle = 'E2E Updated ' + Date.now();
-    const titleInput = page.getByLabel(/title/i);
+    const titleInput = page.locator('#event-title');
     await titleInput.clear();
     await titleInput.fill(updatedTitle);
 
@@ -86,23 +95,29 @@ test.describe('Event CRUD', () => {
     await createTestEvent(request, token, {
       title,
       start_date: dateStr,
-      start_time: '160000',
+      start_time: '200000', // see the note on 19:00 above — avoid shared slots
       duration: 30,
     });
 
     await loginAsAdmin(page);
     await page.locator('.fc-timeGridDay-button').click();
-    await expect(page.getByText(title)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(title).first()).toBeVisible({ timeout: 10000 });
 
     // Open detail and delete
-    await page.getByText(title).click();
+    await page.getByText(title).first().click();
     await page.getByRole('button', { name: /delete/i }).click();
 
-    // Confirm deletion
-    await page.getByRole('button', { name: /confirm|yes|delete/i }).click();
+    // Confirm. Deletion is a soft cancel, so ConfirmDeleteDialog labels the
+    // confirm button "Cancel Event" (or "Cancel All Occurrences" / "Decline"),
+    // never Confirm/Yes/Delete.
+    await page
+      .getByRole('button', { name: /^(cancel event|cancel all occurrences|decline)$/i })
+      .click();
     await page.waitForTimeout(1000);
 
     // Event should be gone
-    await expect(page.getByText(title)).not.toBeVisible({ timeout: 5000 });
+    // Gone entirely: assert the count drops to zero rather than calling
+    // not.toBeVisible on a locator that may match several nodes.
+    await expect(page.getByText(title)).toHaveCount(0, { timeout: 5000 });
   });
 });
