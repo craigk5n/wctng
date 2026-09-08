@@ -278,7 +278,7 @@ final class EventSoftDeleteTest extends IntegrationTestCase
         $stmt->execute(['id' => $id, 'date' => $dateInt]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-        $this->assertNotFalse($row, 'EXDATE row should exist after cancelling occurrence');
+        $this->assertNotFalse($row, 'EXDATE row should exist after canceling occurrence');
         $this->assertSame($dateInt, (int) $row['cal_date']);
         $this->assertSame(1, (int) $row['cal_exdate']);
 
@@ -331,7 +331,7 @@ final class EventSoftDeleteTest extends IntegrationTestCase
 
         $initialSeq = $this->getEventSequence($id);
 
-        // Simulate cancelling future occurrences from 2026-06-15:
+        // Simulate canceling future occurrences from 2026-06-15:
         // EventController::cancelFutureOccurrences() sets cal_end = date - 1 day
         $fromDate = new \DateTimeImmutable('2026-06-15');
         $untilDateInt = (int) $fromDate->modify('-1 day')->format('Ymd');

@@ -70,7 +70,7 @@ describe('Calendar Keyboard Shortcuts', () => {
 
     // TipTap / ProseMirror / CKEditor all render their edit surface
     // as `<div contenteditable>`, not a textarea — the guard must
-    // recognise this or else typing "d" in an event-description field
+    // recognize this or else typing "d" in an event-description field
     // will switch the underlying calendar to day view.
     const editable = document.createElement('div');
     editable.setAttribute('contenteditable', 'true');

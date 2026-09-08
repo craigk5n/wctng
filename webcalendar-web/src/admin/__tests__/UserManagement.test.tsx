@@ -162,7 +162,7 @@ describe('UserManagement', () => {
     expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
   });
 
-  it('cancelling delete closes the dialog without API call', async () => {
+  it('canceling delete closes the dialog without API call', async () => {
     const user = userEvent.setup();
     const fetchMock = vi
       .fn()

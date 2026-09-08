@@ -65,7 +65,7 @@ export function ConfirmDeleteDialog({
             disabled={isDeleting}
             className="inline-flex h-10 w-full items-center justify-center rounded-md bg-destructive px-4 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
           >
-            {isDeleting ? (isOrganizer ? 'Cancelling...' : 'Declining...') : confirmLabel}
+            {isDeleting ? (isOrganizer ? 'Canceling...' : 'Declining...') : confirmLabel}
           </button>
           <button
             type="button"

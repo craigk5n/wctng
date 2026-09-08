@@ -52,13 +52,13 @@ describe('ConfirmDeleteDialog', () => {
   it('disables confirm button while processing', () => {
     render(<ConfirmDeleteDialog {...defaultProps} isDeleting={true} />);
 
-    const confirmBtn = screen.getByRole('button', { name: /cancelling/i });
+    const confirmBtn = screen.getByRole('button', { name: /canceling/i });
     expect(confirmBtn).toBeDisabled();
   });
 
-  it('shows cancelling state text for organizer', () => {
+  it('shows canceling state text for organizer', () => {
     render(<ConfirmDeleteDialog {...defaultProps} isOrganizer={true} isDeleting={true} />);
-    expect(screen.getByText(/cancelling/i)).toBeInTheDocument();
+    expect(screen.getByText(/canceling/i)).toBeInTheDocument();
   });
 
   it('shows decline wording for non-organizer', () => {

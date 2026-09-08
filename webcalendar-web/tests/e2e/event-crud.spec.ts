@@ -57,7 +57,7 @@ test.describe('Event CRUD', () => {
     await page.locator('#event-time').fill('19:00');
 
     // Submit
-    // Exact match: QuickAddInput's sparkle button is labelled "Parse and
+    // Exact match: QuickAddInput's sparkle button is labeled "Parse and
     // create event", so a loose /create event/i matches two buttons.
     await page.getByRole('button', { name: 'Create Event', exact: true }).click();
 

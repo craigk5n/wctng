@@ -32,7 +32,7 @@ test.describe('Category Filter E2E', () => {
     await filterBtn.click();
 
     // The sidebar CategoryFilter renders its own All/None buttons and
-    // aria-labelled checkboxes, so match within the popover that belongs to
+    // checkboxes carrying aria-label, so match within the popover that belongs to
     // this button rather than across the whole page.
     const popover = filterBtn.locator('xpath=..');
 
