@@ -24,8 +24,16 @@ test.describe('Settings Forms E2E', () => {
     // Change to a different view
     const newValue = originalValue === 'dayGridMonth' ? 'timeGridWeek' : 'dayGridMonth';
     await viewSelect.selectOption(newValue);
+
+    // Wait for the PUT itself, not the toast. The toast can render before the
+    // request settles, so reloading on it raced the save and the reloaded page
+    // showed the old value.
+    const saved = page.waitForResponse(
+      (r) => r.url().includes('/preferences') && r.request().method() === 'PUT' && r.ok(),
+      { timeout: 10000 },
+    );
     await page.getByRole('button', { name: /save/i }).click();
-    await expect(page.locator('[role="alert"]')).toBeVisible({ timeout: 5000 });
+    await saved;
 
     // Reload and verify
     await page.reload();
@@ -47,8 +55,13 @@ test.describe('Settings Forms E2E', () => {
     // Change value and save
     await reminderSelect.selectOption('15');
     await expect(reminderSelect).toHaveValue('15');
+
+    const saved = page.waitForResponse(
+      (r) => r.url().includes('/preferences') && r.request().method() === 'PUT' && r.ok(),
+      { timeout: 10000 },
+    );
     await page.getByRole('button', { name: /save/i }).click();
-    await expect(page.locator('[role="alert"]')).toBeVisible({ timeout: 5000 });
+    await saved;
 
     // Verify save succeeded via API
     const token = await getToken(page);
@@ -68,7 +81,16 @@ test.describe('Settings Forms E2E', () => {
 
   test('preferences: daily agenda toggle shows time picker', async ({ page }) => {
     await loginAsAdmin(page);
+
+    // The form re-renders once the preferences GET resolves; interacting before
+    // that reverted the checkbox, failing with "Clicking the checkbox did not
+    // change its state".
+    const loaded = page.waitForResponse(
+      (r) => r.url().includes('/preferences') && r.request().method() === 'GET',
+      { timeout: 10000 },
+    );
     await page.goto('/settings/preferences');
+    await loaded;
 
     const agendaCheckbox = page.getByLabel(/daily agenda email/i);
 
