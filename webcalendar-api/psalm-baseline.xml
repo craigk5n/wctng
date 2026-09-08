@@ -217,7 +217,6 @@
   </file>
   <file src="src/Command/ResetEventsCommand.php">
     <MixedAssignment>
-      <code><![CDATA[$driver]]></code>
       <code><![CDATA[$name]]></code>
     </MixedAssignment>
   </file>
@@ -238,9 +237,9 @@
     </MixedArgument>
   </file>
   <file src="src/Controller/Api/AccessController.php">
-    <MixedAssignment>
-      <code><![CDATA[$row]]></code>
-    </MixedAssignment>
+    <RedundantCondition>
+      <code><![CDATA[\is_array($row)]]></code>
+    </RedundantCondition>
   </file>
   <file src="src/Controller/Api/AuthController.php">
     <MixedAssignment>
@@ -258,26 +257,24 @@
   </file>
   <file src="src/Controller/Api/CategoryController.php">
     <MixedAssignment>
-      <code><![CDATA[$owner]]></code>
       <code><![CDATA[$raw]]></code>
     </MixedAssignment>
+    <TypeDoesNotContainType>
+      <code><![CDATA[\is_array($row)]]></code>
+    </TypeDoesNotContainType>
   </file>
   <file src="src/Controller/Api/CommentController.php">
-    <MixedAssignment>
-      <code><![CDATA[$driver]]></code>
-      <code><![CDATA[$row]]></code>
-    </MixedAssignment>
     <RedundantCastGivenDocblockType>
       <code><![CDATA[(string) ($data['text'] ?? '')]]></code>
     </RedundantCastGivenDocblockType>
+    <RedundantCondition>
+      <code><![CDATA[\is_array($row)]]></code>
+    </RedundantCondition>
   </file>
   <file src="src/Controller/Api/DashboardController.php">
     <InvalidOperand>
       <code><![CDATA[($pageCount * $pageSize) / 1024 / 1024]]></code>
     </InvalidOperand>
-    <MixedAssignment>
-      <code><![CDATA[$driver]]></code>
-    </MixedAssignment>
   </file>
   <file src="src/Controller/Api/EmailConfigController.php">
     <MixedAssignment>
@@ -390,20 +387,12 @@
       <code><![CDATA[start]]></code>
     </MixedMethodCall>
   </file>
-  <file src="src/Controller/Seo/SitemapController.php">
-    <MixedAssignment>
-      <code><![CDATA[$driver]]></code>
-    </MixedAssignment>
-  </file>
   <file src="src/CustomField/CustomFieldRepository.php">
     <MixedArgument>
       <code><![CDATA[\is_string($row['field_type'] ?? null) ? $row['field_type'] : 'text']]></code>
       <code><![CDATA[\is_string($row['name'] ?? null) ? $row['name'] : '']]></code>
       <code><![CDATA[\is_string($row['options'] ?? null) ? $row['options'] : '']]></code>
     </MixedArgument>
-    <MixedAssignment>
-      <code><![CDATA[$driver]]></code>
-    </MixedAssignment>
   </file>
   <file src="src/DTO/EventResponseDTO.php">
     <PossiblyNullReference>
@@ -442,28 +431,15 @@
             'options' => $options,
         ]]]></code>
     </LessSpecificReturnStatement>
-    <MixedAssignment>
-      <code><![CDATA[$driver]]></code>
-    </MixedAssignment>
     <MoreSpecificReturnType>
       <code><![CDATA[array{id: int, creator: string, title: string, description: string, status: string, created_at: string, options: list<array{id: int, start: string, end: string, votes: list<array{voter: string, vote: string}>, yes_count: int}>}|null]]></code>
       <code><![CDATA[list<array{id: int, title: string, status: string, created_at: string}>]]></code>
     </MoreSpecificReturnType>
   </file>
-  <file src="src/Push/PushSubscriptionRepository.php">
-    <MixedAssignment>
-      <code><![CDATA[$driver]]></code>
-    </MixedAssignment>
-  </file>
   <file src="src/Security/PasswordUpgradeService.php">
     <DeprecatedClass>
       <code><![CDATA[private]]></code>
     </DeprecatedClass>
-  </file>
-  <file src="src/Security/UserTokenIndex.php">
-    <MixedAssignment>
-      <code><![CDATA[$driver]]></code>
-    </MixedAssignment>
   </file>
   <file src="src/Security/WebCalendarUserProvider.php">
     <DeprecatedClass>
@@ -471,9 +447,9 @@
     </DeprecatedClass>
   </file>
   <file src="src/Service/AccessPermissionRepository.php">
-    <MixedAssignment>
-      <code><![CDATA[$row]]></code>
-    </MixedAssignment>
+    <RedundantCondition>
+      <code><![CDATA[\is_array($row)]]></code>
+    </RedundantCondition>
   </file>
   <file src="src/Service/BackupService.php">
     <InvalidOperand>
@@ -487,9 +463,6 @@
       <code><![CDATA[$output]]></code>
       <code><![CDATA[$output]]></code>
     </MixedArgumentTypeCoercion>
-    <MixedAssignment>
-      <code><![CDATA[$driverName]]></code>
-    </MixedAssignment>
   </file>
   <file src="src/Service/CalDavSyncTokenRepository.php">
     <MixedAssignment>
@@ -498,9 +471,11 @@
   </file>
   <file src="src/Service/CategoryIconRepository.php">
     <MixedAssignment>
-      <code><![CDATA[$row]]></code>
       <code><![CDATA[$value]]></code>
     </MixedAssignment>
+    <RedundantCondition>
+      <code><![CDATA[\is_array($row)]]></code>
+    </RedundantCondition>
   </file>
   <file src="src/Service/DailyAgendaService.php">
     <DeprecatedClass>
@@ -526,10 +501,16 @@
       <code><![CDATA[$rr['cal_end']]]></code>
     </MixedAssignment>
   </file>
+  <file src="src/Service/ExtParticipantRepository.php">
+    <TypeDoesNotContainType>
+      <code><![CDATA[!\is_array($row)]]></code>
+      <code><![CDATA[\is_array($row)]]></code>
+    </TypeDoesNotContainType>
+  </file>
   <file src="src/Service/GeoRepository.php">
-    <MixedAssignment>
-      <code><![CDATA[$row]]></code>
-    </MixedAssignment>
+    <RedundantCondition>
+      <code><![CDATA[\is_array($row)]]></code>
+    </RedundantCondition>
   </file>
   <file src="src/Service/GeocodingService.php">
     <DeprecatedClass>
@@ -543,11 +524,6 @@
     <InvalidPropertyAssignmentValue>
       <code><![CDATA[$this->stats]]></code>
     </InvalidPropertyAssignmentValue>
-    <MixedAssignment>
-      <code><![CDATA[$driver]]></code>
-      <code><![CDATA[$row]]></code>
-      <code><![CDATA[$row]]></code>
-    </MixedAssignment>
     <PropertyTypeCoercion>
       <code><![CDATA[$this->stats]]></code>
       <code><![CDATA[$this->stats]]></code>
@@ -560,6 +536,17 @@
             'preferences' => ['imported' => 0, 'skipped' => 0],
         ]]]></code>
     </PropertyTypeCoercion>
+    <RedundantCondition>
+      <code><![CDATA[\is_array($row)]]></code>
+      <code><![CDATA[\is_array($row)]]></code>
+    </RedundantCondition>
+    <TypeDoesNotContainType>
+      <code><![CDATA[\is_array($row)]]></code>
+      <code><![CDATA[\is_array($row)]]></code>
+      <code><![CDATA[\is_array($row)]]></code>
+      <code><![CDATA[\is_array($row)]]></code>
+      <code><![CDATA[\is_array($row)]]></code>
+    </TypeDoesNotContainType>
   </file>
   <file src="src/Service/MercurePublisher.php">
     <MissingOverrideAttribute>
@@ -567,11 +554,13 @@
     </MissingOverrideAttribute>
   </file>
   <file src="src/Service/PurgeService.php">
-    <MixedAssignment>
-      <code><![CDATA[$end]]></code>
-      <code><![CDATA[$row]]></code>
-      <code><![CDATA[$row]]></code>
-    </MixedAssignment>
+    <RedundantCondition>
+      <code><![CDATA[\is_array($row)]]></code>
+      <code><![CDATA[\is_array($row)]]></code>
+    </RedundantCondition>
+    <TypeDoesNotContainType>
+      <code><![CDATA[!\is_array($row)]]></code>
+    </TypeDoesNotContainType>
   </file>
   <file src="src/Service/QueryLogger.php">
     <InvalidOperand>
@@ -635,9 +624,6 @@
       <code><![CDATA[\is_string($row['owner_login'] ?? null) ? $row['owner_login'] : '']]></code>
       <code><![CDATA[\is_string($row['token'] ?? null) ? $row['token'] : '']]></code>
     </MixedArgument>
-    <MixedAssignment>
-      <code><![CDATA[$driver]]></code>
-    </MixedAssignment>
   </file>
   <file src="src/Subscription/SubscriptionRepository.php">
     <MixedArgument>
@@ -648,9 +634,6 @@
       <code><![CDATA[\is_string($row['url'] ?? null) ? $row['url'] : '']]></code>
       <code><![CDATA[\is_string($row['user_login'] ?? null) ? $row['user_login'] : '']]></code>
     </MixedArgument>
-    <MixedAssignment>
-      <code><![CDATA[$driver]]></code>
-    </MixedAssignment>
   </file>
   <file src="src/Tenant/ControlPlaneGuard.php">
     <PossiblyNullArgument>
@@ -669,10 +652,15 @@
       <code><![CDATA[$value]]></code>
     </MixedAssignment>
   </file>
+  <file src="src/Tenant/TenantExportService.php">
+    <TypeDoesNotContainType>
+      <code><![CDATA[\is_array($row)]]></code>
+    </TypeDoesNotContainType>
+  </file>
   <file src="src/Tenant/TenantMigrator.php">
-    <MixedAssignment>
-      <code><![CDATA[$row]]></code>
-    </MixedAssignment>
+    <RedundantCondition>
+      <code><![CDATA[\is_array($row)]]></code>
+    </RedundantCondition>
   </file>
   <file src="src/Tenant/TenantRateLimiter.php">
     <InvalidOperand>
@@ -684,7 +672,6 @@
       <code><![CDATA[$views]]></code>
     </LessSpecificReturnStatement>
     <MixedAssignment>
-      <code><![CDATA[$driver]]></code>
       <code><![CDATA[$v]]></code>
     </MixedAssignment>
     <MoreSpecificReturnType>
@@ -706,8 +693,5 @@
       <code><![CDATA[\is_string($row['secret'] ?? null) ? $row['secret'] : '']]></code>
       <code><![CDATA[\is_string($row['url'] ?? null) ? $row['url'] : '']]></code>
     </MixedArgument>
-    <MixedAssignment>
-      <code><![CDATA[$driver]]></code>
-    </MixedAssignment>
   </file>
 </files>
