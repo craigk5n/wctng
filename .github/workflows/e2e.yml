@@ -69,6 +69,21 @@ jobs:
       # MySQL initialises from webcalendar-core's schema, which seeds no users,
       # but every spec signs in as admin/admin (tests/e2e/fixtures/auth.ts).
       # Same provisioning the API workflow does.
+      # `compose up --wait` reports only which container is unhealthy, never why.
+      # Three separate root causes have hidden behind "nginx is unhealthy", so
+      # dump the logs rather than guess from the outside next time.
+      - name: Dump stack state on failure
+        if: failure()
+        run: |
+          docker compose -f docker-compose.dev.yml ps
+          echo '--- php-fpm ---'
+          docker compose -f docker-compose.dev.yml logs --tail=60 php-fpm
+          echo '--- nginx ---'
+          docker compose -f docker-compose.dev.yml logs --tail=40 nginx
+          echo '--- direct request ---'
+          curl -sS -o /dev/null -w 'health: %{http_code}\n' http://localhost:47180/api/v2/health || true
+          curl -sS http://localhost:47180/api/v2/health | head -c 600 || true
+
       - name: Apply migrations and seed admin fixture
         run: |
           docker compose -f docker-compose.dev.yml exec -T php-fpm \
