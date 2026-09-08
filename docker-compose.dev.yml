@@ -82,7 +82,7 @@ services:
         cors_origins http://localhost:47173 http://localhost:47180
         anonymous
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 -O /dev/null 'http://localhost:80/.well-known/mercure?topic=/healthz' 2>&1 || true"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/healthz"]
       interval: 10s
       timeout: 5s
       retries: 5

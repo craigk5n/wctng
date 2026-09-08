@@ -5,7 +5,12 @@ TEST_DATABASE_URL := mysql://webcalendar:webcalendar_dev@mysql:3306/webcalendar_
 .PHONY: up down restart logs status ps clean test-db test
 
 ## Start all services
+## var/ is gitignored and the container runs as www-data, which cannot create it
+## inside the bind-mounted checkout — without this a fresh clone 500s on every
+## request with "Unable to create the cache directory".
 up:
+	mkdir -p webcalendar-api/var/cache webcalendar-api/var/log
+	chmod -R 777 webcalendar-api/var
 	$(DC) up -d --build
 
 ## Stop all services
