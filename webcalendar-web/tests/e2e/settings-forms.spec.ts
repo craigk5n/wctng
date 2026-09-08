@@ -39,10 +39,16 @@ test.describe('Settings Forms E2E', () => {
     await page.reload();
     await expect(page.getByLabel(/default view/i)).toHaveValue(newValue);
 
-    // Restore original
+    // Restore original -- awaited like the save above. A fixed 1s wait could
+    // still be in flight when the next spec read this preference, which is
+    // what left this test flaky even on a single worker.
     await page.getByLabel(/default view/i).selectOption(originalValue);
+    const restored = page.waitForResponse(
+      (r) => r.url().includes('/preferences') && r.request().method() === 'PUT' && r.ok(),
+      { timeout: 10000 },
+    );
     await page.getByRole('button', { name: /save/i }).click();
-    await page.waitForTimeout(1000);
+    await restored;
   });
 
   test('preferences: email reminder dropdown saves', async ({ page }) => {
