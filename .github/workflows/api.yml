@@ -55,9 +55,6 @@ jobs:
           coverage: xdebug
           tools: composer:v2
 
-      - name: Load MySQL schema
-        run: mysql -h 127.0.0.1 -u webcalendar -pwebcalendar_test webcalendar_test < ../webcalendar-core/src/Infrastructure/Persistence/mysql-schema.sql
-
       - name: Get Composer cache directory
         id: composer-cache
         run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
@@ -71,6 +68,23 @@ jobs:
 
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist
+
+      # Must follow composer install: the schema ships inside the
+      # webcalendar-core package, and there is no sibling checkout of it.
+      - name: Load webcalendar-core schema
+        run: mysql -h 127.0.0.1 -u webcalendar -pwebcalendar_test webcalendar_test < vendor/craigk5n/webcalendar-core/src/Infrastructure/Persistence/mysql-schema.sql
+
+      - name: Apply API migrations
+        run: php bin/console migrations:migrate --no-interaction
+        env:
+          DATABASE_URL: "mysql://webcalendar:webcalendar_test@127.0.0.1:3306/webcalendar_test"
+
+      # The functional suite authenticates as admin/admin on nearly every
+      # request; the schema seeds no users, so without this every one 401s.
+      - name: Seed admin fixture user
+        run: php bin/console webcalendar:install --force --admin-password=admin
+        env:
+          DATABASE_URL: "mysql://webcalendar:webcalendar_test@127.0.0.1:3306/webcalendar_test"
 
       - name: Security audit (PBP-S8) — fail on any advisory
         run: composer audit --no-interaction

@@ -48,9 +48,14 @@ final readonly class MigrationDependencyFactoryProvider
             'table_storage' => [
                 'table_name' => self::VERSION_TABLE,
             ],
-            'all_or_nothing' => true,
+            // MySQL implicitly commits on DDL, so a migration cannot be rolled
+            // back and the savepoint Doctrine opens around it is destroyed
+            // mid-run ("SAVEPOINT DOCTRINE_2 does not exist") — after the DDL
+            // has landed, leaving the version table disagreeing with the
+            // schema. Neither wrapper buys anything on this platform.
+            'all_or_nothing' => false,
             'check_database_platform' => false,
-            'transactional' => true,
+            'transactional' => false,
         ]);
 
         return DependencyFactory::fromConnection($config, new ExistingConnection($this->connection()));

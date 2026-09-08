@@ -27,6 +27,16 @@ final class Version20260415120100 extends AbstractMigration
     #[\Override]
     public function up(Schema $schema): void
     {
+        // webcalendar-core has since absorbed cal_image into its own
+        // mysql-schema.sql, so a database created from that schema already has
+        // the column and this migration would fail with "Duplicate column
+        // name". It still has to run for databases created before core picked
+        // it up, so skip rather than delete.
+        $this->skipIf(
+            $schema->hasTable('webcal_entry') && $schema->getTable('webcal_entry')->hasColumn('cal_image'),
+            'webcal_entry.cal_image already exists — shipped by webcalendar-core',
+        );
+
         $this->addSql('ALTER TABLE webcal_entry ADD COLUMN cal_image VARCHAR(2048) DEFAULT NULL AFTER cal_status');
     }
 

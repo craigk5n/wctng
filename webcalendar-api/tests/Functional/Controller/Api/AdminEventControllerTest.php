@@ -11,6 +11,12 @@ final class AdminEventControllerTest extends WebTestCase
 {
     use ApiTestTrait;
 
+    protected function tearDown(): void
+    {
+        $this->cleanupTestData();
+        parent::tearDown();
+    }
+
     public function testPurgeRequiresAuth(): void
     {
         $client = static::createClient();
@@ -89,7 +95,13 @@ final class AdminEventControllerTest extends WebTestCase
     public function testPurgeNonAdminForbidden(): void
     {
         $client = static::createClient();
-        $token = $this->loginAndGetToken($client, 'alice', 'password');
+        $adminToken = $this->loginAndGetToken($client);
+
+        // Create the non-admin rather than assuming a seeded 'alice': the only
+        // fixture the suite can count on is the admin webcalendar:install makes.
+        $login = 'purge_nonadmin_' . bin2hex(random_bytes(3));
+        $this->createTestUser($client, $adminToken, $login);
+        $token = $this->loginAndGetToken($client, $login, 'Pass123!');
 
         $client->request('POST', '/api/v2/admin/events/purge', [], [], [
             'CONTENT_TYPE' => 'application/json',
