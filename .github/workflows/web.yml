@@ -35,6 +35,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Mirrors the API's composer audit gate (PBP-S8), which had no web
+      # equivalent -- which is why 24 advisories accumulated here while PHP
+      # stayed clean. Scoped to production dependencies: the remaining
+      # vite/vitest advisories are dev-server only and need a breaking
+      # upgrade, tracked separately. Set to `high` rather than `moderate`
+      # because two moderate advisories remain in react-router and
+      # react-router-dom (open redirect) that only clear with the breaking
+      # move to react-router-dom v7; tighten this to `moderate` once that
+      # lands.
+      - name: Security audit (PBP-S8) — fail on high or critical advisories
+        run: npm audit --omit=dev --audit-level=high
+
       - name: TypeScript type check
         run: npx tsc --noEmit
 
