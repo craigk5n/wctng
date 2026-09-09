@@ -18,14 +18,17 @@ final class ControlPlaneWebhook
 {
     private LoggerInterface $logger;
     private ClockInterface $clock;
+    private ControlPlaneTransport $transport;
 
     public function __construct(
         private readonly string $webhookUrl,
         ?LoggerInterface $logger = null,
         ?ClockInterface $clock = null,
+        ?ControlPlaneTransport $transport = null,
     ) {
         $this->logger = $logger ?? new NullLogger();
         $this->clock = $clock ?? new NativeClock();
+        $this->transport = $transport ?? new CurlControlPlaneTransport();
     }
 
     public function tenantProvisioned(string $slug, string $name): void
@@ -64,24 +67,7 @@ final class ControlPlaneWebhook
         ], JSON_THROW_ON_ERROR);
 
         try {
-            $ch = curl_init($this->webhookUrl);
-            if ($ch === false) {
-                $this->logger->warning('Failed to initialize cURL for webhook', ['url' => $this->webhookUrl]);
-                return;
-            }
-
-            curl_setopt_array($ch, [
-                CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => $payload,
-                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 5,
-                CURLOPT_CONNECTTIMEOUT => 3,
-            ]);
-
-            curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
+            $httpCode = $this->transport->post($this->webhookUrl, $payload);
 
             if ($httpCode >= 400) {
                 $this->logger->warning('Webhook returned error', ['event' => $eventType, 'http_code' => $httpCode]);

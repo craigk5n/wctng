@@ -125,6 +125,12 @@ services:
 
     App\Webhook\WebhookTransport: '@App\Webhook\CurlWebhookTransport'
 
+    # Same seam for the control plane's own notifications, kept separate from
+    # the tenant webhook transport: those are signed and SSRF-checked because
+    # the URL comes from a tenant, this one comes from CONTROL_WEBHOOK_URL in
+    # the operator's environment and may legitimately be internal.
+    App\Tenant\ControlPlaneTransport: '@App\Tenant\CurlControlPlaneTransport'
+
     # ext-ldap behind an interface so the logic around it is testable; see
     # App\Auth\LdapClient.
     App\Auth\LdapClient: '@App\Auth\ExtLdapClient'

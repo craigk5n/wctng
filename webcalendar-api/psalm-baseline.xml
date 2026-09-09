@@ -468,11 +468,6 @@
       <code><![CDATA[$authHeader]]></code>
     </PossiblyNullArgument>
   </file>
-  <file src="src/Tenant/ControlPlaneWebhook.php">
-    <MixedAssignment>
-      <code><![CDATA[$httpCode]]></code>
-    </MixedAssignment>
-  </file>
   <file src="src/Tenant/Tenant.php">
     <MixedAssignment>
       <code><![CDATA[$createdAtStr]]></code>
