@@ -125,6 +125,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Needed by the changed-lines coverage gate below, which diffs
+          # against the base; fetch-depth 1 has no base to compare.
+          fetch-depth: 0
 
       - name: Setup PHP ${{ matrix.php-version }}
         uses: shivammathur/setup-php@v2
@@ -207,6 +211,32 @@ jobs:
           # header came back and the test failed. Unlike DATABASE_URL and the
           # JWT paths, this has no CI-specific reason to differ.
         run: make coverage
+
+      # Same base as the mutation job: the target branch on a PR, the previous
+      # commit on a push to main.
+      - name: Resolve diff base
+        id: covbase
+        if: matrix.php-version == '8.3'
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "ref=origin/${{ github.base_ref }}" >> $GITHUB_OUTPUT
+          else
+            echo "ref=${{ github.event.before }}" >> $GITHUB_OUTPUT
+          fi
+
+      # Pairs with the mutation job: that one asks whether the tests that
+      # exist are any good, this one asks whether they exist at all. Both are
+      # scoped to changed lines, because a global floor on a codebase at 64%
+      # line coverage either sits uselessly below it or fails every PR.
+      #
+      # The floor is 60%. Measured on this branch's own commits, changed-line
+      # coverage ran 53-76%; the 53% was the clock injection, which touched
+      # three ReportController endpoints that have no test of any kind. So
+      # this will bite on work that touches untested controllers, which is
+      # the point. Raise it as coverage improves.
+      - name: Check coverage of changed lines
+        if: matrix.php-version == '8.3'
+        run: php bin/check-coverage.php var/coverage/clover.xml "${{ steps.covbase.outputs.ref }}" 60
 
       - name: Upload coverage report
         if: always()

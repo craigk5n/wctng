@@ -1,4 +1,4 @@
-.PHONY: test test-unit test-integration phpstan psalm cs-fix cs-check coverage ci check-sensitive-params check-clock-injection check-schema-drift
+.PHONY: test test-unit test-integration phpstan psalm cs-fix cs-check coverage coverage-diff ci check-sensitive-params check-clock-injection check-schema-drift
 
 ## Run PHPUnit tests
 test:
@@ -28,9 +28,18 @@ cs-fix:
 cs-check:
 	./vendor/bin/php-cs-fixer fix --dry-run --diff
 
-## Generate test coverage report
+## Generate test coverage report (clover too: check-coverage.php reads it)
 coverage:
-	XDEBUG_MODE=coverage ./vendor/bin/phpunit --coverage-text --coverage-html=var/coverage
+	@mkdir -p var/coverage
+	XDEBUG_MODE=coverage ./vendor/bin/phpunit --coverage-text --coverage-html=var/coverage \
+		--coverage-clover=var/coverage/clover.xml
+
+## Guard: lines this branch changed must be executed by the suite (same gate
+## as CI). Needs `make coverage` first, and must run from the host: the
+## php-fpm container mounts only webcalendar-api/, so git cannot find the
+## repository root to diff against.
+coverage-diff:
+	php bin/check-coverage.php var/coverage/clover.xml origin/main 60
 
 ## Guard: every $password/$token/$secret/etc param must carry #[\SensitiveParameter]
 check-sensitive-params:
@@ -70,6 +79,7 @@ help:
 	@echo "  make cs-fix    - Fix code style"
 	@echo "  make cs-check  - Check code style"
 	@echo "  make coverage  - Generate coverage report"
+	@echo "  make coverage-diff - Check coverage of this branch's changed lines"
 	@echo "  make mutation  - Mutation testing (slow; whole src tree)"
 	@echo "  make mutation-diff - Mutation testing on this branch's changed lines"
 	@echo "  make ci        - Run all CI checks"
