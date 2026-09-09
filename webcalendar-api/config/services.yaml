@@ -123,6 +123,8 @@ services:
         arguments:
             $pdo: '@pdo.connection'
 
+    App\Webhook\WebhookTransport: '@App\Webhook\CurlWebhookTransport'
+
     # ext-ldap behind an interface so the logic around it is testable; see
     # App\Auth\LdapClient.
     App\Auth\LdapClient: '@App\Auth\ExtLdapClient'

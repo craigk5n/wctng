@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Clock;
 
 use App\Security\OutboundUrlValidator;
+use App\Webhook\CurlWebhookTransport;
 use App\Webhook\WebhookDispatcher;
 use App\Webhook\WebhookRepository;
 use PHPUnit\Framework\TestCase;
@@ -27,7 +28,7 @@ final class ClockInjectionTest extends TestCase
         $pdo = new \PDO('sqlite::memory:');
         $repo = new WebhookRepository($pdo);
 
-        $dispatcher = new WebhookDispatcher($repo, $pdo, new OutboundUrlValidator('standalone'), null, $fixed);
+        $dispatcher = new WebhookDispatcher($repo, $pdo, new CurlWebhookTransport(new OutboundUrlValidator('standalone')), null, $fixed);
 
         $ref = new \ReflectionProperty(WebhookDispatcher::class, 'clock');
         $this->assertInstanceOf(ClockInterface::class, $ref->getValue($dispatcher));

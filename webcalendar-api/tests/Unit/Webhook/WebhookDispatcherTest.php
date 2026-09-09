@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Webhook;
 
 use App\Security\OutboundUrlValidator;
+use App\Webhook\CurlWebhookTransport;
 use App\Webhook\WebhookDispatcher;
 use App\Webhook\WebhookRepository;
 use App\Webhook\WebhookSubscription;
@@ -27,7 +28,7 @@ final class WebhookDispatcherTest extends TestCase
         $this->dispatcher = new WebhookDispatcher(
             $this->repo,
             $this->pdo,
-            new OutboundUrlValidator('standalone'),
+            new CurlWebhookTransport(new OutboundUrlValidator('standalone')),
             null,
             null,
             // Zero backoff: these cases all exhaust the retries, and the real
@@ -105,7 +106,7 @@ final class WebhookDispatcherTest extends TestCase
         $dispatcher = new WebhookDispatcher(
             $this->repo,
             $this->pdo,
-            new OutboundUrlValidator('hosted'),
+            new CurlWebhookTransport(new OutboundUrlValidator('hosted')),
         );
 
         $id = $this->repo->save(

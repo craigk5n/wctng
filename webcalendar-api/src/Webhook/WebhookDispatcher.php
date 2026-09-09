@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Webhook;
 
-use App\Security\OutboundUrlValidator;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -53,7 +52,7 @@ final class WebhookDispatcher implements WebhookDispatcherInterface
     public function __construct(
         private readonly WebhookRepository $repository,
         private readonly \PDO $pdo,
-        private readonly OutboundUrlValidator $urlValidator,
+        private readonly WebhookTransport $transport,
         ?LoggerInterface $logger = null,
         ?ClockInterface $clock = null,
         private readonly array $retryDelays = self::RETRY_DELAYS,
@@ -155,12 +154,12 @@ final class WebhookDispatcher implements WebhookDispatcherInterface
 
     private function deliver(string $url, string $payload, string $signature): int
     {
-        // Re-checked on every delivery, not just at registration: the record
-        // outlives the check, and the name can start answering with an
-        // internal address at any point after it was stored.
         try {
-            $target = $this->urlValidator->validate($url);
+            return $this->transport->post($url, $payload, $signature);
         } catch (\InvalidArgumentException $e) {
+            // A target that fails the SSRF checks is logged as blocked, not as
+            // an ordinary failure, and still counts as a failed attempt so the
+            // retry loop and delivery log behave the same either way.
             $this->logger->error('Webhook delivery blocked', [
                 'url' => $url,
                 'reason' => $e->getMessage(),
@@ -168,31 +167,6 @@ final class WebhookDispatcher implements WebhookDispatcherInterface
 
             return 0;
         }
-
-        $ch = curl_init($url);
-        if ($ch === false) {
-            return 0;
-        }
-
-        $options = [
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => $payload,
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-                "X-Webhook-Signature: sha256={$signature}",
-            ],
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 10,
-            CURLOPT_CONNECTTIMEOUT => 5,
-        ] + OutboundUrlValidator::curlSecurityOptions($target);
-
-        curl_setopt_array($ch, $options);
-
-        curl_exec($ch);
-        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        return $httpCode;
     }
 
     private function logDelivery(int $webhookId, int $statusCode, int $attempt): void

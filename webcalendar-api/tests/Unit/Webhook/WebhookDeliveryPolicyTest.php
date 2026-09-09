@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Webhook;
 
-use App\Security\OutboundUrlValidator;
 use App\Webhook\WebhookDispatcher;
 use App\Webhook\WebhookRepository;
 use App\Webhook\WebhookSubscription;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
 
@@ -16,15 +16,16 @@ use Psr\Log\AbstractLogger;
  * curl itself works: retry count, attempt numbering, log mapping, pruning, and
  * that a non-matching subscription does not stop the ones behind it.
  *
- * Deliveries go to a closed port, so every attempt returns status 0. That
- * drives the failure path; the 2xx branch is unreachable without a real HTTP
- * transport, so the success-range comparison stays uncovered.
+ * Status codes come from FakeWebhookTransport, so both branches of the
+ * success test are reachable -- which they were not while curl was welded into
+ * the dispatcher.
  */
 final class WebhookDeliveryPolicyTest extends TestCase
 {
     private \PDO $pdo;
     private WebhookRepository $repo;
     private RecordingLogger $logger;
+    private FakeWebhookTransport $transport;
     private WebhookDispatcher $dispatcher;
 
     #[\Override]
@@ -34,20 +35,26 @@ final class WebhookDeliveryPolicyTest extends TestCase
         $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         $this->repo = new WebhookRepository($this->pdo);
         $this->logger = new RecordingLogger();
-        $this->dispatcher = new WebhookDispatcher(
+        $this->transport = new FakeWebhookTransport([500, 500, 500]);
+        $this->dispatcher = $this->dispatcherWith($this->transport);
+    }
+
+    private function dispatcherWith(FakeWebhookTransport $transport): WebhookDispatcher
+    {
+        return new WebhookDispatcher(
             $this->repo,
             $this->pdo,
-            new OutboundUrlValidator('standalone'),
+            $transport,
             $this->logger,
             null,
             retryDelays: [0, 0, 0],
         );
     }
 
-    private function subscribe(string $events = '*', string $host = '127.0.0.1:19999'): int
+    private function subscribe(string $events = '*', string $host = 'hooks.example.com'): int
     {
         return $this->repo->save(
-            new WebhookSubscription(0, 'http://' . $host . '/hook', $events, 'secret', true)
+            new WebhookSubscription(0, 'https://' . $host . '/hook', $events, 'secret', true)
         );
     }
 
@@ -55,7 +62,7 @@ final class WebhookDeliveryPolicyTest extends TestCase
     {
         // `continue` rather than `break`: a subscription that does not want
         // this event must not stop the ones after it from being delivered.
-        $this->repo->save(new WebhookSubscription(0, 'http://127.0.0.1:19999/a', 'event.deleted', 's', true));
+        $this->repo->save(new WebhookSubscription(0, 'https://other.example.com/a', 'event.deleted', 's', true));
         $wanted = $this->subscribe('event.created');
 
         $this->dispatcher->dispatch('event.created', ['id' => 1]);
@@ -99,7 +106,7 @@ final class WebhookDeliveryPolicyTest extends TestCase
         self::assertSame($id, $failures[0]['context']['webhook_id']);
         self::assertSame(1, $failures[0]['context']['attempt']);
         self::assertSame(3, $failures[2]['context']['attempt']);
-        self::assertSame(0, $failures[0]['context']['status']);
+        self::assertSame(500, $failures[0]['context']['status']);
     }
 
     public function testDeliveryLogReadsBackTheStoredValues(): void
@@ -112,7 +119,7 @@ final class WebhookDeliveryPolicyTest extends TestCase
         // Each of these is a ternary whose two branches were interchangeable
         // without any test noticing.
         self::assertSame($id, $row['webhook_id']);
-        self::assertSame(0, $row['status_code'], 'a refused connection records 0');
+        self::assertSame(500, $row['status_code']);
         self::assertMatchesRegularExpression('/^attempt [123]$/', $row['response']);
         self::assertNotSame('', $row['delivered_at']);
     }
@@ -150,6 +157,99 @@ final class WebhookDeliveryPolicyTest extends TestCase
 
         self::assertLessThanOrEqual(100, $count, 'the prune keeps the log bounded');
     }
+    public function testSuccessStopsAfterOneAttempt(): void
+    {
+        $transport = new FakeWebhookTransport([200]);
+        $id = $this->subscribe();
+
+        $this->dispatcherWith($transport)->dispatch('event.created', ['id' => 1]);
+
+        self::assertSame(1, $transport->calls(), 'a 2xx must not be retried');
+        self::assertCount(1, $this->dispatcher->getDeliveryLog($id));
+    }
+
+    public function testRetryingStopsAsSoonAsItSucceeds(): void
+    {
+        $transport = new FakeWebhookTransport([500, 200, 200]);
+        $this->subscribe();
+
+        $this->dispatcherWith($transport)->dispatch('event.created', ['id' => 1]);
+
+        self::assertSame(2, $transport->calls());
+    }
+
+    /** @return list<array{int, bool}> */
+    public static function statusCodes(): array
+    {
+        return [
+            [199, false], // just below the success range
+            [200, true],  // first success code
+            [204, true],
+            [299, true],  // last success code
+            [300, false], // just above
+            [404, false],
+            [500, false],
+        ];
+    }
+
+    #[DataProvider('statusCodes')]
+    public function testOnlyTheTwoHundredRangeCountsAsDelivered(int $status, bool $delivered): void
+    {
+        // Both bounds matter: >= 200 and < 300 were each mutable in four ways
+        // with nothing able to tell the difference.
+        $transport = new FakeWebhookTransport([$status, $status, $status]);
+        $this->subscribe();
+
+        $this->dispatcherWith($transport)->dispatch('event.created', ['id' => 1]);
+
+        self::assertSame($delivered ? 1 : 3, $transport->calls());
+    }
+
+    public function testSuccessIsLoggedAsDelivered(): void
+    {
+        $transport = new FakeWebhookTransport([201]);
+        $this->subscribe();
+
+        $this->dispatcherWith($transport)->dispatch('event.created', ['id' => 1]);
+
+        $messages = array_column($this->logger->records, 'message');
+        self::assertContains('Webhook delivered', $messages);
+        self::assertNotContains('Webhook delivery failed', $messages);
+    }
+
+    public function testBlockedTargetIsLoggedAsBlockedRatherThanFailed(): void
+    {
+        // An SSRF-rejected target and an unreachable one both yield status 0;
+        // only the log distinguishes them.
+        $url = 'https://hooks.example.com/hook';
+        $transport = new FakeWebhookTransport([200], blockedUrl: $url);
+        $this->subscribe();
+
+        $this->dispatcherWith($transport)->dispatch('event.created', ['id' => 1]);
+
+        $blocked = array_values(array_filter(
+            $this->logger->records,
+            static fn(array $r): bool => $r['message'] === 'Webhook delivery blocked',
+        ));
+
+        self::assertNotSame([], $blocked);
+        self::assertSame($url, $blocked[0]['context']['url']);
+        self::assertSame(0, $transport->calls(), 'a blocked target is never sent');
+    }
+
+    public function testPayloadIsSignedWithTheSubscriptionSecret(): void
+    {
+        $transport = new FakeWebhookTransport([200]);
+        $this->subscribe();
+
+        $this->dispatcherWith($transport)->dispatch('event.created', ['id' => 1]);
+
+        self::assertSame(
+            hash_hmac('sha256', $transport->sent[0]['payload'], 'secret'),
+            $transport->sent[0]['signature'],
+        );
+    }
+
 }
 
 final class RecordingLogger extends AbstractLogger
