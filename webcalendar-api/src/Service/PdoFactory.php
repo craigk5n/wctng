@@ -7,42 +7,24 @@ namespace App\Service;
 /**
  * Creates a PDO connection from a Symfony-style DATABASE_URL.
  *
- * Supports: mysql://user:pass@host:port/dbname
+ * The URL is taken apart by {@see DatabaseDsn}; this class only decides which
+ * PDO options the application's shared connection wants.
  */
 final class PdoFactory
 {
-    public static function createFromUrl(string $databaseUrl): \PDO
+    public static function createFromUrl(#[\SensitiveParameter] string $databaseUrl): \PDO
     {
-        /** @var array{scheme?: string, host?: string, port?: int, user?: string, pass?: string, path?: string} $parts */
-        $parts = parse_url($databaseUrl);
+        $config = DatabaseDsn::fromUrl($databaseUrl);
 
-        $scheme = $parts['scheme'] ?? 'mysql';
-        $host = $parts['host'] ?? 'localhost';
-        $port = $parts['port'] ?? 3306;
-        $user = $parts['user'] ?? 'root';
-        $pass = $parts['pass'] ?? '';
-        $dbname = ltrim($parts['path'] ?? '/webcalendar', '/');
-
-        $driver = match ($scheme) {
-            'mysql', 'mysql2' => 'mysql',
-            'pgsql', 'postgres', 'postgresql' => 'pgsql',
-            'sqlite', 'sqlite3' => 'sqlite',
-            default => 'mysql',
-        };
-
-        if ($driver === 'sqlite') {
-            $dsn = "sqlite:{$dbname}";
-
-            return new \PDO($dsn, options: [
+        if ($config->driver === 'sqlite') {
+            return new \PDO($config->dsn, options: [
                 \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                 \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
                 \PDO::ATTR_STRINGIFY_FETCHES => false,
             ]);
         }
 
-        $dsn = "{$driver}:host={$host};port={$port};dbname={$dbname};charset=utf8mb4";
-
-        return new \PDO($dsn, $user, $pass, [
+        return new \PDO($config->dsn, $config->user, $config->password, [
             \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
             \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
             \PDO::ATTR_EMULATE_PREPARES => false,

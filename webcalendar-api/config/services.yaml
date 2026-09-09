@@ -131,6 +131,10 @@ services:
     # the operator's environment and may legitimately be internal.
     App\Tenant\ControlPlaneTransport: '@App\Tenant\CurlControlPlaneTransport'
 
+    # The readiness probe's connection opener, seamed so its timeouts can be
+    # asserted; see App\Service\ProbeConnector.
+    App\Service\ProbeConnector: '@App\Service\PdoProbeConnector'
+
     # ext-ldap behind an interface so the logic around it is testable; see
     # App\Auth\LdapClient.
     App\Auth\LdapClient: '@App\Auth\ExtLdapClient'

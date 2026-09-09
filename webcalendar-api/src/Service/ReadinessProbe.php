@@ -14,9 +14,9 @@ namespace App\Service;
  * - On MySQL, sets `MAX_EXECUTION_TIME=100` (ms) before the `SELECT 1` so
  *   a slow-responding server returns within 100ms instead of hanging.
  *   MAX_EXECUTION_TIME only applies to SELECTs, which is what we need.
- * - Reuses {@see PdoFactory} only for DSN assembly — we can't reuse the
- *   shared app PDO because overriding its timeout would taint subsequent
- *   queries on the same connection.
+ * - Shares {@see DatabaseDsn} with PdoFactory for taking the URL apart, but
+ *   not the connection: overriding the shared PDO's timeout would taint every
+ *   later query on it.
  *
  * This is a ~2KB service lifted out of `HealthController` so the probe
  * stays testable in isolation.
@@ -26,10 +26,15 @@ final class ReadinessProbe
     private const CONNECT_TIMEOUT_SECONDS = 1;
     private const QUERY_MAX_EXECUTION_TIME_MS = 100;
 
+    private readonly ProbeConnector $connector;
+
     public function __construct(
         #[\SensitiveParameter]
         private readonly string $databaseUrl,
-    ) {}
+        ?ProbeConnector $connector = null,
+    ) {
+        $this->connector = $connector ?? new PdoProbeConnector();
+    }
 
     public function pingDatabase(): DbProbeResult
     {
@@ -42,6 +47,11 @@ final class ReadinessProbe
             return new DbProbeResult(ok: false, latencyMs: null);
         }
 
+        // Mutation testing leaves four survivors on this line -- the factor
+        // off by one either way, and round() swapped for floor() or ceil().
+        // All four move a diagnostic number by at most a millisecond, and the
+        // only test that could tell them apart would assert an exact duration,
+        // which is a flakier thing than the mutants are a bug.
         $latencyMs = (int) round((microtime(true) - $start) * 1000);
 
         return new DbProbeResult(ok: true, latencyMs: $latencyMs);
@@ -49,47 +59,23 @@ final class ReadinessProbe
 
     private function openProbeConnection(): \PDO
     {
-        // `parse_url` requires a host after `://`, but `sqlite:///:memory:` and
-        // `sqlite:///tmp/db.sqlite` are common DSN forms without one. Patch the
-        // host in when it's missing so parse_url accepts the URL (mirrors the
-        // same trick doctrine/dbal's DsnParser uses).
-        $url = preg_replace('#^((?:pdo-)?sqlite3?):///#', '$1://localhost/', $this->databaseUrl);
-        assert($url !== null);
+        $config = DatabaseDsn::fromUrl($this->databaseUrl);
 
-        /** @var array{scheme?: string, host?: string, port?: int, user?: string, pass?: string, path?: string}|false $parts */
-        $parts = parse_url($url);
-        if ($parts === false) {
-            throw new \RuntimeException('Malformed DATABASE_URL');
-        }
-
-        $scheme = $parts['scheme'] ?? 'mysql';
-        $driver = match ($scheme) {
-            'pgsql', 'postgres', 'postgresql' => 'pgsql',
-            'sqlite', 'sqlite3' => 'sqlite',
-            default => 'mysql',
-        };
-
-        if ($driver === 'sqlite') {
-            $dbname = ltrim($parts['path'] ?? '/:memory:', '/');
-            return new \PDO("sqlite:{$dbname}", options: [
+        if ($config->driver === 'sqlite') {
+            // No credentials, and no connect timeout to set: opening a file
+            // does not block on a network.
+            return $this->connector->connect($config->dsn, '', '', [
                 \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
             ]);
         }
 
-        $host = $parts['host'] ?? 'localhost';
-        $port = $parts['port'] ?? 3306;
-        $user = $parts['user'] ?? 'root';
-        $pass = $parts['pass'] ?? '';
-        $dbname = ltrim($parts['path'] ?? '/webcalendar', '/');
-
-        $dsn = "{$driver}:host={$host};port={$port};dbname={$dbname};charset=utf8mb4";
-        $pdo = new \PDO($dsn, $user, $pass, [
+        $pdo = $this->connector->connect($config->dsn, $config->user, $config->password, [
             \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
             \PDO::ATTR_TIMEOUT => self::CONNECT_TIMEOUT_SECONDS,
             \PDO::ATTR_EMULATE_PREPARES => false,
         ]);
 
-        if ($driver === 'mysql') {
+        if ($config->driver === 'mysql') {
             // MAX_EXECUTION_TIME is a session-level hint in ms (SELECT only).
             // No-op on older servers / MariaDB, which is fine — the connect
             // timeout above still bounds the worst case.
