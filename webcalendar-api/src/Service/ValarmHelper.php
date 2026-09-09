@@ -62,6 +62,8 @@ final class ValarmHelper
         $reminders = [];
 
         foreach ($component->children() as $child) {
+            // Sabre upper-cases component names on both read and construction,
+            // so the strtoupper() here can only ever be belt and braces.
             if (!$child instanceof VObject\Component || strtoupper($child->name) !== 'VALARM') {
                 continue;
             }
@@ -166,11 +168,23 @@ final class ValarmHelper
 
     /**
      * Parses an iCalendar DURATION string to minutes.
+     *
+     * Matching is position-independent: each unit is picked out wherever it
+     * appears, so the sign and the leading "P" that extractReminders() strips
+     * off first make no difference to the result, and neither does reading the
+     * whole match instead of its digits. Mutation testing reports both as
+     * surviving mutants; they are equivalent rather than untested.
      */
     private function parseDurationToMinutes(string $duration): int
     {
         $minutes = 0;
 
+        // Weeks are their own duration form (dur-week): clients that offer a
+        // "1 week before" alarm send -P1W, which every other branch here
+        // ignores, leaving the reminder at the event time.
+        if (preg_match('/(\d+)W/', $duration, $m)) {
+            $minutes += (int) $m[1] * 10080;
+        }
         if (preg_match('/(\d+)D/', $duration, $m)) {
             $minutes += (int) $m[1] * 1440;
         }
