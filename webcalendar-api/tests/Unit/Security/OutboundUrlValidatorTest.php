@@ -177,4 +177,62 @@ final class OutboundUrlValidatorTest extends TestCase
         self::assertSame('2606:4700::1111', $result['ip']);
         self::assertSame(8080, $result['port']);
     }
+    public function testRejectsProtocolRelativeUrl(): void
+    {
+        // parse_url() happily returns a host for //host/path with no scheme.
+        // The scheme check is what catches it, and nothing exercised that
+        // branch independently of the missing-host one.
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('absolute');
+
+        $this->hosted()->validate('//example.com/hook');
+    }
+
+    public function testRejectsUsernameWithoutPassword(): void
+    {
+        // https://user@host/ is the same host-confusion trick as user:pass@,
+        // and only the user half is set.
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('must not embed credentials');
+
+        $this->hosted()->validate('https://user@8.8.8.8/hook');
+    }
+
+    public function testStandaloneStillReportsHostAndPort(): void
+    {
+        $result = $this->standalone()->validate('http://internal.service:9000/hook');
+
+        self::assertSame('internal.service', $result['host']);
+        self::assertSame(9000, $result['port']);
+        self::assertNull($result['ip']);
+    }
+
+    public function testCurlSecurityOptionsRestrictProtocolsAndRedirects(): void
+    {
+        // These are the actual controls: without them curl would follow a 302
+        // anywhere and speak schemes the validator never approved. Asserted
+        // directly, because reaching them only through the dispatcher left
+        // every one of them mutable without a test noticing.
+        $options = OutboundUrlValidator::curlSecurityOptions(
+            ['host' => 'example.com', 'port' => 443, 'ip' => null],
+        );
+
+        self::assertSame('http,https', $options[\CURLOPT_PROTOCOLS_STR]);
+        self::assertSame('http,https', $options[\CURLOPT_REDIR_PROTOCOLS_STR]);
+        self::assertFalse($options[\CURLOPT_FOLLOWLOCATION]);
+        self::assertArrayNotHasKey(\CURLOPT_RESOLVE, $options, 'nothing to pin when ip is null');
+    }
+
+    public function testCurlSecurityOptionsPinTheValidatedAddress(): void
+    {
+        $options = OutboundUrlValidator::curlSecurityOptions(
+            ['host' => 'example.com', 'port' => 8443, 'ip' => '93.184.216.34'],
+        );
+
+        self::assertSame(['example.com:8443:93.184.216.34'], $options[\CURLOPT_RESOLVE]);
+        // The restrictions still apply alongside the pin.
+        self::assertSame('http,https', $options[\CURLOPT_PROTOCOLS_STR]);
+        self::assertSame('http,https', $options[\CURLOPT_REDIR_PROTOCOLS_STR]);
+        self::assertFalse($options[\CURLOPT_FOLLOWLOCATION]);
+    }
 }

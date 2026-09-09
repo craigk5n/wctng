@@ -103,6 +103,13 @@ final readonly class OutboundUrlValidator
      * Every address the host answers with, so a round-robin record cannot hide
      * an internal address behind a public one.
      *
+     * The AAAA half of this is not mutation-covered: reaching it needs a host
+     * with live DNS records, and dns_get_record() bypasses /etc/hosts, so
+     * there is no hermetic way in. Deliberately left rather than papered over
+     * with a resolver abstraction -- each surviving mutant there degrades to
+     * collecting no addresses, which fails closed on the empty check below
+     * rather than admitting an address that was never validated.
+     *
      * @return list<string>
      */
     private function resolve(string $host): array
@@ -152,7 +159,11 @@ final readonly class OutboundUrlValidator
         $long = ip2long($address);
 
         if ($long === false) {
-            return true; // IPv6, already covered by the flags above.
+            // IPv6, already covered by the flags above. Infection reports
+            // removing this return as a surviving mutant; it is equivalent.
+            // Falling through compares false against the range bounds, and
+            // PHP evaluates that as bool, yielding true either way.
+            return true;
         }
 
         return $long < ip2long(self::SHARED_ADDRESS_SPACE_START)
