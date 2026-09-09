@@ -158,11 +158,17 @@ final class CoreServiceFactoryTest extends TestCase
     }
 
     #[DataProvider('getters')]
-    public function testEveryGetterIsReachableAndBuildsSomething(string $getter): void
+    public function testEveryGetterBuildsWhatItPromises(string $getter): void
     {
         // A getter nothing calls reads as dead code to any tool that looks,
-        // and seven of these had no caller in the whole suite.
-        self::assertIsObject($this->factory()->{$getter}());
+        // and seven of these had no caller in the whole suite. The instance is
+        // checked against the declared return type, which generalises what
+        // this class's first four tests asserted by hand for EventService,
+        // UserService, CategoryService and SecurityService.
+        $returnType = (new \ReflectionMethod(CoreServiceFactory::class, $getter))->getReturnType();
+        self::assertInstanceOf(\ReflectionNamedType::class, $returnType, $getter . ' declares no return type');
+
+        self::assertInstanceOf($returnType->getName(), $this->factory()->{$getter}());
     }
 
     #[DataProvider('getters')]
