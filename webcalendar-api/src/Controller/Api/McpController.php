@@ -258,7 +258,17 @@ final class McpController
     private function deleteEvent(string|int|null $id, array $args, User $user): JsonResponse
     {
         $eventId = \is_numeric($args['id'] ?? null) ? (int) $args['id'] : 0;
+
+        // Checked first, the way updateEvent() does. Without this the service
+        // throws EventNotFoundException straight out of the controller, so an
+        // endpoint whose entire contract is to answer in JSON-RPC answers a
+        // deleted-twice request with a 500 instead of an error object.
+        if ($this->eventService->getEventById(new EventId($eventId)) === null) {
+            return $this->jsonRpcError($id, -32602, 'Event not found');
+        }
+
         $this->eventService->deleteEvent(new EventId($eventId), $user);
+
         return $this->jsonRpcResult($id, ['deleted' => true]);
     }
 
