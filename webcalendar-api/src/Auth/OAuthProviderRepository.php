@@ -11,6 +11,21 @@ final readonly class OAuthProviderRepository
 {
     public const SCHEMA_SQL = <<<'SQL'
             CREATE TABLE IF NOT EXISTS oauth_providers (
+                id INTEGER PRIMARY KEY AUTO_INCREMENT,
+                name VARCHAR(100) NOT NULL,
+                type VARCHAR(20) NOT NULL DEFAULT 'oauth2',
+                client_id VARCHAR(255) NOT NULL,
+                client_secret TEXT NOT NULL,
+                auth_url VARCHAR(500) NOT NULL DEFAULT '',
+                token_url VARCHAR(500) NOT NULL DEFAULT '',
+                userinfo_url VARCHAR(500) NOT NULL DEFAULT '',
+                scopes VARCHAR(500) NOT NULL DEFAULT '',
+                enabled INTEGER NOT NULL DEFAULT 1
+            )
+        SQL;
+
+    public const SCHEMA_SQL_SQLITE = <<<'SQL'
+            CREATE TABLE IF NOT EXISTS oauth_providers (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name VARCHAR(100) NOT NULL,
                 type VARCHAR(20) NOT NULL DEFAULT 'oauth2',
@@ -30,7 +45,12 @@ final readonly class OAuthProviderRepository
 
     public function ensureTable(): void
     {
-        $this->pdo->exec(self::SCHEMA_SQL);
+        // AUTOINCREMENT is SQLite-only; MySQL spells it AUTO_INCREMENT and
+        // errors out on the other form, which left oauth_providers uncreated
+        // and every write to this table failing with a 500 on MySQL.
+        $driver = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+        $this->pdo->exec($driver === 'sqlite' ? self::SCHEMA_SQL_SQLITE : self::SCHEMA_SQL);
     }
 
     /**

@@ -18,6 +18,26 @@ use Symfony\Component\Clock\NativeClock;
  */
 final class WebhookDispatcher implements WebhookDispatcherInterface
 {
+    private const LOG_SCHEMA_SQL = <<<'SQL'
+            CREATE TABLE IF NOT EXISTS webhook_delivery_log (
+                id INTEGER PRIMARY KEY AUTO_INCREMENT,
+                webhook_id INTEGER NOT NULL,
+                status_code INTEGER NOT NULL DEFAULT 0,
+                response_body TEXT NOT NULL,
+                delivered_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        SQL;
+
+    private const LOG_SCHEMA_SQL_SQLITE = <<<'SQL'
+            CREATE TABLE IF NOT EXISTS webhook_delivery_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                webhook_id INTEGER NOT NULL,
+                status_code INTEGER NOT NULL DEFAULT 0,
+                response_body TEXT NOT NULL DEFAULT '',
+                delivered_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        SQL;
+
     private const MAX_RETRIES = 3;
     private const RETRY_DELAYS = [1, 5, 30]; // seconds
 
@@ -181,26 +201,34 @@ final class WebhookDispatcher implements WebhookDispatcherInterface
                 'at' => $this->clock->now()->format('Y-m-d H:i:s'),
             ]);
 
-            // Keep only last 100 per webhook
+            // Keep only last 100 per webhook. `rowid` is SQLite-only and MySQL
+            // rejects LIMIT inside an IN subquery (error 1235), so this goes
+            // through `id` and a derived table, which both engines accept.
             $this->pdo->prepare(
-                'DELETE FROM webhook_delivery_log WHERE webhook_id = :wid AND rowid NOT IN
-                 (SELECT rowid FROM webhook_delivery_log WHERE webhook_id = :wid2 ORDER BY delivered_at DESC LIMIT 100)',
+                'DELETE FROM webhook_delivery_log WHERE webhook_id = :wid AND id NOT IN
+                 (SELECT id FROM (
+                      SELECT id FROM webhook_delivery_log WHERE webhook_id = :wid2
+                      ORDER BY delivered_at DESC LIMIT 100
+                  ) AS keep)',
             )->execute(['wid' => $webhookId, 'wid2' => $webhookId]);
-        } catch (\Throwable) {
-            // Non-fatal
+        } catch (\Throwable $e) {
+            // Non-fatal, but not silent: a broken log table used to swallow
+            // itself here, which is how the SQLite-only DDL above survived
+            // unnoticed on MySQL.
+            $this->logger->debug('Webhook delivery log write failed', [
+                'webhook_id' => $webhookId,
+                'exception' => $e->getMessage(),
+            ]);
         }
     }
 
     private function ensureLogTable(): void
     {
-        $this->pdo->exec(
-            'CREATE TABLE IF NOT EXISTS webhook_delivery_log (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                webhook_id INTEGER NOT NULL,
-                status_code INTEGER NOT NULL DEFAULT 0,
-                response_body TEXT NOT NULL DEFAULT \'\',
-                delivered_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )',
-        );
+        // Same AUTOINCREMENT/AUTO_INCREMENT split as the other repositories.
+        // MySQL additionally rejects a DEFAULT on TEXT (error 1101), so
+        // response_body carries none there; every insert supplies it.
+        $driver = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+
+        $this->pdo->exec($driver === 'sqlite' ? self::LOG_SCHEMA_SQL_SQLITE : self::LOG_SCHEMA_SQL);
     }
 }
