@@ -433,9 +433,6 @@
       <code><![CDATA[list<array{category_id: int, category_name: string, count: int}>]]></code>
       <code><![CDATA[list<array{id: int, title: string, start_date: string, type: string}>]]></code>
     </MixedReturnTypeCoercion>
-    <RiskyTruthyFalsyComparison>
-      <code><![CDATA[strtotime("+{$days} days")]]></code>
-    </RiskyTruthyFalsyComparison>
   </file>
   <file src="src/Service/SearchIndexService.php">
     <MixedReturnTypeCoercion>

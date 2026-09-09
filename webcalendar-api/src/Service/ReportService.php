@@ -4,13 +4,23 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
+
 /**
  * Generates calendar reports and analytics from event data.
+ *
+ * Every row mapping guards its column with is_string()/is_numeric() and falls
+ * back to an empty value. Those guards narrow `mixed` for the static analysers
+ * rather than describing anything these queries can actually return, so the
+ * fallbacks -- and the casts inside them -- survive mutation testing. They are
+ * unreachable, not untested.
  */
 final readonly class ReportService
 {
     public function __construct(
         private TenantAwarePdoProvider $pdoProvider,
+        private ClockInterface $clock = new NativeClock(),
     ) {}
 
     /**
@@ -119,8 +129,9 @@ final readonly class ReportService
     public function upcomingReport(string $userLogin, int $days = 7): array
     {
         $pdo = $this->pdoProvider->get();
-        $today = (int) date('Ymd');
-        $endDate = (int) date('Ymd', strtotime("+{$days} days") ?: null);
+        $now = $this->clock->now();
+        $today = (int) $now->format('Ymd');
+        $endDate = (int) $now->modify("+{$days} days")->format('Ymd');
 
         $stmt = $pdo->prepare(
             'SELECT cal_id, cal_name, cal_date, cal_type FROM webcal_entry
@@ -136,7 +147,7 @@ final readonly class ReportService
             $results[] = [
                 'id' => \is_numeric($row['cal_id'] ?? null) ? (int) $row['cal_id'] : 0,
                 'title' => \is_string($row['cal_name'] ?? null) ? $row['cal_name'] : '',
-                'start_date' => \is_string($row['cal_date'] ?? null) ? (string) $row['cal_date'] : '',
+                'start_date' => \is_numeric($row['cal_date'] ?? null) ? (string) $row['cal_date'] : '',
                 'type' => \is_string($row['cal_type'] ?? null) ? $row['cal_type'] : 'E',
             ];
             /** @var array<string, mixed>|false $row */
