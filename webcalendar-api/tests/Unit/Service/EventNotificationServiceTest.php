@@ -6,12 +6,14 @@ namespace App\Tests\Unit\Service;
 
 use App\Service\CoreServiceFactory;
 use App\Service\EventNotificationService;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Mailer\Envelope;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\RawMessage;
 use WebCalendar\Core\Domain\Entity\User;
+use WebCalendar\Core\Domain\ValueObject\UserPreference;
 
 /**
  * Tiny recording Mailer: keeps every Email it's asked to send so tests
@@ -496,5 +498,459 @@ final class EventNotificationServiceTest extends TestCase
         self::assertSame('Event Updated: Quarterly Review', $mailer->sent[0]->getSubject());
         self::assertSame('Event Cancelled: Quarterly Review', $mailer->sent[1]->getSubject());
         self::assertStringContainsString('Quarterly Review', (string) $mailer->sent[1]->getHtmlBody());
+    }
+
+    // ------------------------------------------------ a helper for two users
+
+    /** Builds a service whose directory holds each of the given login => email. */
+    private function serviceWithUsers(RecordingMailer $mailer, array $users): EventNotificationService
+    {
+        return $this->serviceAndFactory($mailer, $users)[0];
+    }
+
+    /**
+     * @return array{EventNotificationService, CoreServiceFactory}
+     */
+    private function serviceAndFactory(RecordingMailer $mailer, array $users): array
+    {
+        $pdo = new \PDO('sqlite::memory:');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+        $schema = file_get_contents(
+            __DIR__ . '/../../../vendor/craigk5n/webcalendar-core/src/Infrastructure/Persistence/sqlite-schema.sql'
+        );
+        self::assertIsString($schema);
+
+        foreach (preg_split('/;\s*\n/', (string) preg_replace('/--[^\n]*/', '', $schema)) ?: [] as $statement) {
+            $statement = trim($statement);
+
+            if ($statement !== '') {
+                try {
+                    $pdo->exec($statement);
+                } catch (\PDOException) {
+                    // Not every statement applies to this SQLite build.
+                }
+            }
+        }
+
+        $factory = new CoreServiceFactory($pdo, 'test');
+
+        foreach ($users as $login => $email) {
+            $factory->getUserRepository()->save(new User((string) $login, ucfirst((string) $login), 'Smith', (string) $email, false, true));
+        }
+
+        return [
+            new EventNotificationService(
+                $mailer,
+                $factory->getUserService(),
+                'from@test.com',
+                'WebCal',
+                'https://cal.example.com',
+            ),
+            $factory,
+        ];
+    }
+
+    // ------------------------------------- one bad recipient stops nobody else
+
+    public function testAParticipantWhoIsNotInTheDirectoryDoesNotStopTheRest(): void
+    {
+        // `continue`, not `break`: a stale participant row is ordinary, and if
+        // it ended the loop everyone listed after it would silently never be
+        // told. Also the only reachable half of the guard above it -- the
+        // other half tests for an empty address, which the User entity
+        // rejects at construction, so a user with one cannot be loaded.
+        $mailer = new RecordingMailer();
+        $service = $this->serviceWithUsers($mailer, ['bob' => 'bob@example.com']);
+
+        $service->notifyParticipantsAdded($this->sampleEvent(), ['ghost', 'bob']);
+
+        self::assertCount(1, $mailer->sent);
+        self::assertSame('bob@example.com', $mailer->sent[0]->getTo()[0]->getAddress());
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function participantNotifications(): iterable
+    {
+        yield 'updated' => ['notifyEventUpdated'];
+        yield 'deleted' => ['notifyEventDeleted'];
+    }
+
+    #[DataProvider('participantNotifications')]
+    public function testTheSameIsTrueForUpdatesAndCancellations(string $method): void
+    {
+        $mailer = new RecordingMailer();
+        $service = $this->serviceWithUsers($mailer, ['bob' => 'bob@example.com']);
+        $participants = [['login' => 'ghost', 'status' => 'A'], ['login' => 'bob', 'status' => 'A']];
+
+        $method === 'notifyEventDeleted'
+            ? $service->notifyEventDeleted('Quarterly Review', $participants)
+            : $service->notifyEventUpdated($this->sampleEvent(), $participants);
+
+        self::assertCount(1, $mailer->sent);
+        self::assertSame('bob@example.com', $mailer->sent[0]->getTo()[0]->getAddress());
+    }
+
+    public function testAnExternalParticipantWithNoAddressDoesNotStopTheRest(): void
+    {
+        $mailer = new RecordingMailer();
+        $service = $this->serviceWithUsers($mailer, []);
+
+        $service->notifyExtParticipantsUpdated($this->sampleEvent(), [
+            ['email' => '', 'name' => 'No Address'],
+            ['email' => 'ext@example.com', 'name' => 'External'],
+        ]);
+
+        self::assertCount(1, $mailer->sent);
+        self::assertSame('ext@example.com', $mailer->sent[0]->getTo()[0]->getAddress());
+    }
+
+    public function testAnExternalParticipantWithNoAddressDoesNotStopACancellationEither(): void
+    {
+        $mailer = new RecordingMailer();
+        $service = $this->serviceWithUsers($mailer, []);
+
+        $service->notifyExtParticipantsDeleted($this->sampleEvent(), [
+            ['email' => '', 'name' => 'No Address'],
+            ['email' => 'ext@example.com', 'name' => 'External'],
+        ]);
+
+        self::assertCount(1, $mailer->sent);
+    }
+
+    // --------------------------------------------- what the emails actually say
+
+    public function testTheUpdateEmailToAParticipantNamesTheEventAndItsDate(): void
+    {
+        $mailer = new RecordingMailer();
+        $service = $this->serviceWithUsers($mailer, ['bob' => 'bob@example.com']);
+
+        $service->notifyEventUpdated($this->sampleEvent(), [['login' => 'bob', 'status' => 'A']]);
+
+        $body = (string) $mailer->sent[0]->getHtmlBody();
+        self::assertStringContainsString('<h2>Event Updated: Quarterly Review</h2>', $body);
+        self::assertStringContainsString('The event on 2026-04-15 has been updated.', $body);
+        self::assertStringContainsString('href="https://cal.example.com"', $body);
+    }
+
+    public function testTheCancellationEmailToAParticipantNamesTheEvent(): void
+    {
+        $mailer = new RecordingMailer();
+        $service = $this->serviceWithUsers($mailer, ['bob' => 'bob@example.com']);
+
+        $service->notifyEventDeleted('Quarterly Review', [['login' => 'bob', 'status' => 'A']]);
+
+        self::assertSame(
+            '<h2>Event Cancelled: Quarterly Review</h2>'
+                . '<p>This event has been cancelled by the organizer.</p>',
+            (string) $mailer->sent[0]->getHtmlBody(),
+        );
+    }
+
+    public function testTheExternalUpdateEmailIsExactlyThis(): void
+    {
+        $mailer = new RecordingMailer();
+        $service = $this->serviceWithUsers($mailer, []);
+
+        $service->notifyExtParticipantsUpdated($this->sampleEvent(), [['email' => 'ext@example.com', 'name' => 'Ext']]);
+
+        self::assertSame(
+            '<h2>Event Updated: Quarterly Review</h2>'
+                . '<p>The event on 2026-04-15 has been updated.</p>'
+                . '<p><strong>Location:</strong> Conference Room B</p>',
+            (string) $mailer->sent[0]->getHtmlBody(),
+        );
+    }
+
+    public function testTheExternalUpdateEmailDropsTheLocationBlockWhenThereIsNone(): void
+    {
+        $mailer = new RecordingMailer();
+        $service = $this->serviceWithUsers($mailer, []);
+
+        $service->notifyExtParticipantsUpdated(
+            ['id' => 42, 'title' => 'Quarterly Review', 'start_date' => '20260415', 'uid' => 'sample@test'],
+            [['email' => 'ext@example.com', 'name' => 'Ext']],
+        );
+
+        self::assertSame(
+            '<h2>Event Updated: Quarterly Review</h2>'
+                . '<p>The event on 2026-04-15 has been updated.</p>',
+            (string) $mailer->sent[0]->getHtmlBody(),
+        );
+    }
+
+    public function testTheExternalCancellationEmailIsExactlyThis(): void
+    {
+        $mailer = new RecordingMailer();
+        $service = $this->serviceWithUsers($mailer, []);
+
+        $service->notifyExtParticipantsDeleted($this->sampleEvent(), [['email' => 'ext@example.com', 'name' => 'Ext']]);
+
+        self::assertSame(
+            '<h2>Event Cancelled: Quarterly Review</h2>'
+                . '<p>This event has been cancelled by the organizer.</p>',
+            (string) $mailer->sent[0]->getHtmlBody(),
+        );
+    }
+
+    public function testADateThatIsNotEightDigitsIsLeftAlone(): void
+    {
+        // formatDate() only reshapes YYYYMMDD; anything else is passed
+        // through rather than sliced into nonsense.
+        $mailer = new RecordingMailer();
+        $service = $this->serviceWithUsers($mailer, ['bob' => 'bob@example.com']);
+
+        $service->notifyEventUpdated(
+            ['id' => 42, 'title' => 'Odd Date', 'start_date' => 'soon'],
+            [['login' => 'bob', 'status' => 'A']],
+        );
+
+        self::assertStringContainsString('The event on soon has been updated.', (string) $mailer->sent[0]->getHtmlBody());
+    }
+
+    public function testAnEventWithNoStartDateStillSends(): void
+    {
+        $mailer = new RecordingMailer();
+        $service = $this->serviceWithUsers($mailer, ['bob' => 'bob@example.com']);
+
+        $service->notifyEventUpdated(['id' => 42, 'title' => 'No Date'], [['login' => 'bob', 'status' => 'A']]);
+
+        self::assertStringContainsString('<h2>Event Updated: No Date</h2>', (string) $mailer->sent[0]->getHtmlBody());
+    }
+
+    // ------------------------------------------------- the calendar attachment
+
+    public function testTheAttachedInviteIsAWellFormedICalendarObject(): void
+    {
+        // Every line of this is what a mail client parses to offer "add to
+        // calendar", and each was a separate concatenation nothing read.
+        $mailer = new RecordingMailer();
+        $service = $this->serviceWithUsers($mailer, []);
+
+        $service->notifyExtParticipantsAdded($this->sampleEvent(), [['email' => 'ext@example.com', 'name' => 'Ext']]);
+
+        $ics = (string) $mailer->sent[0]->getAttachments()[0]->getBody();
+
+        self::assertSame([
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'METHOD:REQUEST',
+            'PRODID:-//WebCalendar//WCTNG//EN',
+            'BEGIN:VEVENT',
+            'UID:sample@test',
+            'SUMMARY:Quarterly Review',
+            'DTSTART:20260415',
+            'STATUS:CONFIRMED',
+            'END:VEVENT',
+            'END:VCALENDAR',
+        ], explode("\r\n", $ics));
+    }
+
+    public function testACancellationInviteDiffersOnlyInItsMethodAndStatus(): void
+    {
+        $mailer = new RecordingMailer();
+        $service = $this->serviceWithUsers($mailer, []);
+
+        $service->notifyExtParticipantsDeleted($this->sampleEvent(), [['email' => 'ext@example.com', 'name' => 'Ext']]);
+
+        $lines = explode("\r\n", (string) $mailer->sent[0]->getAttachments()[0]->getBody());
+
+        self::assertContains('METHOD:CANCEL', $lines);
+        self::assertContains('STATUS:CANCELLED', $lines);
+    }
+
+    public function testAnEventWithNoUidGetsOneMadeFromItsId(): void
+    {
+        $mailer = new RecordingMailer();
+        $service = $this->serviceWithUsers($mailer, []);
+
+        $service->notifyExtParticipantsAdded(
+            ['id' => 42, 'title' => 'No Uid', 'start_date' => '20260415'],
+            [['email' => 'ext@example.com', 'name' => 'Ext']],
+        );
+
+        self::assertStringContainsString(
+            'UID:wctng-42@webcalendar',
+            (string) $mailer->sent[0]->getAttachments()[0]->getBody(),
+        );
+    }
+
+    public function testAnEventWithNeitherUidNorIdStillGetsAUid(): void
+    {
+        // The `?? 0` fallback on the id is what keeps the UID well-formed
+        // rather than 'wctng-@webcalendar'.
+        $mailer = new RecordingMailer();
+        $service = $this->serviceWithUsers($mailer, []);
+
+        $service->notifyExtParticipantsAdded(
+            ['title' => 'Nothing', 'start_date' => '20260415'],
+            [['email' => 'ext@example.com', 'name' => 'Ext']],
+        );
+
+        self::assertStringContainsString(
+            'UID:wctng-0@webcalendar',
+            (string) $mailer->sent[0]->getAttachments()[0]->getBody(),
+        );
+    }
+
+    // ------------------------------------------------------------- opting out
+
+    /** @return iterable<string, array{string, string}> */
+    public static function optOutPreferences(): iterable
+    {
+        yield 'invitations' => ['EMAIL_INVITE', 'notifyParticipantsAdded'];
+        yield 'updates' => ['EMAIL_UPDATE', 'notifyEventUpdated'];
+    }
+
+    public function testAParticipantWhoOptedOutOfUpdatesIsNotEmailed(): void
+    {
+        $mailer = new RecordingMailer();
+        [$service, $factory] = $this->serviceAndFactory($mailer, ['bob' => 'bob@example.com']);
+        $factory->getUserRepository()->savePreference('bob', new UserPreference('EMAIL_UPDATE', 'N'));
+
+        $service->notifyEventUpdated($this->sampleEvent(), [['login' => 'bob', 'status' => 'A']]);
+
+        self::assertSame([], $mailer->sent);
+    }
+
+    public function testAnOptOutIsFoundWhereverItSitsInThePreferenceList(): void
+    {
+        // The loop has to keep looking: `break` in place of the iteration
+        // would only ever see the first preference, so an opt-out saved after
+        // anything else would be ignored and the mail sent anyway.
+        $mailer = new RecordingMailer();
+        [$service, $factory] = $this->serviceAndFactory($mailer, ['bob' => 'bob@example.com']);
+        $factory->getUserRepository()->savePreference('bob', new UserPreference('SOMETHING_ELSE', 'Y'));
+        $factory->getUserRepository()->savePreference('bob', new UserPreference('EMAIL_UPDATE', 'N'));
+
+        $service->notifyEventUpdated($this->sampleEvent(), [['login' => 'bob', 'status' => 'A']]);
+
+        self::assertSame([], $mailer->sent);
+    }
+
+    public function testAPreferenceSetToAnythingButNoDoesNotOptOut(): void
+    {
+        $mailer = new RecordingMailer();
+        [$service, $factory] = $this->serviceAndFactory($mailer, ['bob' => 'bob@example.com']);
+        $factory->getUserRepository()->savePreference('bob', new UserPreference('EMAIL_UPDATE', 'Y'));
+
+        $service->notifyEventUpdated($this->sampleEvent(), [['login' => 'bob', 'status' => 'A']]);
+
+        self::assertCount(1, $mailer->sent);
+    }
+
+    public function testOptingOutOfOneKindOfMailDoesNotSilenceAnother(): void
+    {
+        $mailer = new RecordingMailer();
+        [$service, $factory] = $this->serviceAndFactory($mailer, ['bob' => 'bob@example.com']);
+        $factory->getUserRepository()->savePreference('bob', new UserPreference('EMAIL_INVITE', 'N'));
+
+        $service->notifyEventUpdated($this->sampleEvent(), [['login' => 'bob', 'status' => 'A']]);
+
+        self::assertCount(1, $mailer->sent, 'an invite opt-out is not an update opt-out');
+    }
+
+    // ------------------------------------------------- the response token
+
+    public function testAnEventWithNoIdIsTokenisedAsEventZero(): void
+    {
+        // The accept and decline links are signed over "{id}:{login}", and an
+        // event arriving without an id falls back to 0. Any other fallback
+        // would hand the recipient a link that does not verify.
+        $mailer = new RecordingMailer();
+        $service = $this->serviceWithUsers($mailer, ['bob' => 'bob@example.com']);
+
+        $service->notifyParticipantsAdded(['id' => 0, 'title' => 'Zero', 'start_date' => '20260415'], ['bob']);
+        $service->notifyParticipantsAdded(['title' => 'Missing', 'start_date' => '20260415'], ['bob']);
+
+        self::assertCount(2, $mailer->sent);
+        self::assertSame(
+            $this->tokenIn((string) $mailer->sent[0]->getHtmlBody()),
+            $this->tokenIn((string) $mailer->sent[1]->getHtmlBody()),
+        );
+    }
+
+    private function tokenIn(string $html): string
+    {
+        self::assertSame(1, preg_match('/token=([0-9a-f]+)/', $html, $m));
+
+        return $m[1];
+    }
+
+    // ------------------------------------------------------- exact bodies
+
+    public function testTheUpdateEmailToAParticipantIsExactlyThis(): void
+    {
+        $mailer = new RecordingMailer();
+        $service = $this->serviceWithUsers($mailer, ['bob' => 'bob@example.com']);
+
+        $service->notifyEventUpdated($this->sampleEvent(), [['login' => 'bob', 'status' => 'A']]);
+
+        self::assertSame(
+            '<h2>Event Updated: Quarterly Review</h2>'
+                . '<p>The event on 2026-04-15 has been updated.</p>'
+                . '<p><a href="https://cal.example.com">View in WebCalendar</a></p>',
+            (string) $mailer->sent[0]->getHtmlBody(),
+        );
+    }
+
+    public function testAnEmptyExternalListSendsNothingAtAll(): void
+    {
+        $mailer = new RecordingMailer();
+        $service = $this->serviceWithUsers($mailer, []);
+
+        $service->notifyExtParticipantsAdded($this->sampleEvent(), []);
+
+        self::assertSame([], $mailer->sent);
+    }
+
+    // ---------------------------------------------------------- the logger
+
+    public function testAFailedSendIsReportedToTheInjectedLogger(): void
+    {
+        // Sending is best-effort -- a dead SMTP host must not fail the event
+        // that triggered it -- so the log line is the only trace anything
+        // went wrong. With the logger defaulted away it is silent.
+        $logger = new CollectingLogger();
+        $service = new EventNotificationService(
+            new ThrowingMailer(),
+            $this->serviceAndFactory(new RecordingMailer(), ['bob' => 'bob@example.com'])[1]->getUserService(),
+            'from@test.com',
+            'WebCal',
+            'https://cal.example.com',
+            $logger,
+        );
+
+        $service->notifyEventUpdated($this->sampleEvent(), [['login' => 'bob', 'status' => 'A']]);
+
+        self::assertCount(1, $logger->warnings);
+        self::assertSame('Failed to send notification email', $logger->warnings[0]['message']);
+        self::assertSame('bob@example.com', $logger->warnings[0]['context']['to']);
+        self::assertSame('Event Updated: Quarterly Review', $logger->warnings[0]['context']['subject']);
+        self::assertSame('smtp is down', $logger->warnings[0]['context']['error']);
+    }
+}
+
+/** A mailer that always fails, for the best-effort path. */
+final class ThrowingMailer implements MailerInterface
+{
+    public function send(RawMessage $message, ?Envelope $envelope = null): void
+    {
+        throw new \RuntimeException('smtp is down');
+    }
+}
+
+/** Captures warnings so the logging decision can be asserted. */
+final class CollectingLogger extends \Psr\Log\AbstractLogger
+{
+    /** @var list<array{message: string, context: array<string, mixed>}> */
+    public array $warnings = [];
+
+    /** @param array<string, mixed> $context */
+    public function log($level, string|\Stringable $message, array $context = []): void
+    {
+        if ((string) $level === 'warning') {
+            $this->warnings[] = ['message' => (string) $message, 'context' => $context];
+        }
     }
 }
