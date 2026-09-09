@@ -23,6 +23,9 @@ final class LdapGroupSync
         private readonly LdapConfigRepository $configRepo,
         private readonly GroupService $groupService,
         ?ClockInterface $clock = null,
+        // Defaulted like LdapAuthenticator's, so existing construction keeps
+        // working and tests can drive the directory without a server.
+        private readonly LdapClient $ldap = new ExtLdapClient(),
     ) {
         $this->clock = $clock ?? new NativeClock();
     }
@@ -38,7 +41,7 @@ final class LdapGroupSync
     public function syncUserGroups(string $username, string $userDn): array
     {
         $config = $this->configRepo->get();
-        if (!$config->isEnabled() || $config->host() === '' || !\function_exists('ldap_connect')) {
+        if (!$config->isEnabled() || $config->host() === '' || !$this->ldap->isSupported()) {
             return [];
         }
 
@@ -94,34 +97,27 @@ final class LdapGroupSync
      */
     private function fetchMemberOfGroups(LdapConfig $config, string $userDn): array
     {
-        $uri = ($config->useTls() ? 'ldaps://' : 'ldap://') . $config->host() . ':' . $config->port();
-        $conn = @ldap_connect($uri);
-        if ($conn === false) {
+        $scheme = $config->useTls() ? 'ldaps://' : 'ldap://';
+        $connection = $this->ldap->connect($scheme . $config->host() . ':' . $config->port());
+
+        if ($connection === null) {
             return [];
         }
 
-        ldap_set_option($conn, LDAP_OPT_PROTOCOL_VERSION, 3);
-        ldap_set_option($conn, LDAP_OPT_REFERRALS, 0);
-
-        if ($config->bindDn() !== '') {
-            if (!@ldap_bind($conn, $config->bindDn(), $config->bindPassword())) {
-                ldap_unbind($conn);
-
-                return [];
-            }
-        }
-
-        $search = @ldap_read($conn, $userDn, '(objectClass=*)', ['memberOf']);
-        if ($search === false || \is_array($search)) {
-            ldap_unbind($conn);
+        // Same shape as LdapAuthenticator's service bind. Left inline rather
+        // than shared: two call sites in one class there, one here, and a
+        // common home for it would have to take LdapConfig, which the adapter
+        // deliberately knows nothing about.
+        if ($config->bindDn() !== '' && !$connection->bind($config->bindDn(), $config->bindPassword())) {
+            $connection->close();
 
             return [];
         }
 
-        $entries = ldap_get_entries($conn, $search);
-        ldap_unbind($conn);
+        $entries = $connection->read($userDn, '(objectClass=*)', ['memberOf']);
+        $connection->close();
 
-        if ($entries === false || $entries['count'] === 0) {
+        if ($entries === null || $entries['count'] === 0) {
             return [];
         }
 

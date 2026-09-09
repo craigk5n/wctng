@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controller\Api;
 
+use App\Auth\ExtLdapClient;
+use App\Auth\LdapClient;
 use App\Auth\LdapConfig;
 use App\Auth\LdapConfigRepository;
 use App\Auth\LdapGroupSync;
@@ -19,6 +21,7 @@ final class LdapConfigController
     public function __construct(
         private readonly LdapConfigRepository $repository,
         private readonly LdapGroupSync $groupSync,
+        private readonly LdapClient $ldap = new ExtLdapClient(),
     ) {}
 
     #[Route('/api/v2/admin/ldap-config', name: 'api_ldap_config_get', methods: ['GET'])]
@@ -78,29 +81,23 @@ final class LdapConfigController
         }
 
         // Test LDAP connection
-        if (!\function_exists('ldap_connect')) {
+        if (!$this->ldap->isSupported()) {
             return ApiResponse::error(500, 'PHP LDAP extension not installed');
         }
 
-        $ldapUri = ($config->useTls() ? 'ldaps://' : 'ldap://') . $config->host() . ':' . $config->port();
+        $scheme = $config->useTls() ? 'ldaps://' : 'ldap://';
 
         try {
-            $conn = ldap_connect($ldapUri);
-            if ($conn === false) {
+            $connection = $this->ldap->connect($scheme . $config->host() . ':' . $config->port());
+
+            if ($connection === null) {
                 return ApiResponse::error(500, 'Failed to initialize LDAP connection');
             }
 
-            ldap_set_option($conn, LDAP_OPT_PROTOCOL_VERSION, 3);
-            ldap_set_option($conn, LDAP_OPT_REFERRALS, 0);
-            ldap_set_option($conn, LDAP_OPT_NETWORK_TIMEOUT, 5);
-
-            if ($config->bindDn() !== '') {
-                $bound = @ldap_bind($conn, $config->bindDn(), $config->bindPassword());
-            } else {
-                $bound = @ldap_bind($conn);
-            }
-
-            ldap_unbind($conn);
+            // Empty credentials bind anonymously, which is what this endpoint
+            // should report on when no service account is configured.
+            $bound = $connection->bind($config->bindDn(), $config->bindPassword());
+            $connection->close();
 
             if ($bound) {
                 return ApiResponse::success(['status' => 'ok', 'message' => 'LDAP connection successful']);
