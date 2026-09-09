@@ -22,7 +22,16 @@ TARGET_DIR="${API_DIR}/var/tools"
 TARGET="${TARGET_DIR}/infection.phar"
 URL="https://github.com/infection/infection/releases/download/${INFECTION_VERSION}/infection.phar"
 
-if [ -f "${TARGET}" ] && echo "${INFECTION_SHA256}  ${TARGET}" | sha256sum -c -s; then
+# Compare the digest as a string rather than with `sha256sum -c`: the check
+# and quiet flags differ between BusyBox (-s) and GNU coreutils (--status),
+# and getting that wrong fails as "checksum mismatch" rather than as a usage
+# error, which is how this went unnoticed while the CI job was advisory.
+# Both implementations print "<digest>  <path>", so cut is portable.
+sha256_of() {
+    sha256sum "$1" | cut -d ' ' -f 1
+}
+
+if [ -f "${TARGET}" ] && [ "$(sha256_of "${TARGET}")" = "${INFECTION_SHA256}" ]; then
     echo "Infection ${INFECTION_VERSION} already present at ${TARGET}"
     exit 0
 fi
@@ -32,10 +41,13 @@ mkdir -p "${TARGET_DIR}"
 echo "Downloading Infection ${INFECTION_VERSION}..."
 curl -fsSL -o "${TARGET}.tmp" "${URL}"
 
-if ! echo "${INFECTION_SHA256}  ${TARGET}.tmp" | sha256sum -c -s; then
+ACTUAL_SHA256="$(sha256_of "${TARGET}.tmp")"
+
+if [ "${ACTUAL_SHA256}" != "${INFECTION_SHA256}" ]; then
     rm -f "${TARGET}.tmp"
     echo "Checksum mismatch for infection.phar ${INFECTION_VERSION}; refusing to install." >&2
     echo "Expected ${INFECTION_SHA256}" >&2
+    echo "Actual   ${ACTUAL_SHA256}" >&2
     exit 1
 fi
 
