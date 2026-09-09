@@ -180,4 +180,195 @@ final class ShareControllerTest extends TestCase
 
         $this->assertSame(400, $response->getStatusCode());
     }
+    /** @return array<string, mixed> */
+    private function sharedEventsBody(string $query, int $eventCount = 5): array
+    {
+        $this->tokenRepo->create('paging-token', 'alice', null);
+
+        $events = [];
+        for ($i = 1; $i <= $eventCount; $i++) {
+            $events[] = $this->makeEvent($i, 'alice');
+        }
+        $this->eventRepo->method('findByDateRange')->willReturn($events);
+
+        $response = $this->controller->sharedEvents(
+            'paging-token',
+            Request::create('/api/v2/public/shared/paging-token/events?start=20260401&end=20260430&' . $query),
+        );
+
+        /** @var array<string, mixed> $body */
+        $body = json_decode((string) $response->getContent(), true);
+
+        return $body;
+    }
+
+    public function testPageAndLimitSelectTheRightSlice(): void
+    {
+        // offset is (page - 1) * limit; an off-by-one either way lands on a
+        // different event, and nothing checked which events came back.
+        $body = $this->sharedEventsBody('page=2&limit=2');
+
+        self::assertCount(2, $body['data']);
+        self::assertSame('Test Event 3', $body['data'][0]['title']);
+        self::assertSame('Test Event 4', $body['data'][1]['title']);
+        self::assertSame(5, $body['meta']['total'], 'total counts every match, not the page');
+        self::assertSame(2, $body['meta']['page']);
+        self::assertSame(2, $body['meta']['limit']);
+    }
+
+    public function testLimitIsCappedAtOneHundred(): void
+    {
+        self::assertSame(100, $this->sharedEventsBody('limit=500')['meta']['limit']);
+    }
+
+    public function testLimitBelowOneIsRaisedToOne(): void
+    {
+        $body = $this->sharedEventsBody('limit=0');
+
+        self::assertSame(1, $body['meta']['limit']);
+        self::assertCount(1, $body['data']);
+    }
+
+    public function testPageBelowOneIsRaisedToOne(): void
+    {
+        $body = $this->sharedEventsBody('page=0&limit=2');
+
+        self::assertSame(1, $body['meta']['page']);
+        // Page 1, not a negative offset into the list.
+        self::assertSame('Test Event 1', $body['data'][0]['title']);
+    }
+
+    public function testPagePastTheEndReturnsNothingButStillReportsTheTotal(): void
+    {
+        $body = $this->sharedEventsBody('page=9&limit=2');
+
+        self::assertSame([], $body['data']);
+        self::assertSame(5, $body['meta']['total']);
+    }
+
+    public function testDateParamsAreNormalisedToMidnight(): void
+    {
+        $this->tokenRepo->create('range-token', 'alice', null);
+
+        $captured = null;
+        $this->eventRepo->method('findByDateRange')->willReturnCallback(
+            function (mixed $range) use (&$captured): array {
+                $captured = $range;
+
+                return [];
+            },
+        );
+
+        $this->controller->sharedEvents(
+            'range-token',
+            Request::create('/api/v2/public/shared/range-token/events?start=20260401&end=20260430'),
+        );
+
+        self::assertNotNull($captured);
+        // createFromFormat('Ymd') leaves the current time of day on the date,
+        // so without setTime() the window drifts with the clock.
+        self::assertSame('2026-04-01 00:00:00', $captured->startDate()->format('Y-m-d H:i:s'));
+        self::assertSame('2026-04-30 00:00:00', $captured->endDate()->format('Y-m-d H:i:s'));
+    }
+
+    public function testGeneratedTokenIsAVersion4Uuid(): void
+    {
+        $request = Request::create(
+            '/api/v2/calendars/share',
+            'POST',
+            [],
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            (string) json_encode([]),
+        );
+
+        $response = $this->controller->createShareToken($request, $this->makeUser('alice'));
+        /** @var array<string, mixed> $body */
+        $body = json_decode((string) $response->getContent(), true);
+
+        // The version nibble and the variant bits are set with `| 0x4000` and
+        // `| 0x8000`; drop either and this is no longer a v4 UUID.
+        self::assertMatchesRegularExpression(
+            '/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/',
+            (string) $body['data']['token'],
+        );
+    }
+
+    public function testListedTokensAreSerialisedAsArrays(): void
+    {
+        $this->tokenRepo->create('t1', 'alice', null);
+
+        $response = $this->controller->listShareTokens(
+            Request::create('/api/v2/calendars/share'),
+            $this->makeUser('alice'),
+        );
+
+        /** @var array<string, mixed> $body */
+        $body = json_decode((string) $response->getContent(), true);
+
+        self::assertCount(1, $body['data']);
+        self::assertIsArray($body['data'][0], 'array_map applies toArray() to every row');
+        self::assertSame('t1', $body['data'][0]['token']);
+    }
+    public function testMissingEitherDateParamAloneIsRejected(): void
+    {
+        // The check is an ||: with an && only a request missing *both* would
+        // be rejected, and one-sided windows would reach the repository.
+        $this->tokenRepo->create('half-token', 'alice', null);
+
+        foreach (['start=20260401', 'end=20260430'] as $onlyOne) {
+            $response = $this->controller->sharedEvents(
+                'half-token',
+                Request::create('/api/v2/public/shared/half-token/events?' . $onlyOne),
+            );
+
+            self::assertSame(400, $response->getStatusCode(), "expected 400 for {$onlyOne}");
+        }
+    }
+
+    public function testOneUnparseableDateIsRejected(): void
+    {
+        $this->tokenRepo->create('bad-date-token', 'alice', null);
+
+        foreach (['start=nonsense&end=20260430', 'start=20260401&end=nonsense'] as $query) {
+            $response = $this->controller->sharedEvents(
+                'bad-date-token',
+                Request::create('/api/v2/public/shared/bad-date-token/events?' . $query),
+            );
+
+            self::assertSame(400, $response->getStatusCode(), "expected 400 for {$query}");
+        }
+    }
+
+    public function testPagingDefaultsToTwentyPerPage(): void
+    {
+        $body = $this->sharedEventsBody('', 3);
+
+        self::assertSame(1, $body['meta']['page']);
+        self::assertSame(20, $body['meta']['limit']);
+    }
+
+    public function testOnlyTheTokenOwnersEventsAreRequested(): void
+    {
+        // The owner login is what scopes a public share link to one calendar;
+        // dropping it from the filter would widen the query to everyone.
+        $this->tokenRepo->create('scoped-token', 'alice', null);
+
+        $captured = null;
+        $this->eventRepo->method('findByDateRange')->willReturnCallback(
+            function (mixed $range, mixed $user, mixed $access, mixed $owners) use (&$captured): array {
+                $captured = $owners;
+
+                return [];
+            },
+        );
+
+        $this->controller->sharedEvents(
+            'scoped-token',
+            Request::create('/api/v2/public/shared/scoped-token/events?start=20260401&end=20260430'),
+        );
+
+        self::assertSame(['alice'], $captured);
+    }
 }
