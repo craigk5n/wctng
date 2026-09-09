@@ -1,0 +1,45 @@
+{
+    // Mutation testing: changes the source in small ways and checks that some
+    // test starts failing. A mutant that survives is a line the suite executes
+    // but does not actually assert on.
+    //
+    // Run with `make mutation` (see bin/install-infection.sh for the binary).
+    source: {
+        directories: [
+            "src"
+        ],
+        excludes: [
+            // Wiring and generated glue: no branches worth mutating, and the
+            // container already fails the build if this is wrong.
+            "Kernel.php",
+            "DependencyInjection",
+            "Migrations",
+            "Entity"
+        ]
+    },
+    timeout: 30,
+    logs: {
+        text: "var/infection/infection.log",
+        summary: "var/infection/summary.log",
+        stryker: {
+            report: "main"
+        }
+    },
+    tmpDir: "var/infection/tmp",
+    // Unit only, deliberately. Infection reruns the covering tests once per
+    // mutant, so the MySQL-backed Functional and Integration suites would make
+    // a run take hours. The Unit suite is SQLite/in-memory and is where the
+    // logic worth mutating lives; Infection only mutates covered lines, so
+    // restricting the suite also narrows the mutated surface to match.
+    testFrameworkOptions: "--testsuite=Unit",
+    mutators: {
+        "@default": true,
+        // Mutating a thrown message or a log string produces a mutant no
+        // reasonable test asserts on; they are noise rather than signal.
+        ArrayItemRemoval: {
+            ignoreSourceCodeByRegex: [
+                ".*logger->.*"
+            ]
+        }
+    }
+}

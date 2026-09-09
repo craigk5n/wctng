@@ -17,6 +17,65 @@ defaults:
     working-directory: webcalendar-api
 
 jobs:
+  mutation:
+    name: Mutation testing (changed lines)
+    runs-on: ubuntu-latest
+    # Advisory for now. A surviving mutant is often a real gap but sometimes an
+    # equivalent mutant nothing should assert on, so this annotates rather than
+    # blocks. Tighten with --min-covered-msi once the signal is understood.
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Needs history to diff against: fetch-depth 1 has no base to compare.
+          fetch-depth: 0
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: intl, pdo_mysql, zip, mbstring, sodium, curl
+          coverage: pcov
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Generate JWT keys
+        run: |
+          mkdir -p config/jwt
+          openssl genrsa -out config/jwt/private.pem -passout pass:ci_passphrase 4096
+          openssl rsa -in config/jwt/private.pem -passin pass:ci_passphrase -pubout -out config/jwt/public.pem
+
+      # On a pull request the base is the target branch; on a push to main
+      # there is no branch to compare against, so use the previous commit.
+      - name: Resolve diff base
+        id: base
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "ref=origin/${{ github.base_ref }}" >> $GITHUB_OUTPUT
+          else
+            echo "ref=${{ github.event.before }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run Infection on changed lines
+        env:
+          APP_ENV: test
+          APP_SECRET: ci_secret
+          JWT_SECRET_KEY: "%kernel.project_dir%/config/jwt/private.pem"
+          JWT_PUBLIC_KEY: "%kernel.project_dir%/config/jwt/public.pem"
+          JWT_PASSPHRASE: ci_passphrase
+        run: |
+          bin/install-infection.sh
+          php var/tools/infection.phar \
+            --threads=max \
+            --git-diff-lines \
+            --git-diff-base="${{ steps.base.outputs.ref }}" \
+            --logger-github \
+            --no-interaction
+
   ci:
     name: PHP CI (PHPStan, Psalm, PHPUnit, CS)
     runs-on: ubuntu-latest

@@ -132,4 +132,49 @@ final class OutboundUrlValidatorTest extends TestCase
         self::assertTrue($this->hosted()->enforcesNetworkRules());
         self::assertFalse($this->standalone()->enforcesNetworkRules());
     }
+    public function testSchemeComparisonIsCaseInsensitive(): void
+    {
+        // strtolower() on the scheme was not covered: an uppercase FILE:// has
+        // to be rejected and an uppercase HTTPS:// accepted.
+        $result = $this->hosted()->validate('HTTPS://8.8.8.8/hook');
+        self::assertSame('8.8.8.8', $result['ip']);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->hosted()->validate('FILE:///etc/passwd');
+    }
+
+    /** @return list<array{string, bool}> */
+    public static function sharedAddressSpaceBoundaries(): array
+    {
+        return [
+            ['100.63.255.255', true],   // just below 100.64.0.0/10
+            ['100.64.0.0', false],      // first address of the range
+            ['100.127.255.255', false], // last address of the range
+            ['100.128.0.0', true],      // just above
+        ];
+    }
+
+    #[DataProvider('sharedAddressSpaceBoundaries')]
+    public function testSharedAddressSpaceBoundariesAreExact(string $ip, bool $allowed): void
+    {
+        // The < and > comparisons bounding RFC 6598 were both survivable
+        // mutations: nothing pinned the edges of the range.
+        if (!$allowed) {
+            $this->expectException(\InvalidArgumentException::class);
+        }
+
+        $result = $this->hosted()->validate('http://' . $ip . '/hook');
+
+        self::assertSame($ip, $result['ip']);
+    }
+
+    public function testBracketedIpv6LiteralIsAccepted(): void
+    {
+        // trim($host, '[]') had no covering assertion on the accepting side:
+        // without it a public IPv6 literal would fail to parse as an address.
+        $result = $this->hosted()->validate('http://[2606:4700::1111]:8080/hook');
+
+        self::assertSame('2606:4700::1111', $result['ip']);
+        self::assertSame(8080, $result['port']);
+    }
 }

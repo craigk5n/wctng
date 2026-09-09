@@ -45,6 +45,16 @@ check-clock-injection:
 check-schema-drift:
 	php bin/check-schema-drift.php
 
+## Mutation testing over the whole src tree (slow: minutes per file)
+mutation:
+	@bin/install-infection.sh
+	php var/tools/infection.phar --threads=$(shell nproc) --show-mutations
+
+## Mutation testing limited to lines this branch changed (used by CI)
+mutation-diff:
+	@bin/install-infection.sh
+	php var/tools/infection.phar --threads=$(shell nproc) --git-diff-lines --git-diff-base=origin/main --logger-github
+
 ## Run all CI checks
 ci: cs-check check-sensitive-params check-clock-injection phpstan psalm test
 
@@ -57,4 +67,6 @@ help:
 	@echo "  make cs-fix    - Fix code style"
 	@echo "  make cs-check  - Check code style"
 	@echo "  make coverage  - Generate coverage report"
+	@echo "  make mutation  - Mutation testing (slow; whole src tree)"
+	@echo "  make mutation-diff - Mutation testing on this branch's changed lines"
 	@echo "  make ci        - Run all CI checks"

@@ -8,7 +8,10 @@ RUN apk add --no-cache \
     oniguruma-dev \
     mysql-client \
     make \
-    openssl
+    openssl \
+    # git: Infection's --git-diff-lines shells out to it, and Composer needs it
+    # to resolve the webcalendar-core VCS repository without the GitHub API.
+    git
 
 # Install PHP extensions
 RUN docker-php-ext-install \
@@ -27,6 +30,15 @@ RUN docker-php-ext-install \
 # Separate layer so it does not invalidate the intl/pdo build above.
 RUN apk add --no-cache openldap-dev \
     && docker-php-ext-install ldap
+
+# pcov rather than xdebug: the only thing needed here is line coverage, for
+# `make coverage` and for Infection to know which tests touch which lines.
+# pcov is a fraction of xdebug's overhead and, unlike xdebug, costs nothing
+# when disabled. Separate layer so it does not invalidate the layers above.
+RUN apk add --no-cache --virtual .pcov-build $PHPIZE_DEPS \
+    && pecl install pcov \
+    && docker-php-ext-enable pcov \
+    && apk del .pcov-build
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
