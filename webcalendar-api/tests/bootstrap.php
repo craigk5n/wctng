@@ -76,7 +76,7 @@ if (\is_string($databaseUrl) && $databaseUrl !== '' && str_contains($databaseUrl
 }
 
 /**
- * Clear calendar content left by earlier runs.
+ * Clear the rows earlier runs left behind.
  *
  * ApiTestTrait only deletes what a test registered with it, and events made
  * through the journal, task and import endpoints never pass through its
@@ -87,10 +87,16 @@ if (\is_string($databaseUrl) && $databaseUrl !== '' && str_contains($databaseUrl
  * having written to that window, and the failure arrives months later in an
  * unrelated test.
  *
- * Only the calendar content goes: the admin fixture, config and migration
- * state are what the suite is set up against. Guarded three ways -- MySQL
- * only, database name must end in _test (the block above guarantees it), and
- * any failure is ignored, since a Unit-only run has no MySQL to talk to.
+ * Three kinds of row go: calendar content, the tenants tests register (all of
+ * them :memory:, so nothing outside this database is orphaned), and issued
+ * JWT ids, of which every login in every test leaves one -- 1956 of them had
+ * built up. Nothing a test could legitimately depend on: no test asserts a
+ * tenant count or reuses a token across runs.
+ *
+ * What stays is what the suite is set up against: the admin fixture, config
+ * and migration state. Guarded three ways -- MySQL only, database name must
+ * end in _test (the block above guarantees it), and any failure is ignored,
+ * since a Unit-only run has no MySQL to talk to.
  */
 $purgeUrl = $_SERVER['DATABASE_URL'] ?? $_ENV['DATABASE_URL'] ?? null;
 
@@ -120,6 +126,8 @@ if (\is_string($purgeUrl) && str_starts_with($purgeUrl, 'mysql')) {
                 'webcal_entry',
                 'webcal_category_icons',
                 'webcal_categories',
+                'webcal_user_jti',
+                'tenants',
             ] as $table) {
                 $pdo->exec('DELETE FROM ' . $table);
             }
