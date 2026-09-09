@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Controller;
 
 use App\Controller\Api\PublicCalendarController;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -322,5 +323,288 @@ final class PublicCalendarControllerTest extends TestCase
         $response = $this->controller->togglePublicCalendar('bob', $request, $nonAdmin);
 
         $this->assertSame(403, $response->getStatusCode());
+    }
+
+    // --- query parameter handling ---
+
+    /**
+     * Makes alice a public calendar with the given events.
+     *
+     * @param list<\WebCalendar\Core\Domain\Entity\Event> $events
+     */
+    private function publicAlice(array $events = []): void
+    {
+        $this->allowRateLimit();
+        $this->userRepo->method('findByLogin')->willReturn($this->makeUser('alice'));
+        $this->userRepo->method('getPreferences')
+            ->willReturn([new UserPreference('public_calendar_enabled', 'Y')]);
+        $this->eventRepo->method('findByDateRange')->willReturn($events);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function incompleteRanges(): iterable
+    {
+        yield 'neither' => [''];
+        yield 'only start' => ['?start=20260401'];
+        yield 'only end' => ['?end=20260430'];
+    }
+
+    #[DataProvider('incompleteRanges')]
+    public function testBothEndsOfTheRangeAreRequired(string $query): void
+    {
+        // The message matters, not just the 400. A half-supplied range is
+        // rejected twice over -- once for being absent and again for being
+        // unparseable -- so asserting only the status cannot tell which guard
+        // fired, and an `&&` in place of the `||` here still yields a 400
+        // from the date check further down.
+        $this->publicAlice();
+
+        $response = $this->controller->listPublicEvents(
+            'alice',
+            Request::create('/api/v2/public/calendars/alice/events' . $query),
+        );
+
+        $this->assertSame(400, $response->getStatusCode());
+
+        /** @var array<string, mixed> $body */
+        $body = json_decode((string) $response->getContent(), true);
+        $this->assertStringContainsString('Missing required query params', (string) $body['error']['message']);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function unparseableRanges(): iterable
+    {
+        yield 'start is not a date' => ['?start=notadate&end=20260430'];
+        yield 'end is not a date' => ['?start=20260401&end=notadate'];
+    }
+
+    #[DataProvider('unparseableRanges')]
+    public function testEitherEndBeingUnparseableIsRejected(string $query): void
+    {
+        $this->publicAlice();
+
+        $response = $this->controller->listPublicEvents(
+            'alice',
+            Request::create('/api/v2/public/calendars/alice/events' . $query),
+        );
+
+        $this->assertSame(400, $response->getStatusCode());
+
+        /** @var array<string, mixed> $body */
+        $body = json_decode((string) $response->getContent(), true);
+        $this->assertStringContainsString('Invalid date format', (string) $body['error']['message']);
+    }
+
+    public function testTheRangeStartsAtMidnightRatherThanTheCurrentTime(): void
+    {
+        // createFromFormat('Ymd', ...) fills the time from the clock, so
+        // without setTime(0, 0) the window would start at whatever time of day
+        // the request happened to arrive.
+        $this->allowRateLimit();
+        $this->userRepo->method('findByLogin')->willReturn($this->makeUser('alice'));
+        $this->userRepo->method('getPreferences')
+            ->willReturn([new UserPreference('public_calendar_enabled', 'Y')]);
+
+        $seen = null;
+        $this->eventRepo->expects($this->once())->method('findByDateRange')
+            ->willReturnCallback(static function (mixed $range) use (&$seen): array {
+                $seen = $range;
+
+                return [];
+            });
+
+        $this->controller->listPublicEvents(
+            'alice',
+            Request::create('/api/v2/public/calendars/alice/events?start=20260401&end=20260430'),
+        );
+
+        $this->assertInstanceOf(\WebCalendar\Core\Domain\ValueObject\DateRange::class, $seen);
+        $this->assertSame('20260401 00:00:00', $seen->startDate()->format('Ymd H:i:s'));
+        $this->assertSame('20260430 00:00:00', $seen->endDate()->format('Ymd H:i:s'));
+    }
+
+    public function testOnlyTheNamedCalendarsEventsAreQueried(): void
+    {
+        // The owner filter is the whole of the access control here: without it
+        // the query widens to every user's public events.
+        $this->allowRateLimit();
+        $this->userRepo->method('findByLogin')->willReturn($this->makeUser('alice'));
+        $this->userRepo->method('getPreferences')
+            ->willReturn([new UserPreference('public_calendar_enabled', 'Y')]);
+
+        $this->eventRepo->expects($this->once())->method('findByDateRange')
+            ->with($this->anything(), null, 'P', ['alice'])
+            ->willReturn([]);
+
+        $this->controller->listPublicEvents(
+            'alice',
+            Request::create('/api/v2/public/calendars/alice/events?start=20260401&end=20260430'),
+        );
+    }
+
+    // --- paging bounds ---
+
+    /** @return list<\WebCalendar\Core\Domain\Entity\Event> */
+    private function events(int $count): array
+    {
+        $events = [];
+
+        for ($i = 1; $i <= $count; $i++) {
+            $events[] = $this->makeEvent($i, 'alice', AccessLevel::PUBLIC);
+        }
+
+        return $events;
+    }
+
+    /** @return array<string, mixed> */
+    private function listWith(string $query, int $eventCount): array
+    {
+        $this->publicAlice($this->events($eventCount));
+
+        $response = $this->controller->listPublicEvents(
+            'alice',
+            Request::create('/api/v2/public/calendars/alice/events?start=20260401&end=20260430&' . $query),
+        );
+
+        /** @var array<string, mixed> $body */
+        $body = json_decode((string) $response->getContent(), true);
+
+        return $body;
+    }
+
+    public function testTheDefaultPageHoldsTwentyEvents(): void
+    {
+        $body = $this->listWith('', 25);
+
+        $this->assertCount(20, $body['data']);
+        $this->assertSame(1, $body['meta']['page']);
+        $this->assertSame(20, $body['meta']['limit']);
+        $this->assertSame(25, $body['meta']['total']);
+    }
+
+    public function testThePageIsAtLeastOne(): void
+    {
+        // page=0 would otherwise make the offset negative, which array_slice
+        // reads as "from the end".
+        $body = $this->listWith('page=0&limit=2', 5);
+
+        $this->assertSame(1, $body['meta']['page']);
+        $this->assertSame([1, 2], array_column($body['data'], 'id'));
+    }
+
+    public function testTheLimitIsAtLeastOne(): void
+    {
+        $body = $this->listWith('limit=0', 5);
+
+        $this->assertSame(1, $body['meta']['limit']);
+        $this->assertCount(1, $body['data']);
+    }
+
+    public function testTheLimitIsCappedAtOneHundred(): void
+    {
+        $body = $this->listWith('limit=1000', 150);
+
+        $this->assertSame(100, $body['meta']['limit']);
+        $this->assertCount(100, $body['data']);
+    }
+
+    public function testAPageSelectsItsOwnSliceRatherThanAnAdjacentOne(): void
+    {
+        $body = $this->listWith('page=3&limit=2', 7);
+
+        $this->assertSame([5, 6], array_column($body['data'], 'id'));
+    }
+
+    public function testAPagePastTheEndIsEmptyButTheTotalIsStillTheTruth(): void
+    {
+        $body = $this->listWith('page=9&limit=10', 5);
+
+        $this->assertSame([], $body['data']);
+        $this->assertSame(5, $body['meta']['total']);
+    }
+
+    // --- rate limiting ---
+
+    public function testTheRateLimitIsKeyedOnTheClientAddress(): void
+    {
+        $this->rateLimiter->expects($this->once())->method('isAllowed')
+            ->with('public_api:203.0.113.9', 'public_api', 30, 60)
+            ->willReturn(true);
+        $this->rateLimiter->expects($this->once())->method('recordAttempt')
+            ->with('public_api:203.0.113.9', 'public_api', 60);
+        $this->userRepo->method('findAll')->willReturn([]);
+
+        $request = Request::create('/api/v2/public/calendars', 'GET', [], [], [], ['REMOTE_ADDR' => '203.0.113.9']);
+
+        $this->assertSame(200, $this->controller->listPublicCalendars($request)->getStatusCode());
+    }
+
+    public function testARequestWithNoClientAddressStillGetsAKey(): void
+    {
+        $this->rateLimiter->expects($this->once())->method('isAllowed')
+            ->with('public_api:unknown', 'public_api', 30, 60)
+            ->willReturn(true);
+        $this->userRepo->method('findAll')->willReturn([]);
+
+        // No REMOTE_ADDR at all, so getClientIp() is null.
+        $this->controller->listPublicCalendars(new Request());
+    }
+
+    public function testARejectedRequestIsNotRecordedAsAnAttempt(): void
+    {
+        $this->rateLimiter->method('isAllowed')->willReturn(false);
+        $this->rateLimiter->expects($this->never())->method('recordAttempt');
+
+        $response = $this->controller->listPublicCalendars(Request::create('/api/v2/public/calendars'));
+
+        $this->assertSame(429, $response->getStatusCode());
+    }
+
+    // --- the public flag ---
+
+    public function testAnotherPreferenceSetToYesDoesNotMakeACalendarPublic(): void
+    {
+        // The key and the value both have to match; either alone must not do.
+        $this->allowRateLimit();
+        $this->userRepo->method('findByLogin')->willReturn($this->makeUser('alice'));
+        $this->userRepo->method('getPreferences')->willReturn([
+            new UserPreference('some_other_flag', 'Y'),
+            new UserPreference('public_calendar_enabled', 'N'),
+        ]);
+
+        $response = $this->controller->listPublicEvents(
+            'alice',
+            Request::create('/api/v2/public/calendars/alice/events?start=20260401&end=20260430'),
+        );
+
+        $this->assertSame(404, $response->getStatusCode());
+    }
+
+    /** @return iterable<string, array{string, string, bool}> */
+    public static function toggleBodies(): iterable
+    {
+        yield 'true enables' => ['{"enabled":true}', 'Y', true];
+        yield 'false disables' => ['{"enabled":false}', 'N', false];
+        yield 'absent disables' => ['{}', 'N', false];
+        yield 'the string "true" is not true' => ['{"enabled":"true"}', 'N', false];
+        yield 'one is not true' => ['{"enabled":1}', 'N', false];
+    }
+
+    #[DataProvider('toggleBodies')]
+    public function testOnlyABooleanTrueEnablesTheCalendar(string $json, string $stored, bool $reported): void
+    {
+        $this->userRepo->method('findByLogin')->willReturn($this->makeUser('bob'));
+        $this->userRepo->expects($this->once())->method('savePreference')
+            ->with('bob', $this->callback(
+                static fn(UserPreference $p): bool => $p->key() === 'public_calendar_enabled' && $p->value() === $stored,
+            ));
+
+        $request = Request::create('/api/v2/admin/users/bob/public-calendar', 'PUT', [], [], [], [], $json);
+        $response = $this->controller->togglePublicCalendar('bob', $request, $this->makeUser('admin', admin: true));
+
+        /** @var array<string, mixed> $body */
+        $body = json_decode((string) $response->getContent(), true);
+        $this->assertSame('bob', $body['data']['login']);
+        $this->assertSame($reported, $body['data']['public_calendar_enabled']);
     }
 }
