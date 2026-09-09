@@ -28,6 +28,11 @@ final class WebhookDispatcherTest extends TestCase
             $this->repo,
             $this->pdo,
             new OutboundUrlValidator('standalone'),
+            null,
+            null,
+            // Zero backoff: these cases all exhaust the retries, and the real
+            // 1s + 5s wait is paid again for every mutant Infection runs here.
+            retryDelays: [0, 0, 0],
         );
     }
 

@@ -92,4 +92,32 @@ final class LdapAuthenticatorTest extends TestCase
 
         $this->assertNull($result);
     }
+    public function testIsAvailableIsFalseWhenEnabledButHostIsEmpty(): void
+    {
+        // The three conditions are ANDed. Nothing distinguished them: the
+        // existing cases set enabled and host together, so flipping the && to
+        // an || changed no outcome.
+        $pdo = new \PDO('sqlite::memory:');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $configRepo = new LdapConfigRepository($pdo);
+        $configRepo->save(new LdapConfig(host: '', enabled: true));
+
+        $factory = new CoreServiceFactory($pdo, 'test');
+        $auth = new LdapAuthenticator($configRepo, $factory->getUserService(), $factory->getUserRepository());
+
+        $this->assertFalse($auth->isAvailable(), 'a host is required even when enabled');
+    }
+
+    public function testIsAvailableIsFalseWhenHostSetButDisabled(): void
+    {
+        $pdo = new \PDO('sqlite::memory:');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $configRepo = new LdapConfigRepository($pdo);
+        $configRepo->save(new LdapConfig(host: 'ldap.example.com', enabled: false));
+
+        $factory = new CoreServiceFactory($pdo, 'test');
+        $auth = new LdapAuthenticator($configRepo, $factory->getUserService(), $factory->getUserRepository());
+
+        $this->assertFalse($auth->isAvailable(), 'a configured host is not enough on its own');
+    }
 }

@@ -44,12 +44,19 @@ final class WebhookDispatcher implements WebhookDispatcherInterface
     private LoggerInterface $logger;
     private ClockInterface $clock;
 
+    /**
+     * @param list<int> $retryDelays seconds to wait between attempts. Defaulted
+     *   so nothing else has to pass it; tests hand in zeros, because otherwise
+     *   asserting anything about the retry loop costs the real 1s + 5s backoff
+     *   per case -- and Infection reruns those tests once per mutant.
+     */
     public function __construct(
         private readonly WebhookRepository $repository,
         private readonly \PDO $pdo,
         private readonly OutboundUrlValidator $urlValidator,
         ?LoggerInterface $logger = null,
         ?ClockInterface $clock = null,
+        private readonly array $retryDelays = self::RETRY_DELAYS,
     ) {
         $this->logger = $logger ?? new NullLogger();
         $this->clock = $clock ?? new NativeClock();
@@ -141,7 +148,7 @@ final class WebhookDispatcher implements WebhookDispatcherInterface
             ]);
 
             if ($attempt < self::MAX_RETRIES - 1) {
-                sleep(self::RETRY_DELAYS[$attempt]);
+                sleep($this->retryDelays[$attempt] ?? 0);
             }
         }
     }
