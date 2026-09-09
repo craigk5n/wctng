@@ -20,10 +20,28 @@ jobs:
   mutation:
     name: Mutation testing (changed lines)
     runs-on: ubuntu-latest
-    # Advisory for now. A surviving mutant is often a real gap but sometimes an
-    # equivalent mutant nothing should assert on, so this annotates rather than
-    # blocks. Tighten with --min-covered-msi once the signal is understood.
-    continue-on-error: true
+    # Blocking, with a deliberately loose floor.
+    #
+    # Measured on real commits (diff-scoped, so 16-35 mutants each): 77-81%
+    # covered MSI. The floor is 60 because a diff this small makes every
+    # mutant worth 3-6 points, and equivalent mutants are common here -- one
+    # file audited this week finished with 20 survivors, all of them provably
+    # unkillable. A gate that fails on those gets switched off, so it is set
+    # to catch "this was not tested at all" rather than to police the last
+    # few points. Raise it as the tree improves.
+    #
+    # A PR that changes no source file exits 0 on its own ("Could not find any
+    # modified files"), so docs and test-only changes cannot be blocked;
+    # --ignore-msi-with-no-mutations covers the narrower case where source did
+    # change but the changed lines yield no mutants.
+    #
+    # Known limitation: --git-diff-lines mutates only lines the *Unit* suite
+    # covers (see testFrameworkOptions in infection.json5), so changed lines
+    # with no unit test generate no mutants and pass. --with-uncovered does
+    # not fix this: on the same diff it reported 108 of 124 mutants as
+    # uncovered, because controllers are exercised by the Functional suite
+    # that Infection does not run. Line coverage is the right tool for that
+    # question; this job answers "are the tests that exist any good".
 
     steps:
       - name: Checkout
@@ -73,6 +91,8 @@ jobs:
             --threads=max \
             --git-diff-lines \
             --git-diff-base="${{ steps.base.outputs.ref }}" \
+            --min-covered-msi=60 \
+            --ignore-msi-with-no-mutations \
             --logger-github \
             --no-interaction
 

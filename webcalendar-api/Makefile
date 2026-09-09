@@ -50,10 +50,13 @@ mutation:
 	@bin/install-infection.sh
 	php var/tools/infection.phar --threads=$(shell nproc) --show-mutations
 
-## Mutation testing limited to lines this branch changed (used by CI)
+## Mutation testing limited to lines this branch changed (same gate as CI).
+## Run from the host, not the php-fpm container: only webcalendar-api/ is
+## mounted there, so git cannot find the repository root to diff against.
 mutation-diff:
 	@bin/install-infection.sh
-	php var/tools/infection.phar --threads=$(shell nproc) --git-diff-lines --git-diff-base=origin/main --logger-github
+	php var/tools/infection.phar --threads=$(shell nproc) --git-diff-lines --git-diff-base=origin/main \
+		--min-covered-msi=60 --ignore-msi-with-no-mutations --logger-github
 
 ## Run all CI checks
 ci: cs-check check-sensitive-params check-clock-injection phpstan psalm test
