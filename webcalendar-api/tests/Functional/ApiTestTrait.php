@@ -20,6 +20,9 @@ trait ApiTestTrait
     /** @var list<int> Event IDs created during this test, cleaned up in tearDown */
     private array $createdEvents = [];
 
+    /** @var list<int> Category IDs created during this test, cleaned up in tearDown */
+    private array $createdCategories = [];
+
     private function loginAndGetToken(KernelBrowser $client, string $username = 'admin', string $password = 'admin'): string
     {
         $client->request('POST', '/api/v2/auth/login', [], [], [
@@ -93,7 +96,7 @@ trait ApiTestTrait
      */
     private function cleanupTestData(): void
     {
-        if ($this->createdUsers === [] && $this->createdEvents === []) {
+        if ($this->createdUsers === [] && $this->createdEvents === [] && $this->createdCategories === []) {
             return;
         }
 
@@ -137,6 +140,13 @@ trait ApiTestTrait
         }
         $this->createdEvents = [];
 
+        foreach ($this->createdCategories as $categoryId) {
+            $pdo->prepare('DELETE FROM webcal_entry_categories WHERE cat_id = :id')->execute(['id' => $categoryId]);
+            $pdo->prepare('DELETE FROM webcal_category_icons WHERE cat_id = :id')->execute(['id' => $categoryId]);
+            $pdo->prepare('DELETE FROM webcal_categories WHERE cat_id = :id')->execute(['id' => $categoryId]);
+        }
+        $this->createdCategories = [];
+
         foreach ($this->createdUsers as $login) {
             $pdo->prepare('DELETE FROM webcal_user_pref WHERE cal_login = :login')->execute(['login' => $login]);
             $pdo->prepare('DELETE FROM webcal_user_layers WHERE cal_login = :login OR cal_layeruser = :login')->execute(['login' => $login]);
@@ -164,6 +174,14 @@ trait ApiTestTrait
     private function trackEvent(int $id): void
     {
         $this->createdEvents[] = $id;
+    }
+
+    /**
+     * Registers a category for cleanup.
+     */
+    private function trackCategory(int $id): void
+    {
+        $this->createdCategories[] = $id;
     }
 
     /**

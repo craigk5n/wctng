@@ -11,6 +11,13 @@ final class UserControllerTest extends WebTestCase
 {
     use ApiTestTrait;
 
+    #[\Override]
+    protected function tearDown(): void
+    {
+        $this->cleanupTestData();
+        parent::tearDown();
+    }
+
     public function testListUsersAsAdmin(): void
     {
         $client = static::createClient();

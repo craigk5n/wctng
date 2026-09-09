@@ -12,6 +12,13 @@ final class CategoryControllerTest extends WebTestCase
 {
     use ApiTestTrait;
 
+    #[\Override]
+    protected function tearDown(): void
+    {
+        $this->cleanupTestData();
+        parent::tearDown();
+    }
+
     private function createCategory(KernelBrowser $client, string $token, string $name, ?string $color = '#0000FF', bool $isGlobal = false): int
     {
         $client->request('POST', '/api/v2/categories', [], [], [
@@ -25,8 +32,11 @@ final class CategoryControllerTest extends WebTestCase
 
         $body = $this->decodeResponse($client);
 
-        /** @var int */
-        return $body['data']['id'];
+        /** @var int $id */
+        $id = $body['data']['id'];
+        $this->trackCategory($id);
+
+        return $id;
     }
 
     // --- List ---
@@ -127,6 +137,10 @@ final class CategoryControllerTest extends WebTestCase
         $this->assertSame($name, $body['data']['name']);
         $this->assertSame('#ABCDEF', $body['data']['color']);
         $this->assertGreaterThan(0, $body['data']['id']);
+
+        /** @var int $id */
+        $id = $body['data']['id'];
+        $this->trackCategory($id);
     }
 
     public function testCreateWithoutNameReturns400(): void

@@ -11,6 +11,13 @@ final class EventControllerCreateTest extends WebTestCase
 {
     use ApiTestTrait;
 
+    #[\Override]
+    protected function tearDown(): void
+    {
+        $this->cleanupTestData();
+        parent::tearDown();
+    }
+
     public function testCreateMinimalEvent(): void
     {
         $client = static::createClient();

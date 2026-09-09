@@ -28,22 +28,9 @@ final class ReportControllerTest extends WebTestCase
     private const string WINDOW_START = '20270601';
     private const string WINDOW_END = '20270630';
 
-    /** @var list<int> categories created here; the shared trait does not clean these up */
-    private array $createdCategories = [];
-
-    private ?KernelBrowser $cleanupClient = null;
-    private string $cleanupToken = '';
-
     #[\Override]
     protected function tearDown(): void
     {
-        foreach ($this->createdCategories as $id) {
-            $this->cleanupClient?->request('DELETE', '/api/v2/categories/' . $id, [], [], [
-                'HTTP_AUTHORIZATION' => 'Bearer ' . $this->cleanupToken,
-            ]);
-        }
-        $this->createdCategories = [];
-
         $this->cleanupTestData();
         parent::tearDown();
     }
@@ -52,11 +39,8 @@ final class ReportControllerTest extends WebTestCase
     private function authenticated(): array
     {
         $client = static::createClient();
-        $token = $this->loginAndGetToken($client);
-        $this->cleanupClient = $client;
-        $this->cleanupToken = $token;
 
-        return [$client, $token];
+        return [$client, $this->loginAndGetToken($client)];
     }
 
     /** @param array<string, mixed> $query */
@@ -185,7 +169,7 @@ final class ReportControllerTest extends WebTestCase
 
         $categoryId = $this->decodeResponse($client)['data']['id'];
         self::assertIsInt($categoryId);
-        $this->createdCategories[] = $categoryId;
+        $this->trackCategory($categoryId);
 
         $this->event($client, $token, '20270605', '090000', ['categories' => [$categoryId]]);
         $this->event($client, $token, '20270610', '090000', ['categories' => [$categoryId]]);

@@ -11,6 +11,13 @@ final class EventControllerListTest extends WebTestCase
 {
     use ApiTestTrait;
 
+    #[\Override]
+    protected function tearDown(): void
+    {
+        $this->cleanupTestData();
+        parent::tearDown();
+    }
+
     public function testListRequiresAuth(): void
     {
         $client = static::createClient();

@@ -75,6 +75,61 @@ if (\is_string($databaseUrl) && $databaseUrl !== '' && str_contains($databaseUrl
     }
 }
 
+/**
+ * Clear calendar content left by earlier runs.
+ *
+ * ApiTestTrait only deletes what a test registered with it, and events made
+ * through the journal, task and import endpoints never pass through its
+ * helper, so every run used to leave rows behind: the database had
+ * accumulated 841 events over 29 runs before this was added. That is not just
+ * untidy. Reports and searches aggregate over whatever is there, so a test
+ * asserting "this window holds two events" silently depends on nobody else
+ * having written to that window, and the failure arrives months later in an
+ * unrelated test.
+ *
+ * Only the calendar content goes: the admin fixture, config and migration
+ * state are what the suite is set up against. Guarded three ways -- MySQL
+ * only, database name must end in _test (the block above guarantees it), and
+ * any failure is ignored, since a Unit-only run has no MySQL to talk to.
+ */
+$purgeUrl = $_SERVER['DATABASE_URL'] ?? $_ENV['DATABASE_URL'] ?? null;
+
+if (\is_string($purgeUrl) && str_starts_with($purgeUrl, 'mysql')) {
+    $parts = parse_url($purgeUrl);
+    $name = \is_array($parts) ? ltrim($parts['path'] ?? '', '/') : '';
+
+    if ($name !== '' && str_ends_with($name, '_test')) {
+        try {
+            $pdo = new PDO(
+                sprintf('mysql:host=%s;port=%d;dbname=%s', $parts['host'] ?? 'localhost', $parts['port'] ?? 3306, $name),
+                $parts['user'] ?? '',
+                $parts['pass'] ?? '',
+                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION],
+            );
+
+            foreach ([
+                'webcal_entry_user',
+                'webcal_entry_ext_user',
+                'webcal_entry_categories',
+                'webcal_entry_repeats',
+                'webcal_entry_repeats_not',
+                'webcal_site_extras',
+                'webcal_reminders',
+                'webcal_entry_log',
+                'webcal_blob',
+                'webcal_entry',
+                'webcal_category_icons',
+                'webcal_categories',
+            ] as $table) {
+                $pdo->exec('DELETE FROM ' . $table);
+            }
+        } catch (PDOException) {
+            // No MySQL here (a Unit-only run), or the schema is not loaded
+            // yet. Either way there is nothing to clear.
+        }
+    }
+}
+
 if ($_SERVER['APP_DEBUG']) {
     umask(0o000);
 }

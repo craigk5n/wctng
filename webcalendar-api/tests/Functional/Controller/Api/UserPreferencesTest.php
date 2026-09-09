@@ -11,6 +11,13 @@ final class UserPreferencesTest extends WebTestCase
 {
     use ApiTestTrait;
 
+    #[\Override]
+    protected function tearDown(): void
+    {
+        $this->cleanupTestData();
+        parent::tearDown();
+    }
+
     public function testGetPreferences(): void
     {
         $client = static::createClient();

@@ -12,6 +12,13 @@ final class ImportControllerTest extends WebTestCase
 {
     use ApiTestTrait;
 
+    #[\Override]
+    protected function tearDown(): void
+    {
+        $this->cleanupTestData();
+        parent::tearDown();
+    }
+
     private function createIcsFile(string $title = 'Imported Event', string $uid = ''): UploadedFile
     {
         if ($uid === '') {

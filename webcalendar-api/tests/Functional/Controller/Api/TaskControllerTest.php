@@ -11,6 +11,13 @@ final class TaskControllerTest extends WebTestCase
 {
     use ApiTestTrait;
 
+    #[\Override]
+    protected function tearDown(): void
+    {
+        $this->cleanupTestData();
+        parent::tearDown();
+    }
+
     private function createTask(\Symfony\Bundle\FrameworkBundle\KernelBrowser $client, string $token, string $title = 'Test Task'): int
     {
         $client->request('POST', '/api/v2/tasks', [], [], [

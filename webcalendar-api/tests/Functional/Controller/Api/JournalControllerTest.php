@@ -11,6 +11,13 @@ final class JournalControllerTest extends WebTestCase
 {
     use ApiTestTrait;
 
+    #[\Override]
+    protected function tearDown(): void
+    {
+        $this->cleanupTestData();
+        parent::tearDown();
+    }
+
     private function createJournal(\Symfony\Bundle\FrameworkBundle\KernelBrowser $client, string $token, string $title = 'Test Journal'): int
     {
         $client->request('POST', '/api/v2/journals', [], [], [

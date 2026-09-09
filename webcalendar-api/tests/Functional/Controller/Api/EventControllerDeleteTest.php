@@ -11,6 +11,13 @@ final class EventControllerDeleteTest extends WebTestCase
 {
     use ApiTestTrait;
 
+    #[\Override]
+    protected function tearDown(): void
+    {
+        $this->cleanupTestData();
+        parent::tearDown();
+    }
+
     public function testDeleteEvent(): void
     {
         $client = static::createClient();
