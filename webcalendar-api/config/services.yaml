@@ -123,6 +123,10 @@ services:
         arguments:
             $pdo: '@pdo.connection'
 
+    # ext-ldap behind an interface so the logic around it is testable; see
+    # App\Auth\LdapClient.
+    App\Auth\LdapClient: '@App\Auth\ExtLdapClient'
+
     # SSRF guard for every server-initiated outbound request whose target is
     # stored through an admin API: webhook subscriptions, and the OAuth/OIDC
     # endpoints. Standalone deployments may legitimately reach an internal

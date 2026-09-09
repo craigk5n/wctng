@@ -19,6 +19,9 @@ final class LdapAuthenticator
         private readonly LdapConfigRepository $configRepo,
         private readonly UserService $userService,
         private readonly UserRepositoryInterface $userRepository,
+        // Defaulted so the container and any direct construction keep working;
+        // tests pass a fake to drive the paths ext-ldap otherwise hides.
+        private readonly LdapClient $ldap = new ExtLdapClient(),
     ) {}
 
     /**
@@ -31,7 +34,7 @@ final class LdapAuthenticator
             return null;
         }
 
-        if (!\function_exists('ldap_connect')) {
+        if (!$this->ldap->isSupported()) {
             return null;
         }
 
@@ -60,39 +63,27 @@ final class LdapAuthenticator
     {
         $config = $this->configRepo->get();
 
-        return $config->isEnabled() && $config->host() !== '' && \function_exists('ldap_connect');
+        return $config->isEnabled() && $config->host() !== '' && $this->ldap->isSupported();
     }
 
     private function findUserDn(LdapConfig $config, string $username): ?string
     {
-        $conn = $this->connect($config);
-        if ($conn === null) {
+        $connection = $this->connect($config);
+        if ($connection === null) {
             return null;
         }
 
-        // Bind with service account
-        if ($config->bindDn() !== '') {
-            if (!@ldap_bind($conn, $config->bindDn(), $config->bindPassword())) {
-                ldap_unbind($conn);
-
-                return null;
-            }
-        }
-
-        // Search for user
-        $filter = sprintf($config->userFilter(), ldap_escape($username, '', LDAP_ESCAPE_FILTER));
-        $search = @ldap_search($conn, $config->baseDn(), $filter, ['dn']);
-
-        if ($search === false || \is_array($search)) {
-            ldap_unbind($conn);
-
+        if (!$this->bindServiceAccount($config, $connection)) {
             return null;
         }
 
-        $entries = ldap_get_entries($conn, $search);
-        ldap_unbind($conn);
+        $filter = sprintf($config->userFilter(), $this->ldap->escapeFilterValue($username));
+        $entries = $connection->search($config->baseDn(), $filter, ['dn']);
+        $connection->close();
 
-        if ($entries === false || $entries['count'] !== 1) {
+        // Exactly one match: zero means no such user, more than one means the
+        // filter is ambiguous and picking either would be a guess.
+        if ($entries === null || $entries['count'] !== 1) {
             return null;
         }
 
@@ -107,13 +98,13 @@ final class LdapAuthenticator
 
     private function bindAsUser(LdapConfig $config, string $userDn, #[\SensitiveParameter] string $password): bool
     {
-        $conn = $this->connect($config);
-        if ($conn === null) {
+        $connection = $this->connect($config);
+        if ($connection === null) {
             return false;
         }
 
-        $result = @ldap_bind($conn, $userDn, $password);
-        ldap_unbind($conn);
+        $result = $connection->bind($userDn, $password);
+        $connection->close();
 
         return $result;
     }
@@ -125,30 +116,19 @@ final class LdapAuthenticator
     {
         $defaults = ['name' => '', 'email' => '', 'firstname' => '', 'lastname' => ''];
 
-        $conn = $this->connect($config);
-        if ($conn === null) {
+        $connection = $this->connect($config);
+        if ($connection === null) {
             return $defaults;
         }
 
-        if ($config->bindDn() !== '') {
-            if (!@ldap_bind($conn, $config->bindDn(), $config->bindPassword())) {
-                ldap_unbind($conn);
-
-                return $defaults;
-            }
-        }
-
-        $search = @ldap_read($conn, $userDn, '(objectClass=*)', ['cn', 'mail', 'givenName', 'sn', 'displayName']);
-        if ($search === false || \is_array($search)) {
-            ldap_unbind($conn);
-
+        if (!$this->bindServiceAccount($config, $connection)) {
             return $defaults;
         }
 
-        $entries = ldap_get_entries($conn, $search);
-        ldap_unbind($conn);
+        $entries = $connection->read($userDn, '(objectClass=*)', ['cn', 'mail', 'givenName', 'sn', 'displayName']);
+        $connection->close();
 
-        if ($entries === false || $entries['count'] === 0) {
+        if ($entries === null || $entries['count'] === 0) {
             return $defaults;
         }
 
@@ -218,18 +198,26 @@ final class LdapAuthenticator
             return $this->userService->getUserByLogin($username);
         }
 
-        // Auto-provision new user
-        $newUser = new User(
-            login: $username,
-            firstName: $firstName,
-            lastName: $lastName,
-            email: $email,
-            isAdmin: false,
-            isEnabled: true,
-        );
-
+        // Auto-provision new user. Inside the try because the User constructor
+        // rejects an empty email, and a directory entry without a mail
+        // attribute should deny the login rather than raise a 500.
         try {
-            $this->userService->createUser($newUser, $newUser);
+            $newUser = new User(
+                login: $username,
+                firstName: $firstName,
+                lastName: $lastName,
+                email: $email,
+                isAdmin: false,
+                isEnabled: true,
+            );
+
+            // Straight to the repository, not UserService::createUser(): that
+            // authorises the action against the acting user, and the only user
+            // available to pass here is the non-admin being created, so it
+            // always threw "Admin privileges required" -- silently, into the
+            // catch below. Provisioning is a system action with no actor.
+            $this->userRepository->save($newUser);
+
             // Set random password (user authenticates via LDAP)
             $hash = $this->userService->hashPassword(bin2hex(random_bytes(32)));
             $this->userRepository->setPassword($username, $hash);
@@ -240,22 +228,30 @@ final class LdapAuthenticator
         }
     }
 
-    /**
-     * @return \LDAP\Connection|null
-     */
-    private function connect(LdapConfig $config): mixed
+    private function connect(LdapConfig $config): ?LdapConnection
     {
-        $uri = ($config->useTls() ? 'ldaps://' : 'ldap://') . $config->host() . ':' . $config->port();
+        $scheme = $config->useTls() ? 'ldaps://' : 'ldap://';
 
-        $conn = @ldap_connect($uri);
-        if ($conn === false) {
-            return null;
+        return $this->ldap->connect($scheme . $config->host() . ':' . $config->port());
+    }
+
+    /**
+     * Binds as the configured service account, or leaves the connection
+     * anonymous when none is configured. Closes on failure so callers can
+     * simply return their empty result.
+     */
+    private function bindServiceAccount(LdapConfig $config, LdapConnection $connection): bool
+    {
+        if ($config->bindDn() === '') {
+            return true;
         }
 
-        ldap_set_option($conn, LDAP_OPT_PROTOCOL_VERSION, 3);
-        ldap_set_option($conn, LDAP_OPT_REFERRALS, 0);
-        ldap_set_option($conn, LDAP_OPT_NETWORK_TIMEOUT, 5);
+        if ($connection->bind($config->bindDn(), $config->bindPassword())) {
+            return true;
+        }
 
-        return $conn;
+        $connection->close();
+
+        return false;
     }
 }
