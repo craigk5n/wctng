@@ -131,7 +131,10 @@ final readonly class SearchIndexService
                 'id' => \is_numeric($row['cal_id'] ?? null) ? (int) $row['cal_id'] : 0,
                 'title' => $name,
                 'description' => $desc,
-                'start_date' => \is_string($row['cal_date'] ?? null) ? $row['cal_date'] : '',
+                // is_numeric, not is_string: cal_date is an INTEGER column, and
+                // SQLite hands it back as an int where MySQL stringifies it, so
+                // the string-only check left start_date empty on SQLite.
+                'start_date' => \is_numeric($row['cal_date'] ?? null) ? (string) $row['cal_date'] : '',
                 'type' => \is_string($row['cal_type'] ?? null) ? $row['cal_type'] : 'E',
                 'created_by' => \is_string($row['cal_create_by'] ?? null) ? $row['cal_create_by'] : '',
                 'snippet' => $this->generateSnippet($name, $desc, $query),
@@ -181,7 +184,7 @@ final readonly class SearchIndexService
             $results[] = [
                 'id' => \is_numeric($row['cal_id'] ?? null) ? (int) $row['cal_id'] : 0,
                 'title' => \is_string($row['cal_name'] ?? null) ? $row['cal_name'] : '',
-                'start_date' => \is_string($row['cal_date'] ?? null) ? (string) $row['cal_date'] : '',
+                'start_date' => \is_numeric($row['cal_date'] ?? null) ? (string) $row['cal_date'] : '',
                 'type' => \is_string($row['cal_type'] ?? null) ? $row['cal_type'] : 'E',
             ];
             /** @var array<string, mixed>|false $row */
