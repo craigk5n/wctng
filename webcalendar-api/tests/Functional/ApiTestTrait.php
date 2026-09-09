@@ -100,31 +100,8 @@ trait ApiTestTrait
             return;
         }
 
-        $dsn = $_ENV['DATABASE_URL'] ?? $_SERVER['DATABASE_URL'] ?? '';
-        if ($dsn === '') {
-            return;
-        }
-
-        // Parse DATABASE_URL: mysql://user:pass@host:port/dbname
-        $parts = parse_url($dsn);
-        if ($parts === false || !isset($parts['host'], $parts['path'])) {
-            return;
-        }
-
-        $dbname = ltrim($parts['path'] ?? '', '/');
-        $host = $parts['host'] ?? 'localhost';
-        $port = $parts['port'] ?? 3306;
-        $user = $parts['user'] ?? '';
-        $pass = $parts['pass'] ?? '';
-
-        try {
-            $pdo = new \PDO(
-                "mysql:host={$host};port={$port};dbname={$dbname}",
-                $user,
-                $pass,
-                [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION],
-            );
-        } catch (\PDOException) {
+        $pdo = $this->testPdo();
+        if ($pdo === null) {
             return;
         }
 
@@ -158,6 +135,41 @@ trait ApiTestTrait
             $pdo->prepare('DELETE FROM webcal_user WHERE cal_login = :login')->execute(['login' => $login]);
         }
         $this->createdUsers = [];
+    }
+
+    /**
+     * Direct connection to the test database, for teardown work that must not
+     * boot a kernel. Null when there is nothing to connect to, which is the
+     * normal case for a Unit-only run.
+     */
+    private function testPdo(): ?\PDO
+    {
+        $dsn = $_ENV['DATABASE_URL'] ?? $_SERVER['DATABASE_URL'] ?? '';
+        if (!\is_string($dsn) || $dsn === '') {
+            return null;
+        }
+
+        // Parse DATABASE_URL: mysql://user:pass@host:port/dbname
+        $parts = parse_url($dsn);
+        if ($parts === false || !isset($parts['host'], $parts['path'])) {
+            return null;
+        }
+
+        try {
+            return new \PDO(
+                sprintf(
+                    'mysql:host=%s;port=%d;dbname=%s',
+                    $parts['host'],
+                    $parts['port'] ?? 3306,
+                    ltrim($parts['path'], '/'),
+                ),
+                $parts['user'] ?? '',
+                $parts['pass'] ?? '',
+                [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION],
+            );
+        } catch (\PDOException) {
+            return null;
+        }
     }
 
     /**

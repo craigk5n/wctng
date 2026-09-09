@@ -11,10 +11,63 @@ final class UserControllerUpdateTest extends WebTestCase
 {
     use ApiTestTrait;
 
+    /**
+     * admin is a fixture shared by the whole suite, and two tests here edit
+     * its profile: one because updating your own profile as an admin is the
+     * behaviour under test, the other to check a partial update leaves the
+     * other fields alone. Neither used to put it back, so whichever ran last
+     * left its name behind -- in the database, and for every test in every
+     * later class and later run. Captured and restored rather than hardcoded,
+     * so this keeps working if the fixture changes.
+     *
+     * @var array{cal_firstname: string, cal_lastname: string, cal_email: string}|null
+     */
+    private ?array $adminProfile = null;
+
+    #[\Override]
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $pdo = $this->testPdo();
+        if ($pdo === null) {
+            return;
+        }
+
+        $row = $pdo
+            ->query("SELECT cal_firstname, cal_lastname, cal_email FROM webcal_user WHERE cal_login = 'admin'")
+            ?->fetch(\PDO::FETCH_ASSOC);
+
+        if (\is_array($row)) {
+            /** @var array{cal_firstname: string, cal_lastname: string, cal_email: string} $row */
+            $this->adminProfile = $row;
+        }
+    }
+
+    #[\Override]
     protected function tearDown(): void
     {
+        $this->restoreAdminProfile();
         $this->cleanupTestData();
         parent::tearDown();
+    }
+
+    private function restoreAdminProfile(): void
+    {
+        if ($this->adminProfile === null) {
+            return;
+        }
+
+        $this->testPdo()?->prepare(
+            'UPDATE webcal_user SET cal_firstname = :first, cal_lastname = :last, cal_email = :email
+             WHERE cal_login = \'admin\'',
+        )->execute([
+            'first' => $this->adminProfile['cal_firstname'],
+            'last' => $this->adminProfile['cal_lastname'],
+            'email' => $this->adminProfile['cal_email'],
+        ]);
+
+        $this->adminProfile = null;
     }
 
     /**
