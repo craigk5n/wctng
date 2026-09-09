@@ -314,7 +314,11 @@ final class ShareControllerTest extends TestCase
     public function testMissingEitherDateParamAloneIsRejected(): void
     {
         // The check is an ||: with an && only a request missing *both* would
-        // be rejected, and one-sided windows would reach the repository.
+        // be rejected here. The status alone cannot show that, which is what
+        // an earlier version of this test asserted and why the mutation
+        // survived it -- a half-supplied window is rejected twice over, once
+        // for the missing parameter and again for the empty string failing to
+        // parse, and both answer 400. The message is what separates them.
         $this->tokenRepo->create('half-token', 'alice', null);
 
         foreach (['start=20260401', 'end=20260430'] as $onlyOne) {
@@ -324,6 +328,14 @@ final class ShareControllerTest extends TestCase
             );
 
             self::assertSame(400, $response->getStatusCode(), "expected 400 for {$onlyOne}");
+
+            /** @var array<string, mixed> $body */
+            $body = json_decode((string) $response->getContent(), true);
+            self::assertStringContainsString(
+                'Missing required query params',
+                (string) $body['error']['message'],
+                "expected the missing-parameter message for {$onlyOne}",
+            );
         }
     }
 
@@ -338,6 +350,14 @@ final class ShareControllerTest extends TestCase
             );
 
             self::assertSame(400, $response->getStatusCode(), "expected 400 for {$query}");
+
+            /** @var array<string, mixed> $body */
+            $body = json_decode((string) $response->getContent(), true);
+            self::assertStringContainsString(
+                'Invalid date format',
+                (string) $body['error']['message'],
+                "expected the unparseable-date message for {$query}",
+            );
         }
     }
 
