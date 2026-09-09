@@ -48,6 +48,15 @@ jobs:
         working-directory: webcalendar-web
         run: |
           npm ci
+          # The runner image ships Google's Chrome apt source. Nothing here
+          # needs it -- Playwright's own chromium and webkit builds are what
+          # get installed below -- but --with-deps runs apt-get update, which
+          # fails the whole step when that repo serves a bad index. It did for
+          # three consecutive runs on 2026-09-09 ("Hash Sum mismatch" on
+          # dl.google.com/linux/chrome-stable), so the source goes rather than
+          # our build depending on someone else's mirror being consistent.
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list \
+                     /etc/apt/sources.list.d/google-chrome.sources
           # webkit as well as chromium: mobile.spec.ts does test.use(devices
           # ['iPhone 13']), whose defaultBrowserType is webkit, so all five of
           # its tests died with "Executable doesn't exist at .../webkit-2248".
