@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Auth;
 
 use App\Security\OutboundUrlValidator;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 
 /**
  * OpenID Connect discovery and ID token validation.
@@ -17,7 +19,10 @@ final class OidcDiscovery
     /** @var array<string, array<string, mixed>> */
     private array $configCache = [];
 
-    public function __construct(private readonly OutboundUrlValidator $urlValidator) {}
+    public function __construct(
+        private readonly OutboundUrlValidator $urlValidator,
+        private readonly ClockInterface $clock = new NativeClock(),
+    ) {}
 
     /**
      * Discovers OIDC configuration from the provider's issuer URL.
@@ -134,7 +139,7 @@ final class OidcDiscovery
 
         // Validate expiry
         $exp = \is_numeric($claims['exp'] ?? null) ? (int) $claims['exp'] : 0;
-        if ($exp > 0 && $exp < time()) {
+        if ($exp > 0 && $exp < $this->clock->now()->getTimestamp()) {
             return null;
         }
 

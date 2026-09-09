@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tenant;
 
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -27,6 +29,7 @@ final class TenantRateLimiter
     public function __construct(
         private readonly TenantContext $tenantContext,
         private readonly TenantRateLimitStorage $storage,
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {}
 
     public function onKernelRequest(RequestEvent $event): void
@@ -43,7 +46,7 @@ final class TenantRateLimiter
         $slug = $tenant->slug();
         $this->limit = self::limitFor($tenant->plan());
 
-        $window = self::currentWindow();
+        $window = $this->currentWindow();
         $this->resetAt = $window + 60;
 
         $count = $this->storage->incrementAndCount($slug, $window);
@@ -88,8 +91,8 @@ final class TenantRateLimiter
         };
     }
 
-    private static function currentWindow(): int
+    private function currentWindow(): int
     {
-        return (int) (floor(time() / 60) * 60);
+        return intdiv($this->clock->now()->getTimestamp(), 60) * 60;
     }
 }

@@ -175,7 +175,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
                     'uri' => $event->id()->value() . '.ics',
                     'calendarid' => $username,
                     'calendardata' => $ics,
-                    'lastmodified' => time(),
+                    'lastmodified' => $this->clock->now()->getTimestamp(),
                     'etag' => '"' . md5($ics) . '"',
                     'size' => \strlen($ics),
                     'component' => 'vevent',
@@ -192,7 +192,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
                         'uri' => 'task-' . $task->id()->value() . '.ics',
                         'calendarid' => $username,
                         'calendardata' => $ics,
-                        'lastmodified' => time(),
+                        'lastmodified' => $this->clock->now()->getTimestamp(),
                         'etag' => '"' . md5($ics) . '"',
                         'size' => \strlen($ics),
                         'component' => 'vtodo',
@@ -212,7 +212,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
                         'uri' => 'journal-' . $journal->id()->value() . '.ics',
                         'calendarid' => $username,
                         'calendardata' => $ics,
-                        'lastmodified' => time(),
+                        'lastmodified' => $this->clock->now()->getTimestamp(),
                         'etag' => '"' . md5($ics) . '"',
                         'size' => \strlen($ics),
                         'component' => 'vjournal',
@@ -267,7 +267,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             'uri' => $uri,
             'calendarid' => $calendarId,
             'calendardata' => $ics,
-            'lastmodified' => time(),
+            'lastmodified' => $this->clock->now()->getTimestamp(),
             'etag' => '"' . md5($ics) . '"',
             'size' => \strlen($ics),
             'component' => 'vevent',
@@ -609,7 +609,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             // No events, no override — use wall clock so the token is
             // still monotonic across restarts (clients tolerate a jump
             // but not a constant zero).
-            $token = time();
+            $token = $this->clock->now()->getTimestamp();
         }
         return 'sync-' . $token;
     }
@@ -890,7 +890,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
                 'uri' => $uri,
                 'calendarid' => $calendarId,
                 'calendardata' => $ics,
-                'lastmodified' => time(),
+                'lastmodified' => $this->clock->now()->getTimestamp(),
                 'etag' => '"' . md5($ics) . '"',
                 'size' => \strlen($ics),
                 'component' => 'vtodo',
@@ -969,7 +969,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
                 'uri' => $uri,
                 'calendarid' => $calendarId,
                 'calendardata' => $ics,
-                'lastmodified' => time(),
+                'lastmodified' => $this->clock->now()->getTimestamp(),
                 'etag' => '"' . md5($ics) . '"',
                 'size' => \strlen($ics),
                 'component' => 'vjournal',

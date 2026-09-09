@@ -182,7 +182,7 @@ final class ReminderService
     private function markReminderSent(\PDO $pdo, int $eventId, string $login): void
     {
         $pdo->prepare('INSERT INTO reminder_sent (event_id, user_login, sent_at) VALUES (:eid, :login, :now)')
-            ->execute(['eid' => $eventId, 'login' => $login, 'now' => time()]);
+            ->execute(['eid' => $eventId, 'login' => $login, 'now' => $this->clock->now()->getTimestamp()]);
     }
 
     private function ensureTrackingTable(\PDO $pdo): void

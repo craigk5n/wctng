@@ -12,8 +12,8 @@ namespace App\Tenant;
  * flock, Redis uses INCR+EXPIRE, memory uses the process's own single
  * thread.
  *
- * The caller owns window math (`floor(time()/60)*60`) so storage
- * backends never need a clock.
+ * The caller owns window math (`intdiv($now, 60) * 60`, from its injected
+ * clock) so storage backends never need a clock of their own.
  */
 interface TenantRateLimitStorage
 {

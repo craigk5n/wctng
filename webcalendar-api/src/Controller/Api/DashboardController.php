@@ -181,7 +181,7 @@ final class DashboardController
         $agendaSent = 0;
 
         try {
-            $cutoff = time() - (7 * 86400);
+            $cutoff = $this->clock->now()->getTimestamp() - (7 * 86400);
             $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM reminder_sent WHERE sent_at >= :cutoff');
             $stmt->execute(['cutoff' => $cutoff]);
             /** @var numeric-string|false $val */
@@ -192,7 +192,7 @@ final class DashboardController
         }
 
         try {
-            $cutoff = time() - (7 * 86400);
+            $cutoff = $this->clock->now()->getTimestamp() - (7 * 86400);
             $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM daily_agenda_sent WHERE sent_at >= :cutoff');
             $stmt->execute(['cutoff' => $cutoff]);
             /** @var numeric-string|false $val */

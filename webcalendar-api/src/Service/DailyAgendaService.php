@@ -175,7 +175,7 @@ final class DailyAgendaService
     private function markAgendaSent(\PDO $pdo, string $login, string $date): void
     {
         $pdo->prepare('INSERT INTO daily_agenda_sent (user_login, agenda_date, sent_at) VALUES (:login, :date, :now)')
-            ->execute(['login' => $login, 'date' => $date, 'now' => time()]);
+            ->execute(['login' => $login, 'date' => $date, 'now' => $this->clock->now()->getTimestamp()]);
     }
 
     private function ensureTrackingTable(\PDO $pdo): void

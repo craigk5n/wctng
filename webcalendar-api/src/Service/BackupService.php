@@ -108,7 +108,7 @@ final class BackupService
      */
     public function cleanupOld(int $days = 7): int
     {
-        $cutoff = time() - ($days * 86400);
+        $cutoff = $this->clock->now()->getTimestamp() - ($days * 86400);
         $deleted = 0;
 
         $files = glob($this->backupDir . '/webcalendar-backup-*');

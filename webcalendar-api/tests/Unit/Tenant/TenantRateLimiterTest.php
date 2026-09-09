@@ -11,6 +11,7 @@ use App\Tenant\TenantPlan;
 use App\Tenant\TenantRateLimiter;
 use App\Tenant\TenantStatus;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Clock\MockClock;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -114,6 +115,53 @@ final class TenantRateLimiterTest extends TestCase
         $this->assertNotNull($response);
         $this->assertSame(429, $response->getStatusCode());
         $this->assertSame('0', $response->headers->get('X-RateLimit-Remaining'));
+    }
+
+    public function testTheCounterStartsAgainWhenTheMinuteWindowRollsOver(): void
+    {
+        // Only reachable with an injected clock: before it, checking this
+        // meant waiting for a real minute boundary to pass.
+        $clock = new MockClock('2026-03-15T10:00:30+00:00');
+        $this->context->setTenant(new Tenant(1, 'rate-window', 'Window', '', '', '', '', TenantPlan::Free, TenantStatus::Active));
+
+        $dir = $this->tmpDir . '/rate_limits';
+        mkdir($dir, 0o777, true);
+        $window = (new \DateTimeImmutable('2026-03-15T10:00:00+00:00'))->getTimestamp();
+        file_put_contents($dir . '/rate-window_' . $window . '.count', '100');
+
+        $limiter = new TenantRateLimiter($this->context, $this->storage, $clock);
+
+        $exhausted = $this->createRequestEvent();
+        $limiter->onKernelRequest($exhausted);
+        $response = $exhausted->getResponse();
+        self::assertNotNull($response);
+        self::assertSame(429, $response->getStatusCode());
+
+        // 10:00:30 plus 30 seconds is the start of the next window.
+        $clock->sleep(30);
+
+        $fresh = $this->createRequestEvent();
+        $limiter->onKernelRequest($fresh);
+        self::assertNull($fresh->getResponse(), 'the next minute is counted separately');
+    }
+
+    public function testResetHeaderIsTheEndOfTheCurrentWindow(): void
+    {
+        $clock = new MockClock('2026-03-15T10:00:30+00:00');
+        $this->context->setTenant(new Tenant(1, 'rate-reset', 'Reset', '', '', '', '', TenantPlan::Free, TenantStatus::Active));
+        $limiter = new TenantRateLimiter($this->context, $this->storage, $clock);
+
+        $requestEvent = $this->createRequestEvent();
+        $limiter->onKernelRequest($requestEvent);
+        $responseEvent = $this->createResponseEvent($requestEvent->getRequest());
+        $limiter->onKernelResponse($responseEvent);
+
+        // The window holding 10:00:30 ends at 10:01:00, not 60 seconds from
+        // the request.
+        self::assertSame(
+            (string) (new \DateTimeImmutable('2026-03-15T10:01:00+00:00'))->getTimestamp(),
+            $responseEvent->getResponse()->headers->get('X-RateLimit-Reset'),
+        );
     }
 
     public function testDifferentPlansHaveDifferentLimits(): void

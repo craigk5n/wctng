@@ -44,7 +44,7 @@ final class SitemapController
         $cacheFile = \dirname(__DIR__, 3) . '/var/cache/sitemap.xml';
         $useCache = $driver !== 'sqlite';
 
-        if ($useCache && file_exists($cacheFile) && (time() - (int) filemtime($cacheFile)) < self::CACHE_TTL) {
+        if ($useCache && file_exists($cacheFile) && ($this->clock->now()->getTimestamp() - (int) filemtime($cacheFile)) < self::CACHE_TTL) {
             $cached = file_get_contents($cacheFile);
             if ($cached !== false) {
                 return new Response($cached, 200, [

@@ -12,11 +12,13 @@
  *     the current time
  *   - `strtotime('+...')`, `strtotime('-...')`, `strtotime('now')` and the
  *     other now-relative literals
+ *   - `time()`, which is the current timestamp by definition
  *
  * Still legal, because none of these read the clock:
  *   - `new \DateTimeImmutable($parsedUserString)`
  *   - `date($format, $timestamp)` — formatting a timestamp you already have
  *   - `strtotime($userSuppliedString)` — parsing input
+ *   - `microtime()`, `hrtime()` — measuring elapsed time, not reading a date
  */
 
 declare(strict_types=1);
@@ -39,6 +41,10 @@ $patterns = [
     "/new\s+\\\\?DateTimeImmutable\s*\(\s*['\"]yesterday['\"]/" => 'constructs the current moment',
     "/new\s+\\\\?DateTimeImmutable\s*\(\s*['\"]tomorrow['\"]/" => 'constructs the current moment',
     "/new\s+\\\\?DateTimeImmutable\s*\(\s*['\"]\s*[+\-]/" => 'constructs a moment relative to now',
+    // time() is unambiguous. The lookbehind also keeps strtotime(),
+    // microtime() and mktime() out, since a word character precedes "time"
+    // in each of them.
+    '/(?<![>:$\w])time\s*\(\s*\)/' => 'reads the current timestamp',
     // date($format) with no timestamp argument formats the current time.
     '/(?<![>:$\w])(?:date|gmdate)\s*\(\s*(?:\'[^\']*\'|"[^"]*"|\$[A-Za-z_]\w*)\s*\)/'
         => 'formats the current time; pass a timestamp, or use the injected clock',

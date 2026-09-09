@@ -490,11 +490,6 @@
       <code><![CDATA[\is_array($row)]]></code>
     </RedundantCondition>
   </file>
-  <file src="src/Tenant/TenantRateLimiter.php">
-    <InvalidOperand>
-      <code><![CDATA[floor(time() / 60) * 60]]></code>
-    </InvalidOperand>
-  </file>
   <file src="src/View/SavedViewRepository.php">
     <LessSpecificReturnStatement>
       <code><![CDATA[$views]]></code>

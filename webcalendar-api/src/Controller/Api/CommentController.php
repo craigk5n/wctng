@@ -6,8 +6,10 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
+use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -29,6 +31,7 @@ final class CommentController
         // Defaulted so the container autowires the real logger while code
         // that constructs this directly keeps working.
         private readonly LoggerInterface $logger = new NullLogger(),
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {}
 
     #[Route('/api/v2/events/{eventId}/comments', name: 'api_event_comments_list', methods: ['GET'])]
@@ -92,7 +95,7 @@ final class CommentController
 
         $this->ensureTable();
 
-        $now = time();
+        $now = $this->clock->now()->getTimestamp();
         $login = $user->getUserIdentifier();
 
         $this->pdo->prepare(

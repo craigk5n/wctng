@@ -96,7 +96,7 @@ trait CoreSchedulingBackend
         $this->schedulingObjects[$pUri][] = [
             'uri' => $oUri,
             'calendardata' => $data,
-            'lastmodified' => time(),
+            'lastmodified' => $this->clock->now()->getTimestamp(),
             'etag' => '"' . md5($data) . '"',
             'size' => \strlen($data),
         ];

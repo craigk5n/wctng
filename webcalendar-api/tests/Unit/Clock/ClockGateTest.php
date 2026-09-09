@@ -67,6 +67,7 @@ final class ClockGateTest extends TestCase
         yield 'strtotime() with a relative literal' => ["    public function f(): int|false { return strtotime('-30 days'); }"];
         yield 'strtotime() with an interpolated relative literal' => ['    public function f(int $i): int|false { return strtotime("-{$i} days"); }'];
         yield 'strtotime(now)' => ["    public function f(): int|false { return strtotime('now'); }"];
+        yield 'time()' => ['    public function f(): int { return time(); }'];
         yield 'DateTimeImmutable with no argument' => ['    public function f(): \DateTimeImmutable { return new \DateTimeImmutable(); }'];
         yield 'DateTimeImmutable relative to now' => ["    public function f(): \\DateTimeImmutable { return new \\DateTimeImmutable('+1 day'); }"];
     }
@@ -89,6 +90,10 @@ final class ClockGateTest extends TestCase
         yield 'a date() method call on an object' => ['    public function f(object $e): string { return $e->date()->format(\'c\'); }'];
         yield 'a static date() call' => ['    public function f(): string { return \Sample::date(\'c\'); }'];
         yield 'parsing a supplied string into DateTimeImmutable' => ['    public function f(string $s): \DateTimeImmutable { return new \DateTimeImmutable($s); }'];
+        yield 'microtime() for elapsed time' => ['    public function f(): float { return microtime(true); }'];
+        yield 'hrtime() for elapsed time' => ['    public function f(): int|float { return hrtime(true); }'];
+        yield 'mktime() with explicit parts' => ['    public function f(): int|false { return mktime(0, 0, 0, 1, 1, 2026); }'];
+        yield 'a time() method call on an object' => ['    public function f(object $e): int { return $e->time(); }'];
         yield 'the clock itself' => ['    public function f(): string { return $this->clock->now()->format(\'c\'); }'];
     }
 
