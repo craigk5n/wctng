@@ -36,26 +36,6 @@ final class FeedController
     ) {}
 
     /**
-     * Test-only constructor that accepts individual dependencies.
-     */
-    public static function createForTest(
-        UserRepositoryInterface $userRepo,
-        RateLimiterInterface $rateLimiter,
-        FeedService $feedService,
-    ): self {
-        $instance = (new \ReflectionClass(self::class))->newInstanceWithoutConstructor();
-        $setProp = static function (string $name, mixed $value) use ($instance): void {
-            $ref = new \ReflectionProperty(self::class, $name);
-            $ref->setValue($instance, $value);
-        };
-        $setProp('userRepo', $userRepo);
-        $setProp('rateLimiter', $rateLimiter);
-        $setProp('feedService', $feedService);
-        $setProp('clock', new NativeClock());
-        return $instance;
-    }
-
-    /**
      * RSS 2.0 feed of upcoming public events for a user.
      *
      * GET /api/v2/public/calendars/{username}/feed.rss?days=90
