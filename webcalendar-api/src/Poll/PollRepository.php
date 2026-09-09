@@ -6,6 +6,11 @@ namespace App\Poll;
 
 final readonly class PollRepository
 {
+    // The `: 0` and `: ''` arms in the row mappings below narrow `mixed` for
+    // the static analysers rather than describing anything these queries can
+    // return -- an id column always answers is_numeric -- so the integers in
+    // them survive mutation testing. Unreachable, not untested.
+
     public const SCHEMA_SQL = <<<'SQL'
             CREATE TABLE IF NOT EXISTS scheduling_polls (
                 id INTEGER PRIMARY KEY AUTO_INCREMENT,
@@ -191,7 +196,11 @@ final readonly class PollRepository
     {
         $driver = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
         $sql = $driver === 'sqlite' ? self::SCHEMA_SQL_SQLITE : self::SCHEMA_SQL;
-        // Execute each statement separately
+        // Execute each statement separately. The trim and the emptiness check
+        // are defensive: neither schema above ends with a semicolon, so the
+        // split never yields a blank segment today, and mutation testing
+        // reports both as surviving. They earn their place the moment someone
+        // adds a trailing semicolon.
         foreach (explode(';', $sql) as $stmt) {
             $stmt = trim($stmt);
             if ($stmt !== '') {
