@@ -6,6 +6,8 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
@@ -17,6 +19,7 @@ final class LocationController
 {
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {}
 
     #[Route('/api/v2/users/{login}/location', name: 'api_user_location_get', methods: ['GET'])]
@@ -26,7 +29,7 @@ final class LocationController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $date = $request->query->getString('date', date('Y-m-d'));
+        $date = $request->query->getString('date', $this->clock->now()->format('Y-m-d'));
         $prefKey = 'location_' . $date;
 
         $prefs = $this->userRepository->getPreferences($login);
@@ -59,7 +62,7 @@ final class LocationController
         /** @var array{date?: string, location?: string} $data */
         $data = json_decode($request->getContent(), true) ?? [];
 
-        $date = $data['date'] ?? date('Y-m-d');
+        $date = $data['date'] ?? $this->clock->now()->format('Y-m-d');
         $location = $data['location'] ?? 'office';
 
         if (!\in_array($location, ['office', 'remote', 'traveling'], true)) {

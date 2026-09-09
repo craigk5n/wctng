@@ -7,8 +7,10 @@ namespace App\Controller\Api;
 use App\Service\ErrorMetricsService;
 use App\Service\ReadinessProbe;
 use App\Tenant\TenantContext;
+use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -32,6 +34,7 @@ final class HealthController
         // Defaulted so the container autowires the real logger while code
         // that constructs this directly keeps working.
         private readonly LoggerInterface $logger = new NullLogger(),
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {}
 
     #[Route('/api/v2/health', name: 'api_health', methods: ['GET'])]
@@ -39,7 +42,7 @@ final class HealthController
     {
         return new JsonResponse([
             'status' => 'ok',
-            'timestamp' => date('c'),
+            'timestamp' => $this->clock->now()->format('c'),
             'mode' => $this->appMode,
         ]);
     }
@@ -72,7 +75,7 @@ final class HealthController
 
         $response = [
             'status' => $dbStatus->ok ? 'ok' : 'degraded',
-            'timestamp' => date('c'),
+            'timestamp' => $this->clock->now()->format('c'),
             'mode' => $this->appMode,
             'components' => $components,
             'recent_errors' => $recentErrors,

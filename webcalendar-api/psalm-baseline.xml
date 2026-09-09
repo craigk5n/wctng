@@ -223,13 +223,6 @@
       <code><![CDATA[$sub]]></code>
     </MixedAssignment>
   </file>
-  <file src="src/Controller/Api/ReportController.php">
-    <PossiblyFalseArgument>
-      <code><![CDATA[strtotime('-30 days')]]></code>
-      <code><![CDATA[strtotime('-30 days')]]></code>
-      <code><![CDATA[strtotime('-30 days')]]></code>
-    </PossiblyFalseArgument>
-  </file>
   <file src="src/Controller/Api/SecurityAuditController.php">
     <InvalidOperand>
       <code><![CDATA[round($ttl / 3600, 1)]]></code>
@@ -349,11 +342,6 @@
       <code><![CDATA[start]]></code>
       <code><![CDATA[start]]></code>
     </MixedMethodCall>
-  </file>
-  <file src="src/Service/ErrorMetricsService.php">
-    <PossiblyFalseArgument>
-      <code><![CDATA[strtotime('-30 days')]]></code>
-    </PossiblyFalseArgument>
   </file>
   <file src="src/Service/EventRecurrenceService.php">
     <MixedAssignment>

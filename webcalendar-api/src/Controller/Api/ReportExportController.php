@@ -7,6 +7,8 @@ namespace App\Controller\Api;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Service\ReportService;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -16,6 +18,7 @@ final class ReportExportController
 {
     public function __construct(
         private readonly ReportService $reportService,
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {}
 
     #[Route('/api/v2/reports/export/{type}', name: 'api_reports_export', methods: ['GET'])]
@@ -25,8 +28,9 @@ final class ReportExportController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $start = $request->query->getString('start', date('Ymd', time() - 86400 * 30));
-        $end = $request->query->getString('end', date('Ymd'));
+        $now = $this->clock->now();
+        $start = $request->query->getString('start', $now->modify('-30 days')->format('Ymd'));
+        $end = $request->query->getString('end', $now->format('Ymd'));
         $login = $user->getUserIdentifier();
 
         $csv = match ($type) {

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
+
 /**
  * Lightweight error counter stored in a `system_metrics` table.
  * Used by ExceptionSubscriber to track 5xx errors and by HealthController to report them.
@@ -12,6 +15,7 @@ final class ErrorMetricsService
 {
     public function __construct(
         private readonly \PDO $pdo,
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {
         $this->ensureTable();
     }
@@ -21,19 +25,20 @@ final class ErrorMetricsService
      */
     public function recordError(): void
     {
-        $today = date('Y-m-d');
+        $now = $this->clock->now();
+        $today = $now->format('Y-m-d');
         $key = "errors_{$today}";
 
         // Upsert: increment if exists, insert if not
         $stmt = $this->pdo->prepare(
             'UPDATE system_metrics SET metric_value = metric_value + 1, updated_at = :now WHERE metric_key = :key',
         );
-        $stmt->execute(['key' => $key, 'now' => time()]);
+        $stmt->execute(['key' => $key, 'now' => $now->getTimestamp()]);
 
         if ($stmt->rowCount() === 0) {
             $this->pdo->prepare(
                 'INSERT INTO system_metrics (metric_key, metric_value, updated_at) VALUES (:key, 1, :now)',
-            )->execute(['key' => $key, 'now' => time()]);
+            )->execute(['key' => $key, 'now' => $now->getTimestamp()]);
         }
     }
 
@@ -44,8 +49,9 @@ final class ErrorMetricsService
     {
         $keys = [];
         $params = [];
+        $now = $this->clock->now();
         for ($i = 0; $i < $days; $i++) {
-            $date = date('Y-m-d', (int) strtotime("-{$i} days"));
+            $date = $now->modify("-{$i} days")->format('Y-m-d');
             $key = "k{$i}";
             $keys[] = ":{$key}";
             $params[$key] = "errors_{$date}";
@@ -66,7 +72,7 @@ final class ErrorMetricsService
      */
     public function cleanup(): void
     {
-        $cutoff = date('Y-m-d', strtotime('-30 days'));
+        $cutoff = $this->clock->now()->modify('-30 days')->format('Y-m-d');
         $this->pdo->prepare('DELETE FROM system_metrics WHERE metric_key < :cutoff AND metric_key LIKE :prefix')
             ->execute(['cutoff' => "errors_{$cutoff}", 'prefix' => 'errors_%']);
     }

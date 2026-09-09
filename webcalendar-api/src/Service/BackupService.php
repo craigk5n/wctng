@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
+
 /**
  * Database backup and restore service.
  * Supports MySQL (via mysqldump/mysql) and SQLite (file copy).
@@ -17,6 +20,7 @@ final class BackupService
         \PDO $pdo,
         private readonly string $databaseUrl,
         string $projectDir,
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {
         $this->backupDir = $projectDir . '/var/backups';
         $driverName = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
@@ -34,7 +38,7 @@ final class BackupService
             mkdir($this->backupDir, 0o750, true);
         }
 
-        $timestamp = date('Y-m-d_His');
+        $timestamp = $this->clock->now()->format('Y-m-d_His');
 
         if ($this->driver === 'sqlite') {
             return $this->backupSqlite($timestamp);
@@ -166,7 +170,7 @@ final class BackupService
             'filename' => $filename,
             'path' => $dest,
             'size_bytes' => $size !== false ? $size : 0,
-            'created_at' => date('c'),
+            'created_at' => $this->clock->now()->format('c'),
         ];
     }
 
@@ -203,7 +207,7 @@ final class BackupService
             'filename' => $filename,
             'path' => $dest,
             'size_bytes' => $size !== false ? $size : 0,
-            'created_at' => date('c'),
+            'created_at' => $this->clock->now()->format('c'),
         ];
     }
 
@@ -223,7 +227,7 @@ final class BackupService
         }
 
         // Backup current before replacing
-        $backupCurrent = $dbPath . '.pre-restore.' . date('His');
+        $backupCurrent = $dbPath . '.pre-restore.' . $this->clock->now()->format('His');
         copy($dbPath, $backupCurrent);
 
         copy($filePath, $dbPath);

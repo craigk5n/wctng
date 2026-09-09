@@ -7,6 +7,8 @@ namespace App\Controller\Api;
 use App\Response\ApiResponse;
 use App\Security\TokenRevocationService;
 use App\Security\WebCalendarUser;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,6 +27,7 @@ final class UserController
         private readonly UserRepositoryInterface $userRepository,
         private readonly AuthServiceInterface $authService,
         private readonly TokenRevocationService $tokenRevoker,
+        private readonly ClockInterface $clock = new NativeClock(),
     ) {}
 
     #[Route('/api/v2/users', name: 'api_users_list', methods: ['GET'])]
@@ -335,7 +338,7 @@ final class UserController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        $date = $request->query->getString('date', date('Y-m-d'));
+        $date = $request->query->getString('date', $this->clock->now()->format('Y-m-d'));
         $prefKey = "working_location_{$date}";
 
         $prefs = $this->userRepository->getPreferences($login);
@@ -369,7 +372,7 @@ final class UserController
 
         /** @var array{date?: string, location?: string} $data */
         $data = $decoded;
-        $date = $data['date'] ?? date('Y-m-d');
+        $date = $data['date'] ?? $this->clock->now()->format('Y-m-d');
         $location = $data['location'] ?? 'office';
 
         $prefKey = "working_location_{$date}";
