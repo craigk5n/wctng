@@ -7,17 +7,20 @@ namespace App\Tests\Unit\Service;
 use App\Service\CoreServiceFactory;
 use App\Service\SearchIndexService;
 use App\Service\TenantAwarePdoProvider;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class SearchFiltersTest extends TestCase
 {
     private SearchIndexService $service;
+    private \PDO $pdo;
 
     #[\Override]
     protected function setUp(): void
     {
         $pdo = new \PDO('sqlite::memory:');
         $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $this->pdo = $pdo;
 
         $pdo->exec("CREATE TABLE webcal_entry (
             cal_id INTEGER PRIMARY KEY, cal_name VARCHAR(200) DEFAULT '',
@@ -92,5 +95,99 @@ final class SearchFiltersTest extends TestCase
             'category_id' => '999',
         ]);
         $this->assertSame(0, $result['total']);
+    }
+
+    // -------------------------------------------- the filters that were not
+
+    public function testAnUnknownTypeIsIgnoredRatherThanApplied(): void
+    {
+        // The guard is `$type !== null && isset(TYPE_MAP[$type])`. With an
+        // `||` an unrecognised type reaches TYPE_MAP anyway and the lookup
+        // has nothing to return, so the request dies instead of simply not
+        // filtering.
+        $result = $this->service->search('Meeting', 'admin', 'not-a-type');
+
+        self::assertSame(2, $result['total'], 'an unknown type filters nothing out');
+    }
+
+    public function testANullTypeFiltersNothing(): void
+    {
+        $result = $this->service->search('Meeting', 'admin', null);
+
+        self::assertSame(2, $result['total']);
+    }
+
+    public function testTheEndOfTheDateRangeExcludesWhatComesAfterIt(): void
+    {
+        // The earlier test set both ends but had nothing past the end to
+        // exclude, so dropping the end filter changed no answer.
+        $result = $this->service->search('Meeting', 'admin', null, 20, 0, [
+            'start' => '20260101',
+            'end' => '20260201',
+        ]);
+
+        self::assertSame(1, $result['total']);
+        self::assertSame('January Meeting', $result['results'][0]['title']);
+    }
+
+    public function testTheStartOfTheDateRangeExcludesWhatComesBefore(): void
+    {
+        $result = $this->service->search('Meeting', 'admin', null, 20, 0, [
+            'start' => '20260201',
+        ]);
+
+        self::assertSame(1, $result['total']);
+        self::assertSame('March Meeting', $result['results'][0]['title']);
+    }
+
+    /** @return iterable<string, array{array<string, string>}> */
+    public static function emptyFilterValues(): iterable
+    {
+        yield 'blank start' => [['start' => '']];
+        yield 'blank end' => [['end' => '']];
+        yield 'blank category' => [['category_id' => '']];
+        yield 'blank participant' => [['participant' => '']];
+    }
+
+    /** @param array<string, string> $filters */
+    #[DataProvider('emptyFilterValues')]
+    public function testABlankFilterValueIsNotAFilter(array $filters): void
+    {
+        // An unfilled form field arrives as '' rather than being absent, and
+        // must not narrow the search to nothing.
+        $result = $this->service->search('Meeting', 'admin', null, 20, 0, $filters);
+
+        self::assertSame(2, $result['total']);
+    }
+
+    public function testCategoryAndParticipantFiltersCanBothApplyAtOnce(): void
+    {
+        // Each appends its own INNER JOIN. Assignment in place of appending
+        // drops whichever came first, and the WHERE clause then references a
+        // table that is no longer joined.
+        $this->pdo->exec('INSERT INTO webcal_entry_categories VALUES (2, 5)');
+
+        $both = $this->service->search('Meeting', 'admin', null, 20, 0, [
+            'category_id' => '5',
+            'participant' => 'alice',
+        ]);
+
+        self::assertSame(1, $both['total'], 'only the March meeting is both in category 5 and has alice');
+        self::assertSame('March Meeting', $both['results'][0]['title']);
+    }
+
+    public function testTheParticipantJoinDoesNotDropTheCategoryOne(): void
+    {
+        // The same pair, but where the category alone would match a different
+        // row: if the category join were discarded, this would come back with
+        // January's meeting too.
+        $this->pdo->exec("INSERT INTO webcal_entry_user VALUES (1, 'alice', 'A')");
+
+        $result = $this->service->search('Meeting', 'admin', null, 20, 0, [
+            'category_id' => '5',
+            'participant' => 'alice',
+        ]);
+
+        self::assertSame(['January Meeting'], array_column($result['results'], 'title'));
     }
 }

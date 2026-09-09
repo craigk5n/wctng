@@ -232,9 +232,17 @@ final readonly class SearchIndexService
             $snippet .= '...';
         }
 
-        // Highlight match
+        // Highlight match. The position lookup above folds case with
+        // mb_strtolower, but /i alone does not, so a match found in a
+        // different case only got highlighted when it was ASCII -- "café"
+        // located CAFÉ and then failed to mark it. /u makes the two agree.
+        // Applied only to a query that is valid UTF-8: with /u an invalid
+        // pattern raises a compilation warning per row rather than quietly
+        // failing to match, which is what happens without it.
+        $modifiers = mb_check_encoding($query, 'UTF-8') ? 'iu' : 'i';
+
         $highlighted = preg_replace(
-            '/(' . preg_quote($query, '/') . ')/i',
+            '/(' . preg_quote($query, '/') . ')/' . $modifiers,
             '<mark>$1</mark>',
             $snippet,
         );
