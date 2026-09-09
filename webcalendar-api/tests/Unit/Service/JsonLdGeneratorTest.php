@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Service;
 
 use App\Service\JsonLdGenerator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\Entity\User;
@@ -171,5 +172,178 @@ final class JsonLdGeneratorTest extends TestCase
         $this->assertStringStartsWith('<script type="application/ld+json">', $output);
         $this->assertStringEndsWith('</script>', $output);
         $this->assertStringContainsString('BreadcrumbList', $output);
+    }
+
+    // --- the fields the array carries ---
+
+    public function testBothEndsOfTheEventAreCarriedAsAtomTimestamps(): void
+    {
+        // endDate was the one field nothing read, so `'endDate' => x` could
+        // decay into a comparison and leave the key off the document entirely.
+        $data = $this->generator->buildEventData($this->makeEvent(), $this->user);
+
+        $this->assertSame('2026-06-15T14:00:00+00:00', $data['startDate']);
+        $this->assertSame('2026-06-15T15:00:00+00:00', $data['endDate']);
+    }
+
+    // --- status mapping ---
+
+    /** @return iterable<string, array{string|null, string}> */
+    public static function statuses(): iterable
+    {
+        yield 'CANCELLED' => ['CANCELLED', 'https://schema.org/EventCancelled'];
+        yield 'cancelled' => ['cancelled', 'https://schema.org/EventCancelled'];
+        yield 'rejected' => ['rejected', 'https://schema.org/EventCancelled'];
+        yield 'TENTATIVE' => ['TENTATIVE', 'https://schema.org/EventPostponed'];
+        yield 'tentative' => ['tentative', 'https://schema.org/EventPostponed'];
+        yield 'needs_approval' => ['needs_approval', 'https://schema.org/EventPostponed'];
+        yield 'no status at all' => [null, 'https://schema.org/EventScheduled'];
+        yield 'something unrecognised' => ['whatever', 'https://schema.org/EventScheduled'];
+    }
+
+    #[DataProvider('statuses')]
+    public function testEveryStatusSpellingMapsToItsSchemaValue(?string $status, string $expected): void
+    {
+        // Each spelling is its own match arm, and a removed arm falls through
+        // to "scheduled" -- which would tell a search engine that a cancelled
+        // event is going ahead.
+        $data = $this->generator->buildEventData($this->makeEvent(status: $status), $this->user);
+
+        $this->assertSame($expected, $data['eventStatus']);
+    }
+
+    // --- location and attendance mode ---
+
+    /** @return iterable<string, array{string, string, string}> */
+    public static function locations(): iterable
+    {
+        yield 'a room is a place' => ['Room A', 'Place', 'https://schema.org/OfflineEventAttendanceMode'];
+        yield 'a link is virtual' => ['https://meet.example.com/x', 'VirtualLocation', 'https://schema.org/OnlineEventAttendanceMode'];
+        yield 'an upper-case link is still virtual' => ['HTTPS://MEET.EXAMPLE.COM/X', 'VirtualLocation', 'https://schema.org/OnlineEventAttendanceMode'];
+        yield 'http counts too' => ['http://meet.example.com/x', 'VirtualLocation', 'https://schema.org/OnlineEventAttendanceMode'];
+        yield 'a room that mentions a link is a place' => ['Room A, dial in at https://meet.example.com/x', 'Place', 'https://schema.org/OfflineEventAttendanceMode'];
+    }
+
+    #[DataProvider('locations')]
+    public function testTheLocationDecidesThePlaceTypeAndAttendanceMode(
+        string $location,
+        string $expectedType,
+        string $expectedMode,
+    ): void {
+        // Both decisions come from `#^https?://#i`. Without the anchor a room
+        // whose name mentions a link becomes a virtual event; without the flag
+        // an upper-cased link stops being one.
+        $data = $this->generator->buildEventData($this->makeEvent(location: $location), $this->user);
+
+        $this->assertSame($expectedType, $data['location']['@type']);
+        $this->assertSame($expectedMode, $data['eventAttendanceMode']);
+    }
+
+    public function testAnEventWithNoLocationIsOffline(): void
+    {
+        $data = $this->generator->buildEventData($this->makeEvent(location: ''), $this->user);
+
+        $this->assertSame('https://schema.org/OfflineEventAttendanceMode', $data['eventAttendanceMode']);
+    }
+
+    // --- breadcrumbs ---
+
+    public function testEveryBreadcrumbIsAListItem(): void
+    {
+        // The @type on each entry is what makes the list a BreadcrumbList to a
+        // consumer, and no test read it.
+        $data = $this->generator->buildBreadcrumbData('alice', 'Alice Smith', '/public/alice/event/1', 'Test Event');
+
+        $this->assertSame(
+            ['ListItem', 'ListItem', 'ListItem'],
+            array_column($data['itemListElement'], '@type'),
+        );
+    }
+
+    public function testTheIndexBreadcrumbsAreListItemsToo(): void
+    {
+        $data = $this->generator->buildBreadcrumbData('alice', 'Alice Smith', '/public/alice/events');
+
+        $this->assertSame(['ListItem', 'ListItem'], array_column($data['itemListElement'], '@type'));
+    }
+
+    // --- how the document is rendered ---
+
+    public function testSlashesAreLeftAlone(): void
+    {
+        // Escaped slashes are valid JSON but unreadable, and the encoder does
+        // it by default.
+        $output = $this->generator->generateEventJsonLd($this->makeEvent(), $this->user);
+
+        $this->assertStringContainsString('https://schema.org', $output);
+        $this->assertStringNotContainsString('https:\/\/schema.org', $output);
+    }
+
+    public function testTheDocumentIsPrettyPrinted(): void
+    {
+        $output = $this->generator->generateEventJsonLd($this->makeEvent(), $this->user);
+
+        $this->assertStringContainsString("{\n    \"@context\"", $output);
+    }
+
+    public function testNonAsciiSurvivesAsItself(): void
+    {
+        $output = $this->generator->generateEventJsonLd($this->makeEvent(name: 'Café Meeting'), $this->user);
+
+        $this->assertStringContainsString('Café Meeting', $output);
+        $this->assertStringNotContainsString('Caf\u00e9', $output);
+    }
+
+    public function testTheBreadcrumbDocumentIsRenderedTheSameWay(): void
+    {
+        // Its own json_encode call, with its own copy of the flags.
+        $output = $this->generator->generateBreadcrumbJsonLd('alice', 'Café Owner', '/public/alice/events');
+
+        $this->assertStringContainsString('https://schema.org', $output);
+        $this->assertStringNotContainsString('https:\/\/schema.org', $output);
+        $this->assertStringContainsString("{\n    \"@context\"", $output);
+        $this->assertStringContainsString('Café Owner', $output);
+    }
+
+    // --- the script wrapper ---
+
+    public function testWithoutANonceTheScriptTagHasNoNonceAttribute(): void
+    {
+        $output = $this->generator->generateEventJsonLd($this->makeEvent(), $this->user);
+
+        $this->assertStringStartsWith('<script type="application/ld+json">{', $output);
+        $this->assertStringNotContainsString('nonce', $output);
+    }
+
+    public function testANonceIsEmittedAsAnAttribute(): void
+    {
+        $output = $this->generator->generateEventJsonLd($this->makeEvent(), $this->user, nonce: 'abc123');
+
+        $this->assertStringStartsWith('<script type="application/ld+json" nonce="abc123">{', $output);
+        $this->assertStringEndsWith('}</script>', $output);
+    }
+
+    public function testANonceIsEscapedIntoTheAttribute(): void
+    {
+        // A nonce comes from the CSP header rather than a user, but it is
+        // interpolated into markup, so the escaping is the difference between
+        // an attribute and an injection point.
+        $output = $this->generator->generateEventJsonLd(
+            $this->makeEvent(),
+            $this->user,
+            nonce: 'a"><script>alert(1)</script>',
+        );
+
+        $this->assertStringStartsWith(
+            '<script type="application/ld+json" nonce="a&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;">',
+            $output,
+        );
+    }
+
+    public function testTheBreadcrumbScriptCarriesItsNonceToo(): void
+    {
+        $output = $this->generator->generateBreadcrumbJsonLd('alice', 'Alice Smith', '/public/alice/events', null, 'xyz789');
+
+        $this->assertStringStartsWith('<script type="application/ld+json" nonce="xyz789">{', $output);
     }
 }
