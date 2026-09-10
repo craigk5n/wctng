@@ -15,6 +15,12 @@ use Symfony\Component\Clock\NativeClock;
  * rather than describing anything these queries can actually return, so the
  * fallbacks -- and the casts inside them -- survive mutation testing. They are
  * unreachable, not untested.
+ *
+ * The two casts that turn a formatted Ymd into an int before it is bound as a
+ * query parameter survive for a different reason: PDOStatement::execute() binds
+ * an array of parameters as strings whatever their PHP type, so the cast cannot
+ * change which rows come back. It stays because the value is a date-as-number,
+ * not because the query needs it.
  */
 final readonly class ReportService
 {
