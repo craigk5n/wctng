@@ -9,6 +9,7 @@ use App\Auth\LdapConfigRepository;
 use App\Auth\LdapGroupSync;
 use App\Service\CoreServiceFactory;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Clock\MockClock;
 
 /**
  * Group sync driven through FakeLdapClient.
@@ -197,5 +198,122 @@ final class LdapGroupSyncFlowTest extends TestCase
 
         self::assertSame([], $this->sync($ldap)->syncUserGroups('alice', 'uid=alice,dc=example,dc=com'));
         self::assertSame([], $ldap->connectedUris);
+    }
+
+    // ------------------------------------- the group a new member ends up in
+
+    public function testANewlyCreatedGroupActuallyContainsTheUser(): void
+    {
+        // The existing case checks the group was created and that its name
+        // comes back in the result, but never that anybody is in it. A group
+        // created empty is worse than no group: the sync reports success and
+        // the user gets none of its permissions.
+        $ldap = $this->directoryReturning(['CN=Engineering,OU=Groups,DC=example,DC=com']);
+
+        $this->sync($ldap)->syncUserGroups('alice', 'uid=alice,dc=example,dc=com');
+
+        $groups = array_values(array_filter(
+            $this->factory->getGroupService()->getAllGroups(),
+            static fn(object $g): bool => $g->name() === 'Engineering',
+        ));
+        self::assertCount(1, $groups);
+        self::assertSame(
+            ['alice'],
+            $this->factory->getGroupService()->getGroupMembers($groups[0]->id()),
+        );
+    }
+
+    public function testACreatedGroupIsStampedWithTheInjectedClock(): void
+    {
+        // Nothing passed a clock, so the date stamped on every group this
+        // creates was the wall clock and unassertable.
+        //
+        // Only the date is checked, because only the date is kept:
+        // webcal_group.cal_last_update is an INT holding Ymd, and the
+        // repository rebuilds it with createFromFormat('Ymd', ...), which
+        // fills the time in from whenever the row happened to be read. The
+        // time on a Group's lastUpdate() is therefore not information.
+        $clock = new MockClock('2026-03-15T10:00:00+00:00');
+        $ldap = $this->directoryReturning(['CN=Engineering,DC=example,DC=com']);
+
+        (new LdapGroupSync($this->configRepo, $this->factory->getGroupService(), $clock, $ldap))
+            ->syncUserGroups('alice', 'uid=alice,dc=example,dc=com');
+
+        $groups = array_values(array_filter(
+            $this->factory->getGroupService()->getAllGroups(),
+            static fn(object $g): bool => $g->name() === 'Engineering',
+        ));
+        self::assertCount(1, $groups);
+        self::assertSame('2026-03-15', $groups[0]->lastUpdate()->format('Y-m-d'));
+    }
+
+    // ---------------------------------------------- the connection it opens
+
+    public function testAServiceAccountThatBindsCleanlyStillSyncs(): void
+    {
+        // Only the failing service bind was covered, and the branch reads
+        // `bindDn !== '' && !bind(...)`. Turn that into an or and a successful
+        // bind aborts the sync -- so every deployment that configures a
+        // service account silently syncs no groups at all, while the ones
+        // binding anonymously keep working.
+        $this->configRepo->save(new LdapConfig(
+            host: 'ldap.example.com',
+            bindDn: 'cn=svc,dc=example,dc=com',
+            bindPassword: 'service-secret',
+            enabled: true,
+        ));
+        $ldap = $this->directoryReturning(['CN=Engineering,DC=example,DC=com']);
+
+        $synced = $this->sync($ldap)->syncUserGroups('alice', 'uid=alice,dc=example,dc=com');
+
+        self::assertSame(['Engineering'], $synced);
+        self::assertSame(
+            ['cn=svc,dc=example,dc=com', 'service-secret'],
+            [$ldap->connection->binds[0]['dn'], $ldap->connection->binds[0]['password']],
+        );
+    }
+
+    public function testTheReadAsksOnlyForMemberOfAndClosesWhenItIsDone(): void
+    {
+        // memberOf is the one attribute this class needs; dropping it from the
+        // request makes the directory answer with every attribute it holds,
+        // which for a large entry is a lot of traffic on every single login.
+        $ldap = $this->directoryReturning(['CN=Engineering,DC=example,DC=com']);
+
+        $this->sync($ldap)->syncUserGroups('alice', 'uid=alice,dc=example,dc=com');
+
+        self::assertSame(
+            [['base' => 'uid=alice,dc=example,dc=com', 'filter' => '(objectClass=*)', 'attributes' => ['memberOf']]],
+            $ldap->connection->searches,
+        );
+        self::assertSame(1, $ldap->connection->closes, 'the connection it opened is closed');
+    }
+
+    public function testAnEnabledDirectoryWithNoHostIsNotDialled(): void
+    {
+        // Three conditions guard the entry point and only two of them had a
+        // case, so the operators joining them were interchangeable.
+        $this->configRepo->save(new LdapConfig(host: '', enabled: true));
+        $ldap = $this->directoryReturning(['CN=Engineering,DC=example,DC=com']);
+
+        self::assertSame([], $this->sync($ldap)->syncUserGroups('alice', 'uid=alice,dc=example,dc=com'));
+        self::assertSame([], $ldap->connectedUris);
+    }
+
+    public function testAMemberOfCountOfZeroIsBelievedOverEntriesThatArePresent(): void
+    {
+        // A malformed attribute set -- count says none, but element 0 is
+        // populated anyway. The count is what the loop trusts, and it should:
+        // an entry the directory did not count is not one to hand permissions
+        // out for.
+        $ldap = new FakeLdapClient();
+        $ldap->connection = new FakeLdapConnection();
+        $ldap->connection->readEntries = [
+            'count' => 1,
+            0 => ['memberof' => [0 => 'CN=Uncounted,DC=example,DC=com']],
+        ];
+
+        self::assertSame([], $this->sync($ldap)->syncUserGroups('alice', 'uid=alice,dc=example,dc=com'));
+        self::assertSame([], $this->factory->getGroupService()->getAllGroups());
     }
 }
