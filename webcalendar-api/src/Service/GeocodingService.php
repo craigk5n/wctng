@@ -86,7 +86,7 @@ final class GeocodingService
         }
     }
 
-    public function isGeocodingEnabled(): bool
+    private function isGeocodingEnabled(): bool
     {
         $value = $this->configService->getSetting('ENABLE_GEOCODING');
         return $value === 'Y';
