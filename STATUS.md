@@ -737,12 +737,9 @@ Pivoting category icons from legacy image blobs → single emoji per category.
 > **Goal:** Drag-and-drop, ICS subscriptions, scheduling polls, room booking, MCP server, PWA notifications, natural language, saved views, private categories
 > **Methodology:** TDD (write tests first, then implementation)
 > **Developed by:** AI Agent
-> **Phase 1 Archive:** See `STATUS-PHASE1-ARCHIVE.md`
-> **Phase 2 Archive:** See `STATUS-PHASE2-ARCHIVE.md`
-> **Phase 3 Archive:** See `STATUS-PHASE3-ARCHIVE.md`
-> **Phase 4 Archive:** See `STATUS-PHASE4-ARCHIVE.md`
-> **Phase 5 Archive:** See `STATUS-PHASE5-ARCHIVE.md`
-> **Phase 6 Archive:** See `STATUS-PHASE6-ARCHIVE.md`
+> **Phases 1-6:** the per-phase status archives were removed once they were
+> purely historical; `git log -- STATUS-PHASE1-ARCHIVE.md` (and 2 through 6)
+> still has them.
 
 ---
 
