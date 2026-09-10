@@ -169,6 +169,15 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
 
             $objects = [];
             foreach ($collection->all() as $event) {
+                // webcal_entry holds tasks and journals alongside events, and
+                // findByDateRange() does not filter on cal_type -- so without
+                // this every task arrives here as well as in the VTODO loop
+                // below, and the client shows it twice: once as an
+                // appointment, once as a to-do. Journals the same.
+                if (!\in_array($event->type(), [EventType::EVENT, EventType::REPEATING_EVENT], true)) {
+                    continue;
+                }
+
                 $ics = $this->eventToIcs($event);
                 $objects[] = [
                     'id' => $event->id()->value(),
@@ -699,7 +708,29 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
 
         if (!$recurrence->exDate()->isEmpty()) {
             foreach ($recurrence->exDate()->dates() as $exDate) {
-                $vevent->add('EXDATE', $exDate->format('Ymd\THis\Z'));
+                // webcal_entry_repeats_not stores a bare date, and the
+                // repository rebuilds it with createFromFormat('Ymd', ...),
+                // which fills the time from the current clock. Emitting that
+                // verbatim gives an EXDATE whose time is whenever the sync
+                // happened to run, and RFC 5545 requires an EXDATE to match
+                // the occurrence's DTSTART exactly -- so it cancels nothing
+                // and the occurrence the user deleted comes back. Every
+                // occurrence of a series starts at the series' own time, so
+                // that is the time to pair the stored date with. An all-day
+                // series has a DATE-valued DTSTART, and RFC 5545 requires
+                // EXDATE to use the same value type, so that case emits a
+                // bare date rather than a midnight timestamp.
+                if ($event->isAllDay()) {
+                    $vevent->add('EXDATE', $exDate->format('Ymd'), ['VALUE' => 'DATE']);
+
+                    continue;
+                }
+
+                $occurrence = new \DateTimeImmutable(
+                    $exDate->format('Y-m-d') . ' ' . $startDate->format('H:i:s'),
+                    $startDate->getTimezone(),
+                );
+                $vevent->add('EXDATE', $occurrence->setTimezone(new \DateTimeZone('UTC'))->format('Ymd\THis\Z'));
             }
         }
 
