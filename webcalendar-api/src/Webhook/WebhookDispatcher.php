@@ -42,6 +42,7 @@ final class WebhookDispatcher implements WebhookDispatcherInterface
 
     private LoggerInterface $logger;
     private ClockInterface $clock;
+    private Sleeper $sleeper;
 
     /**
      * @param list<int> $retryDelays seconds to wait between attempts. Defaulted
@@ -56,9 +57,11 @@ final class WebhookDispatcher implements WebhookDispatcherInterface
         ?LoggerInterface $logger = null,
         ?ClockInterface $clock = null,
         private readonly array $retryDelays = self::RETRY_DELAYS,
+        ?Sleeper $sleeper = null,
     ) {
         $this->logger = $logger ?? new NullLogger();
         $this->clock = $clock ?? new NativeClock();
+        $this->sleeper = $sleeper ?? new NativeSleeper();
     }
 
     /**
@@ -147,7 +150,7 @@ final class WebhookDispatcher implements WebhookDispatcherInterface
             ]);
 
             if ($attempt < self::MAX_RETRIES - 1) {
-                sleep($this->retryDelays[$attempt] ?? 0);
+                $this->sleeper->sleep($this->retryDelays[$attempt] ?? 0);
             }
         }
     }

@@ -10,6 +10,7 @@ use App\Webhook\WebhookSubscription;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
+use Symfony\Component\Clock\MockClock;
 
 /**
  * Covers what the dispatcher decides around a delivery, as opposed to whether
@@ -156,7 +157,13 @@ final class WebhookDeliveryPolicyTest extends TestCase
             ->fetchColumn();
 
         self::assertLessThanOrEqual(100, $count, 'the prune keeps the log bounded');
+        self::assertCount(
+            100,
+            $this->dispatcher->getDeliveryLog($id),
+            'and the default page returns all of what it keeps',
+        );
     }
+
     public function testSuccessStopsAfterOneAttempt(): void
     {
         $transport = new FakeWebhookTransport([200]);
@@ -250,6 +257,176 @@ final class WebhookDeliveryPolicyTest extends TestCase
         );
     }
 
+
+
+    // ------------------------------------------------------- the backoff
+
+    /**
+     * @param list<int> $retryDelays
+     */
+    private function dispatcherSleepingWith(
+        FakeWebhookTransport $transport,
+        FakeSleeper $sleeper,
+        array $retryDelays,
+    ): WebhookDispatcher {
+        return new WebhookDispatcher(
+            $this->repo,
+            $this->pdo,
+            $transport,
+            $this->logger,
+            null,
+            retryDelays: $retryDelays,
+            sleeper: $sleeper,
+        );
+    }
+
+    public function testItWaitsTheConfiguredIntervalBetweenAttempts(): void
+    {
+        // Every other case here configures the backoff to zero, which is what
+        // makes the retry loop affordable to test -- and also what made the
+        // schedule invisible: with the interval at zero, waiting the wrong
+        // amount, waiting the wrong number of times, and not waiting at all
+        // are indistinguishable.
+        $sleeper = new FakeSleeper();
+        $this->subscribe();
+
+        $this->dispatcherSleepingWith(new FakeWebhookTransport([500, 500, 500]), $sleeper, [1, 5, 30])
+            ->dispatch('event.created', ['id' => 1]);
+
+        self::assertSame([1, 5], $sleeper->slept, 'it waits between attempts, not after the last one');
+    }
+
+    public function testItDoesNotWaitAfterASuccessfulAttempt(): void
+    {
+        $sleeper = new FakeSleeper();
+        $this->subscribe();
+
+        $this->dispatcherSleepingWith(new FakeWebhookTransport([200]), $sleeper, [1, 5, 30])
+            ->dispatch('event.created', ['id' => 1]);
+
+        self::assertSame([], $sleeper->slept);
+    }
+
+    public function testItWaitsOnceWhenTheSecondAttemptSucceeds(): void
+    {
+        $sleeper = new FakeSleeper();
+        $this->subscribe();
+
+        $this->dispatcherSleepingWith(new FakeWebhookTransport([500, 200]), $sleeper, [1, 5, 30])
+            ->dispatch('event.created', ['id' => 1]);
+
+        self::assertSame([1], $sleeper->slept);
+    }
+
+    public function testABackoffShorterThanTheRetryCountFallsBackToNoWait(): void
+    {
+        // retryDelays is injectable, so it can be shorter than MAX_RETRIES.
+        // The missing entry has to read as "do not wait" rather than as an
+        // undefined index.
+        $sleeper = new FakeSleeper();
+        $this->subscribe();
+
+        $this->dispatcherSleepingWith(new FakeWebhookTransport([500, 500, 500]), $sleeper, [7])
+            ->dispatch('event.created', ['id' => 1]);
+
+        self::assertSame([7, 0], $sleeper->slept);
+    }
+
+    // -------------------------------------------------------- the payload
+
+    public function testThePayloadCarriesTheEventItsTimeAndItsData(): void
+    {
+        // Nothing injected a clock, so the timestamp was whatever the wall
+        // clock said and no test could assert it -- which left the whole
+        // envelope unpinned.
+        $transport = new FakeWebhookTransport([200]);
+        $this->subscribe();
+
+        $dispatcher = new WebhookDispatcher(
+            $this->repo,
+            $this->pdo,
+            $transport,
+            $this->logger,
+            new MockClock('2026-06-15T12:00:00+00:00'),
+            retryDelays: [0, 0, 0],
+        );
+        $dispatcher->dispatch('event.created', ['id' => 7, 'title' => 'Standup']);
+
+        self::assertSame(
+            [
+                'event' => 'event.created',
+                'timestamp' => '2026-06-15T12:00:00+00:00',
+                'data' => ['id' => 7, 'title' => 'Standup'],
+            ],
+            json_decode($transport->sent[0]['payload'], true, 512, \JSON_THROW_ON_ERROR),
+        );
+    }
+
+    // ------------------------------------------ what an operator debugs with
+
+    public function testTheSuccessLogSaysWhichWebhookWentWhereAndHow(): void
+    {
+        $this->subscribe();
+
+        $this->dispatcherWith(new FakeWebhookTransport([200]))->dispatch('event.created', ['id' => 1]);
+
+        $delivered = array_values(array_filter(
+            $this->logger->records,
+            static fn(array $r): bool => $r['message'] === 'Webhook delivered',
+        ));
+
+        self::assertCount(1, $delivered);
+        self::assertSame(
+            ['webhook_id' => $this->repo->findAll()[0]->id(), 'url' => 'https://hooks.example.com/hook', 'status' => 200],
+            $delivered[0]['context'],
+        );
+    }
+
+    public function testTheBlockedLogSaysWhichUrlAndWhy(): void
+    {
+        $this->repo->save(new WebhookSubscription(0, 'https://blocked.example.com/hook', '*', 'secret', true));
+
+        $this->dispatcherWith(new FakeWebhookTransport([200], 'https://blocked.example.com/hook'))
+            ->dispatch('event.created', ['id' => 1]);
+
+        $blocked = array_values(array_filter(
+            $this->logger->records,
+            static fn(array $r): bool => $r['message'] === 'Webhook delivery blocked',
+        ));
+
+        self::assertNotSame([], $blocked);
+        self::assertSame('https://blocked.example.com/hook', $blocked[0]['context']['url']);
+        self::assertStringContainsString('private address', (string) $blocked[0]['context']['reason']);
+    }
+
+    public function testTheDeliveryLogReadsBackAsNumbersOnAStringifyingDriver(): void
+    {
+        // MySQL's PDO returns every column as a string by default, which is
+        // what the int casts in getDeliveryLog() are for. On SQLite they look
+        // like no-ops, so the casts could be dropped and this suite would
+        // still pass while the real driver started handing "500" to callers
+        // that compare it with ===.
+        $pdo = new \PDO('sqlite::memory:');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo->setAttribute(\PDO::ATTR_STRINGIFY_FETCHES, true);
+
+        $repo = new WebhookRepository($pdo);
+        $id = $repo->save(new WebhookSubscription(0, 'https://hooks.example.com/hook', '*', 'secret', true));
+        $dispatcher = new WebhookDispatcher(
+            $repo,
+            $pdo,
+            new FakeWebhookTransport([500, 500, 500]),
+            $this->logger,
+            null,
+            retryDelays: [0, 0, 0],
+        );
+
+        $dispatcher->dispatch('event.created', ['id' => 1]);
+        $row = $dispatcher->getDeliveryLog($id)[0];
+
+        self::assertSame($id, $row['webhook_id']);
+        self::assertSame(500, $row['status_code']);
+    }
 }
 
 final class RecordingLogger extends AbstractLogger
