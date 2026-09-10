@@ -7,86 +7,320 @@ namespace App\Tests\Unit\Auth;
 use App\Auth\AuthProviderRegistry;
 use App\Auth\ChainedAuthenticator;
 use App\Auth\LdapAuthenticator;
+use App\Auth\LdapClient;
+use App\Auth\LdapConfig;
 use App\Auth\LdapConfigRepository;
+use App\Auth\LdapConnection;
+use App\Auth\OAuthProvider;
 use App\Auth\OAuthProviderRepository;
 use App\Service\CoreServiceFactory;
-use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\AbstractLogger;
+use WebCalendar\Core\Domain\Entity\User;
 
+/**
+ * The provider chain, driven end to end.
+ *
+ * The success path here used to be skipped as "requires full webcalendar-core
+ * schema for AuthService", and the short-circuit case asserted null because
+ * there were no users to authenticate -- so nothing exercised a successful
+ * login at all. Every other Auth test in this suite loads that schema out of
+ * vendor, which is all the skip needed.
+ */
 final class ChainedAuthenticatorTest extends TestCase
 {
-    private function createChain(): ChainedAuthenticator
+    private \PDO $pdo;
+    private CoreServiceFactory $factory;
+    private OAuthProviderRepository $oauthRepo;
+    private LdapConfigRepository $ldapRepo;
+    private RecordingChainLogger $logger;
+
+    #[\Override]
+    protected function setUp(): void
     {
-        $pdo = new \PDO('sqlite::memory:');
-        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $this->pdo = new \PDO('sqlite::memory:');
+        $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $this->loadCoreSchema();
 
-        $oauthRepo = new OAuthProviderRepository($pdo);
-        $ldapRepo = new LdapConfigRepository($pdo);
-        $factory = new CoreServiceFactory($pdo, 'test');
-        $ldapAuth = new LdapAuthenticator($ldapRepo, $factory->getUserService(), $factory->getUserRepository());
-        $registry = new AuthProviderRegistry($oauthRepo, $ldapRepo);
-
-        return new ChainedAuthenticator($factory->getAuthService(), $factory->getUserService(), $ldapAuth, $registry);
+        $this->factory = new CoreServiceFactory($this->pdo, 'test');
+        $this->oauthRepo = new OAuthProviderRepository($this->pdo);
+        $this->ldapRepo = new LdapConfigRepository($this->pdo);
+        $this->logger = new RecordingChainLogger();
     }
 
-    public function testReturnsNullWhenAllProvidersFail(): void
+    private function loadCoreSchema(): void
     {
-        $chain = $this->createChain();
+        $path = __DIR__ . '/../../../vendor/craigk5n/webcalendar-core/src/Infrastructure/Persistence/sqlite-schema.sql';
+        $schema = file_get_contents($path);
+        self::assertIsString($schema, 'cannot read the webcalendar-core sqlite schema');
 
-        // No users in SQLite DB, so password auth fails
-        // LDAP disabled, so LDAP auth fails
-        $result = $chain->authenticate('nonexistent', 'password');
-        $this->assertNull($result);
+        foreach (preg_split('/;\s*\n/', (string) preg_replace('/--[^\n]*/', '', $schema)) ?: [] as $statement) {
+            $statement = trim($statement);
+
+            if ($statement !== '') {
+                try {
+                    $this->pdo->exec($statement);
+                } catch (\PDOException) {
+                    // Not every statement applies to this SQLite build.
+                }
+            }
+        }
     }
 
-    #[Group('integration')]
-    public function testReturnsUserAndMethodOnSuccess(): void
+    private function chain(?LdapAuthenticator $ldapAuth = null): ChainedAuthenticator
     {
-        $this->markTestSkipped('Requires full webcalendar-core schema for AuthService');
-        $pdo = new \PDO('sqlite::memory:');
-        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-
-        // Create minimal tables needed for auth
-        $pdo->exec("CREATE TABLE webcal_user (
-            cal_login VARCHAR(60) PRIMARY KEY,
-            cal_firstname VARCHAR(60) DEFAULT '',
-            cal_lastname VARCHAR(60) DEFAULT '',
-            cal_email VARCHAR(100) DEFAULT '',
-            cal_is_admin CHAR(1) DEFAULT 'N',
-            cal_enabled CHAR(1) DEFAULT 'Y',
-            cal_passwd VARCHAR(255) DEFAULT ''
-        )");
-        $pdo->exec('CREATE TABLE IF NOT EXISTS webcal_rate_limit (
-            cal_key VARCHAR(255) PRIMARY KEY,
-            cal_attempts INTEGER DEFAULT 0,
-            cal_last_attempt INTEGER DEFAULT 0
-        )');
-
-        $hash = password_hash('correct', PASSWORD_BCRYPT);
-        $pdo->prepare("INSERT INTO webcal_user VALUES ('testuser', 'Test', 'User', 'test@test.com', 'N', 'Y', :hash)")
-            ->execute(['hash' => $hash]);
-
-        $oauthRepo = new OAuthProviderRepository($pdo);
-        $ldapRepo = new LdapConfigRepository($pdo);
-        $factory = new CoreServiceFactory($pdo, 'test');
-        $ldapAuth = new LdapAuthenticator($ldapRepo, $factory->getUserService(), $factory->getUserRepository());
-        $registry = new AuthProviderRegistry($oauthRepo, $ldapRepo);
-
-        $chain = new ChainedAuthenticator($factory->getAuthService(), $factory->getUserService(), $ldapAuth, $registry);
-        $result = $chain->authenticate('testuser', 'correct');
-
-        $this->assertNotNull($result);
-        $this->assertSame('testuser', $result['user']->login());
-        $this->assertSame('password', $result['method']);
+        return new ChainedAuthenticator(
+            $this->factory->getAuthService(),
+            $this->factory->getUserService(),
+            $ldapAuth ?? new LdapAuthenticator($this->ldapRepo, $this->factory->getUserService(), $this->factory->getUserRepository()),
+            new AuthProviderRegistry($this->oauthRepo, $this->ldapRepo),
+            $this->logger,
+        );
     }
 
-    public function testShortCircuitsOnFirstSuccess(): void
+    private function createUser(string $login, string $password): void
     {
-        // With password-only (LDAP disabled), should succeed with 'password' method
-        $chain = $this->createChain();
+        $admin = new User('admin', 'Admin', 'User', 'admin@example.com', true, true);
+        $this->factory->getUserService()->createUser($admin, $admin);
 
-        // Even though LDAP is tried first (if enabled), password fallback works
-        $result = $chain->authenticate('any', 'any');
-        $this->assertNull($result); // No users, so fails
+        $user = new User($login, 'Test', 'User', $login . '@example.com', false, true);
+        $this->factory->getUserService()->createUser($user, $admin);
+        $this->factory->getUserRepository()->setPassword(
+            $login,
+            $this->factory->getUserService()->hashPassword($password),
+        );
+    }
+
+    private function enableLdap(): void
+    {
+        $this->ldapRepo->save(new LdapConfig(host: 'ldap.example.com', port: 389, enabled: true));
+    }
+
+    // ------------------------------------------------------- the happy path
+
+    public function testACorrectPasswordAuthenticatesAndSaysWhichProviderDidIt(): void
+    {
+        $this->createUser('alice', 'correct-horse');
+
+        $result = $this->chain()->authenticate('alice', 'correct-horse');
+
+        self::assertNotNull($result);
+        self::assertSame('alice', $result['user']->login());
+        self::assertSame('password', $result['method']);
+    }
+
+    public function testAWrongPasswordIsRefused(): void
+    {
+        // tryPasswordAuth() negates the AuthService result. Drop that negation
+        // and every wrong password is accepted for any user that exists.
+        $this->createUser('alice', 'correct-horse');
+
+        self::assertNull($this->chain()->authenticate('alice', 'wrong'));
+    }
+
+    public function testAnUnknownUserIsRefused(): void
+    {
+        $this->createUser('alice', 'correct-horse');
+
+        self::assertNull($this->chain()->authenticate('mallory', 'correct-horse'));
+    }
+
+    // ------------------------------------------------- which provider runs
+
+    public function testALdapProviderIsTriedAndCanSucceed(): void
+    {
+        // The match arm for 'ldap' had nothing behind it: with the arm gone,
+        // every LDAP deployment falls through to the default and stops
+        // authenticating, while password-only deployments carry on working.
+        $this->enableLdap();
+        $ldap = new FakeLdapClient();
+        $ldap->connection = new FakeLdapConnection();
+        $ldap->connection->searchEntries = ['count' => 1, 0 => ['dn' => 'uid=bob,dc=example,dc=com']];
+        $ldap->connection->readEntries = [
+            'count' => 1,
+            0 => [
+                'givenname' => ['count' => 1, 0 => 'Bob'],
+                'sn' => ['count' => 1, 0 => 'Jones'],
+                'mail' => ['count' => 1, 0 => 'bob@example.com'],
+            ],
+        ];
+
+        $result = $this->chain(new LdapAuthenticator(
+            $this->ldapRepo,
+            $this->factory->getUserService(),
+            $this->factory->getUserRepository(),
+            $ldap,
+        ))->authenticate('bob', 'ldap-password');
+
+        self::assertNotNull($result);
+        self::assertSame('ldap', $result['method']);
+        self::assertSame('bob', $result['user']->login());
+    }
+
+    public function testLdapIsTriedBeforePassword(): void
+    {
+        // The registry sorts by priority and the chain honours that order, so
+        // a user who exists in both places is authenticated by the directory.
+        $this->createUser('bob', 'local-password');
+        $this->enableLdap();
+        $ldap = new FakeLdapClient();
+        $ldap->connection = new FakeLdapConnection();
+        $ldap->connection->searchEntries = ['count' => 1, 0 => ['dn' => 'uid=bob,dc=example,dc=com']];
+        $ldap->connection->readEntries = [
+            'count' => 1,
+            0 => ['mail' => ['count' => 1, 0 => 'bob@example.com']],
+        ];
+
+        $result = $this->chain(new LdapAuthenticator(
+            $this->ldapRepo,
+            $this->factory->getUserService(),
+            $this->factory->getUserRepository(),
+            $ldap,
+        ))->authenticate('bob', 'local-password');
+
+        self::assertNotNull($result);
+        self::assertSame('ldap', $result['method'], 'the directory answers first');
+    }
+
+    public function testPasswordStillWorksWhenLdapDeclines(): void
+    {
+        // The loop has to continue past a provider that returns null rather
+        // than stopping at the first one it asks.
+        $this->createUser('alice', 'correct-horse');
+        $this->enableLdap();
+        $ldap = new FakeLdapClient();
+        $ldap->connection = new FakeLdapConnection();
+        $ldap->connection->searchEntries = ['count' => 0];
+
+        $result = $this->chain(new LdapAuthenticator(
+            $this->ldapRepo,
+            $this->factory->getUserService(),
+            $this->factory->getUserRepository(),
+            $ldap,
+        ))->authenticate('alice', 'correct-horse');
+
+        self::assertNotNull($result);
+        self::assertSame('password', $result['method']);
+    }
+
+    public function testAnOauthProviderIsSkippedRatherThanTried(): void
+    {
+        // OAuth and OIDC are redirect flows; the default arm returns null so
+        // the chain moves on. Remove it and a configured OAuth provider makes
+        // the match throw, which the catch turns into a failed login for
+        // everybody on that deployment.
+        $this->oauthRepo->save(new OAuthProvider(
+            0,
+            'Google',
+            'oidc',
+            'client-id',
+            'secret',
+            'https://accounts.google.com/o/oauth2/v2/auth',
+            'https://oauth2.googleapis.com/token',
+            'https://openidconnect.googleapis.com/v1/userinfo',
+            'openid email',
+            true,
+        ));
+        $this->createUser('alice', 'correct-horse');
+
+        $result = $this->chain()->authenticate('alice', 'correct-horse');
+
+        self::assertNotNull($result);
+        self::assertSame('password', $result['method'], 'the redirect provider is passed over');
+        self::assertSame(
+            [],
+            $this->logger->matching('Auth provider failed'),
+            'passed over quietly -- without the default arm the match raises and is logged as a failure',
+        );
+    }
+
+    // ----------------------------------------------------- what it records
+
+    public function testASuccessfulLoginIsLoggedWithItsMethod(): void
+    {
+        // Nothing injected a logger, so the constructor fell back to a null
+        // one and every log call in this class was unobservable.
+        $this->createUser('alice', 'correct-horse');
+
+        $this->chain()->authenticate('alice', 'correct-horse');
+
+        self::assertSame(
+            [['Authentication successful', ['user' => 'alice', 'method' => 'password']]],
+            $this->logger->matching('Authentication successful'),
+        );
+    }
+
+    public function testExhaustingEveryProviderIsLogged(): void
+    {
+        self::assertNull($this->chain()->authenticate('nobody', 'nothing'));
+
+        self::assertSame(
+            [['All auth providers failed', ['user' => 'nobody']]],
+            $this->logger->matching('All auth providers failed'),
+        );
+    }
+
+    public function testAProviderThatThrowsIsLoggedAndDoesNotStopTheChain(): void
+    {
+        // The catch is what keeps one broken provider from locking everybody
+        // out. Without it -- or without the loop continuing afterwards -- an
+        // unreachable directory takes local password login down with it.
+        $this->createUser('alice', 'correct-horse');
+        $this->enableLdap();
+
+        $result = $this->chain(new LdapAuthenticator(
+            $this->ldapRepo,
+            $this->factory->getUserService(),
+            $this->factory->getUserRepository(),
+            new ThrowingLdapClient(),
+        ))->authenticate('alice', 'correct-horse');
+
+        self::assertNotNull($result, 'password auth still answers');
+        self::assertSame('password', $result['method']);
+        self::assertSame(
+            [['Auth provider failed', ['type' => 'ldap', 'error' => 'directory unreachable']]],
+            $this->logger->matching('Auth provider failed'),
+        );
+    }
+}
+
+/** A directory that is having a bad day: dialling it raises rather than returning null. */
+final class ThrowingLdapClient implements LdapClient
+{
+    #[\Override]
+    public function isSupported(): bool
+    {
+        return true;
+    }
+
+    #[\Override]
+    public function connect(string $uri): ?LdapConnection
+    {
+        throw new \RuntimeException('directory unreachable');
+    }
+
+    #[\Override]
+    public function escapeFilterValue(string $value): string
+    {
+        return $value;
+    }
+}
+
+final class RecordingChainLogger extends AbstractLogger
+{
+    /** @var list<array{0: string, 1: array<string, mixed>}> */
+    public array $records = [];
+
+    /** @param array<string, mixed> $context */
+    #[\Override]
+    public function log($level, \Stringable|string $message, array $context = []): void
+    {
+        $this->records[] = [(string) $message, $context];
+    }
+
+    /** @return list<array{0: string, 1: array<string, mixed>}> */
+    public function matching(string $message): array
+    {
+        return array_values(array_filter($this->records, static fn(array $r): bool => $r[0] === $message));
     }
 }

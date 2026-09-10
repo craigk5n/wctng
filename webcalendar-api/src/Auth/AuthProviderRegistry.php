@@ -44,7 +44,9 @@ final class AuthProviderRegistry
             ];
         }
 
-        // OAuth/OIDC providers (priority 10-49 = first)
+        // OAuth/OIDC providers (priority 10-49 = first). The band is exactly
+        // forty wide, so a deployment with forty enabled OAuth providers would
+        // reach LDAP's 50 and start interleaving with it.
         $oauthProviders = $this->oauthRepo->findAll();
         $oauthPriority = 10;
         foreach ($oauthProviders as $p) {
