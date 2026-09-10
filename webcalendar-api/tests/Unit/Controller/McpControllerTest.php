@@ -9,8 +9,11 @@ use App\Service\CoreServiceFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
+use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\Entity\User;
+use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\EventId;
+use WebCalendar\Core\Domain\ValueObject\EventType;
 use WebCalendar\Core\Domain\ValueObject\UserPreference;
 
 final class McpControllerTest extends TestCase
@@ -664,5 +667,158 @@ final class McpControllerTest extends TestCase
             self::assertNotSame('', $tool['description'], $tool['name'] . ' has no description');
             self::assertNotSame([], $tool['inputSchema']['properties'], $tool['name'] . ' describes no parameters');
         }
+    }
+
+    // ------------------------------------------- ids that are not numbers
+
+    /** @return iterable<string, array{string}> */
+    public static function toolsThatTakeAnEventId(): iterable
+    {
+        yield 'get_event' => ['get_event'];
+        yield 'update_event' => ['update_event'];
+        yield 'delete_event' => ['delete_event'];
+    }
+
+    #[DataProvider('toolsThatTakeAnEventId')]
+    public function testANonNumericIdDoesNotFallThroughToTheFirstEvent(string $tool): void
+    {
+        // `is_numeric($args['id']) ? (int) $args['id'] : 0` -- the zero is
+        // load-bearing. Any other fallback resolves a malformed id to a real
+        // event, so a client sending "abc" reads, edits or deletes whichever
+        // event happens to hold that id.
+        $first = $this->createEvent('Someone elses event', '20260615', '100000');
+        self::assertSame(1, $first, 'the fixture relies on the first event getting id 1');
+
+        $body = $this->call('tools/call', [
+            'name' => $tool,
+            'arguments' => ['id' => 'abc', 'title' => 'Overwritten'],
+        ]);
+
+        self::assertArrayHasKey('error', $body, 'a malformed id is not an event');
+
+        $still = $this->call('tools/call', ['name' => 'get_event', 'arguments' => ['id' => $first]]);
+        self::assertSame('Someone elses event', $still['result']['event']['title']);
+    }
+
+    // ------------------------------------------------ dates a client sends
+
+    public function testAnEventCreatedWithATimeKeepsIt(): void
+    {
+        // The date and the time are concatenated into one createFromFormat
+        // call; losing either operand leaves an unparseable string, and the
+        // handler reports an invalid date rather than storing the wrong one.
+        $eventId = $this->createEvent('Afternoon', '20260615', '143000');
+
+        $body = $this->call('tools/call', ['name' => 'get_event', 'arguments' => ['id' => $eventId]]);
+
+        self::assertSame('20260615', $body['result']['event']['start_date']);
+        self::assertSame('143000', $body['result']['event']['start_time']);
+    }
+
+    public function testChangingOnlyTheDateStartsTheEventAtMidnight(): void
+    {
+        // update_event with a start_date and no start_time re-parses through
+        // the date-only branch, which leaves createFromFormat's time at the
+        // current clock unless it is snapped. The rebuilt event is not
+        // flagged all-day, so that stray time is stored and shown.
+        $eventId = $this->createEvent('Afternoon', '20260615', '143000');
+
+        $body = $this->call('tools/call', ['name' => 'update_event', 'arguments' => [
+            'id' => $eventId,
+            'start_date' => '20260620',
+        ]]);
+
+        self::assertSame('20260620', $body['result']['event']['start_date']);
+        self::assertSame('000000', $body['result']['event']['start_time']);
+    }
+
+    // --------------------------------------------------------- availability
+
+    public function testAvailabilityIsComputedForTheDateThatWasAsked(): void
+    {
+        // The date is snapped to midnight before it reaches the booking
+        // service, which re-times it to office hours anyway -- so only the
+        // day survives, and a mutation that rolls past midnight silently
+        // answers for the day before.
+        $this->createEvent('Blocks the first slot', '20260615', '090000');
+
+        $body = $this->call('tools/call', ['name' => 'get_availability', 'arguments' => [
+            'date' => '20260615',
+        ]]);
+
+        $starts = array_column($body['result']['available_slots'], 'start');
+
+        self::assertSame('20260615', $body['result']['date']);
+        self::assertNotContains('09:00', $starts, 'the 9am slot is taken by the meeting');
+        self::assertContains('10:30', $starts, 'the rest of the morning is not');
+    }
+
+    public function testAvailabilityForAnUnknownUserAnswersForTheCaller(): void
+    {
+        // getUserByLogin() returns null for a login nobody has; without the
+        // fallback that null goes straight into getAvailability(), which
+        // takes a User.
+        $body = $this->call('tools/call', ['name' => 'get_availability', 'arguments' => [
+            'date' => '20260615',
+            'user' => 'nobody-by-that-name',
+        ]]);
+
+        self::assertArrayHasKey('result', $body);
+        self::assertNotSame([], $body['result']['available_slots']);
+    }
+
+    public function testADurationSentAsJsonTextIsStillANumber(): void
+    {
+        // JSON-RPC arguments arrive as whatever the client encoded, and MCP
+        // clients routinely send numbers as strings. is_numeric() accepts
+        // "90", but the Event constructor is strict about int -- so the cast
+        // is what stands between a quoted number and a TypeError.
+        $eventId = $this->createEvent('Meeting', '20260615', '100000');
+
+        $body = $this->call('tools/call', ['name' => 'update_event', 'arguments' => [
+            'id' => $eventId,
+            'duration' => '90',
+        ]]);
+
+        self::assertArrayHasKey('result', $body);
+        self::assertSame(90, $body['result']['event']['duration']);
+    }
+
+    public function testAvailabilityCanBeAskedForSomeoneElse(): void
+    {
+        // The `user` argument is the whole point of the tool -- "when is Bob
+        // free?" -- and the caller is only its fallback. Swap those two and
+        // every such question is answered with the asker's own diary, which
+        // reads as a plausible answer rather than an error.
+        $bob = new User('bob', 'Bob', 'Jones', 'bob@test.com', false, true);
+        $admin = $this->factory->getUserService()->getUserByLogin('admin');
+        self::assertNotNull($admin);
+        $this->factory->getUserService()->createUser($bob, $admin);
+
+        // Confidential, so it blocks Bob's diary and not everybody's.
+        $this->factory->getEventService()->createEvent(new Event(
+            id: new EventId(0),
+            uid: 'bob-busy@test',
+            name: 'Bob is busy',
+            description: '',
+            location: '',
+            start: new \DateTimeImmutable('20260615 090000'),
+            duration: 60,
+            createdBy: 'bob',
+            type: EventType::EVENT,
+            access: AccessLevel::CONFIDENTIAL,
+        ), $bob);
+
+        $mine = $this->call('tools/call', ['name' => 'get_availability', 'arguments' => [
+            'date' => '20260615',
+        ]]);
+        $bobs = $this->call('tools/call', ['name' => 'get_availability', 'arguments' => [
+            'date' => '20260615',
+            'user' => 'bob',
+        ]]);
+
+        self::assertSame('bob', $bobs['result']['user']);
+        self::assertContains('09:00', array_column($mine['result']['available_slots'], 'start'));
+        self::assertNotContains('09:00', array_column($bobs['result']['available_slots'], 'start'));
     }
 }
