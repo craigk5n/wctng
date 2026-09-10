@@ -9,7 +9,9 @@ use App\Tenant\Tenant;
 use App\Tenant\TenantContext;
 use App\Tenant\TenantPlan;
 use App\Tenant\TenantRateLimiter;
+use App\Tenant\TenantRateLimitStorage;
 use App\Tenant\TenantStatus;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\HttpFoundation\Request;
@@ -182,5 +184,211 @@ final class TenantRateLimiterTest extends TestCase
         $responsePro = $this->createResponseEvent($eventPro->getRequest());
         $limiterPro->onKernelResponse($responsePro);
         $this->assertSame('1000', $responsePro->getResponse()->headers->get('X-RateLimit-Limit'));
+    }
+
+    /** Seeds the counter for a slug's current window. */
+    private function seedCount(string $slug, int $count, string $now = 'now'): void
+    {
+        $dir = $this->tmpDir . '/rate_limits';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0o777, true);
+        }
+
+        $window = intdiv((new \DateTimeImmutable($now))->getTimestamp(), 60) * 60;
+        file_put_contents($dir . '/' . $slug . '_' . $window . '.count', (string) $count);
+    }
+
+    private function limiterFor(TenantPlan $plan, string $slug, ?MockClock $clock = null): TenantRateLimiter
+    {
+        $this->context->reset();
+        $this->context->setTenant(new Tenant(1, $slug, $slug, '', '', '', '', $plan, TenantStatus::Active));
+
+        return $clock === null
+            ? new TenantRateLimiter($this->context, $this->storage)
+            : new TenantRateLimiter($this->context, $this->storage, $clock);
+    }
+
+    /** Runs the request listener, then the response listener, and returns the response. */
+    private function throughBothListeners(TenantRateLimiter $limiter): Response
+    {
+        $requestEvent = $this->createRequestEvent();
+        $limiter->onKernelRequest($requestEvent);
+        $responseEvent = $this->createResponseEvent($requestEvent->getRequest());
+        $limiter->onKernelResponse($responseEvent);
+
+        return $responseEvent->getResponse();
+    }
+
+    // --------------------------------------------------------- every plan
+
+    /** @return iterable<string, array{TenantPlan, string}> */
+    public static function plansAndTheirLimits(): iterable
+    {
+        // Enterprise was never exercised, so its match arm could be deleted
+        // and its ceiling moved without a failure.
+        yield 'free' => [TenantPlan::Free, '100'];
+        yield 'pro' => [TenantPlan::Pro, '1000'];
+        yield 'enterprise' => [TenantPlan::Enterprise, '5000'];
+    }
+
+    #[DataProvider('plansAndTheirLimits')]
+    public function testEachPlanAdvertisesItsOwnCeiling(TenantPlan $plan, string $expected): void
+    {
+        $response = $this->throughBothListeners($this->limiterFor($plan, 'plan-' . $plan->value));
+
+        self::assertSame($expected, $response->headers->get('X-RateLimit-Limit'));
+    }
+
+    // ---------------------------------------------------- what is left
+
+    public function testRemainingCountsDownFromTheLimit(): void
+    {
+        // Nothing asserted this header's value -- only that it was present --
+        // which left the whole subtraction unpinned: adding instead of
+        // subtracting, or always reporting zero, both looked correct.
+        $limiter = $this->limiterFor(TenantPlan::Free, 'rate-countdown');
+
+        self::assertSame('99', $this->throughBothListeners($limiter)->headers->get('X-RateLimit-Remaining'));
+        self::assertSame('98', $this->throughBothListeners($limiter)->headers->get('X-RateLimit-Remaining'));
+    }
+
+    public function testRemainingStopsAtZeroRatherThanGoingNegative(): void
+    {
+        // Past the ceiling the subtraction is negative, and a negative
+        // X-RateLimit-Remaining is not a thing a client can act on.
+        $this->seedCount('rate-negative', 150);
+        $limiter = $this->limiterFor(TenantPlan::Free, 'rate-negative');
+
+        self::assertSame('0', $this->throughBothListeners($limiter)->headers->get('X-RateLimit-Remaining'));
+    }
+
+    // ------------------------------------------------------- the boundary
+
+    public function testTheRequestThatExactlyReachesTheLimitIsAllowed(): void
+    {
+        // A Free tenant gets 100 requests a minute, so the hundredth is
+        // inside the allowance and the hundred-and-first is not. The existing
+        // 429 case seeds the counter at the limit, which lands on 101 and so
+        // passes whether the comparison is > or >=; with >= the last
+        // legitimate request of every window is rejected.
+        $this->seedCount('rate-boundary', 99);
+        $limiter = $this->limiterFor(TenantPlan::Free, 'rate-boundary');
+
+        $event = $this->createRequestEvent();
+        $limiter->onKernelRequest($event);
+
+        self::assertNull($event->getResponse(), 'the hundredth request is still within the allowance');
+        self::assertSame('0', $this->throughBothListeners($limiter)->headers->get('X-RateLimit-Remaining'));
+    }
+
+    public function testTheRequestAfterTheLimitIsRefused(): void
+    {
+        $this->seedCount('rate-over', 100);
+        $limiter = $this->limiterFor(TenantPlan::Free, 'rate-over');
+
+        $event = $this->createRequestEvent();
+        $limiter->onKernelRequest($event);
+
+        $response = $event->getResponse();
+        self::assertNotNull($response);
+        self::assertSame(429, $response->getStatusCode());
+    }
+
+    // ------------------------------------------------ what the 429 says
+
+    public function testTheRefusalUsesTheProjectsErrorEnvelope(): void
+    {
+        // Clients parse every error the same way, so a 429 that omits the
+        // data or meta keys is one their error handling does not recognise.
+        $this->seedCount('rate-body', 100);
+        $limiter = $this->limiterFor(TenantPlan::Free, 'rate-body');
+
+        $event = $this->createRequestEvent();
+        $limiter->onKernelRequest($event);
+        $response = $event->getResponse();
+        self::assertNotNull($response);
+
+        self::assertSame(
+            [
+                'data' => null,
+                'meta' => null,
+                'error' => ['code' => 429, 'message' => 'Rate limit exceeded', 'details' => []],
+            ],
+            json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR),
+        );
+    }
+
+    public function testTheRefusalCarriesItsOwnHeadersWithoutHelpFromTheResponseListener(): void
+    {
+        // onKernelRequest short-circuits the kernel, so these are set on the
+        // spot. The response listener happens to set the same three again,
+        // which is why dropping them here was invisible -- but Retry-After is
+        // only ever set here, and without it a client has nothing to back off
+        // against.
+        $clock = new MockClock('2026-03-15T10:00:30+00:00');
+        $this->seedCount('rate-headers', 100, '2026-03-15T10:00:30+00:00');
+        $limiter = $this->limiterFor(TenantPlan::Free, 'rate-headers', $clock);
+
+        $event = $this->createRequestEvent();
+        $limiter->onKernelRequest($event);
+        $response = $event->getResponse();
+        self::assertNotNull($response);
+
+        self::assertSame('100', $response->headers->get('X-RateLimit-Limit'));
+        self::assertSame('0', $response->headers->get('X-RateLimit-Remaining'));
+        self::assertSame(
+            (string) (new \DateTimeImmutable('2026-03-15T10:01:00+00:00'))->getTimestamp(),
+            $response->headers->get('X-RateLimit-Reset'),
+        );
+        self::assertSame('60', $response->headers->get('Retry-After'));
+    }
+
+    public function testHeadersStillReadSensiblyWhenTheCounterBackendFails(): void
+    {
+        // The listener assigns the limit before it touches storage, so a
+        // backend that throws -- Redis unreachable, the counter directory
+        // unwritable -- leaves the instance with a limit but no count. The
+        // kernel turns the exception into a 500 and still dispatches
+        // kernel.response through this same listener, which is when the
+        // `?? 0` behind remaining is read. It has to say zero: a negative or
+        // off-by-one remaining on an error response is worse than no number.
+        // The reset stamp survives, because it is computed before the
+        // increment rather than after it.
+        $this->context->reset();
+        $this->context->setTenant(
+            new Tenant(1, 'rate-broken', 'Broken', '', '', '', '', TenantPlan::Free, TenantStatus::Active),
+        );
+        $clock = new MockClock('2026-03-15T10:00:30+00:00');
+        $limiter = new TenantRateLimiter($this->context, new ThrowingRateLimitStorage(), $clock);
+
+        $requestEvent = $this->createRequestEvent();
+
+        try {
+            $limiter->onKernelRequest($requestEvent);
+            self::fail('the storage failure should not be swallowed');
+        } catch (\RuntimeException) {
+            // As the kernel would see it.
+        }
+
+        $responseEvent = $this->createResponseEvent($requestEvent->getRequest());
+        $limiter->onKernelResponse($responseEvent);
+        $response = $responseEvent->getResponse();
+
+        self::assertSame('100', $response->headers->get('X-RateLimit-Limit'));
+        self::assertSame('0', $response->headers->get('X-RateLimit-Remaining'));
+        self::assertSame(
+            (string) (new \DateTimeImmutable('2026-03-15T10:01:00+00:00'))->getTimestamp(),
+            $response->headers->get('X-RateLimit-Reset'),
+        );
+    }
+}
+
+/** A counting backend that is down. */
+final class ThrowingRateLimitStorage implements TenantRateLimitStorage
+{
+    #[\Override]
+    public function incrementAndCount(string $slug, int $window): int
+    {
+        throw new \RuntimeException('counter backend unavailable');
     }
 }
