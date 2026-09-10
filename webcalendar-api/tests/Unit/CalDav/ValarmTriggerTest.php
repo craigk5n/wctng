@@ -162,6 +162,16 @@ final class ValarmTriggerTest extends TestCase
         yield 'zero seconds round up to nothing'  => ['-PT0S', 0];
         yield 'seconds alongside a longer part are dropped' => ['-PT1H30S', 60];
         yield 'no duration at all' => ['-PT0M', 0];
+
+        // RFC 5545 keeps dur-week separate from dur-date, so a strict client
+        // never combines them -- but nothing validates a TRIGGER before it
+        // reaches the parser, and the parser is deliberately additive and
+        // position-independent. Each unit it recognises has to contribute
+        // rather than replace what came before it: the day branch runs after
+        // the week branch, and weeks are the only thing that can precede it,
+        // so this is the only shape that says so.
+        yield 'weeks and days together' => ['-P1W2D', 12960];
+        yield 'every unit at once' => ['-P2W3DT4H5M', 24725];
     }
 
     #[DataProvider('parsedDurations')]

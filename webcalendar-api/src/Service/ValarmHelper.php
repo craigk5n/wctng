@@ -76,7 +76,14 @@ final class ValarmHelper
             $triggerStr = (string) $trigger;
             $action = strtoupper((string) ($child->ACTION ?? 'DISPLAY'));
 
-            // Parse the trigger duration
+            // Parse the trigger duration.
+            //
+            // What the sign decides is $before; stripping it off $triggerStr
+            // is presentational, because parseDurationToMinutes() matches each
+            // unit wherever it appears. Every mutation of the two substr()
+            // calls and of the '+' test below therefore survives -- checked
+            // against a corpus of trigger shapes, none of them changes a
+            // parsed offset.
             $before = 'Y';
             $related = 'S';
 
