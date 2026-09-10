@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpKernel\KernelInterface;
 
 final class SecurityHeadersTest extends TestCase
@@ -229,5 +230,103 @@ final class SecurityHeadersTest extends TestCase
     {
         $events = SecurityHeaderSubscriber::getSubscribedEvents();
         $this->assertArrayHasKey('kernel.response', $events);
+    }
+
+    // -------------------------------------------------- when it is wired in
+
+    public function testItRunsLateEnoughToSeeTheFinishedResponse(): void
+    {
+        // The priority is the whole reason this lands after everything else
+        // that touches the response; nothing asserted it, nor the handler
+        // name, so either could change and the headers would quietly stop
+        // being applied to responses built by later listeners.
+        self::assertSame(
+            [KernelEvents::RESPONSE => ['onResponse', -50]],
+            SecurityHeaderSubscriber::getSubscribedEvents(),
+        );
+    }
+
+    // --------------------------------------- the directives, spelled out
+
+    /** @return array<string, string> directive name => value */
+    private function directivesFrom(string $csp): array
+    {
+        $directives = [];
+        foreach (explode('; ', $csp) as $directive) {
+            [$name, $value] = array_pad(explode(' ', trim($directive), 2), 2, '');
+            $directives[$name] = $value;
+        }
+
+        return $directives;
+    }
+
+    private function cspFor(Request $request): string
+    {
+        $stack = new RequestStack();
+        $stack->push($request);
+        $response = new Response();
+
+        $this->subscriber($stack)->onResponse($this->buildEvent($request, $response));
+
+        $csp = $response->headers->get('Content-Security-Policy');
+        self::assertIsString($csp);
+
+        return $csp;
+    }
+
+    public function testTheScriptSourceIsSelfTheNonceAndTheAllowedCdnInThatOrder(): void
+    {
+        // Asserting only that the nonce appears somewhere in script-src left
+        // the rest of the value free: the CDN could be dropped, or
+        // concatenated the wrong way round into a source expression browsers
+        // ignore. Either one blocks every script the app loads, and the
+        // existing regex would still match.
+        $request = Request::create('https://example.com/');
+        $csp = $this->cspFor($request);
+
+        $nonce = $request->attributes->get('csp_nonce');
+        self::assertIsString($nonce);
+        self::assertNotSame('', $nonce);
+
+        self::assertSame(
+            "'self' 'nonce-{$nonce}' https://unpkg.com",
+            $this->directivesFrom($csp)['script-src'] ?? null,
+        );
+    }
+
+    public function testTheStyleSourceKeepsItsAllowedCdn(): void
+    {
+        self::assertSame(
+            "'self' 'unsafe-inline' https://unpkg.com",
+            $this->directivesFrom($this->cspFor(Request::create('https://example.com/')))['style-src'] ?? null,
+        );
+    }
+
+    public function testTheImageSourceKeepsTheMapTileHost(): void
+    {
+        // The tile host is what makes the map on an event page render; drop it
+        // and every tile is blocked, which looks like a broken map rather than
+        // a policy change.
+        self::assertSame(
+            "'self' data: http: https: https://tile.openstreetmap.org",
+            $this->directivesFrom($this->cspFor(Request::create('https://example.com/')))['img-src'] ?? null,
+        );
+    }
+
+    public function testEveryOtherDirectiveIsExactlyWhatItClaimsToBe(): void
+    {
+        // The ones with no CDN concatenated into them, pinned as whole values
+        // rather than by substring, so a directive cannot pick up an extra
+        // source without this failing.
+        $directives = $this->directivesFrom($this->cspFor(Request::create('https://example.com/')));
+
+        self::assertSame("'self'", $directives['default-src'] ?? null);
+        self::assertSame("'self' data:", $directives['font-src'] ?? null);
+        self::assertSame("'self' http: https: ws: wss:", $directives['connect-src'] ?? null);
+        self::assertSame("'self'", $directives['media-src'] ?? null);
+        self::assertSame("'none'", $directives['object-src'] ?? null);
+        self::assertSame("'none'", $directives['base-uri'] ?? null);
+        self::assertSame("'none'", $directives['frame-ancestors'] ?? null);
+        self::assertSame("'self'", $directives['form-action'] ?? null);
     }
 }
