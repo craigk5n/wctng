@@ -108,9 +108,8 @@ final class UserTokenIndex
 
     private function ensureSchema(): void
     {
-        $driver = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
-        $autoinc = $driver === 'sqlite' ? 'INTEGER PRIMARY KEY AUTOINCREMENT' : 'INTEGER NOT NULL AUTO_INCREMENT';
-
+        // No surrogate key, so no driver-specific AUTO_INCREMENT spelling to
+        // pick between: the primary key is (login, jti).
         $this->pdo->exec(
             'CREATE TABLE IF NOT EXISTS webcal_user_jti ('
             . 'login VARCHAR(60) NOT NULL, '
@@ -120,8 +119,6 @@ final class UserTokenIndex
             . 'PRIMARY KEY (login, jti)'
             . ')'
         );
-
-        unset($autoinc); // reserved for future surrogate key if needed
     }
 
     private function purgeExpired(): void
