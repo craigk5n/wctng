@@ -114,4 +114,148 @@ final class TenantResolverListenerTest extends TestCase
         $this->assertNotNull($response);
         $this->assertSame(403, $response->getStatusCode());
     }
+
+    // ------------------------------------------------ the X-Tenant-Id header
+
+    private function createEventWithHeader(string $host, ?string $tenantHeader): RequestEvent
+    {
+        $server = $tenantHeader === null ? [] : ['HTTP_X_TENANT_ID' => $tenantHeader];
+        $request = Request::create('http://' . $host . '/api/v2/events', 'GET', [], [], [], $server);
+        $kernel = $this->createMock(KernelInterface::class);
+
+        return new RequestEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST);
+    }
+
+    private function hostedListener(): TenantResolverListener
+    {
+        return new TenantResolverListener($this->repo, $this->context, 'webcalendar.com', 'hosted');
+    }
+
+    private function saveTenant(string $slug, TenantStatus $status = TenantStatus::Active): void
+    {
+        $this->repo->save(new Tenant(0, $slug, ucfirst($slug), '', ':memory:', '', '', TenantPlan::Pro, $status));
+    }
+
+    public function testTheHeaderIdentifiesTheTenantWhenThereIsNoSubdomain(): void
+    {
+        // The header is the second way in and nothing exercised it, so the
+        // whole fallback could have been removed without a failure.
+        $this->saveTenant('acme');
+
+        $event = $this->createEventWithHeader('webcalendar.com', 'acme');
+        $this->hostedListener()->onKernelRequest($event);
+
+        self::assertNull($event->getResponse());
+        self::assertSame('acme', $this->context->getTenant()?->slug());
+    }
+
+    public function testAnEmptyHeaderIsNotATenantIdentifier(): void
+    {
+        // `$headerValue !== null && $headerValue !== ''`. With an or there, an
+        // empty header is taken as a slug, looked up, and answered with 404 --
+        // so a client that sends the header unset breaks instead of reaching
+        // the base domain it asked for.
+        $this->saveTenant('acme');
+
+        $event = $this->createEventWithHeader('webcalendar.com', '');
+        $this->hostedListener()->onKernelRequest($event);
+
+        self::assertNull($event->getResponse(), 'an empty header is no header at all');
+        self::assertNull($this->context->getTenant());
+    }
+
+    public function testASubdomainWinsOverAHeaderThatDisagrees(): void
+    {
+        // The header is only consulted when the host yielded nothing, which is
+        // what stops a header from redirecting a request away from the tenant
+        // whose domain it arrived on.
+        $this->saveTenant('acme');
+        $this->saveTenant('other');
+
+        $event = $this->createEventWithHeader('acme.webcalendar.com', 'other');
+        $this->hostedListener()->onKernelRequest($event);
+
+        self::assertSame('acme', $this->context->getTenant()?->slug());
+    }
+
+    // -------------------------------------------- a host that is not ours
+
+    public function testAHostOutsideTheBaseDomainIsNotParsedAsASlug(): void
+    {
+        // The suffix check is what makes this safe. Without its return, the
+        // host is truncated by the suffix *length* instead of matched against
+        // it -- and "acme.evil-domain.com" is exactly as long as
+        // "acme.webcalendar.com", so it truncates to "acme" and resolves the
+        // real tenant. A domain somebody else controls would then serve as
+        // that tenant.
+        $this->saveTenant('acme');
+
+        $event = $this->createEvent('acme.evil-domain.com');
+        $this->hostedListener()->onKernelRequest($event);
+
+        self::assertNull($this->context->getTenant(), 'a foreign host resolves to no tenant');
+        self::assertNull($event->getResponse(), 'and is passed through rather than answered');
+    }
+
+    // ------------------------------------------------------ what it answers
+
+    public function testAnUnknownTenantIsRefusedInTheProjectsErrorEnvelope(): void
+    {
+        // Clients parse every error the same way; only the status code was
+        // ever checked, so the body could have been anything at all.
+        $event = $this->createEvent('unknown.webcalendar.com');
+        $this->hostedListener()->onKernelRequest($event);
+
+        $response = $event->getResponse();
+        self::assertNotNull($response);
+        self::assertSame(
+            [
+                'data' => null,
+                'meta' => null,
+                'error' => ['code' => 404, 'message' => 'Tenant not found', 'details' => []],
+            ],
+            json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR),
+        );
+    }
+
+    public function testASuspendedTenantIsRefusedInTheProjectsErrorEnvelope(): void
+    {
+        $this->saveTenant('suspended-co', TenantStatus::Suspended);
+
+        $event = $this->createEvent('suspended-co.webcalendar.com');
+        $this->hostedListener()->onKernelRequest($event);
+
+        $response = $event->getResponse();
+        self::assertNotNull($response);
+        self::assertSame(
+            [
+                'data' => null,
+                'meta' => null,
+                'error' => ['code' => 403, 'message' => 'Tenant is suspended', 'details' => []],
+            ],
+            json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR),
+        );
+    }
+
+    public function testASuspendedTenantNeverReachesTheContext(): void
+    {
+        // Setting the 403 has to be the end of it. Falling through puts the
+        // suspended tenant into the context anyway -- and anything later in
+        // the request that reads the context, including whatever renders the
+        // error, would be doing so as that tenant.
+        $this->saveTenant('suspended-co', TenantStatus::Suspended);
+
+        $event = $this->createEvent('suspended-co.webcalendar.com');
+        $this->hostedListener()->onKernelRequest($event);
+
+        self::assertNull($this->context->getTenant());
+    }
+
+    public function testAnUnknownTenantNeverReachesTheContext(): void
+    {
+        $event = $this->createEvent('unknown.webcalendar.com');
+        $this->hostedListener()->onKernelRequest($event);
+
+        self::assertNull($this->context->getTenant());
+    }
 }
