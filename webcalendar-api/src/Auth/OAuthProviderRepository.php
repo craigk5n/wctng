@@ -43,7 +43,7 @@ final readonly class OAuthProviderRepository
         private \PDO $pdo,
     ) {}
 
-    public function ensureTable(): void
+    private function ensureTable(): void
     {
         // AUTOINCREMENT is SQLite-only; MySQL spells it AUTO_INCREMENT and
         // errors out on the other form, which left oauth_providers uncreated
