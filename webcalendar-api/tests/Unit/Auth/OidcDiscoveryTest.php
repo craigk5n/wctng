@@ -9,6 +9,7 @@ use App\Security\OutboundUrlValidator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
+use Symfony\Component\Clock\NativeClock;
 
 final class OidcDiscoveryTest extends TestCase
 {
@@ -333,6 +334,18 @@ final class OidcDiscoveryTest extends TestCase
         self::assertNull($this->frozenDiscovery()->validateIdToken($token, 'https://example.com', 'client'));
     }
 
+    #[DataProvider('malformedTokens')]
+    public function testAMalformedTokenIsRejectedEvenWithNothingToCheckItAgainst(string $token): void
+    {
+        // With an expected issuer and audience, a payload that decodes to a
+        // scalar is turned away by the issuer comparison instead of by the
+        // is_array() guard -- the guard could be dropped and the case above
+        // would still pass. Passing empty expectations skips every later
+        // check, so the guard is the only thing left between a bare string
+        // and a method that promises an array.
+        self::assertNull($this->frozenDiscovery()->validateIdToken($token, '', ''));
+    }
+
     public function testBase64UrlAlphabetIsAccepted(): void
     {
         // JWT uses base64url, so - and _ stand in for + and /. The payload is
@@ -346,5 +359,113 @@ final class OidcDiscoveryTest extends TestCase
 
         self::assertNotNull($decoded);
         self::assertSame('ok??>>', $decoded['name']);
+    }
+
+    // ------------------------------------------------ discovery over the seam
+
+    private function discoveryFetching(FakeOidcConfigFetcher $fetcher): OidcDiscovery
+    {
+        return new OidcDiscovery(new OutboundUrlValidator('standalone'), new NativeClock(), $fetcher);
+    }
+
+    private const DOCUMENT = <<<'JSON'
+        {
+            "issuer": "https://id.example.com",
+            "authorization_endpoint": "https://id.example.com/authorize",
+            "token_endpoint": "https://id.example.com/token",
+            "userinfo_endpoint": "https://id.example.com/userinfo",
+            "jwks_uri": "https://id.example.com/jwks"
+        }
+        JSON;
+
+    public function testAProvidersDocumentIsReturnedAsItStands(): void
+    {
+        // The success path had never run: with curl welded in, no test could
+        // get a 200 back, so everything discovery does with a document was
+        // unexercised.
+        $fetcher = new FakeOidcConfigFetcher(self::DOCUMENT);
+
+        $config = $this->discoveryFetching($fetcher)->discover('https://id.example.com');
+
+        self::assertNotNull($config);
+        self::assertSame('https://id.example.com/token', $config['token_endpoint']);
+        self::assertSame('https://id.example.com/jwks', $config['jwks_uri']);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function issuersThatMeanTheSameProvider(): iterable
+    {
+        // An issuer copied out of a provider's console may or may not have a
+        // trailing slash. Without the rtrim the second one asks for
+        // "https://id.example.com//.well-known/openid-configuration", which
+        // real providers answer with a 404.
+        yield 'no trailing slash' => ['https://id.example.com'];
+        yield 'one trailing slash' => ['https://id.example.com/'];
+        yield 'several' => ['https://id.example.com///'];
+    }
+
+    #[DataProvider('issuersThatMeanTheSameProvider')]
+    public function testTheWellKnownUrlIsBuiltFromTheIssuerWithoutDoublingTheSlash(string $issuer): void
+    {
+        $fetcher = new FakeOidcConfigFetcher(self::DOCUMENT);
+
+        $this->discoveryFetching($fetcher)->discover($issuer);
+
+        self::assertSame(
+            ['https://id.example.com/.well-known/openid-configuration'],
+            $fetcher->requested,
+        );
+    }
+
+    public function testTheSameIssuerIsOnlyFetchedOnce(): void
+    {
+        // The cache is what keeps every login from making an outbound request.
+        $fetcher = new FakeOidcConfigFetcher(self::DOCUMENT);
+        $discovery = $this->discoveryFetching($fetcher);
+
+        $first = $discovery->discover('https://id.example.com');
+        $second = $discovery->discover('https://id.example.com');
+
+        self::assertSame($first, $second);
+        self::assertCount(1, $fetcher->requested);
+    }
+
+    public function testAFailedFetchIsNotCached(): void
+    {
+        // Caching a null would pin a provider as broken for the life of the
+        // process, so a transient failure would outlive itself.
+        $fetcher = new FakeOidcConfigFetcher(null);
+        $discovery = $this->discoveryFetching($fetcher);
+
+        self::assertNull($discovery->discover('https://id.example.com'));
+        self::assertNull($discovery->discover('https://id.example.com'));
+        self::assertCount(2, $fetcher->requested);
+    }
+
+    /** @return iterable<string, array{string|null}> */
+    public static function bodiesThatAreNotADiscoveryDocument(): iterable
+    {
+        yield 'nothing at all' => [null];
+        yield 'not json' => ['<html>404</html>'];
+        yield 'json, but a string' => ['"https://id.example.com"'];
+        yield 'json, but a number' => ['42'];
+        yield 'json null' => ['null'];
+    }
+
+    #[DataProvider('bodiesThatAreNotADiscoveryDocument')]
+    public function testABodyThatIsNotADocumentYieldsNothing(?string $body): void
+    {
+        self::assertNull(
+            $this->discoveryFetching(new FakeOidcConfigFetcher($body))->discover('https://id.example.com'),
+        );
+    }
+
+    public function testARefusedTargetYieldsNothingRatherThanRaising(): void
+    {
+        // The fetcher throws for a target the outbound checks reject; callers
+        // of discover() get a null like any other failure.
+        $fetcher = new FakeOidcConfigFetcher(refuse: 'resolves to a private address');
+
+        self::assertNull($this->discoveryFetching($fetcher)->discover('https://id.example.com'));
     }
 }

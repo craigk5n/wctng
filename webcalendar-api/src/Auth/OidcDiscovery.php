@@ -19,10 +19,15 @@ final class OidcDiscovery
     /** @var array<string, array<string, mixed>> */
     private array $configCache = [];
 
+    private readonly OidcConfigFetcher $fetcher;
+
     public function __construct(
-        private readonly OutboundUrlValidator $urlValidator,
+        OutboundUrlValidator $urlValidator,
         private readonly ClockInterface $clock = new NativeClock(),
-    ) {}
+        ?OidcConfigFetcher $fetcher = null,
+    ) {
+        $this->fetcher = $fetcher ?? new CurlOidcConfigFetcher($urlValidator);
+    }
 
     /**
      * Discovers OIDC configuration from the provider's issuer URL.
@@ -37,30 +42,14 @@ final class OidcDiscovery
 
         $wellKnownUrl = rtrim($issuerUrl, '/') . '/.well-known/openid-configuration';
 
-        // The issuer is stored through the admin auth-provider API, so it is
-        // attacker-reachable input in hosted mode, not operator configuration.
         try {
-            $target = $this->urlValidator->validate($wellKnownUrl);
+            $response = $this->fetcher->fetch($wellKnownUrl);
         } catch (\InvalidArgumentException) {
+            // A target that fails the outbound checks is not a provider.
             return null;
         }
 
-        $ch = curl_init($wellKnownUrl);
-        if ($ch === false) {
-            return null;
-        }
-
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 10,
-            CURLOPT_HTTPHEADER => ['Accept: application/json'],
-        ] + OutboundUrlValidator::curlSecurityOptions($target));
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if (!\is_string($response) || $httpCode !== 200) {
+        if ($response === null) {
             return null;
         }
 
