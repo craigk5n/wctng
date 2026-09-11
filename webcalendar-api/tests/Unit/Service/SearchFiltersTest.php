@@ -190,4 +190,38 @@ final class SearchFiltersTest extends TestCase
 
         self::assertSame(['January Meeting'], array_column($result['results'], 'title'));
     }
+
+    /** @return iterable<string, array{string, string, string}> */
+    public static function typeFiltersAndTheirRepeatingHalf(): iterable
+    {
+        // Each filter covers a pair: the plain entry and its repeating
+        // variant. Only E, T, J and N appear anywhere in these tests, so
+        // dropping M or O from the map would silently hide every repeating
+        // event or journal from a filtered search, and nothing would say so --
+        // the map is a constant, which no mutation touches either.
+        yield 'events include repeating events' => ['event', 'E', 'M'];
+        yield 'tasks include repeating tasks' => ['task', 'T', 'N'];
+        yield 'journals include repeating journals' => ['journal', 'J', 'O'];
+    }
+
+    #[DataProvider('typeFiltersAndTheirRepeatingHalf')]
+    public function testATypeFilterFindsBothHalvesOfItsPair(string $filter, string $plain, string $repeating): void
+    {
+        $this->pdo->exec('DELETE FROM webcal_entry');
+        $this->pdo->exec("INSERT INTO webcal_entry VALUES (10, 'Standup once', '', 20260401, 0, '{$plain}', 'admin', 30, 0, 0, 'P')");
+        $this->pdo->exec("INSERT INTO webcal_entry VALUES (11, 'Standup weekly', '', 20260402, 0, '{$repeating}', 'admin', 30, 0, 0, 'P')");
+        // An entry of another kind entirely, which the filter must exclude.
+        $other = $plain === 'E' ? 'T' : 'E';
+        $this->pdo->exec("INSERT INTO webcal_entry VALUES (12, 'Standup elsewhere', '', 20260403, 0, '{$other}', 'admin', 0, 0, 0, 'P')");
+
+        $result = $this->service->search('Standup', 'admin', $filter);
+
+        $types = array_map(static fn(array $r): mixed => $r['type'], $result['results']);
+        sort($types);
+        $expected = [$plain, $repeating];
+        sort($expected);
+
+        self::assertSame($expected, $types);
+        self::assertSame(2, $result['total']);
+    }
 }
