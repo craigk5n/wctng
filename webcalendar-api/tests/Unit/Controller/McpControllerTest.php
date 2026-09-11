@@ -821,4 +821,88 @@ final class McpControllerTest extends TestCase
         self::assertContains('09:00', array_column($mine['result']['available_slots'], 'start'));
         self::assertNotContains('09:00', array_column($bobs['result']['available_slots'], 'start'));
     }
+
+    // ------------------------------------------ what the tool list promises
+
+    /** @return list<array<string, mixed>> */
+    private function advertisedTools(): array
+    {
+        /** @var list<array<string, mixed>> $tools */
+        $tools = $this->call('tools/list')['result']['tools'];
+        self::assertNotEmpty($tools);
+
+        return $tools;
+    }
+
+    public function testEveryToolItAdvertisesCanActuallyBeCalled(): void
+    {
+        // TOOLS decides both what is advertised and what is allowed past
+        // handle(), but callTool() routes on a separate match. A tool added to
+        // one and not the other is offered to clients and then answered
+        // "Unknown tool". Taking the names from the reply rather than a list
+        // written here means a new tool is covered the day it is added.
+        foreach ($this->advertisedTools() as $tool) {
+            $name = (string) $tool['name'];
+            $body = $this->call('tools/call', ['name' => $name, 'arguments' => []]);
+
+            $message = isset($body['error']) ? (string) $body['error']['message'] : '';
+            self::assertStringNotContainsString('Unknown tool', $message, $name . ' is advertised but not routed');
+        }
+    }
+
+    public function testTheDispatchTestsAboveCoverEveryToolThatIsAdvertised(): void
+    {
+        // Keeps the hand-written provider honest: it is what proves each tool
+        // reaches its own handler rather than merely being routed somewhere.
+        $advertised = array_map(static fn(array $t): string => (string) $t['name'], $this->advertisedTools());
+        $exercised = array_map(static fn(array $case): string => (string) $case[0], iterator_to_array(self::tools()));
+
+        sort($advertised);
+        sort($exercised);
+
+        self::assertSame($advertised, $exercised);
+    }
+
+    public function testTheAdvertisedSchemaIsTheOneAClientNeedsToCallIt(): void
+    {
+        // A client builds its call from this schema and nothing else. Only the
+        // names were ever checked, so a parameter could have been dropped,
+        // renamed, given the wrong type, or quietly stopped being required --
+        // and every existing test would still pass while no client could make
+        // a valid call.
+        $tools = array_column($this->advertisedTools(), null, 'name');
+
+        self::assertSame([
+            'type' => 'object',
+            'properties' => [
+                'start_date' => ['type' => 'string', 'description' => 'Start date YYYYMMDD'],
+                'end_date' => ['type' => 'string', 'description' => 'End date YYYYMMDD'],
+            ],
+            'required' => ['start_date', 'end_date'],
+        ], $tools['list_events']['inputSchema']);
+
+        self::assertSame('List calendar events in a date range', $tools['list_events']['description']);
+    }
+
+    public function testEveryAdvertisedToolDeclaresASchemaAClientCanRead(): void
+    {
+        foreach ($this->advertisedTools() as $tool) {
+            $name = (string) $tool['name'];
+
+            self::assertArrayHasKey('description', $tool, $name);
+            self::assertNotSame('', $tool['description'], $name . ' has no description');
+
+            /** @var array{type: string, properties: array<string, mixed>, required: list<string>} $schema */
+            $schema = $tool['inputSchema'];
+            self::assertSame('object', $schema['type'], $name);
+
+            // Anything named as required has to be among the properties, or a
+            // client is told to send a parameter it has no description for.
+            self::assertSame(
+                [],
+                array_diff($schema['required'], array_keys($schema['properties'])),
+                $name . ' requires a parameter it does not describe',
+            );
+        }
+    }
 }
