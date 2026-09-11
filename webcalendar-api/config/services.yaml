@@ -2,6 +2,7 @@ parameters:
     app_mode_default: 'standalone'
     db_driver_default: 'mysql'
     webhook_url_default: ''
+    tenant_admin_db_url_default: ''
     email_from_default: 'noreply@webcalendar.local'
     email_from_name_default: 'WebCalendar'
 
@@ -304,6 +305,15 @@ services:
     App\Tenant\TenantProvisioner:
         arguments:
             $dbDriver: '%env(default:db_driver_default:TENANT_DB_DRIVER)%'
+
+    # Creating a tenant's database needs rights the application's own login
+    # deliberately lacks, so it reads a separate admin URL. Left unset,
+    # provisioning reports that it is not configured.
+    App\Tenant\MySqlTenantDatabaseCreator:
+        arguments:
+            $adminDatabaseUrl: '%env(default:tenant_admin_db_url_default:TENANT_ADMIN_DATABASE_URL)%'
+
+    App\Tenant\TenantDatabaseCreator: '@App\Tenant\MySqlTenantDatabaseCreator'
 
     App\Tenant\TenantMigrator:
         arguments:

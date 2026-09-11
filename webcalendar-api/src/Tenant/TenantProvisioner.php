@@ -12,12 +12,20 @@ use WebCalendar\Core\Domain\Entity\User;
  */
 final class TenantProvisioner
 {
+    private readonly TenantDatabaseCreator $databaseCreator;
+
     public function __construct(
         private readonly TenantRepository $tenantRepository,
         private readonly TenantDatabaseManager $dbManager,
         private readonly string $dbDriver = 'mysql',
         private readonly PasswordHasher $passwordHasher = new PasswordHasher(),
-    ) {}
+        ?TenantDatabaseCreator $databaseCreator = null,
+    ) {
+        // Defaulted so existing construction keeps working; without an admin
+        // URL the creator reports that it is unconfigured rather than failing
+        // somewhere further in.
+        $this->databaseCreator = $databaseCreator ?? new MySqlTenantDatabaseCreator('');
+    }
 
     /**
      * Provisions a new tenant with database, schema, and admin user.
@@ -66,12 +74,21 @@ final class TenantProvisioner
                     status: TenantStatus::Active,
                 );
             } else {
+                // Anything that is not SQLite falls here, but only MySQL has a
+                // creator behind it -- a pgsql deployment would otherwise be
+                // handed MySQL DDL against whatever the admin URL points at.
+                if ($this->dbDriver !== 'mysql') {
+                    throw new \RuntimeException(
+                        "Provisioning is not implemented for the '{$this->dbDriver}' driver.",
+                    );
+                }
+
                 // MySQL: create database and user
                 $dbHost = $this->getDefaultDbHost();
                 $dbPassword = $this->generatePassword();
                 $encryptedPassword = $this->dbManager->encryptPassword($dbPassword);
 
-                $this->createMySqlDatabase($dbName, $dbUser, $dbPassword);
+                $this->databaseCreator->create($dbName, $dbUser, $dbPassword);
 
                 $tenant = new Tenant(
                     id: 0,
@@ -148,13 +165,6 @@ final class TenantProvisioner
         };
 
         return $coreDir . '/src/Infrastructure/Persistence/' . $fileName;
-    }
-
-    private function createMySqlDatabase(string $dbName, string $dbUser, #[\SensitiveParameter] string $dbPassword): void
-    {
-        // This would use a root/admin PDO connection to create the DB
-        // For now, this is a placeholder — real implementation needs root credentials
-        throw new \RuntimeException('MySQL database creation requires root PDO (not yet implemented for tests)');
     }
 
     private function getDefaultDbHost(): string

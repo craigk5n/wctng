@@ -189,40 +189,97 @@ final class TenantProvisionerTest extends TestCase
         );
     }
 
-    // ------------------------------------------ what is not implemented yet
+    // ------------------------------------------------- drivers and creators
 
-    /** @return iterable<string, array{string}> */
-    public static function driversWithoutDatabaseCreation(): iterable
+    public function testMySqlProvisioningReportsWhenItHasNoAdminCredentials(): void
     {
-        // Both non-SQLite drivers take the same branch, and its first
-        // statement is createMySqlDatabase(), which throws unconditionally.
-        yield 'mysql' => ['mysql'];
-        yield 'pgsql' => ['pgsql'];
+        // The default creator is an unconfigured MySQL one, so a deployment
+        // that has not set TENANT_ADMIN_DATABASE_URL is told that rather than
+        // being left to interpret a connection error.
+        $provisioner = new TenantProvisioner($this->repo, $this->dbManager, 'mysql');
+
+        $result = $provisioner->provision('driver-co', 'Driver Co', 'a@b.com');
+
+        self::assertFalse($result->success);
+        self::assertStringContainsString('set TENANT_ADMIN_DATABASE_URL', $result->error);
+        self::assertSame(0, $this->tenantCount(), 'a failed provision leaves no half-built tenant behind');
     }
 
-    #[DataProvider('driversWithoutDatabaseCreation')]
-    public function testProvisioningCannotYetSucceedOutsideSqlite(string $driver): void
+    public function testAnyOtherDriverSaysItIsNotImplemented(): void
     {
-        // Recorded rather than worked around: every test above runs against
-        // the SQLite driver, which is the one branch that is finished, so
-        // nothing in this file said that the driver the constructor defaults
-        // to -- and the one hosted mode actually uses -- always fails.
-        //
-        // It also explains why $dbName and $dbUser are unassertable: they are
-        // built on every provision, but the only code that consumes them is
-        // this branch, and it throws before they are read. When database
-        // creation lands, those two lines become testable and this case is
-        // the one that should start failing.
-        $provisioner = new TenantProvisioner($this->repo, $this->dbManager, $driver);
+        // Only SQLite and MySQL have a provisioning path. Postgres shares the
+        // non-SQLite branch, and without this guard it would be handed MySQL
+        // DDL to run against whatever the admin URL points at.
+        $provisioner = new TenantProvisioner($this->repo, $this->dbManager, 'pgsql');
 
         $result = $provisioner->provision('driver-co', 'Driver Co', 'a@b.com');
 
         self::assertFalse($result->success);
         self::assertSame(
-            'Provisioning failed: MySQL database creation requires root PDO (not yet implemented for tests)',
+            "Provisioning failed: Provisioning is not implemented for the 'pgsql' driver.",
             $result->error,
-            'anything thrown mid-provision reaches the operator with the prefix that says where it came from',
         );
-        self::assertSame(0, $this->tenantCount(), 'a failed provision leaves no half-built tenant behind');
+        self::assertSame(0, $this->tenantCount());
+    }
+
+    public function testTheDatabaseNamesHandedToTheCreatorAreBuiltFromTheSlug(): void
+    {
+        // The creator is the seam the real DDL sits behind; what the
+        // provisioner asks it for is the part worth pinning. Hyphens become
+        // underscores because a MySQL identifier cannot carry them.
+        $creator = new RecordingTenantDatabaseCreator();
+        $provisioner = new TenantProvisioner(
+            $this->repo,
+            $this->dbManager,
+            'mysql',
+            new \App\Security\PasswordHasher(),
+            $creator,
+        );
+
+        $provisioner->provision('acme-corp', 'Acme Corp', 'a@b.com');
+
+        self::assertCount(1, $creator->created);
+        self::assertSame('wc_tenant_acme_corp', $creator->created[0]['dbName']);
+        self::assertSame('wc_acme_corp', $creator->created[0]['dbUser']);
+        self::assertMatchesRegularExpression('/^[0-9a-f]{32}$/', $creator->created[0]['dbPassword']);
+    }
+
+    public function testACreatorThatFailsStopsTheProvisionBeforeAnythingIsRegistered(): void
+    {
+        $provisioner = new TenantProvisioner(
+            $this->repo,
+            $this->dbManager,
+            'mysql',
+            new \App\Security\PasswordHasher(),
+            new FailingTenantDatabaseCreator(),
+        );
+
+        $result = $provisioner->provision('acme-corp', 'Acme Corp', 'a@b.com');
+
+        self::assertFalse($result->success);
+        self::assertStringContainsString('the server said no', $result->error);
+        self::assertSame(0, $this->tenantCount());
+    }
+}
+
+/** Records what it was asked to create instead of creating it. */
+final class RecordingTenantDatabaseCreator implements \App\Tenant\TenantDatabaseCreator
+{
+    /** @var list<array{dbName: string, dbUser: string, dbPassword: string}> */
+    public array $created = [];
+
+    #[\Override]
+    public function create(string $dbName, string $dbUser, #[\SensitiveParameter] string $dbPassword): void
+    {
+        $this->created[] = ['dbName' => $dbName, 'dbUser' => $dbUser, 'dbPassword' => $dbPassword];
+    }
+}
+
+final class FailingTenantDatabaseCreator implements \App\Tenant\TenantDatabaseCreator
+{
+    #[\Override]
+    public function create(string $dbName, string $dbUser, #[\SensitiveParameter] string $dbPassword): void
+    {
+        throw new \RuntimeException('the server said no');
     }
 }

@@ -201,6 +201,10 @@ jobs:
           APP_ENV: test
           APP_SECRET: ci_secret
           DATABASE_URL: "mysql://webcalendar:webcalendar_test@127.0.0.1:3306/webcalendar_test"
+          # Lets TenantProvisioningOnMySqlTest actually provision rather than
+          # skip: it needs a login that may CREATE DATABASE and CREATE USER,
+          # which the application login above deliberately does not have.
+          TENANT_ADMIN_DATABASE_URL: "mysql://root:root@127.0.0.1:3306/webcalendar_test"
           JWT_SECRET_KEY: "%kernel.project_dir%/config/jwt/private.pem"
           JWT_PUBLIC_KEY: "%kernel.project_dir%/config/jwt/public.pem"
           JWT_PASSPHRASE: ci_passphrase

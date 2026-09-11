@@ -13,6 +13,7 @@ use App\Controller\Api\ShareController;
 use App\Controller\Api\UnsubscribeController;
 use App\Share\ShareToken;
 use App\Share\ShareTokenRepository;
+use App\Tenant\MySqlTenantDatabaseCreator;
 use App\Tenant\TenantDatabaseManager;
 use App\Tenant\TenantProvisioner;
 use App\Webhook\WebhookSubscription;
@@ -103,7 +104,10 @@ final class SensitiveParameterRedactionTest extends TestCase
         yield 'TenantDatabaseManager::__construct($appSecret)' => [TenantDatabaseManager::class, '__construct', 'appSecret'];
 
         yield 'TenantProvisioner::createAdminUser($password)' => [TenantProvisioner::class, 'createAdminUser', 'password'];
-        yield 'TenantProvisioner::createMySqlDatabase($dbPassword)' => [TenantProvisioner::class, 'createMySqlDatabase', 'dbPassword'];
+        // The DDL moved out of the provisioner into the creator seam; the
+        // password it sets on the new login travels with it.
+        yield 'MySqlTenantDatabaseCreator::create($dbPassword)' => [MySqlTenantDatabaseCreator::class, 'create', 'dbPassword'];
+        yield 'MySqlTenantDatabaseCreator::__construct($adminDatabaseUrl)' => [MySqlTenantDatabaseCreator::class, '__construct', 'adminDatabaseUrl'];
 
         yield 'LdapAuthenticator::authenticate($password)' => [LdapAuthenticator::class, 'authenticate', 'password'];
         yield 'LdapAuthenticator::bindAsUser($password)' => [LdapAuthenticator::class, 'bindAsUser', 'password'];
