@@ -10,6 +10,7 @@ use App\Tenant\TenantPlan;
 use App\Tenant\TenantRepository;
 use App\Tenant\TenantResolverListener;
 use App\Tenant\TenantStatus;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -254,6 +255,61 @@ final class TenantResolverListenerTest extends TestCase
     public function testAnUnknownTenantNeverReachesTheContext(): void
     {
         $event = $this->createEvent('unknown.webcalendar.com');
+        $this->hostedListener()->onKernelRequest($event);
+
+        self::assertNull($this->context->getTenant());
+    }
+
+    // ------------------------------------------- how the host is normalised
+
+    /** @return iterable<string, array{string}> */
+    public static function hostsNamingTheSameTenant(): iterable
+    {
+        // Every one of these is the same host as far as DNS and the browser
+        // are concerned. getHost() already lowercases, strips the port and
+        // trims, so those are here to keep it that way rather than because
+        // they were ever broken.
+        yield 'plain' => ['acme.webcalendar.com'];
+        yield 'uppercased' => ['ACME.WEBCALENDAR.COM'];
+        yield 'with a port' => ['acme.webcalendar.com:8443'];
+        yield 'fully qualified with the root dot' => ['acme.webcalendar.com.'];
+    }
+
+    #[DataProvider('hostsNamingTheSameTenant')]
+    public function testEverySpellingOfATenantHostResolvesToThatTenant(string $host): void
+    {
+        // The root-dot form used to resolve no tenant at all: it matched no
+        // base domain, so the request was handled as though it had arrived on
+        // the base domain -- with no tenant in the context.
+        $this->saveTenant('acme');
+
+        $event = $this->createEvent($host);
+        $this->hostedListener()->onKernelRequest($event);
+
+        self::assertSame('acme', $this->context->getTenant()?->slug(), "host {$host} resolved no tenant");
+        self::assertNull($event->getResponse());
+    }
+
+    public function testTheBaseDomainWithARootDotIsStillTheBaseDomain(): void
+    {
+        // The other side of the same normalisation: "webcalendar.com." must not
+        // be read as a subdomain of itself.
+        $this->saveTenant('acme');
+
+        $event = $this->createEvent('webcalendar.com.');
+        $this->hostedListener()->onKernelRequest($event);
+
+        self::assertNull($this->context->getTenant());
+        self::assertNull($event->getResponse(), 'the base domain is passed through, not refused');
+    }
+
+    public function testARootDotDoesNotTurnAForeignHostIntoATenant(): void
+    {
+        // Normalising the host must not widen what counts as the base domain:
+        // a domain somebody else controls still has to resolve to nothing.
+        $this->saveTenant('acme');
+
+        $event = $this->createEvent('acme.evil-domain.com.');
         $this->hostedListener()->onKernelRequest($event);
 
         self::assertNull($this->context->getTenant());

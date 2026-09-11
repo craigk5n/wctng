@@ -81,6 +81,13 @@ final readonly class TenantResolverListener
 
     private function extractSubdomain(string $host): ?string
     {
+        // getHost() lowercases, drops the port and trims, but leaves a trailing
+        // root dot in place. "acme.example.com." names the same host as
+        // "acme.example.com" and resolves identically, so without this it
+        // matched no base domain, resolved no tenant, and was handled as a
+        // base-domain request.
+        $host = rtrim($host, '.');
+
         // Skip if the host is the base domain itself
         if ($host === $this->baseDomain) {
             return null;
