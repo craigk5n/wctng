@@ -265,6 +265,12 @@ final class TenantProvisionerTest extends TestCase
 /** Records what it was asked to create instead of creating it. */
 final class RecordingTenantDatabaseCreator implements \App\Tenant\TenantDatabaseCreator
 {
+    #[\Override]
+    public function serverHost(): string
+    {
+        return 'mysql.test';
+    }
+
     /** @var list<array{dbName: string, dbUser: string, dbPassword: string}> */
     public array $created = [];
 
@@ -277,6 +283,12 @@ final class RecordingTenantDatabaseCreator implements \App\Tenant\TenantDatabase
 
 final class FailingTenantDatabaseCreator implements \App\Tenant\TenantDatabaseCreator
 {
+    #[\Override]
+    public function serverHost(): string
+    {
+        return 'mysql.test';
+    }
+
     #[\Override]
     public function create(string $dbName, string $dbUser, #[\SensitiveParameter] string $dbPassword): void
     {

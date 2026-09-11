@@ -110,6 +110,10 @@ final class TenantProvisioningOnMySqlTest extends TestCase
         self::assertNotNull($tenant);
         self::assertSame($dbName, $tenant->dbName());
         self::assertSame('wc_' . $this->slug, $tenant->dbUser());
+        // The host has to be the server the database was just created on. It
+        // used to be the hardcoded Docker service name, which resolves in
+        // compose and nowhere else -- CI caught it by failing to resolve.
+        self::assertSame(parse_url($this->adminUrl, \PHP_URL_HOST), $tenant->dbHost());
         self::assertNotSame('', $tenant->dbPassword(), 'the login password is stored encrypted');
 
         // The schema was deployed into it.

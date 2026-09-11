@@ -84,7 +84,7 @@ final class TenantProvisioner
                 }
 
                 // MySQL: create database and user
-                $dbHost = $this->getDefaultDbHost();
+                $dbHost = $this->databaseCreator->serverHost();
                 $dbPassword = $this->generatePassword();
                 $encryptedPassword = $this->dbManager->encryptPassword($dbPassword);
 
@@ -165,11 +165,6 @@ final class TenantProvisioner
         };
 
         return $coreDir . '/src/Infrastructure/Persistence/' . $fileName;
-    }
-
-    private function getDefaultDbHost(): string
-    {
-        return 'mysql'; // Docker service name
     }
 
     private function generatePassword(): string

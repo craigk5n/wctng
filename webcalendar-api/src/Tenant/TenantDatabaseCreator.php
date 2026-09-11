@@ -22,4 +22,12 @@ interface TenantDatabaseCreator
      *                           or if the server refuses the DDL
      */
     public function create(string $dbName, string $dbUser, #[\SensitiveParameter] string $dbPassword): void;
+
+    /**
+     * The host the database was created on, which is the host the tenant has
+     * to be pointed at. Asking the creator rather than configuring it
+     * separately is what stops the two drifting apart and registering tenants
+     * against a server their database is not on.
+     */
+    public function serverHost(): string;
 }

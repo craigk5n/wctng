@@ -66,6 +66,14 @@ final readonly class MySqlTenantDatabaseCreator implements TenantDatabaseCreator
         }
     }
 
+    #[\Override]
+    public function serverHost(): string
+    {
+        $host = parse_url($this->adminDatabaseUrl, \PHP_URL_HOST);
+
+        return \is_string($host) && $host !== '' ? $host : 'mysql';
+    }
+
     /**
      * Back-quoted, with any back-quote inside doubled. Belt and braces on top
      * of the character check: an identifier reaching here is already known to
