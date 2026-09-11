@@ -13,10 +13,18 @@ use Symfony\Component\HttpKernel\KernelEvents;
 /**
  * Validates that the JWT tenant claim matches the resolved tenant context.
  *
- * Runs at lower priority than TenantResolverListener (after tenant is resolved)
- * and after authentication (which sets the _jwt_tenant request attribute).
+ * Runs after TenantResolverListener, which resolves the tenant, and after the
+ * security firewall, which decodes the JWT and so sets the _jwt_tenant request
+ * attribute this compares against.
+ *
+ * The priority has to stay below the firewall's, which is 8. At the 10 it was
+ * registered with, this listener ran before the token had been decoded, found
+ * no _jwt_tenant on the request, and returned without comparing anything --
+ * the mismatch it exists to refuse could not be reached. Check the real order
+ * with `bin/console debug:event-dispatcher kernel.request` rather than reading
+ * it off the priorities: the firewall's is fixed by the framework.
  */
-#[AsEventListener(event: KernelEvents::REQUEST, priority: 10)]
+#[AsEventListener(event: KernelEvents::REQUEST, priority: 0)]
 final readonly class TenantJwtValidator
 {
     public function __construct(
