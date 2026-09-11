@@ -206,6 +206,41 @@ final class CalDavAdvancedTest extends IntegrationTestCase
         $this->assertContains($update->getStatus(), [200, 204]);
     }
 
+    public function testTheEtagOfAnUntouchedEventDoesNotChangeAsTimePasses(): void
+    {
+        // VObject stamps DTSTAMP with the current second when the serialiser
+        // does not supply one, and the ETag is an md5 of that serialisation.
+        // The ETag therefore used to change once a second for an event nobody
+        // had touched, which re-fetched every object on each sync and failed
+        // If-Match updates that straddled a second boundary.
+        $uid = 'etag-stable-' . bin2hex(random_bytes(4));
+        $uri = "/dav/calendars/admin/default/{$uid}.ics";
+        $this->harness->putIcs($uri, $this->sampleEventIcs($uid, 'Unchanged'));
+
+        // Backdate the revision so "now" and the stored stamp cannot agree by
+        // accident -- without this the assertion would pass either way for an
+        // event created in the same second.
+        $this->pdo
+            ->prepare('UPDATE webcal_entry SET cal_mod_date = 20200102, cal_mod_time = 030405 WHERE cal_uid = :uid')
+            ->execute(['uid' => $uid]);
+
+        $first = $this->harness->get($uri);
+        self::assertSame(200, $first->getStatus());
+        self::assertStringContainsString('DTSTAMP:20200102T030405Z', $first->getBodyAsString());
+
+        $etag = $first->getHeader('ETag');
+        self::assertNotNull($etag);
+        self::assertSame($etag, $this->harness->get($uri)->getHeader('ETag'));
+
+        // And it still tracks revisions: an ETag that ignored them would be
+        // useless as a validator.
+        $this->pdo
+            ->prepare('UPDATE webcal_entry SET cal_mod_date = 20200102, cal_mod_time = 030406 WHERE cal_uid = :uid')
+            ->execute(['uid' => $uid]);
+
+        self::assertNotSame($etag, $this->harness->get($uri)->getHeader('ETag'));
+    }
+
     // -- calendar-query with text filter -------------------------------------
 
     public function testCalendarQueryWithTextFilterMatchesSummary(): void

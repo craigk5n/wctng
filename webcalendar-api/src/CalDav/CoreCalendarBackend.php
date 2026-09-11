@@ -668,14 +668,54 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
         return null;
     }
 
+    /**
+     * The event's last revision as a UTC stamp, for DTSTAMP, or null when the
+     * row carries no usable one.
+     *
+     * cal_mod_date and cal_mod_time are written on every save, in the PHP
+     * default timezone, so they are read back the same way before being
+     * converted. Only an entity that was never saved has neither, and an ETag
+     * is only ever hashed from one that was.
+     */
+    private static function revisionStamp(Event $event): ?\DateTimeImmutable
+    {
+        $modDate = $event->modDate();
+        $modTime = $event->modTime();
+
+        if ($modDate === null || $modTime === null) {
+            return null;
+        }
+
+        $stamp = \DateTimeImmutable::createFromFormat(
+            'YmdHis',
+            \sprintf('%08d%06d', $modDate, $modTime),
+        );
+
+        return $stamp === false ? null : $stamp->setTimezone(new \DateTimeZone('UTC'));
+    }
+
     private function eventToIcs(Event $event): string
     {
-        $vcalendar = new VObject\Component\VCalendar();
-        $vevent = $vcalendar->add('VEVENT', [
+        $properties = [
             'UID' => $event->uid(),
             'SUMMARY' => $event->name(),
             'DESCRIPTION' => $event->description(),
-        ]);
+        ];
+
+        // VObject stamps DTSTAMP with the current second when it is not given
+        // one, which made this serialisation -- and so every ETag hashed from
+        // it -- change once a second for an event nobody had touched. Clients
+        // then re-fetched everything on each sync, and If-Match updates failed
+        // whenever the two requests fell either side of a second. RFC 5545
+        // wants the last revision time here for an object carrying no METHOD,
+        // which is exactly what the row records.
+        $revision = self::revisionStamp($event);
+        if ($revision !== null) {
+            $properties['DTSTAMP'] = $revision;
+        }
+
+        $vcalendar = new VObject\Component\VCalendar();
+        $vevent = $vcalendar->add('VEVENT', $properties);
 
         // Component::add() is declared `@return Node`, and Node has no add().
         // Adding a component by name always yields a Component at runtime, so
