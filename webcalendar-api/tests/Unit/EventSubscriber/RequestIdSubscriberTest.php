@@ -6,7 +6,6 @@ namespace App\Tests\Unit\EventSubscriber;
 
 use App\EventSubscriber\RequestIdSubscriber;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\AbstractLogger;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -14,20 +13,6 @@ use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpKernel\KernelInterface;
-
-/** Captures what was logged so the context can be read back. */
-final class RecordingLogger extends AbstractLogger
-{
-    /** @var list<array{level: mixed, message: string, context: array<string, mixed>}> */
-    public array $records = [];
-
-    /** @param array<string, mixed> $context */
-    #[\Override]
-    public function log($level, string|\Stringable $message, array $context = []): void
-    {
-        $this->records[] = ['level' => $level, 'message' => (string) $message, 'context' => $context];
-    }
-}
 
 final class RequestIdSubscriberTest extends TestCase
 {
