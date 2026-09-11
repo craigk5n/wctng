@@ -7,6 +7,7 @@ namespace App\Tests\Integration;
 use App\Security\PasswordHasher;
 use App\Service\DatabaseDsn;
 use App\Tenant\MySqlTenantDatabaseCreator;
+use App\Tenant\TenantDatabaseCreator;
 use App\Tenant\TenantDatabaseManager;
 use App\Tenant\TenantProvisioner;
 use App\Tenant\TenantRepository;
@@ -73,6 +74,7 @@ final class TenantProvisioningOnMySqlTest extends TestCase
         try {
             $this->control->exec("DROP DATABASE IF EXISTS `{$dbName}`");
             $this->control->exec("DROP USER IF EXISTS `{$dbUser}`@`%`");
+            $this->control->exec("DROP USER IF EXISTS `ltd_{$this->slug}`@`%`");
             $this->control->prepare('DELETE FROM tenants WHERE slug = :slug')->execute(['slug' => $this->slug]);
         } catch (\PDOException) {
             // Best effort: a failed provision may have left none of it behind.
@@ -159,5 +161,102 @@ final class TenantProvisioningOnMySqlTest extends TestCase
         self::assertFalse($second->success);
         self::assertSame("Tenant with slug '{$this->slug}' already exists.", $second->error);
         self::assertSame('First', $this->repo->findBySlug($this->slug)?->name());
+    }
+
+    public function testASecondAttemptAfterAFailedProvisionSucceeds(): void
+    {
+        // First attempt: the database and login are really created, then the
+        // connection to them fails because the host is unreachable. That is
+        // after save(), so it exercises the rollback.
+        $broken = new TenantProvisioner(
+            $this->repo,
+            $this->dbManager,
+            'mysql',
+            new PasswordHasher(),
+            new UnreachableHostCreator(new MySqlTenantDatabaseCreator($this->adminUrl)),
+        );
+
+        $failed = $broken->provision($this->slug, 'First Try', 'admin@' . $this->slug . '.test');
+        self::assertFalse($failed->success);
+
+        // The login exists on the server with the password that attempt made.
+        $user = $this->control->prepare('SELECT User FROM mysql.user WHERE User = :user');
+        $user->execute(['user' => 'wc_' . $this->slug]);
+        self::assertSame('wc_' . $this->slug, $user->fetchColumn());
+
+        // Nothing is registered, so the slug is free to try again.
+        self::assertNull($this->repo->findBySlug($this->slug));
+
+        // Second attempt, reaching the real host. This is where CREATE USER IF
+        // NOT EXISTS used to leave the first attempt's password in place while
+        // the registry stored the second one, making the slug unprovisionable
+        // for good.
+        $result = $this->provisioner()->provision($this->slug, 'Second Try', 'admin@' . $this->slug . '.test');
+
+        self::assertTrue($result->success, 'the retry failed: ' . $result->error);
+
+        $tenant = $this->repo->findBySlug($this->slug);
+        self::assertNotNull($tenant);
+        self::assertSame('Second Try', $tenant->name());
+
+        // The stored password authenticates: the connection is made with it.
+        $tenantPdo = $this->dbManager->getConnection($tenant);
+        $tables = $tenantPdo->query('SHOW TABLES')?->fetchAll(\PDO::FETCH_COLUMN);
+        self::assertIsArray($tables);
+        self::assertContains('webcal_user', $tables);
+    }
+
+    public function testADdlRefusalIsReportedRatherThanPassedOverInSilence(): void
+    {
+        // A login that can connect but may not CREATE DATABASE. Without the
+        // driver set to throw, exec() would just return false and provisioning
+        // would carry on to register a tenant with no database behind it.
+        $admin = (array) parse_url($this->adminUrl);
+        $limited = 'ltd_' . $this->slug;
+        $this->control->exec("CREATE USER `{$limited}`@`%` IDENTIFIED BY 'probe_secret'");
+        $adminDb = ltrim((string) ($admin['path'] ?? ''), '/');
+        $this->control->exec("GRANT SELECT ON `{$adminDb}`.* TO `{$limited}`@`%`");
+
+        $limitedUrl = \sprintf(
+            'mysql://%s:probe_secret@%s:%d%s',
+            $limited,
+            (string) $admin['host'],
+            (int) ($admin['port'] ?? 3306),
+            (string) ($admin['path'] ?? ''),
+        );
+
+        $creator = new MySqlTenantDatabaseCreator($limitedUrl);
+
+        try {
+            $creator->create('wc_tenant_' . $this->slug, 'wc_' . $this->slug, 'tenant_secret');
+            self::fail('a refused CREATE DATABASE should not look like a successful creation');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString("Could not create tenant database 'wc_tenant_{$this->slug}'", $e->getMessage());
+            self::assertInstanceOf(\PDOException::class, $e->getPrevious());
+        }
+
+        // And it really was not created.
+        $exists = $this->control
+            ->prepare('SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = :name');
+        $exists->execute(['name' => 'wc_tenant_' . $this->slug]);
+        self::assertFalse($exists->fetchColumn());
+    }
+}
+
+/** Creates the database for real, then reports a host nothing can reach. */
+final readonly class UnreachableHostCreator implements TenantDatabaseCreator
+{
+    public function __construct(private TenantDatabaseCreator $inner) {}
+
+    #[\Override]
+    public function create(string $dbName, string $dbUser, #[\SensitiveParameter] string $dbPassword): void
+    {
+        $this->inner->create($dbName, $dbUser, $dbPassword);
+    }
+
+    #[\Override]
+    public function serverHost(): string
+    {
+        return 'nonexistent.invalid';
     }
 }

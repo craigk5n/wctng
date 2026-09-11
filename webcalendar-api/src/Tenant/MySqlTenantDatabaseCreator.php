@@ -59,6 +59,10 @@ final readonly class MySqlTenantDatabaseCreator implements TenantDatabaseCreator
 
             $pdo->exec("CREATE DATABASE IF NOT EXISTS {$database} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
             $pdo->exec("CREATE USER IF NOT EXISTS {$user}@{$host} IDENTIFIED BY {$secret}");
+            // CREATE USER IF NOT EXISTS leaves an existing login's password
+            // alone, so a re-provision would store a password that does not
+            // authenticate. Set it unconditionally.
+            $pdo->exec("ALTER USER {$user}@{$host} IDENTIFIED BY {$secret}");
             $pdo->exec("GRANT ALL PRIVILEGES ON {$database}.* TO {$user}@{$host}");
             $pdo->exec('FLUSH PRIVILEGES');
         } catch (\PDOException $e) {

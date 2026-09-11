@@ -145,4 +145,21 @@ final class MySqlTenantDatabaseCreatorTest extends TestCase
             self::assertInstanceOf(\PDOException::class, $e->getPrevious());
         }
     }
+
+    public function testTheServerHostIsTheOneTheAdminUrlNames(): void
+    {
+        // The tenant row stores this as its host, so it has to be the server
+        // the database was actually created on and not a fixed name.
+        $creator = new MySqlTenantDatabaseCreator('mysql://root:secret@db.example.test:3306/webcalendar');
+
+        self::assertSame('db.example.test', $creator->serverHost());
+    }
+
+    public function testAnAdminUrlWithNoHostFallsBackToTheComposeServiceName(): void
+    {
+        // TenantProvisioner constructs an unconfigured creator by default, so
+        // this path is reached whenever provisioning is not set up.
+        self::assertSame('mysql', (new MySqlTenantDatabaseCreator(''))->serverHost());
+        self::assertSame('mysql', (new MySqlTenantDatabaseCreator('not a url'))->serverHost());
+    }
 }

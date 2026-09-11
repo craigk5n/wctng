@@ -260,6 +260,64 @@ final class TenantProvisionerTest extends TestCase
         self::assertStringContainsString('the server said no', $result->error);
         self::assertSame(0, $this->tenantCount());
     }
+
+    public function testAFailureAfterTheTenantIsSavedLeavesNothingRegistered(): void
+    {
+        // The creator succeeds here, so the database and login get made, but
+        // the host it reports cannot be reached: the provision fails at the
+        // connection, which is after save(). A row left behind there would
+        // serve the slug with no schema under it, and would then refuse the
+        // second attempt as a duplicate.
+        $provisioner = new TenantProvisioner(
+            $this->repo,
+            $this->dbManager,
+            'mysql',
+            new \App\Security\PasswordHasher(),
+            new RecordingTenantDatabaseCreator(),
+        );
+
+        $result = $provisioner->provision('acme-corp', 'Acme Corp', 'a@b.com');
+
+        self::assertFalse($result->success);
+        self::assertStringContainsString('Unable to connect', (string) $result->error);
+        self::assertSame(0, $this->tenantCount());
+        self::assertNull($this->repo->findBySlug('acme-corp'));
+    }
+
+    public function testAFailedRollbackIsNotReportedInPlaceOfWhatActuallyWentWrong(): void
+    {
+        $registry = new DeleteRefusingPdo('sqlite::memory:');
+        $registry->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $registry->exec(TenantRepository::SCHEMA_SQL);
+
+        $provisioner = new TenantProvisioner(
+            new TenantRepository($registry),
+            $this->dbManager,
+            'mysql',
+            new \App\Security\PasswordHasher(),
+            new RecordingTenantDatabaseCreator(),
+        );
+
+        $result = $provisioner->provision('acme-corp', 'Acme Corp', 'a@b.com');
+
+        self::assertFalse($result->success);
+        self::assertStringContainsString('Unable to connect', (string) $result->error);
+        self::assertStringNotContainsString('registry is read-only', (string) $result->error);
+    }
+}
+
+/** Accepts the tenant row but refuses to take it back out again. */
+final class DeleteRefusingPdo extends \PDO
+{
+    #[\Override]
+    public function prepare(string $query, array $options = []): \PDOStatement|false
+    {
+        if (str_starts_with($query, 'DELETE')) {
+            throw new \RuntimeException('registry is read-only');
+        }
+
+        return parent::prepare($query, $options);
+    }
 }
 
 /** Records what it was asked to create instead of creating it. */

@@ -55,6 +55,7 @@ final class TenantProvisioner
         $dbName = 'wc_tenant_' . str_replace('-', '_', $slug);
         $dbUser = 'wc_' . str_replace('-', '_', $slug);
         $adminPassword = $this->generatePassword();
+        $tenantId = null;
 
         try {
             if ($this->dbDriver === 'sqlite') {
@@ -115,6 +116,18 @@ final class TenantProvisioner
 
             return ProvisionResult::ok($slug, $adminEmail, $adminPassword);
         } catch (\Throwable $e) {
+            // Anything after save() fails with the tenant already registered
+            // and Active, which would serve a slug with no schema behind it and
+            // make the slug unusable for a second attempt. Take the row back
+            // out; a failure doing so must not replace the real error.
+            if ($tenantId !== null) {
+                try {
+                    $this->tenantRepository->delete($tenantId);
+                } catch (\Throwable) {
+                    // Reported through the original failure below.
+                }
+            }
+
             return ProvisionResult::fail($slug, 'Provisioning failed: ' . $e->getMessage());
         }
     }
@@ -158,8 +171,8 @@ final class TenantProvisioner
         $reflection = new \ReflectionClass(\WebCalendar\Core\Application\Service\EventService::class);
         $coreDir = \dirname((string) $reflection->getFileName(), 4);
 
+        // provision() has already refused any driver but these two.
         $fileName = match ($this->dbDriver) {
-            'pgsql' => 'postgresql-schema.sql',
             'sqlite' => 'sqlite-schema.sql',
             default => 'mysql-schema.sql',
         };
