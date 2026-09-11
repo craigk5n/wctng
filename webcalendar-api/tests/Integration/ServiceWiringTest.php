@@ -138,4 +138,32 @@ final class ServiceWiringTest extends KernelTestCase
             'TenantContext is not registered with the service resetter, so a tenant outlives the request',
         );
     }
+
+    /**
+     * The factory must be reset alongside the tenant context.
+     *
+     * It memoises every repository and service against the connection that
+     * getPdo() returned when each was first built. Clearing TenantContext
+     * without clearing these leaves the next request holding the previous
+     * tenant's repositories, so this asserts the resetter reaches both.
+     */
+    public function testTheServiceResetterAlsoClearsTheCoreServiceFactory(): void
+    {
+        self::bootKernel();
+        $container = self::getContainer();
+
+        $factory = $container->get(CoreServiceFactory::class);
+        self::assertInstanceOf(CoreServiceFactory::class, $factory);
+        $before = $factory->getEventRepository();
+
+        $resetter = $container->get('services_resetter');
+        self::assertInstanceOf(ResetInterface::class, $resetter);
+        $resetter->reset();
+
+        self::assertNotSame(
+            $before,
+            $factory->getEventRepository(),
+            'CoreServiceFactory is not registered with the service resetter, so its cached services outlive the request',
+        );
+    }
 }

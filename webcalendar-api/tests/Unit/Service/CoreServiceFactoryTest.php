@@ -272,6 +272,80 @@ final class CoreServiceFactoryTest extends TestCase
         self::assertSame($repository, $factory->getEventRepository(), 'but a built service is not rebuilt');
     }
 
+    public function testAResetRebuildsTheServicesOnTheTenantThatIsCurrentThen(): void
+    {
+        // What makes a reused container safe. Symfony's resetter calls this
+        // between requests, alongside TenantContext::reset(); without it the
+        // next request keeps the previous request's repositories and writes
+        // into the previous tenant's database.
+        $context = new TenantContext();
+        $context->setTenant(self::tenant('alpha'));
+        $factory = $this->factory($context, new TenantDatabaseManager('secret-for-tests'));
+
+        $alphaRepository = $factory->getEventRepository();
+        $alphaPdo = self::pdoOf($alphaRepository);
+
+        // A request ends, the resetter runs, and the next one is another tenant.
+        $factory->reset();
+        $context->reset();
+        $context->setTenant(self::tenant('beta'));
+
+        $betaRepository = $factory->getEventRepository();
+
+        self::assertNotSame($alphaRepository, $betaRepository, 'the repository should have been rebuilt');
+        self::assertNotSame($alphaPdo, self::pdoOf($betaRepository), 'and on the new tenant\'s connection');
+        self::assertSame($factory->getPdo(), self::pdoOf($betaRepository));
+    }
+
+    public function testAResetClearsEveryCachedGetterAndNotJustSome(): void
+    {
+        // Forty-five memoised fields, and one left behind would be one service
+        // still holding the old tenant's connection. Checked across every
+        // getter that memoises rather than a sample of them.
+        $factory = $this->factory();
+
+        $before = [];
+        foreach (self::memoisingGetters() as $getter) {
+            $before[$getter] = $factory->{$getter}();
+        }
+
+        $factory->reset();
+
+        foreach (self::memoisingGetters() as $getter) {
+            self::assertNotSame(
+                $before[$getter],
+                $factory->{$getter}(),
+                $getter . '() still hands back the instance from before the reset',
+            );
+        }
+    }
+
+    /**
+     * Every getter that memoises: the whole list, less the three that build
+     * fresh each call and getPdo(), which hands back the injected connection
+     * rather than anything the factory caches. That leaves one entry per
+     * cached field, so a getter added without being reset fails the loop above.
+     *
+     * @return list<string>
+     */
+    private static function memoisingGetters(): array
+    {
+        return array_values(array_diff(self::GETTERS, self::FRESH_EACH_CALL, ['getPdo']));
+    }
+
+    private static function pdoOf(object $service): \PDO
+    {
+        foreach ((new \ReflectionClass($service))->getProperties() as $property) {
+            $value = $property->getValue($service);
+
+            if ($value instanceof \PDO) {
+                return $value;
+            }
+        }
+
+        self::fail($service::class . ' holds no PDO to check');
+    }
+
     private static function loggerOf(object $service): ?LoggerInterface
     {
         foreach ((new \ReflectionClass($service))->getProperties() as $property) {

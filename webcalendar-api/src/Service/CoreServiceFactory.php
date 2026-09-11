@@ -8,6 +8,7 @@ use App\Tenant\TenantContext;
 use App\Tenant\TenantDatabaseManager;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use Symfony\Contracts\Service\ResetInterface;
 use WebCalendar\Core\Application\Contract\AuthServiceInterface;
 use WebCalendar\Core\Application\Contract\EmailProviderInterface;
 use WebCalendar\Core\Application\Contract\RateLimiterInterface;
@@ -79,7 +80,7 @@ use WebCalendar\Core\Infrastructure\Webhook\LogWebhookProvider;
  * still take it directly. Those two are all that remain; once they inject
  * their services this class can be deleted.
  */
-final class CoreServiceFactory
+final class CoreServiceFactory implements ResetInterface
 {
     private LoggerInterface $logger;
 
@@ -146,6 +147,73 @@ final class CoreServiceFactory
         $this->logger = $logger ?? new NullLogger();
         $this->tenantContext = $tenantContext;
         $this->tenantDbManager = $tenantDbManager;
+    }
+
+
+    /**
+     * Drops every cached repository and service.
+     *
+     * Each one is built once and keeps the connection getPdo() returned at the
+     * time, and that connection depends on the tenant then in context. A
+     * container that serves more than one request -- any worker runtime -- would
+     * otherwise hand the second request the first request's repositories, and a
+     * write meant for one tenant would land in another's database. Symfony's
+     * service resetter calls this between requests, as it does
+     * TenantContext::reset().
+     *
+     * This covers requests, not arbitrary switching: code that changes the
+     * tenant in context part-way through a single process has to call this
+     * itself, or build a new factory, because a cached service is returned
+     * without consulting getPdo() again.
+     */
+    #[\Override]
+    public function reset(): void
+    {
+        $this->eventRepository = null;
+        $this->userRepository = null;
+        $this->categoryRepository = null;
+        $this->tokenRepository = null;
+        $this->activityLogRepository = null;
+        $this->groupRepository = null;
+        $this->layerRepository = null;
+        $this->permissionRepository = null;
+        $this->configRepository = null;
+        $this->blobRepository = null;
+        $this->resourceRepository = null;
+        $this->templateRepository = null;
+        $this->viewRepository = null;
+        $this->taskRepository = null;
+        $this->journalRepository = null;
+        $this->siteExtraRepository = null;
+        $this->reportRepository = null;
+        $this->assistantRepository = null;
+        $this->reminderRepository = null;
+        $this->eventService = null;
+        $this->userService = null;
+        $this->categoryService = null;
+        $this->securityService = null;
+        $this->groupService = null;
+        $this->layerService = null;
+        $this->permissionService = null;
+        $this->configService = null;
+        $this->activityLogService = null;
+        $this->blobService = null;
+        $this->resourceService = null;
+        $this->templateService = null;
+        $this->viewService = null;
+        $this->taskService = null;
+        $this->journalService = null;
+        $this->siteExtraService = null;
+        $this->reportService = null;
+        $this->searchService = null;
+        $this->recurrenceService = null;
+        $this->assistantService = null;
+        $this->importService = null;
+        $this->exportService = null;
+        $this->feedService = null;
+        $this->bookingService = null;
+        $this->notificationService = null;
+        $this->authService = null;
     }
 
     /**
