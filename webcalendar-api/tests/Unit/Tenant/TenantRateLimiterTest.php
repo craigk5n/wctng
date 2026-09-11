@@ -381,6 +381,45 @@ final class TenantRateLimiterTest extends TestCase
             $response->headers->get('X-RateLimit-Reset'),
         );
     }
+
+    // ------------------------------------------ state between two requests
+
+    public function testARequestWithNoTenantCarriesNoRateLimitHeaders(): void
+    {
+        // The listener holds the figures for the request in hand, and a
+        // container that serves two requests reuses the object. A base-domain
+        // request resolves no tenant, so it must not be handed the previous
+        // tenant's plan and remaining quota -- their usage, on somebody else's
+        // response.
+        $limiter = $this->limiterFor(TenantPlan::Pro, 'rate-stale-pro');
+        $first = $this->throughBothListeners($limiter);
+        self::assertSame('1000', $first->headers->get('X-RateLimit-Limit'));
+
+        // The next request resolves no tenant at all.
+        $this->context->reset();
+        $second = $this->throughBothListeners($limiter);
+
+        self::assertNull($second->headers->get('X-RateLimit-Limit'));
+        self::assertNull($second->headers->get('X-RateLimit-Remaining'));
+        self::assertNull($second->headers->get('X-RateLimit-Reset'));
+    }
+
+    public function testASecondTenantIsToldItsOwnCeilingAndNotTheFirstTenants(): void
+    {
+        // Pro then Free through one listener: the Free tenant must be told 100.
+        $limiter = $this->limiterFor(TenantPlan::Pro, 'rate-first-pro');
+        $this->throughBothListeners($limiter);
+
+        // Same listener object, a different tenant in context.
+        $this->context->reset();
+        $this->context->setTenant(
+            new Tenant(2, 'rate-second-free', 'Free', '', '', '', '', TenantPlan::Free, TenantStatus::Active),
+        );
+        $second = $this->throughBothListeners($limiter);
+
+        self::assertSame('100', $second->headers->get('X-RateLimit-Limit'));
+        self::assertSame('99', $second->headers->get('X-RateLimit-Remaining'));
+    }
 }
 
 /** A counting backend that is down. */
@@ -391,4 +430,5 @@ final class ThrowingRateLimitStorage implements TenantRateLimitStorage
     {
         throw new \RuntimeException('counter backend unavailable');
     }
+
 }

@@ -38,6 +38,16 @@ final class TenantRateLimiter
             return;
         }
 
+        // These three describe the request being handled now. A container that
+        // serves more than one request would otherwise keep the last figures
+        // that were worked out, and onKernelResponse would put another tenant's
+        // plan and remaining quota on a response that is not theirs -- most
+        // visibly on a base-domain request, which resolves no tenant and
+        // returns just below.
+        $this->limit = null;
+        $this->remaining = null;
+        $this->resetAt = null;
+
         $tenant = $this->tenantContext->getTenant();
         if ($tenant === null) {
             return;
