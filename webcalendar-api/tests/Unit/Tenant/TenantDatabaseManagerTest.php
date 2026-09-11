@@ -236,4 +236,50 @@ final class TenantDatabaseManagerTest extends TestCase
             self::assertInstanceOf(\PDOException::class, $e->getPrevious());
         }
     }
+
+    /** @return iterable<string, array{int}> */
+    public static function tamperedByteOffsets(): iterable
+    {
+        // One byte flipped in each region of base64(iv + tag + ciphertext).
+        $ivLength = (int) openssl_cipher_iv_length('aes-256-gcm');
+
+        yield 'in the iv' => [0];
+        yield 'in the tag' => [$ivLength];
+        yield 'in the ciphertext' => [$ivLength + 16];
+    }
+
+    #[DataProvider('tamperedByteOffsets')]
+    public function testAStoredPasswordThatHasBeenTamperedWithIsRefused(int $offset): void
+    {
+        // GCM is authenticated encryption, and this is the property that makes
+        // it worth using over a bare cipher: a registry row edited by anything
+        // other than this class must not decrypt to a usable password. Only a
+        // wrong key was covered before, which a plain unauthenticated cipher
+        // would also have failed.
+        $manager = new TenantDatabaseManager(self::APP_SECRET);
+
+        $raw = base64_decode($manager->encryptPassword('my_db_password_123'), true);
+        self::assertIsString($raw);
+        $raw[$offset] = \chr(\ord($raw[$offset]) ^ 0xFF);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Decryption failed');
+        $manager->decryptPassword(base64_encode($raw));
+    }
+
+    public function testTheSamePasswordEncryptsDifferentlyEveryTime(): void
+    {
+        // A fresh iv per call. Storing the same password for two tenants must
+        // not produce the same ciphertext, or the registry leaks which tenants
+        // share a password. testDifferentPlaintextsProduceDifferentCiphertexts
+        // uses two different passwords, so it holds even with a fixed iv.
+        $manager = new TenantDatabaseManager(self::APP_SECRET);
+
+        $first = $manager->encryptPassword('same_password');
+        $second = $manager->encryptPassword('same_password');
+
+        self::assertNotSame($first, $second);
+        self::assertSame('same_password', $manager->decryptPassword($first));
+        self::assertSame('same_password', $manager->decryptPassword($second));
+    }
 }
