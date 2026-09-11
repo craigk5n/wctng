@@ -149,4 +149,92 @@ final class AttachmentControllerTest extends TestCase
         $this->assertSame('application/pdf', $response->headers->get('Content-Type'));
         $this->assertStringContainsString('report.pdf', (string) $response->headers->get('Content-Disposition'));
     }
+
+    // ------------------------------------ what a download is allowed to be
+
+    public function testDownloadingAnotherEventsAttachmentIsRefused(): void
+    {
+        // The attachment id is enough to fetch a blob on its own, so this
+        // check is the only thing tying it to the event in the path. Without
+        // it, anyone who may read one event can read every attachment in the
+        // installation by guessing ids.
+        $this->eventRepo->method('findById')->willReturn($this->makeEvent(1, 'alice'));
+        $this->blobRepo->method('findById')->willReturn($this->makeBlob(10, 2, 'bob'));
+
+        $response = $this->controller->download(1, 10, $this->makeUser('alice'));
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
+    public function testDownloadingAnAttachmentThatIsNotThereIsRefused(): void
+    {
+        $this->eventRepo->method('findById')->willReturn($this->makeEvent(1, 'alice'));
+        $this->blobRepo->method('findById')->willReturn(null);
+
+        $response = $this->controller->download(1, 999, $this->makeUser('alice'));
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
+    public function testADownloadSaysHowLongItIs(): void
+    {
+        // A Content-Length that disagrees with the body truncates the file at
+        // the client.
+        $this->eventRepo->method('findById')->willReturn($this->makeEvent(1, 'alice'));
+        $this->blobRepo->method('findById')->willReturn(new Blob(
+            id: 10,
+            eventId: 1,
+            login: 'alice',
+            name: 'report.pdf',
+            description: '',
+            size: 5,
+            mimeType: 'application/pdf',
+            type: BlobType::ATTACHMENT,
+            date: new \DateTimeImmutable(),
+            content: 'hello',
+        ));
+
+        $response = $this->controller->download(1, 10, $this->makeUser('alice'));
+
+        self::assertSame('5', $response->headers->get('Content-Length'));
+        self::assertSame('hello', $response->getContent());
+    }
+
+    // ------------------------------------------ what a listing hands back
+
+    public function testAListedAttachmentCarriesEveryFieldTheClientNeeds(): void
+    {
+        // Only the filename was ever checked, so every other field could have
+        // been dropped or misnamed: a client cannot download without the id,
+        // render without the mime type, or show a size or an uploader at all.
+        $date = new \DateTimeImmutable('2026-04-01 09:30:00');
+        $blob = new Blob(
+            id: 10,
+            eventId: 1,
+            login: 'alice',
+            name: 'report.pdf',
+            description: '',
+            size: 1024,
+            mimeType: 'application/pdf',
+            type: BlobType::ATTACHMENT,
+            date: $date,
+        );
+
+        $this->eventRepo->method('findById')->willReturn($this->makeEvent(1, 'alice'));
+        $this->blobRepo->method('findByEvent')->willReturn([$blob]);
+
+        $response = $this->controller->list(1, Request::create('/'), $this->makeUser('alice'));
+
+        /** @var array{data: list<array<string, mixed>>} $body */
+        $body = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
+
+        self::assertSame([
+            'id' => 10,
+            'filename' => 'report.pdf',
+            'mime_type' => 'application/pdf',
+            'size' => 1024,
+            'created_at' => '2026-04-01T09:30:00',
+            'uploaded_by' => 'alice',
+        ], $body['data'][0]);
+    }
 }
