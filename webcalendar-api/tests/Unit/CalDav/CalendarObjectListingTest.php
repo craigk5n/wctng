@@ -903,4 +903,131 @@ final class CalendarObjectListingTest extends TestCase
             $this->backend()->getCalendarsForUser('principals/alice')[0]['{DAV:}sync-token'],
         );
     }
+
+    // -- ETag stability ------------------------------------------------------
+
+    /** Rewrites the stored revision stamp, which is what DTSTAMP is built from. */
+    private function setRevision(int $id, ?int $modDate, ?int $modTime): void
+    {
+        $this->pdo
+            ->prepare('UPDATE webcal_entry SET cal_mod_date = :d, cal_mod_time = :t WHERE cal_id = :id')
+            ->execute(['d' => $modDate, 't' => $modTime, 'id' => $id]);
+    }
+
+    public function testTheEtagDoesNotChangeWhileTheEventDoesNot(): void
+    {
+        // VObject supplies DTSTAMP from the current second when the serialiser
+        // does not, and the ETag is an md5 of that serialisation -- so the ETag
+        // of an untouched event used to change every second, busting client
+        // caches and failing If-Match on any request that crossed a boundary.
+        $this->addEvent();
+        $id = (int) $this->listing()[0]['id'];
+
+        // Backdated so "now" cannot coincide with the stored stamp: without
+        // this the assertion would hold either way for a fresh event.
+        $this->setRevision($id, 20200102, 30405);
+
+        $first = $this->backend()->getCalendarObject('alice', $id . '.ics');
+        self::assertIsArray($first);
+        self::assertStringContainsString('DTSTAMP:20200102T030405Z', (string) $first['calendardata']);
+
+        $second = $this->backend()->getCalendarObject('alice', $id . '.ics');
+        self::assertSame($first['etag'], $second['etag']);
+    }
+
+    public function testTheEtagChangesWhenTheEventIsRevised(): void
+    {
+        // The other half of the contract: an ETag that ignored revisions would
+        // be stable and useless.
+        $this->addEvent();
+        $id = (int) $this->listing()[0]['id'];
+
+        $this->setRevision($id, 20200102, 30405);
+        $before = $this->backend()->getCalendarObject('alice', $id . '.ics')['etag'];
+
+        $this->setRevision($id, 20200102, 30406);
+        $after = $this->backend()->getCalendarObject('alice', $id . '.ics')['etag'];
+
+        self::assertNotSame($before, $after);
+    }
+
+    public function testTheListingAndTheObjectAgreeOnTheEtag(): void
+    {
+        // Sabre compares the If-Match a client sends against the ETag it got
+        // from whichever of the two it read, so they have to match.
+        $this->addEvent();
+        $id = (int) $this->listing()[0]['id'];
+        $this->setRevision($id, 20200102, 30405);
+
+        $listed = $this->listing()[0];
+        $fetched = $this->backend()->getCalendarObject('alice', $id . '.ics');
+
+        self::assertSame($listed['etag'], $fetched['etag']);
+    }
+
+    public function testTheEarliestRealRevisionDateIsStillPublished(): void
+    {
+        // The guard against zeroed legacy dates must not swallow the first day
+        // it accepts.
+        $this->addEvent();
+        $id = (int) $this->listing()[0]['id'];
+        $this->setRevision($id, 19700101, 0);
+
+        $ics = (string) $this->backend()->getCalendarObject('alice', $id . '.ics')['calendardata'];
+
+        self::assertStringContainsString('DTSTAMP:19700101T000000Z', $ics);
+    }
+
+    /** @return iterable<string, array{?int, ?int}> */
+    public static function unusableRevisionStamps(): iterable
+    {
+        // Either column can be absent, and a legacy row can hold a zero date.
+        // Half a stamp is no stamp: a date with no time, or a time with no
+        // date, cannot say when the event was revised.
+        yield 'neither' => [null, null];
+        yield 'no date' => [null, 30405];
+        yield 'no time' => [20200102, null];
+        yield 'zeroed' => [0, 0];
+    }
+
+    #[DataProvider('unusableRevisionStamps')]
+    public function testAnEventWithNoUsableRevisionStampIsStillServedASaneStamp(?int $modDate, ?int $modTime): void
+    {
+        // Legacy rows can carry no modification stamp. There is then nothing
+        // to build a stable DTSTAMP from and VObject's own is used -- which
+        // still has to be a real date. Reading half a stamp, or a zeroed one,
+        // would publish DTSTAMP:-00011130T000000Z.
+        $this->addEvent();
+        $id = (int) $this->listing()[0]['id'];
+        $this->setRevision($id, $modDate, $modTime);
+
+        $fetched = $this->backend()->getCalendarObject('alice', $id . '.ics');
+
+        self::assertIsArray($fetched);
+        $ics = (string) $fetched['calendardata'];
+        self::assertMatchesRegularExpression('/^DTSTAMP:\d{8}T\d{6}Z\r?$/m', $ics);
+        self::assertStringContainsString('DTSTAMP:' . gmdate('Y'), $ics, 'the fallback stamp should be now');
+    }
+
+    public function testTheRevisionStampIsReadAsLocalTimeAndPublishedAsUtc(): void
+    {
+        // cal_mod_date/cal_mod_time are written in the server's own timezone,
+        // and DTSTAMP is defined in UTC. A deployment outside UTC would
+        // otherwise publish a stamp hours away from the real revision time.
+        $this->addEvent();
+        $id = (int) $this->listing()[0]['id'];
+        $this->setRevision($id, 20200102, 30405);
+
+        $original = date_default_timezone_get();
+        date_default_timezone_set('America/New_York');
+
+        try {
+            $ics = (string) $this->backend()->getCalendarObject('alice', $id . '.ics')['calendardata'];
+        } finally {
+            date_default_timezone_set($original);
+        }
+
+        // 03:04:05 in New York on that date (EST, -05:00) is 08:04:05 UTC.
+        self::assertStringContainsString('DTSTAMP:20200102T080405Z', $ics);
+    }
 }

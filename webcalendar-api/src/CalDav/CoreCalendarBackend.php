@@ -682,7 +682,10 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
         $modDate = $event->modDate();
         $modTime = $event->modTime();
 
-        if ($modDate === null || $modTime === null) {
+        // A legacy row can hold 0 rather than a date, which would otherwise be
+        // published as DTSTAMP:-00011130T000000Z. Half a stamp is no stamp
+        // either: a date with no time cannot say when the event was revised.
+        if ($modDate === null || $modTime === null || $modDate < 19700101) {
             return null;
         }
 
