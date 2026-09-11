@@ -153,6 +153,37 @@ final class CustomFieldRepositoryTest extends TestCase
         yield 'optional' => [false];
     }
 
+    /** @return iterable<string, array{bool, int}> */
+    public static function requiredStatesAndTheirStoredValue(): iterable
+    {
+        yield 'required is stored as one' => [true, 1];
+        yield 'optional is stored as zero' => [false, 0];
+    }
+
+    #[DataProvider('requiredStatesAndTheirStoredValue')]
+    public function testTheFlagIsStoredAsOneOrZeroAndNothingElse(bool $required, int $stored): void
+    {
+        // The round-trip tests below pass for any falsey-on-read value, since
+        // mapRow only asks whether the column equals 1 -- so the column could
+        // be written as -1 and this class would never notice. It is an
+        // INTEGER NOT NULL standing in for a boolean, and what is in it is
+        // what anything reading the table directly will see.
+        $insertedId = $this->repo->save($this->fullyPopulated(required: $required));
+        self::assertSame($stored, $this->storedRequired($insertedId));
+
+        // And again down the update path, which writes the same expression.
+        $this->repo->save($this->fullyPopulated($insertedId, $required));
+        self::assertSame($stored, $this->storedRequired($insertedId));
+    }
+
+    private function storedRequired(int $id): int
+    {
+        $stmt = $this->pdo->prepare('SELECT required FROM custom_field_definitions WHERE id = :id');
+        $stmt->execute(['id' => $id]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
     #[DataProvider('requiredStates')]
     public function testTheRequiredFlagSurvivesAnInsert(bool $required): void
     {
