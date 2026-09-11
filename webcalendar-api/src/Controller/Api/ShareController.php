@@ -15,6 +15,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Uid\Uuid;
 use WebCalendar\Core\Domain\Entity\User;
 use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
@@ -53,7 +54,7 @@ final class ShareController
         $body = json_decode($request->getContent(), true) ?? [];
         $expiresAt = $body['expires_at'] ?? null;
 
-        $uuid = $this->generateUuid();
+        $uuid = Uuid::v4()->toRfc4122();
         $token = $this->tokenRepo->create($uuid, $login, $expiresAt);
 
         return ApiResponse::success($token->toArray(), null, 201);
@@ -150,21 +151,6 @@ final class ShareController
             return $actorOrUser->login();
         }
         return null;
-    }
-
-    private function generateUuid(): string
-    {
-        return sprintf(
-            '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-            random_int(0, 0xffff),
-            random_int(0, 0xffff),
-            random_int(0, 0xffff),
-            random_int(0, 0x0fff) | 0x4000,
-            random_int(0, 0x3fff) | 0x8000,
-            random_int(0, 0xffff),
-            random_int(0, 0xffff),
-            random_int(0, 0xffff),
-        );
     }
 
     private function parseDateParam(string $value): ?\DateTimeImmutable
