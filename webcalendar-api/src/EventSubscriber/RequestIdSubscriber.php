@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\EventSubscriber;
 
-use App\Tenant\TenantContext;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -13,7 +12,12 @@ use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
  * Adds a unique request ID to every request and includes it in logs and response headers.
- * Also adds tenant slug to log context for multi-tenant debugging.
+ *
+ * Runs at priority 250, ahead of TenantResolverListener at 200, so that a
+ * request the resolver refuses still gets an ID, a log line and an
+ * X-Request-Id on its response. The tenant is therefore not known here, and
+ * the slug is attached to log records by RequestIdProcessor instead, which
+ * runs when each record is written rather than at the top of the request.
  */
 final class RequestIdSubscriber implements EventSubscriberInterface
 {
@@ -21,7 +25,6 @@ final class RequestIdSubscriber implements EventSubscriberInterface
 
     public function __construct(
         private readonly LoggerInterface $logger,
-        private readonly TenantContext $tenantContext,
     ) {}
 
     #[\Override]
@@ -51,11 +54,6 @@ final class RequestIdSubscriber implements EventSubscriberInterface
             'method' => $request->getMethod(),
             'path' => $request->getPathInfo(),
         ];
-
-        $tenant = $this->tenantContext->getTenant();
-        if ($tenant !== null) {
-            $context['tenant'] = $tenant->slug();
-        }
 
         $this->logger->info('Request started', $context);
     }

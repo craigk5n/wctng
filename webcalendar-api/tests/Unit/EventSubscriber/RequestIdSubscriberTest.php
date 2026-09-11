@@ -5,95 +5,172 @@ declare(strict_types=1);
 namespace App\Tests\Unit\EventSubscriber;
 
 use App\EventSubscriber\RequestIdSubscriber;
-use App\Tenant\Tenant;
-use App\Tenant\TenantContext;
-use App\Tenant\TenantPlan;
-use App\Tenant\TenantStatus;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\NullLogger;
+use Psr\Log\AbstractLogger;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpKernel\KernelInterface;
+
+/** Captures what was logged so the context can be read back. */
+final class RecordingLogger extends AbstractLogger
+{
+    /** @var list<array{level: mixed, message: string, context: array<string, mixed>}> */
+    public array $records = [];
+
+    /** @param array<string, mixed> $context */
+    #[\Override]
+    public function log($level, string|\Stringable $message, array $context = []): void
+    {
+        $this->records[] = ['level' => $level, 'message' => (string) $message, 'context' => $context];
+    }
+}
 
 final class RequestIdSubscriberTest extends TestCase
 {
-    public function testGeneratesRequestId(): void
+    private RecordingLogger $logger;
+
+    #[\Override]
+    protected function setUp(): void
     {
-        $context = new TenantContext();
-        $subscriber = new RequestIdSubscriber(new NullLogger(), $context);
-
-        $request = Request::create('/api/v2/events');
-        $kernel = $this->createMock(KernelInterface::class);
-        $event = new RequestEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST);
-
-        $subscriber->onRequest($event);
-
-        $this->assertNotNull($subscriber->getRequestId());
-        $this->assertSame(16, \strlen($subscriber->getRequestId() ?? ''));
+        $this->logger = new RecordingLogger();
     }
 
-    public function testUsesProvidedRequestId(): void
+    private function subscriber(): RequestIdSubscriber
     {
-        $context = new TenantContext();
-        $subscriber = new RequestIdSubscriber(new NullLogger(), $context);
-
-        $request = Request::create('/api/v2/events');
-        $request->headers->set('X-Request-Id', 'custom-id-123');
-        $kernel = $this->createMock(KernelInterface::class);
-        $event = new RequestEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST);
-
-        $subscriber->onRequest($event);
-
-        $this->assertSame('custom-id-123', $subscriber->getRequestId());
+        return new RequestIdSubscriber($this->logger);
     }
 
-    public function testAddsRequestIdToResponse(): void
+    private function requestEvent(Request $request, int $type = HttpKernelInterface::MAIN_REQUEST): RequestEvent
     {
-        $context = new TenantContext();
-        $subscriber = new RequestIdSubscriber(new NullLogger(), $context);
-
-        $request = Request::create('/api/v2/events');
-        $kernel = $this->createMock(KernelInterface::class);
-
-        $reqEvent = new RequestEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST);
-        $subscriber->onRequest($reqEvent);
-
-        $response = new Response();
-        $resEvent = new ResponseEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST, $response);
-        $subscriber->onResponse($resEvent);
-
-        $this->assertNotNull($response->headers->get('X-Request-Id'));
+        return new RequestEvent($this->createMock(KernelInterface::class), $request, $type);
     }
 
-    public function testIncludesTenantInContext(): void
+    private function responseEvent(Request $request, int $type = HttpKernelInterface::MAIN_REQUEST): ResponseEvent
     {
-        $context = new TenantContext();
-        $context->setTenant(new Tenant(1, 'acme', 'Acme', '', '', '', '', TenantPlan::Pro, TenantStatus::Active));
+        return new ResponseEvent($this->createMock(KernelInterface::class), $request, $type, new Response());
+    }
 
-        // Use a logger that captures messages
-        $logged = [];
-        $logger = new class ($logged) extends NullLogger {
-            /** @param array<mixed> $logged */
-            public function __construct(private array &$logged) {}
-            /** @param array<mixed> $context */
-            public function info(string|\Stringable $message, array $context = []): void
-            {
-                $this->logged[] = $context;
-            }
-        };
+    public function testAnIdIsGeneratedWhenTheClientSuppliesNone(): void
+    {
+        $subscriber = $this->subscriber();
+        $subscriber->onRequest($this->requestEvent(Request::create('/api/v2/events')));
 
-        $subscriber = new RequestIdSubscriber($logger, $context);
+        self::assertMatchesRegularExpression('/^[0-9a-f]{16}$/', (string) $subscriber->getRequestId());
+    }
 
+    public function testTheClientsOwnRequestIdIsKept(): void
+    {
+        // Lets a caller correlate its own logs with the API's.
         $request = Request::create('/api/v2/events');
-        $kernel = $this->createMock(KernelInterface::class);
-        $event = new RequestEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST);
+        $request->headers->set('X-Request-Id', 'caller-supplied-id');
 
-        $subscriber->onRequest($event);
+        $subscriber = $this->subscriber();
+        $subscriber->onRequest($this->requestEvent($request));
 
-        $this->assertNotEmpty($logged);
-        $this->assertSame('acme', $logged[0]['tenant'] ?? null);
+        self::assertSame('caller-supplied-id', $subscriber->getRequestId());
+    }
+
+    public function testTheIdIsPutOnTheRequestForTheRestOfTheApplication(): void
+    {
+        // ExceptionSubscriber reads _request_id off the request rather than
+        // calling back into this class, so the attribute is load-bearing.
+        $request = Request::create('/api/v2/events');
+
+        $subscriber = $this->subscriber();
+        $subscriber->onRequest($this->requestEvent($request));
+
+        self::assertSame($subscriber->getRequestId(), $request->attributes->get('_request_id'));
+    }
+
+    public function testTheLogLineSaysWhichRequestItIs(): void
+    {
+        // Nothing checked the context, so any field could have been dropped or
+        // pointed at the wrong part of the request.
+        $subscriber = $this->subscriber();
+        $subscriber->onRequest($this->requestEvent(Request::create('/api/v2/events?q=x', 'POST')));
+
+        self::assertCount(1, $this->logger->records);
+        self::assertSame('Request started', $this->logger->records[0]['message']);
+        self::assertSame(
+            ['request_id' => $subscriber->getRequestId(), 'method' => 'POST', 'path' => '/api/v2/events'],
+            $this->logger->records[0]['context'],
+        );
+    }
+
+    public function testTheStartingLineCarriesNoTenant(): void
+    {
+        // This subscriber runs at 250 and TenantResolverListener at 200, so no
+        // tenant is resolved yet -- deliberately, so that a request the
+        // resolver refuses still gets an id and a log line. The slug reaches
+        // later records through RequestIdProcessor instead. A test that set a
+        // tenant by hand before calling onRequest would say otherwise, and
+        // used to.
+        $subscriber = $this->subscriber();
+        $subscriber->onRequest($this->requestEvent(Request::create('/api/v2/events')));
+
+        self::assertArrayNotHasKey('tenant', $this->logger->records[0]['context']);
+    }
+
+    public function testItRunsBeforeTheTenantIsResolved(): void
+    {
+        // The ordering the paragraph above depends on, asserted rather than
+        // described: 250 against the resolver's 200.
+        $events = RequestIdSubscriber::getSubscribedEvents();
+
+        self::assertSame(['onRequest', 250], $events[KernelEvents::REQUEST]);
+        self::assertSame(['onResponse', -100], $events[KernelEvents::RESPONSE]);
+    }
+
+    public function testTheResponseCarriesTheIdBack(): void
+    {
+        $request = Request::create('/api/v2/events');
+        $subscriber = $this->subscriber();
+        $subscriber->onRequest($this->requestEvent($request));
+
+        $event = $this->responseEvent($request);
+        $subscriber->onResponse($event);
+
+        self::assertSame($subscriber->getRequestId(), $event->getResponse()->headers->get('X-Request-Id'));
+    }
+
+    public function testASubRequestNeitherTakesAnIdNorCarriesOneBack(): void
+    {
+        $request = Request::create('/api/v2/events');
+        $subscriber = $this->subscriber();
+
+        $subscriber->onRequest($this->requestEvent($request, HttpKernelInterface::SUB_REQUEST));
+        self::assertNull($subscriber->getRequestId());
+        self::assertCount(0, $this->logger->records);
+
+        $event = $this->responseEvent($request, HttpKernelInterface::SUB_REQUEST);
+        $subscriber->onResponse($event);
+        self::assertFalse($event->getResponse()->headers->has('X-Request-Id'));
+    }
+
+    public function testASubRequestDoesNotBorrowTheMainRequestsIdOnItsWayOut(): void
+    {
+        // With an id already taken for the main request, the guard on the way
+        // out has to still refuse the sub-request.
+        $request = Request::create('/api/v2/events');
+        $subscriber = $this->subscriber();
+        $subscriber->onRequest($this->requestEvent($request));
+
+        $event = $this->responseEvent($request, HttpKernelInterface::SUB_REQUEST);
+        $subscriber->onResponse($event);
+
+        self::assertFalse($event->getResponse()->headers->has('X-Request-Id'));
+    }
+
+    public function testAResponseWithNoIdTakenIsLeftAlone(): void
+    {
+        // onResponse can be reached without onRequest having run.
+        $event = $this->responseEvent(Request::create('/api/v2/events'));
+        $this->subscriber()->onResponse($event);
+
+        self::assertFalse($event->getResponse()->headers->has('X-Request-Id'));
     }
 }
