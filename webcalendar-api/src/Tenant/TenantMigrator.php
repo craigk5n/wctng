@@ -39,8 +39,23 @@ final class TenantMigrator
             return ['slug' => $tenant->slug(), 'applied' => 0, 'skipped' => 0, 'error' => $e->getMessage()];
         }
 
-        $this->ensureMigrationsTable($pdo);
-        $applied = $this->getAppliedMigrations($pdo);
+        try {
+            $this->ensureMigrationsTable($pdo);
+            $applied = $this->getAppliedMigrations($pdo);
+        } catch (\PDOException $e) {
+            // Reading or creating the history can fail on its own -- the login
+            // may not create tables, or a schema_migrations left by another
+            // tool may have nothing this recognises in it. Report it like any
+            // other migration failure: throwing here would break the return
+            // contract and, through migrateAll(), abandon every tenant after
+            // this one.
+            return [
+                'slug' => $tenant->slug(),
+                'applied' => 0,
+                'skipped' => 0,
+                'error' => "Migration history unavailable: {$e->getMessage()}",
+            ];
+        }
 
         $newApplied = 0;
         $skipped = 0;

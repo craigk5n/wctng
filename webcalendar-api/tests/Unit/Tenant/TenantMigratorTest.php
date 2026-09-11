@@ -35,6 +35,29 @@ final class TenantMigratorTest extends TestCase
         mkdir($this->migrationsDir);
     }
 
+    /**
+     * A tenant on its own SQLite file, so a table can be put there before the
+     * migrator ever connects. The in-memory tenants used elsewhere start empty
+     * on every connection.
+     *
+     * @var list<string>
+     */
+    private array $tenantFiles = [];
+
+    private function createTenantOnDisk(string $slug): Tenant
+    {
+        $file = sys_get_temp_dir() . '/wctng_tenant_' . bin2hex(random_bytes(4)) . '.sqlite';
+        $this->tenantFiles[] = $file;
+
+        $this->repo->save(
+            new Tenant(0, $slug, ucfirst($slug), '', $file, '', '', TenantPlan::Free, TenantStatus::Active),
+        );
+        $found = $this->repo->findBySlug($slug);
+        self::assertNotNull($found);
+
+        return $found;
+    }
+
     #[\Override]
     protected function tearDown(): void
     {
@@ -46,6 +69,12 @@ final class TenantMigratorTest extends TestCase
             }
         }
         rmdir($this->migrationsDir);
+
+        foreach ($this->tenantFiles as $file) {
+            if (is_file($file)) {
+                unlink($file);
+            }
+        }
     }
 
     private function createTenant(string $slug): Tenant
@@ -317,5 +346,55 @@ final class TenantMigratorTest extends TestCase
         self::assertSame(1, $result['skipped'], 'the version it had already applied is still counted');
         self::assertIsString($result['error']);
         self::assertStringStartsWith('Migration 002_broken failed:', $result['error']);
+    }
+
+    public function testAnUnreadableHistoryIsReportedRatherThanThrown(): void
+    {
+        // schema_migrations already exists, but not as this migrator writes it
+        // -- another tool's table, say. CREATE TABLE IF NOT EXISTS accepts it
+        // and the SELECT then finds no version column. The method promises a
+        // summary, so it has to come back as an error rather than an exception.
+        $tenant = $this->createTenantOnDisk('foreign-co');
+        $seed = new \PDO('sqlite:' . (string) $tenant->dbName());
+        $seed->exec('CREATE TABLE schema_migrations (id INTEGER PRIMARY KEY, name TEXT)');
+        unset($seed);
+
+        $this->writeMigration('001_add_widgets', 'CREATE TABLE widgets (id INTEGER)');
+        $migrator = new TenantMigrator($this->repo, $this->dbManager, $this->migrationsDir);
+
+        $result = $migrator->migrateTenant($tenant);
+
+        self::assertSame('foreign-co', $result['slug']);
+        self::assertSame(0, $result['applied']);
+        self::assertSame(0, $result['skipped']);
+        self::assertNotNull($result['error']);
+        self::assertStringContainsString('Migration history unavailable', $result['error']);
+    }
+
+    public function testOneTenantWithAnUnreadableHistoryDoesNotStopTheRest(): void
+    {
+        // The whole point of migrateAll() returning a row per tenant: an
+        // operator gets told which ones failed and the others still get
+        // migrated. An exception out of migrateTenant() abandoned every
+        // tenant sorted after the broken one.
+        $broken = $this->createTenantOnDisk('aaa-broken');
+        $seed = new \PDO('sqlite:' . (string) $broken->dbName());
+        $seed->exec('CREATE TABLE schema_migrations (id INTEGER PRIMARY KEY, name TEXT)');
+        unset($seed);
+
+        $this->createTenant('zzz-healthy');
+
+        $this->writeMigration('001_add_widgets', 'CREATE TABLE widgets (id INTEGER)');
+        $migrator = new TenantMigrator($this->repo, $this->dbManager, $this->migrationsDir);
+
+        $results = $migrator->migrateAll();
+        $bySlug = array_column($results, null, 'slug');
+
+        self::assertCount(2, $results);
+        self::assertNotNull($bySlug['aaa-broken']['error']);
+        self::assertSame(0, $bySlug['aaa-broken']['applied']);
+        self::assertSame(0, $bySlug['aaa-broken']['skipped']);
+        self::assertNull($bySlug['zzz-healthy']['error'], 'the healthy tenant should still have been migrated');
+        self::assertSame(1, $bySlug['zzz-healthy']['applied']);
     }
 }
