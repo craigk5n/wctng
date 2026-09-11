@@ -23,6 +23,8 @@ final class CurlWebhookTransportTest extends TestCase
 {
     /** @var resource|null */
     private $server;
+    /** @var array<int, resource> */
+    private array $pipes = [];
     private string $dir = '';
 
     #[\Override]
@@ -30,6 +32,12 @@ final class CurlWebhookTransportTest extends TestCase
     {
         if (\is_resource($this->server)) {
             proc_terminate($this->server);
+            foreach ($this->pipes as $pipe) {
+                if (\is_resource($pipe)) {
+                    fclose($pipe);
+                }
+            }
+            $this->pipes = [];
             proc_close($this->server);
         }
 
@@ -79,13 +87,20 @@ final class CurlWebhookTransportTest extends TestCase
             ROUTER);
 
         $port = self::freePort();
-        $devNull = ['file', '/dev/null', 'w'];
+        // Pipes rather than /dev/null handles: under Infection the inherited
+        // descriptors are not ones proc_open() can dup, and it fails with
+        // "posix_spawn() failed: Bad file descriptor" -- which failed the test
+        // for every mutant and scored the file a meaningless 100%.
         $server = proc_open(
             ['php', '-S', '127.0.0.1:' . $port, $router],
-            [0 => ['file', '/dev/null', 'r'], 1 => $devNull, 2 => $devNull],
+            [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
             $pipes,
         );
         self::assertIsResource($server, 'could not start the stub receiver');
+        foreach ($pipes as $pipe) {
+            stream_set_blocking($pipe, false);
+        }
+        $this->pipes = $pipes;
         $this->server = $server;
 
         for ($attempt = 0; $attempt < 100; $attempt++) {
