@@ -94,6 +94,37 @@ final class LdapConfigRepositoryTest extends TestCase
         yield 'both off' => [false, false];
     }
 
+    /** @return iterable<string, array{bool, int}> */
+    public static function flagsAndTheirStoredValue(): iterable
+    {
+        yield 'on is stored as one' => [true, 1];
+        yield 'off is stored as zero' => [false, 0];
+    }
+
+    #[DataProvider('flagsAndTheirStoredValue')]
+    public function testAFlagIsStoredAsOneOrZeroAndNothingElse(bool $on, int $stored): void
+    {
+        // get() only asks whether the column equals 1, so anything that is not
+        // 1 reads back as false and the round-trip tests below pass for any of
+        // them -- the column could be written as -1 and nothing here would
+        // notice. use_tls and enabled are INTEGER NOT NULL DEFAULT 0 standing
+        // in for booleans, and what is in them is what anything reading the
+        // table directly sees.
+        $this->repo->save(self::fullyPopulated($on, $on));
+        self::assertSame($stored, $this->storedFlag('use_tls'));
+        self::assertSame($stored, $this->storedFlag('enabled'));
+
+        // And again down the update path, which writes the same expressions.
+        $this->repo->save(self::fullyPopulated($on, $on));
+        self::assertSame($stored, $this->storedFlag('use_tls'));
+        self::assertSame($stored, $this->storedFlag('enabled'));
+    }
+
+    private function storedFlag(string $column): int
+    {
+        return (int) $this->pdo->query("SELECT {$column} FROM ldap_config WHERE id = 1")?->fetchColumn();
+    }
+
     #[DataProvider('flagCombinations')]
     public function testTheFlagsSurviveAnInsert(bool $useTls, bool $enabled): void
     {
