@@ -641,6 +641,289 @@ final class McpControllerTest extends TestCase
         self::assertStringContainsString('YYYYMMDD', (string) $body['error']['message']);
     }
 
+    // ------------------------------------------------ dates that are not dates
+
+    /**
+     * createFromFormat does not refuse a date that does not exist, it rolls
+     * forward to one that does -- and an agent is told nothing about it.
+     *
+     * @return iterable<string, array{string}>
+     */
+    public static function datesThatAreNotDates(): iterable
+    {
+        yield 'the 31st of February' => ['20260231'];  // read as 3 March
+        yield 'the 13th month' => ['20261345'];        // read as 14 Feb the year after
+        yield 'month zero' => ['20260012'];            // read as 12 Dec the year BEFORE
+        yield 'day zero' => ['20260900'];              // read as 31 August
+    }
+
+    #[DataProvider('datesThatAreNotDates')]
+    public function testAvailabilityRefusesADateThatDoesNotExist(string $date): void
+    {
+        // The worst of the three: the answer echoes back the date it was
+        // given while the slots belong to whatever day it rolled to, so an
+        // agent reads free time for the 31st of February off a real calendar.
+        $body = $this->call('tools/call', ['name' => 'get_availability', 'arguments' => ['date' => $date]]);
+
+        self::assertSame(-32602, $body['error']['code'] ?? null, $date . ' was accepted');
+    }
+
+    #[DataProvider('datesThatAreNotDates')]
+    public function testListEventsRefusesADateThatDoesNotExist(string $date): void
+    {
+        $body = $this->call('tools/call', ['name' => 'list_events', 'arguments' => [
+            'start_date' => $date,
+            'end_date' => '20261231',
+        ]]);
+
+        self::assertSame(-32602, $body['error']['code'] ?? null, $date . ' was accepted');
+    }
+
+    #[DataProvider('datesThatAreNotDates')]
+    public function testCreatingAnEventRefusesADateThatDoesNotExist(string $date): void
+    {
+        $body = $this->call('tools/call', ['name' => 'create_event', 'arguments' => [
+            'title' => 'Asked for a day that is not there',
+            'start_date' => $date,
+        ]]);
+
+        self::assertSame(-32602, $body['error']['code'] ?? null, $date . ' was accepted');
+    }
+
+    #[DataProvider('datesThatAreNotDates')]
+    public function testUpdatingAnEventRefusesADateThatDoesNotExist(string $date): void
+    {
+        $id = $this->createEvent('Stays where it is', '20260601', '100000');
+
+        $body = $this->call('tools/call', ['name' => 'update_event', 'arguments' => [
+            'id' => $id,
+            'start_date' => $date,
+        ]]);
+
+        self::assertSame(-32602, $body['error']['code'] ?? null, $date . ' was accepted');
+
+        // And the event it would have moved is still where it was.
+        $after = $this->call('tools/call', ['name' => 'get_event', 'arguments' => ['id' => $id]]);
+        self::assertSame('20260601', $after['result']['event']['start_date']);
+    }
+
+    /**
+     * The time rolls the same way, and takes the date with it: 25:00:00 is
+     * one in the morning the following day.
+     *
+     * @return iterable<string, array{string}>
+     */
+    public static function timesThatAreNotTimes(): iterable
+    {
+        yield 'hour 25' => ['250000'];    // read as 01:00 the NEXT day
+        yield 'minute 61' => ['126100'];  // read as 13:01
+        yield 'second 61' => ['120061'];  // read as 12:01:01
+        yield 'six characters, none of them digits' => ['abcdef'];
+        yield 'digits, but not six of them' => ['1200'];
+    }
+
+    #[DataProvider('timesThatAreNotTimes')]
+    public function testCreatingAnEventRefusesATimeThatDoesNotExist(string $time): void
+    {
+        $body = $this->call('tools/call', ['name' => 'create_event', 'arguments' => [
+            'title' => 'Asked for an hour that is not there',
+            'start_date' => '20260601',
+            'start_time' => $time,
+        ]]);
+
+        self::assertSame(-32602, $body['error']['code'] ?? null, $time . ' was accepted');
+    }
+
+    public function testAWindowThatRunsBackwardsIsAnErrorNotAnException(): void
+    {
+        // DateRange throws when start is after end. Uncaught, that leaves an
+        // endpoint whose whole contract is to answer in JSON-RPC answering
+        // with a 500 -- the same shape deleteEvent() guards against above.
+        $body = $this->call('tools/call', ['name' => 'list_events', 'arguments' => [
+            'start_date' => '20261231',
+            'end_date' => '20260101',
+        ]]);
+
+        self::assertSame(-32602, $body['error']['code'] ?? null);
+    }
+
+    public function testAnAllDayEventStaysAllDayWhenSomethingElseIsUpdated(): void
+    {
+        $id = $this->createEvent('All day', '20260601');
+        $before = $this->call('tools/call', ['name' => 'get_event', 'arguments' => ['id' => $id]]);
+        self::assertTrue($before['result']['event']['all_day'], 'precondition: created all-day');
+
+        $this->call('tools/call', ['name' => 'update_event', 'arguments' => [
+            'id' => $id,
+            'title' => 'Renamed, nothing else',
+        ]]);
+
+        $after = $this->call('tools/call', ['name' => 'get_event', 'arguments' => ['id' => $id]]);
+        self::assertTrue($after['result']['event']['all_day'], 'renaming it stopped it being all-day');
+    }
+
+    public function testAStartTimeOnItsOwnMovesTheEvent(): void
+    {
+        // Only start_date was read, so an hour supplied without a date was
+        // dropped and the reply still said 'updated: true'.
+        $id = $this->createEvent('Morning', '20260601', '100000');
+
+        $body = $this->call('tools/call', ['name' => 'update_event', 'arguments' => [
+            'id' => $id,
+            'start_time' => '150000',
+        ]]);
+
+        self::assertSame('20260601', $body['result']['event']['start_date']);
+        self::assertSame('150000', $body['result']['event']['start_time']);
+    }
+
+    public function testRenamingAnEventKeepsWhatTheRequestNeverMentioned(): void
+    {
+        // The entity takes twenty-one fields and update_event rebuilt it from
+        // six. status stands in here for the recurrence, venue, organizer,
+        // image and conference link that were discarded the same way.
+        $admin = $this->factory->getUserService()->getUserByLogin('admin');
+        self::assertNotNull($admin);
+
+        $seed = new Event(
+            id: new EventId(0),
+            uid: 'seeded-status@webcalendar',
+            name: 'Has a status',
+            description: '',
+            location: '',
+            start: new \DateTimeImmutable('2026-06-01 10:00:00'),
+            duration: 60,
+            createdBy: 'admin',
+            type: EventType::EVENT,
+            access: AccessLevel::PUBLIC,
+            status: 'confirmed',
+        );
+        $this->factory->getEventService()->createEvent($seed, $admin);
+
+        $stored = $this->factory->getEventRepository()->findByUid('seeded-status@webcalendar');
+        self::assertNotNull($stored);
+        self::assertSame('confirmed', $stored->status(), 'precondition: the seed has a status');
+
+        $this->call('tools/call', ['name' => 'update_event', 'arguments' => [
+            'id' => $stored->id()->value(),
+            'title' => 'Renamed, nothing else',
+        ]]);
+
+        $after = $this->factory->getEventRepository()->findByUid('seeded-status@webcalendar');
+        self::assertNotNull($after);
+        self::assertSame('Renamed, nothing else', $after->name());
+        self::assertSame('confirmed', $after->status(), 'the status went with the rename');
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function toolsThatModifyAnEvent(): iterable
+    {
+        yield 'update_event' => ['update_event'];
+        yield 'delete_event' => ['delete_event'];
+    }
+
+    #[DataProvider('toolsThatModifyAnEvent')]
+    public function testTouchingSomeoneElsesEventIsAnErrorNotAnException(string $tool): void
+    {
+        // EventService refuses with an AuthorizationException, which nothing
+        // here catches -- the same shape as the window that runs backwards
+        // and the delete of something already deleted that this file guards.
+        $id = $this->createEvent('Belongs to admin', '20260601', '100000');
+
+        // (login, first, last, email, isAdmin, isEnabled) -- an admin would
+        // be allowed to do this, which is the whole point of the test.
+        $mallory = new User('mallory', 'Mal', 'Lory', 'mallory@test.com', false, true);
+        $admin = $this->factory->getUserService()->getUserByLogin('admin');
+        self::assertNotNull($admin);
+        $this->factory->getUserService()->createUser($mallory, $admin);
+        $this->factory->getUserRepository()->savePreference('mallory', new UserPreference('api_token', 'mallory-token'));
+
+        $body = $this->call(
+            'tools/call',
+            ['name' => $tool, 'arguments' => ['id' => $id, 'title' => 'Mine now']],
+            'mallory-token',
+        );
+
+        self::assertSame(-32000, $body['error']['code'] ?? null);
+
+        // And it is still admin's, unchanged.
+        $after = $this->call('tools/call', ['name' => 'get_event', 'arguments' => ['id' => $id]]);
+        self::assertSame('Belongs to admin', $after['result']['event']['title']);
+    }
+
+    public function testTheLastSecondOfTheDayIsAValidTime(): void
+    {
+        // The bounds are 23/59/59 inclusive. Off by one at any of the three
+        // and the last minute of the day stops being a time anyone can name.
+        $body = $this->call('tools/call', ['name' => 'create_event', 'arguments' => [
+            'title' => 'One second to midnight',
+            'start_date' => '20260601',
+            'start_time' => '235959',
+        ]]);
+
+        self::assertSame('235959', $body['result']['event']['start_time']);
+    }
+
+    public function testAWindowOfASingleDayIsNotAWindowThatRunsBackwards(): void
+    {
+        // start equal to end is one day, not an inversion.
+        $id = $this->createEvent('On the only day', '20260601', '100000');
+
+        $body = $this->call('tools/call', ['name' => 'list_events', 'arguments' => [
+            'start_date' => '20260601',
+            'end_date' => '20260601',
+        ]]);
+
+        self::assertArrayNotHasKey('error', $body);
+        self::assertSame([$id], array_column($body['result']['events'], 'id'));
+    }
+
+    public function testTheClosingDayOfTheWindowRunsToItsLastSecond(): void
+    {
+        // The end is stretched to 23:59:59 so the range means the whole of
+        // the closing day. The PDO repository compares cal_date only, so no
+        // mutation of those three numbers is observable from here -- this
+        // pins the contract, not the arithmetic.
+        $id = $this->createEvent('One second to midnight', '20260605', '235959');
+
+        $body = $this->call('tools/call', ['name' => 'list_events', 'arguments' => [
+            'start_date' => '20260601',
+            'end_date' => '20260605',
+        ]]);
+
+        self::assertContains($id, array_column($body['result']['events'], 'id'));
+    }
+
+    public function testMovingAnAllDayEventToAnotherDayLeavesItAllDay(): void
+    {
+        // Naming a day is not naming an hour, so this is still an all-day
+        // event -- it has just moved.
+        $id = $this->createEvent('All day', '20260601');
+
+        $body = $this->call('tools/call', ['name' => 'update_event', 'arguments' => [
+            'id' => $id,
+            'start_date' => '20260602',
+        ]]);
+
+        self::assertSame('20260602', $body['result']['event']['start_date']);
+        self::assertTrue($body['result']['event']['all_day']);
+    }
+
+    public function testGivingAnAllDayEventAnHourStopsItBeingAllDay(): void
+    {
+        $id = $this->createEvent('All day', '20260601');
+
+        $body = $this->call('tools/call', ['name' => 'update_event', 'arguments' => [
+            'id' => $id,
+            'start_time' => '143000',
+        ]]);
+
+        self::assertSame('143000', $body['result']['event']['start_time']);
+        self::assertFalse($body['result']['event']['all_day']);
+    }
+
     // ----------------------------------------------------------- tools/list
 
     public function testEachToolDescribesItsParametersAsAJsonSchema(): void

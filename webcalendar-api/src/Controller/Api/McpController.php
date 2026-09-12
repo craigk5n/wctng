@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\DTO\EventResponseDTO;
+use App\Service\EventInputParser;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
@@ -13,6 +14,7 @@ use WebCalendar\Core\Application\Service\EventService;
 use WebCalendar\Core\Application\Service\UserService;
 use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\Entity\User;
+use WebCalendar\Core\Domain\Exception\AuthorizationException;
 use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
 use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
@@ -137,31 +139,47 @@ final class McpController
      */
     private function callTool(string|int|null $rpcId, string $name, array $args, User $user): JsonResponse
     {
-        return match ($name) {
-            'list_events' => $this->listEvents($rpcId, $args, $user),
-            'get_event' => $this->getEvent($rpcId, $args),
-            'create_event' => $this->createEvent($rpcId, $args, $user),
-            'update_event' => $this->updateEvent($rpcId, $args, $user),
-            'delete_event' => $this->deleteEvent($rpcId, $args, $user),
-            'search_events' => $this->searchEvents($rpcId, $args, $user),
-            'get_availability' => $this->getAvailability($rpcId, $args, $user),
-            default => $this->jsonRpcError($rpcId, -32601, "Unknown tool: {$name}"),
-        };
+        try {
+            return match ($name) {
+                'list_events' => $this->listEvents($rpcId, $args, $user),
+                'get_event' => $this->getEvent($rpcId, $args),
+                'create_event' => $this->createEvent($rpcId, $args, $user),
+                'update_event' => $this->updateEvent($rpcId, $args, $user),
+                'delete_event' => $this->deleteEvent($rpcId, $args, $user),
+                'search_events' => $this->searchEvents($rpcId, $args, $user),
+                'get_availability' => $this->getAvailability($rpcId, $args, $user),
+                default => $this->jsonRpcError($rpcId, -32601, "Unknown tool: {$name}"),
+            };
+        } catch (AuthorizationException) {
+            // EventService refuses someone else's event by throwing, and an
+            // uncaught throw out of here is a 500 from an endpoint whose
+            // entire contract is to answer in JSON-RPC. The message is not
+            // passed on: it names the event and the login it refused.
+            return $this->jsonRpcError($rpcId, -32000, 'Not authorized for that event.');
+        }
     }
 
     /** @param array<string, mixed> $args */
     private function listEvents(string|int|null $id, array $args, User $user): JsonResponse
     {
-        $startStr = self::stringArg($args, 'start_date');
-        $endStr = self::stringArg($args, 'end_date');
-
-        $start = \DateTimeImmutable::createFromFormat('Ymd', $startStr);
-        $end = \DateTimeImmutable::createFromFormat('Ymd', $endStr);
-        if ($start === false || $end === false) {
+        // Not createFromFormat: it rolls a date that does not exist forward
+        // to one that does rather than refusing it, so 20260231 came back as
+        // the 3rd of March and 20260012 as December the year before. The
+        // window was silently somewhere else.
+        $start = EventInputParser::parseDateParam(self::stringArg($args, 'start_date'));
+        $end = EventInputParser::parseDateParam(self::stringArg($args, 'end_date'));
+        if ($start === null || $end === null) {
             return $this->jsonRpcError($id, -32602, 'Invalid date. Use YYYYMMDD format.');
         }
 
-        $range = new DateRange($start->setTime(0, 0), $end->setTime(23, 59, 59));
+        // DateRange throws when these arrive the wrong way round, and an
+        // uncaught throw out of here is a 500 from an endpoint whose entire
+        // contract is to answer in JSON-RPC -- the shape deleteEvent() guards.
+        if ($start > $end) {
+            return $this->jsonRpcError($id, -32602, 'start_date is after end_date.');
+        }
+
+        $range = new DateRange($start, $end->setTime(23, 59, 59));
         $events = $this->eventService->getEventsInDateRange($range, $user)->all();
 
         return $this->jsonRpcResult($id, ['events' => EventResponseDTO::fromCollection(array_values($events))]);
@@ -233,20 +251,43 @@ final class McpController
 
         $startDate = self::nullableStringArg($args, 'start_date');
         $startTime = self::nullableStringArg($args, 'start_time');
-        $start = $startDate !== null ? ($this->parseDateTime($startDate, $startTime ?? '') ?? $existing->start()) : $existing->start();
+        $start = $existing->start();
+        $allDay = $existing->isAllDay();
 
-        $updated = new Event(
-            id: $existing->id(),
-            uid: $existing->uid(),
+        if ($startDate !== null || $startTime !== null) {
+            // A start_time on its own used to be dropped on the floor: only
+            // start_date was read, so "move it to 3pm" was answered with
+            // "updated: true" and the event did not move. Falling back to the
+            // existing start on an unreadable one said the same thing.
+            $parsed = $this->parseDateTime(
+                $startDate ?? $existing->start()->format('Ymd'),
+                $startTime ?? '',
+            );
+            if ($parsed === null) {
+                return $this->jsonRpcError($id, -32602, 'Invalid date/time format');
+            }
+            $start = $parsed;
+
+            // Naming an hour is what stops it being an all-day event, the
+            // same way supplying one at creation is what stops it becoming one.
+            if ($startTime !== null && $startTime !== '') {
+                $allDay = false;
+            }
+        }
+
+        // with(), not a fresh Event: the constructor takes twenty-one fields
+        // and listing six of them silently dropped the rest. Renaming an event
+        // through this endpoint discarded its recurrence, its all-day flag,
+        // its status, its venue, its organiser, its image and its conference
+        // link, and answered 'updated: true'.
+        $updated = $existing->with(
             name: $title,
             description: $desc,
             location: $loc,
             start: $start,
             duration: $dur,
-            createdBy: $existing->createdBy(),
-            type: $existing->type(),
-            access: $existing->access(),
             sequence: $existing->sequence() + 1,
+            allDay: $allDay,
         );
 
         $this->eventService->updateEvent($updated, $user);
@@ -288,15 +329,18 @@ final class McpController
     private function getAvailability(string|int|null $id, array $args, User $user): JsonResponse
     {
         $dateStr = self::stringArg($args, 'date');
-        $date = \DateTimeImmutable::createFromFormat('Ymd', $dateStr);
-        if ($date === false) {
+        // The answer echoes $dateStr back. Rolled, that reported free time
+        // for the 31st of February off a real calendar -- the day asked for
+        // in the reply, a different day in the slots.
+        $date = EventInputParser::parseDateParam($dateStr);
+        if ($date === null) {
             return $this->jsonRpcError($id, -32602, 'Invalid date. Use YYYYMMDD.');
         }
 
         $targetLogin = self::stringArg($args, 'user', $user->login());
         $targetUser = $this->userService->getUserByLogin($targetLogin) ?? $user;
 
-        $slots = $this->bookingService->getAvailability($targetUser, $date->setTime(0, 0));
+        $slots = $this->bookingService->getAvailability($targetUser, $date);
 
         $available = array_map(fn($slot) => [
             'start' => $slot->startDate()->format('H:i'),
@@ -387,15 +431,25 @@ final class McpController
 
     private function parseDateTime(string $date, string $time): ?\DateTimeImmutable
     {
-        if ($time !== '') {
-            $dt = \DateTimeImmutable::createFromFormat('Ymd His', $date . ' ' . $time);
-        } else {
-            $dt = \DateTimeImmutable::createFromFormat('Ymd', $date);
-            if ($dt !== false) {
-                $dt = $dt->setTime(0, 0);
-            }
+        $dt = EventInputParser::parseDateParam($date);
+        if ($dt === null || $time === '') {
+            return $dt;
         }
-        return $dt !== false ? $dt : null;
+
+        // 'His' rolls the way 'Ymd' does, and takes the day with it: 250000
+        // was read as one in the morning the following day, not refused.
+        if (\strlen($time) !== 6 || !ctype_digit($time)) {
+            return null;
+        }
+
+        $hours = (int) substr($time, 0, 2);
+        $minutes = (int) substr($time, 2, 2);
+        $seconds = (int) substr($time, 4, 2);
+        if ($hours > 23 || $minutes > 59 || $seconds > 59) {
+            return null;
+        }
+
+        return $dt->setTime($hours, $minutes, $seconds);
     }
 
     private function jsonRpcResult(string|int|null $id, mixed $result): JsonResponse
