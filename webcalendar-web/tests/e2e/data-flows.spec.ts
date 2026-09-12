@@ -130,24 +130,53 @@ test.describe('Data Flows E2E', () => {
     await page.goto('/journals');
     await expect(page.getByRole('heading', { name: 'Journals' })).toBeVisible();
 
-    // Create
     const journalTitle = `JrnlTest-${Date.now().toString().slice(-6)}`;
-    const titleInput = page.getByPlaceholder(/title|new journal/i);
-    if (await titleInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await titleInput.fill(journalTitle);
-      await page.getByRole('button', { name: /create|add|save/i }).first().click();
-      await page.waitForTimeout(2000);
-      await expect(page.getByText(journalTitle)).toBeVisible({ timeout: 5000 });
-    } else {
-      // If no inline create form, try button
-      const createBtn = page.getByRole('button', { name: /new journal|create/i });
-      if (await createBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await createBtn.click();
-        await page.getByLabel(/title/i).fill(journalTitle);
-        await page.getByRole('button', { name: /save|create/i }).click();
-        await page.waitForTimeout(2000);
-      }
-    }
+    const editedTitle = `${journalTitle}-edited`;
+    // One card per entry. Scoping to it is what keeps Edit and Delete aimed
+    // at this entry rather than at whichever one happens to be listed first.
+    const card = page.locator('div.rounded-lg.border.border-border.p-4').filter({ hasText: journalTitle });
+
+    // Create. The date is given rather than left to default: a blank date is
+    // stamped with the time the suite ran, which puts the entry on today's
+    // calendar on top of whatever else is there. See core-flows.spec.ts.
+    await page.getByRole('button', { name: /new entry/i }).click();
+    await page.getByLabel(/^title$/i).fill(journalTitle);
+    await page.getByLabel(/^date$/i).fill('2027-06-16');
+    await page.getByRole('button', { name: /create entry/i }).click();
+    await expect(card).toBeVisible({ timeout: 5000 });
+
+    // Edit the title. In edit mode the card swaps the heading for an input,
+    // and an input's value is not text content -- so `card`, which filters on
+    // text, stops matching it. The editing card is the only one showing Save,
+    // which is what identifies it while the title is in the input.
+    await card.getByRole('button', { name: /^edit$/i }).click();
+    const editing = page
+      .locator('div.rounded-lg.border.border-border.p-4')
+      .filter({ has: page.getByRole('button', { name: /^save$/i }) });
+    await editing.getByRole('textbox').first().fill(editedTitle);
+    await editing.getByRole('button', { name: /^save$/i }).click();
+    await expect(page.getByRole('heading', { name: editedTitle })).toBeVisible({ timeout: 5000 });
+
+    // Delete. Nothing asks for confirmation, so the entry goes on the click.
+    await card.getByRole('button', { name: /^delete$/i }).click();
+
+    // Asking the DOM whether the card is gone does not work here: every
+    // refetch blanks the list to "Loading...", so an absence check passes
+    // during that blink whether the delete worked or not -- it passed with
+    // the delete handler stubbed out. The API has no such in-between state.
+    const token = await getToken(page);
+    await expect
+      .poll(
+        async () => {
+          const res = await page.request.get(`${BASE}/api/v2/journals?start=20270101&end=20271231`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const body = await res.json();
+          return ((body?.data ?? []) as { title: string }[]).some((e) => e.title === editedTitle);
+        },
+        { timeout: 5000 },
+      )
+      .toBe(false);
   });
 
   // --- Import Dialog ---
