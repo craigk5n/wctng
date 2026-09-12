@@ -58,19 +58,24 @@ final class DashboardController
             $this->logger->debug('userRepository->findAll() failed', ['exception' => $e->getMessage()]);
         }
 
-        // Active users: distinct creators in last 7 days
+        // Active users: distinct creators of anything written in the last 7
+        // days. Measured on cal_mod_date, not cal_date: cal_date is when the
+        // event happens, so with the window on it -- and open-ended into the
+        // future -- one booking for next year kept its creator "active this
+        // week" every week until the date passed, while a week spent editing
+        // last month's calendar counted for nothing.
         $active7d = 0;
         try {
             $cutoff = $this->clock->now()->modify('-7 days')->format('Ymd');
             $stmt = $this->pdo->prepare(
-                'SELECT COUNT(DISTINCT cal_create_by) FROM webcal_entry WHERE cal_date >= :cutoff',
+                'SELECT COUNT(DISTINCT cal_create_by) FROM webcal_entry WHERE cal_mod_date >= :cutoff',
             );
             $stmt->execute(['cutoff' => $cutoff]);
             /** @var numeric-string|false $val */
             $val = $stmt->fetchColumn();
             $active7d = $val !== false ? (int) $val : 0;
         } catch (\Throwable $e) {
-            $this->logger->warning('clock->now() failed', ['exception' => $e->getMessage()]);
+            $this->logger->warning('active user count failed', ['exception' => $e->getMessage()]);
         }
 
         return ['total' => $total, 'active_7d' => $active7d, 'created_7d' => $this->getEventsCreated7d()];
@@ -106,7 +111,7 @@ final class DashboardController
             $val = $stmt->fetchColumn();
             $upcoming7d = $val !== false ? (int) $val : 0;
         } catch (\Throwable $e) {
-            $this->logger->warning('clock->now() failed', ['exception' => $e->getMessage()]);
+            $this->logger->warning('upcoming event count failed', ['exception' => $e->getMessage()]);
         }
 
         return ['total' => $total, 'created_7d' => $this->getEventsCreated7d(), 'upcoming_7d' => $upcoming7d];
