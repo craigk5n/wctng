@@ -83,11 +83,28 @@ final class SetupController
         }
     }
 
+    /**
+     * Whether the installation already has an administrator.
+     *
+     * Any administrator, not one called "admin". Asking for that login by name
+     * left setup open for good on every installation whose first account was
+     * named anything else -- and /api/v2/setup/ is public, so an anonymous
+     * caller could then POST themselves an administrator account on a running
+     * system.
+     *
+     * The catch is what makes a genuinely fresh database -- one where the user
+     * table does not exist yet -- report that setup is still needed.
+     */
     private function adminExists(): bool
     {
         try {
-            $user = $this->userService->getUserByLogin('admin');
-            return $user !== null;
+            foreach ($this->userRepository->findAll() as $user) {
+                if ($user->isAdmin()) {
+                    return true;
+                }
+            }
+
+            return false;
         } catch (\Throwable) {
             return false;
         }
