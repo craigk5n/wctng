@@ -8,6 +8,7 @@ use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
 use App\Service\BackupService;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -63,8 +64,12 @@ final class BackupController
             return ApiResponse::error(400, 'Invalid filename');
         }
 
+        // is_file rather than file_exists: isValidFilename() turns away
+        // anything with a slash in it, but "." and ".." are made only of
+        // characters it allows, and both name a directory rather than a
+        // backup in it.
         $path = $this->backupService->getBackupDir() . '/' . $filename;
-        if (!file_exists($path)) {
+        if (!is_file($path)) {
             return ApiResponse::error(404, 'Backup not found');
         }
 
@@ -85,7 +90,7 @@ final class BackupController
         }
 
         $path = $this->backupService->getBackupDir() . '/' . $filename;
-        if (!file_exists($path)) {
+        if (!is_file($path)) {
             return ApiResponse::error(404, 'Backup not found');
         }
 
@@ -109,12 +114,21 @@ final class BackupController
             return ApiResponse::error(400, 'Confirmation required: send confirm=RESTORE');
         }
 
+        // files->get() hands back an array when the field is repeated, and
+        // the only method used below exists on a single file.
         $uploadedFile = $request->files->get('file');
-        if ($uploadedFile === null) {
+        if (!$uploadedFile instanceof UploadedFile) {
             return ApiResponse::error(400, 'No file uploaded');
         }
 
-        /** @var \Symfony\Component\HttpFoundation\File\UploadedFile $uploadedFile */
+        // A database dump is routinely larger than upload_max_filesize. PHP
+        // still hands over an UploadedFile for one that did not make it, but
+        // its path points at nothing -- which reached the service as a missing
+        // backup and came back a 500 blaming the file rather than the limit.
+        if (!$uploadedFile->isValid()) {
+            return ApiResponse::error(400, $uploadedFile->getErrorMessage());
+        }
+
         $tmpPath = $uploadedFile->getPathname();
 
         try {

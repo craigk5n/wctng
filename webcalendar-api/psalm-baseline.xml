@@ -163,11 +163,6 @@
       <code><![CDATA[$authHeader]]></code>
     </PossiblyNullArgument>
   </file>
-  <file src="src/Controller/Api/BackupController.php">
-    <MixedAssignment>
-      <code><![CDATA[$uploadedFile]]></code>
-    </MixedAssignment>
-  </file>
   <file src="src/Controller/Api/CategoryController.php">
     <MixedAssignment>
       <code><![CDATA[$raw]]></code>
