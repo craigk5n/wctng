@@ -6,6 +6,7 @@ namespace App\Tests\Unit\Share;
 
 use App\Controller\Api\ShareController;
 use App\Share\ShareTokenRepository;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use WebCalendar\Core\Domain\Entity\Event;
@@ -37,7 +38,7 @@ final class ShareControllerTest extends TestCase
         return new User($login, ucfirst($login), 'Smith', $login . '@example.com', $admin, true);
     }
 
-    private function makeEvent(int $id, string $createdBy): Event
+    private function makeEvent(int $id, string $createdBy, ?string $status = null): Event
     {
         return new Event(
             id: new EventId($id),
@@ -51,7 +52,73 @@ final class ShareControllerTest extends TestCase
             type: EventType::EVENT,
             access: AccessLevel::PUBLIC,
             recurrence: new Recurrence(),
+            status: $status,
         );
+    }
+
+    private function sharedEventsResponse(string $query): \Symfony\Component\HttpFoundation\JsonResponse
+    {
+        $this->tokenRepo->create('range-token', 'alice', null);
+
+        return $this->controller->sharedEvents(
+            'range-token',
+            Request::create('/api/v2/public/shared/range-token/events?' . $query),
+        );
+    }
+
+    /**
+     * A share link is a public read path, and the query behind it filters on
+     * access alone -- so an entry waiting for an administrator, one they
+     * refused, and one its owner deleted all reached whoever held the link.
+     */
+    public function testSharedEventsLeaveOutWhatWasNeverPublished(): void
+    {
+        $this->tokenRepo->create('status-token', 'alice', null);
+        $this->eventRepo->method('findByDateRange')->willReturn([
+            $this->makeEvent(1, 'alice', 'needs_approval'),
+            $this->makeEvent(2, 'alice', 'confirmed'),
+            $this->makeEvent(3, 'alice', 'cancelled'),
+            $this->makeEvent(4, 'alice', 'rejected'),
+            $this->makeEvent(5, 'alice'),
+        ]);
+
+        $response = $this->controller->sharedEvents(
+            'status-token',
+            Request::create('/api/v2/public/shared/status-token/events?start=20260401&end=20260430'),
+        );
+
+        /** @var array{data: list<array{id: int}>, meta: array{total: int}} $body */
+        $body = json_decode((string) $response->getContent(), true);
+
+        self::assertSame([2, 5], array_column($body['data'], 'id'));
+        self::assertSame(2, $body['meta']['total'], 'the count has to match what is listed');
+    }
+
+    /**
+     * createFromFormat rolled an impossible date forward rather than refusing
+     * it, so the link answered for days nobody asked about.
+     */
+    #[DataProvider('rangesAShareLinkCannotAnswer')]
+    public function testSharedEventsRefuseARangeTheyCannotAnswer(string $query): void
+    {
+        self::assertSame(400, $this->sharedEventsResponse($query)->getStatusCode());
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function rangesAShareLinkCannotAnswer(): iterable
+    {
+        yield 'the 31st of February' => ['start=20260231&end=20260401'];
+        yield 'the 13th month' => ['start=20260401&end=20261345'];
+        yield 'the 32nd' => ['start=20260132&end=20260401'];
+        // DateRange refuses this pair, uncaught, so it used to be a 500.
+        yield 'ends before it starts' => ['start=20260430&end=20260401'];
+    }
+
+    public function testAShareLinkAnswersForASingleDay(): void
+    {
+        $this->eventRepo->method('findByDateRange')->willReturn([]);
+
+        self::assertSame(200, $this->sharedEventsResponse('start=20260401&end=20260401')->getStatusCode());
     }
 
     public function testCreateShareToken(): void

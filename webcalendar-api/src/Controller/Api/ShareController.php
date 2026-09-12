@@ -7,6 +7,8 @@ namespace App\Controller\Api;
 use App\DTO\EventResponseDTO;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
+use App\Service\EventInputParser;
+use App\Service\PublishedEvents;
 use App\Share\ShareTokenRepository;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Clock\NativeClock;
@@ -120,22 +122,33 @@ final class ShareController
             return ApiResponse::error(400, 'Missing required query params: start, end (YYYYMMDD)');
         }
 
-        $start = $this->parseDateParam($startStr);
-        $end = $this->parseDateParam($endStr);
+        $start = EventInputParser::parseDateParam($startStr);
+        $end = EventInputParser::parseDateParam($endStr);
 
         if ($start === null || $end === null) {
             return ApiResponse::error(400, 'Invalid date format. Expected YYYYMMDD.');
+        }
+
+        // DateRange refuses this pair, and nothing caught it, so a range the
+        // wrong way round came back a 500.
+        if ($start > $end) {
+            return ApiResponse::error(400, 'The start date must not be after the end date.');
         }
 
         $page = max(1, $request->query->getInt('page', 1));
         $limit = min(100, max(1, $request->query->getInt('limit', 20)));
 
         $dateRange = new DateRange($start, $end);
-        $events = $this->eventRepo->findByDateRange($dateRange, null, 'P', [$shareToken->ownerLogin()]);
+        // A share link is a public read path like the others: access 'P' is
+        // all the query filters on, so an entry waiting for approval, one that
+        // was refused, and one its owner deleted all came back through it.
+        $events = PublishedEvents::only(
+            $this->eventRepo->findByDateRange($dateRange, null, 'P', [$shareToken->ownerLogin()]),
+        );
 
         $total = \count($events);
         $offset = ($page - 1) * $limit;
-        $pageItems = array_values(\array_slice($events, $offset, $limit));
+        $pageItems = \array_slice($events, $offset, $limit);
 
         $items = EventResponseDTO::fromCollection($pageItems);
 
@@ -151,14 +164,5 @@ final class ShareController
             return $actorOrUser->login();
         }
         return null;
-    }
-
-    private function parseDateParam(string $value): ?\DateTimeImmutable
-    {
-        $date = \DateTimeImmutable::createFromFormat('Ymd', $value);
-        if ($date === false) {
-            return null;
-        }
-        return $date->setTime(0, 0);
     }
 }

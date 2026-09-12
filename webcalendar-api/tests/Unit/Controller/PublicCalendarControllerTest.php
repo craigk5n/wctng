@@ -163,6 +163,47 @@ final class PublicCalendarControllerTest extends TestCase
 
     // --- listPublicEvents ---
 
+    /**
+     * createFromFormat rolled an impossible date forward rather than refusing
+     * it, so this listing answered for days nobody asked about -- and a range
+     * the wrong way round reached DateRange, which refuses it, uncaught.
+     */
+    #[DataProvider('rangesThisListingCannotAnswer')]
+    public function testListPublicEventsRefusesARangeItCannotAnswer(string $query): void
+    {
+        $this->allowRateLimit();
+        $this->userRepo->method('findByLogin')->willReturn($this->makeUser('alice'));
+        $this->userRepo->method('getPreferences')
+            ->willReturn([new UserPreference('public_calendar_enabled', 'Y')]);
+
+        $request = Request::create('/api/v2/public/calendars/alice/events?' . $query);
+        $response = $this->controller->listPublicEvents('alice', $request);
+
+        $this->assertSame(400, $response->getStatusCode());
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function rangesThisListingCannotAnswer(): iterable
+    {
+        yield 'the 31st of February' => ['start=20260231&end=20260401'];
+        yield 'the 13th month' => ['start=20260401&end=20261345'];
+        yield 'the 32nd' => ['start=20260132&end=20260401'];
+        yield 'ends before it starts' => ['start=20260430&end=20260401'];
+    }
+
+    public function testListPublicEventsAnswersForASingleDay(): void
+    {
+        $this->allowRateLimit();
+        $this->userRepo->method('findByLogin')->willReturn($this->makeUser('alice'));
+        $this->userRepo->method('getPreferences')
+            ->willReturn([new UserPreference('public_calendar_enabled', 'Y')]);
+        $this->eventRepo->method('findByDateRange')->willReturn([]);
+
+        $request = Request::create('/api/v2/public/calendars/alice/events?start=20260401&end=20260401');
+
+        $this->assertSame(200, $this->controller->listPublicEvents('alice', $request)->getStatusCode());
+    }
+
     public function testListPublicEventsRequiresStartEnd(): void
     {
         $this->allowRateLimit();

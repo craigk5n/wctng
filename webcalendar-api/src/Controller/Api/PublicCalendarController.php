@@ -7,6 +7,7 @@ namespace App\Controller\Api;
 use App\DTO\EventResponseDTO;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
+use App\Service\EventInputParser;
 use App\Service\PublishedEvents;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -90,11 +91,17 @@ final class PublicCalendarController
             return ApiResponse::error(400, 'Missing required query params: start, end (YYYYMMDD)');
         }
 
-        $start = $this->parseDateParam($startStr);
-        $end = $this->parseDateParam($endStr);
+        $start = EventInputParser::parseDateParam($startStr);
+        $end = EventInputParser::parseDateParam($endStr);
 
         if ($start === null || $end === null) {
             return ApiResponse::error(400, 'Invalid date format. Expected YYYYMMDD.');
+        }
+
+        // DateRange refuses this pair, and nothing caught it, so a range the
+        // wrong way round came back a 500.
+        if ($start > $end) {
+            return ApiResponse::error(400, 'The start date must not be after the end date.');
         }
 
         $page = max(1, $request->query->getInt('page', 1));
@@ -173,14 +180,5 @@ final class PublicCalendarController
 
         $this->rateLimiter->recordAttempt($identifier, 'public_api', self::PUBLIC_RATE_WINDOW);
         return true;
-    }
-
-    private function parseDateParam(string $value): ?\DateTimeImmutable
-    {
-        $date = \DateTimeImmutable::createFromFormat('Ymd', $value);
-        if ($date === false) {
-            return null;
-        }
-        return $date->setTime(0, 0);
     }
 }
