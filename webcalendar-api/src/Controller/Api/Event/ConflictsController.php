@@ -18,6 +18,9 @@ use WebCalendar\Core\Domain\ValueObject\EventId;
 
 final class ConflictsController
 {
+    private const DEFAULT_DURATION = 60;
+    private const MIN_DURATION = 1;
+
     public function __construct(
         private readonly EventService $eventService,
         private readonly ConflictDetectionService $conflictService,
@@ -44,8 +47,23 @@ final class ConflictsController
             return ApiResponse::error(400, 'Invalid date format. Expected YYYYMMDD.');
         }
 
+        // The window below is widened a day at each end, and DateRange refuses
+        // the pair that leaves -- uncaught, this was a 500 rather than a 400.
+        if ($start > $end) {
+            return ApiResponse::error(400, 'The start date must not be after the end date.');
+        }
+
         $excludeId = $request->query->getInt('exclude_id', 0);
-        $durationMinutes = $request->query->getInt('duration', 60);
+        $durationMinutes = $request->query->getInt('duration', self::DEFAULT_DURATION);
+
+        // A slot with no length overlaps nothing, so the route answered "no
+        // conflicts" to a question it never asked -- the one wrong answer a
+        // double-booking warning must not give. A negative one did not even
+        // get that far: Event refuses it, uncaught, as a 500.
+        if ($durationMinutes < self::MIN_DURATION) {
+            return ApiResponse::error(400, 'Duration must be at least one minute.');
+        }
+
         $allDay = $request->query->getString('all_day', '') === '1';
 
         // Create a temporary event to check conflicts against

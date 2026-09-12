@@ -21,7 +21,16 @@ final class EventInputParser
 
         $dt = \DateTimeImmutable::createFromFormat('Y-m-d', $formatted);
 
-        return $dt === false ? null : $dt->setTime(0, 0);
+        // The digit check above lets through eight digits that are not a date:
+        // createFromFormat rolls those forward rather than refusing them, so
+        // 20260231 came back as the 3rd of March and 20261345 as the 14th of
+        // February the year after. Every route that reads a date this way then
+        // answered for a day nobody asked about.
+        if ($dt === false || $dt->format('Y-m-d') !== $formatted) {
+            return null;
+        }
+
+        return $dt->setTime(0, 0);
     }
 
     /**
