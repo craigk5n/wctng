@@ -42,21 +42,33 @@ final class ResourceController
             return ApiResponse::error(403, 'Admin access required');
         }
 
-        /** @var array{login?: string, name?: string, admin?: string, is_public?: bool, url?: string} $data */
-        $data = json_decode($request->getContent(), true) ?? [];
+        /** @var mixed $decoded */
+        $decoded = json_decode($request->getContent(), true);
+        /** @var array<string, mixed> $data */
+        $data = \is_array($decoded) ? $decoded : [];
 
-        $login = $data['login'] ?? '';
-        $name = $data['name'] ?? '';
+        $login = isset($data['login']) && \is_string($data['login']) ? trim($data['login']) : '';
+        $name = isset($data['name']) && \is_string($data['name']) ? trim($data['name']) : '';
+
+        // Trimmed before the check, because Resource trims before its own and
+        // throws -- a login of spaces got past this line and came back a 500.
         if ($login === '' || $name === '') {
             return ApiResponse::error(400, 'Missing required fields: login, name');
+        }
+
+        // save() looks the login up and turns into an UPDATE when it finds
+        // one, so without this the create route quietly rewrites an existing
+        // resource's name, owner and visibility and answers 201.
+        if ($this->resourceService->getResourceByLogin($login) !== null) {
+            return ApiResponse::error(409, 'Resource with this login already exists');
         }
 
         $resource = new CalResource(
             login: $login,
             name: $name,
-            admin: $data['admin'] ?? $user->getUserIdentifier(),
-            isPublic: $data['is_public'] ?? false,
-            url: $data['url'] ?? null,
+            admin: isset($data['admin']) && \is_string($data['admin']) ? $data['admin'] : $user->getUserIdentifier(),
+            isPublic: isset($data['is_public']) && \is_bool($data['is_public']) ? $data['is_public'] : false,
+            url: isset($data['url']) && \is_string($data['url']) ? $data['url'] : null,
         );
 
         $this->resourceService->createResource($resource);
@@ -75,15 +87,30 @@ final class ResourceController
             return ApiResponse::error(404, 'Resource not found');
         }
 
-        /** @var array{name?: string, admin?: string, is_public?: bool, url?: string} $data */
-        $data = json_decode($request->getContent(), true) ?? [];
+        /** @var mixed $decoded */
+        $decoded = json_decode($request->getContent(), true);
+        /** @var array<string, mixed> $data */
+        $data = \is_array($decoded) ? $decoded : [];
+
+        $name = isset($data['name']) && \is_string($data['name']) ? trim($data['name']) : $existing->name();
+        if ($name === '') {
+            return ApiResponse::error(400, 'Resource name cannot be empty');
+        }
+
+        // array_key_exists rather than ??, so an explicit null clears the URL.
+        // Under ?? a stored URL could never be removed again: the null read as
+        // "not sent" and put the old value straight back.
+        $url = $existing->url();
+        if (\array_key_exists('url', $data)) {
+            $url = \is_string($data['url']) ? $data['url'] : null;
+        }
 
         $updated = new CalResource(
             login: $login,
-            name: $data['name'] ?? $existing->name(),
-            admin: $data['admin'] ?? $existing->admin(),
-            isPublic: $data['is_public'] ?? $existing->isPublic(),
-            url: $data['url'] ?? $existing->url(),
+            name: $name,
+            admin: isset($data['admin']) && \is_string($data['admin']) ? $data['admin'] : $existing->admin(),
+            isPublic: isset($data['is_public']) && \is_bool($data['is_public']) ? $data['is_public'] : $existing->isPublic(),
+            url: $url,
         );
 
         $this->resourceService->updateResource($updated);
@@ -114,7 +141,13 @@ final class ResourceController
         }
 
         $date = \DateTimeImmutable::createFromFormat('Y-m-d', $dateStr);
-        if ($date === false) {
+
+        // createFromFormat rolls an impossible date forward rather than
+        // refusing it -- 2026-02-31 becomes the 3rd of March -- and the reply
+        // below still carries the date that was asked for, so the caller reads
+        // another day's bookings under this day's label. The round trip is
+        // what separates a date from a date-shaped string.
+        if ($date === false || $date->format('Y-m-d') !== $dateStr) {
             return ApiResponse::error(400, 'Invalid date format');
         }
 
