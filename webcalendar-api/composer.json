@@ -12,7 +12,7 @@
         "ext-pdo": "*",
         "ext-pdo_mysql": "*",
         "ext-zip": "*",
-        "craigk5n/webcalendar-core": "^4.1",
+        "craigk5n/webcalendar-core": "~4.15.0",
         "doctrine/migrations": "^3.8",
         "lexik/jwt-authentication-bundle": "^3.1",
         "nelmio/cors-bundle": "^2.4",

@@ -19,6 +19,7 @@ use WebCalendar\Core\Domain\Entity\Journal;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 use WebCalendar\Core\Domain\ValueObject\EventId;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 use WebCalendar\Core\Domain\ValueObject\EventType;
 
 final class JournalController
@@ -51,7 +52,7 @@ final class JournalController
 
         $journals = $this->journalService->getJournalsInDateRange(
             new DateRange($start, $end),
-            $user->getUserIdentifier(),
+            EventScope::forUser($user->getCoreUser())->limitedToUsers([$user->getUserIdentifier()]),
         );
 
         $items = array_map(self::journalToArray(...), $journals);
@@ -111,7 +112,7 @@ final class JournalController
         $range = new DateRange($date->modify('-1 day'), $date->modify('+1 day'));
         $journals = $this->journalService->getJournalsInDateRange(
             $range,
-            $user->getUserIdentifier(),
+            EventScope::forUser($user->getCoreUser())->limitedToUsers([$user->getUserIdentifier()]),
         );
 
         $created = null;

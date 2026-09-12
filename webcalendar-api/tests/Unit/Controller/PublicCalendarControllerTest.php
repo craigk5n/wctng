@@ -16,6 +16,7 @@ use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
 use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\EventId;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 use WebCalendar\Core\Domain\ValueObject\EventType;
 use WebCalendar\Core\Domain\ValueObject\Recurrence;
 use WebCalendar\Core\Domain\ValueObject\UserPreference;
@@ -510,8 +511,14 @@ final class PublicCalendarControllerTest extends TestCase
         $this->userRepo->method('getPreferences')
             ->willReturn([new UserPreference('public_calendar_enabled', 'Y')]);
 
+        // Stronger than the pair of arguments this used to assert: the scope
+        // has to name the owner AND be public-only AND not be administrative.
         $this->eventRepo->expects($this->once())->method('findByDateRange')
-            ->with($this->anything(), null, 'P', ['alice'])
+            ->with($this->anything(), $this->callback(
+                static fn(EventScope $scope): bool => $scope->users() === ['alice']
+                    && $scope->accessLevel() === 'P'
+                    && !$scope->isAdministrative(),
+            ))
             ->willReturn([]);
 
         $this->controller->listPublicEvents(

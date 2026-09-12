@@ -20,6 +20,7 @@ use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
 use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\EventId;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 use WebCalendar\Core\Domain\ValueObject\EventType;
 use WebCalendar\Core\Domain\ValueObject\UserPreference;
 
@@ -53,8 +54,8 @@ final class EventIndexControllerTest extends TestCase
 
         $events = $this->createMock(EventRepositoryInterface::class);
         $events->method('findByDateRange')->willReturnCallback(
-            function (mixed $range, mixed $user, mixed $access, ?array $users): array {
-                $this->askedFor[] = $users;
+            function (mixed $range, EventScope $scope): array {
+                $this->askedFor[] = $scope->users();
 
                 return $this->events;
             },

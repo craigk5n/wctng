@@ -17,6 +17,7 @@ use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 use WebCalendar\Core\Domain\ValueObject\EventId;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 use WebCalendar\Core\Domain\ValueObject\EventType;
 use WebCalendar\Core\Infrastructure\Persistence\PdoResourceRepository;
 
@@ -63,8 +64,8 @@ final class ResourceControllerTest extends TestCase
     {
         $events = $this->createMock(EventRepositoryInterface::class);
         $events->method('findByDateRange')->willReturnCallback(
-            function (DateRange $range, ?User $user = null, ?string $access = null, ?array $users = null): array {
-                $this->queries[] = ['range' => $range, 'users' => $users];
+            function (DateRange $range, EventScope $scope): array {
+                $this->queries[] = ['range' => $range, 'users' => $scope->users()];
 
                 return $this->events;
             },

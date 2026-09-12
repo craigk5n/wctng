@@ -15,6 +15,7 @@ use WebCalendar\Core\Application\Service\ResourceService;
 use WebCalendar\Core\Domain\Entity\Resource as CalResource;
 use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 
 final class ResourceController
 {
@@ -152,7 +153,13 @@ final class ResourceController
         }
 
         $range = new DateRange($date->setTime(0, 0), $date->setTime(23, 59, 59));
-        $events = $this->eventRepository->findByDateRange($range, null, null, [$login]);
+        // Availability has to count entries it may not show, so this reads
+        // the resource's calendar at every access level. Only the busy
+        // start/end leaves the method; no name or description does.
+        $events = $this->eventRepository->findByDateRange(
+            $range,
+            EventScope::administrative()->limitedToUsers([$login]),
+        );
 
         $busy = array_map(static fn($e) => [
             'title' => $e->name(),

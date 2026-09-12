@@ -21,6 +21,7 @@ use Symfony\Component\Uid\Uuid;
 use WebCalendar\Core\Domain\Entity\User;
 use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 
 final class ShareController
 {
@@ -143,7 +144,7 @@ final class ShareController
         // all the query filters on, so an entry waiting for approval, one that
         // was refused, and one its owner deleted all came back through it.
         $events = PublishedEvents::only(
-            $this->eventRepo->findByDateRange($dateRange, null, 'P', [$shareToken->ownerLogin()]),
+            $this->eventRepo->findByDateRange($dateRange, EventScope::publicOnly()->limitedToUsers([$shareToken->ownerLogin()])),
         );
 
         $total = \count($events);

@@ -15,6 +15,7 @@ use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
 use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 
 /**
  * Auto-generated sitemap.xml for search engine discovery.
@@ -94,7 +95,7 @@ final class SitemapController
             $end = $now->modify('+1 year');
             $range = new DateRange($start, $end);
             $events = PublishedEvents::only(
-                $this->eventRepository->findByDateRange($range, null, 'P', [$login]),
+                $this->eventRepository->findByDateRange($range, EventScope::publicOnly()->limitedToUsers([$login])),
             );
 
             foreach ($events as $event) {

@@ -18,6 +18,7 @@ use WebCalendar\Core\Domain\Entity\User;
 use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
 use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 use WebCalendar\Core\Domain\ValueObject\UserPreference;
 
 final class PublicCalendarController
@@ -109,7 +110,7 @@ final class PublicCalendarController
 
         $dateRange = new DateRange($start, $end);
         $events = PublishedEvents::only(
-            $this->eventRepo->findByDateRange($dateRange, null, 'P', [$username]),
+            $this->eventRepo->findByDateRange($dateRange, EventScope::publicOnly()->limitedToUsers([$username])),
         );
 
         $total = \count($events);

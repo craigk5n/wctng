@@ -33,6 +33,7 @@ use WebCalendar\Core\Application\Service\EventService;
 use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\ActivityLogType;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 
 final class CreateEventController
 {
@@ -107,7 +108,7 @@ final class CreateEventController
         if ($conflictMode !== 'off') {
             $dateRange = new DateRange($event->start()->modify('-1 day'), $event->end()->modify('+1 day'));
             $existing = $this->eventService
-                ->getEventsInDateRange($dateRange, $coreUser)->all();
+                ->getEventsInDateRange($dateRange, EventScope::forUser($coreUser))->all();
             $conflicts = $this->conflictService->findConflicts($event, $existing);
             $conflictList = $this->conflictService->formatConflicts($conflicts);
 

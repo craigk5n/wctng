@@ -7,6 +7,7 @@ namespace App\Tests\Integration;
 use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\EventId;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 use WebCalendar\Core\Domain\ValueObject\EventType;
 
 final class SearchIntegrationTest extends IntegrationTestCase
@@ -41,7 +42,7 @@ final class SearchIntegrationTest extends IntegrationTestCase
             access: AccessLevel::PUBLIC,
         ), $this->adminUser);
 
-        $results = $this->factory->getEventRepository()->search('budget', null, $this->adminUser, null, 10);
+        $results = $this->factory->getEventRepository()->search('budget', EventScope::forUser($this->adminUser), null, 10);
         $names = array_map(fn($e) => $e->name(), $results->all());
 
         $this->assertContains('Budget Planning Meeting', $names);
@@ -50,7 +51,7 @@ final class SearchIntegrationTest extends IntegrationTestCase
 
     public function testSearchReturnsEmptyForNoMatch(): void
     {
-        $results = $this->factory->getEventRepository()->search('xyznonexistent', null, $this->adminUser, null, 10);
+        $results = $this->factory->getEventRepository()->search('xyznonexistent', EventScope::forUser($this->adminUser), null, 10);
         $this->assertCount(0, $results->all());
     }
 }

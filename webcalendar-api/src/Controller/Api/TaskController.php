@@ -19,6 +19,7 @@ use WebCalendar\Core\Domain\Entity\Task;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 use WebCalendar\Core\Domain\ValueObject\EventId;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 use WebCalendar\Core\Domain\ValueObject\EventType;
 
 final class TaskController
@@ -51,7 +52,7 @@ final class TaskController
 
         $tasks = $this->taskService->getTasksInDateRange(
             new DateRange($start, $end),
-            $user->getUserIdentifier(),
+            EventScope::forUser($user->getCoreUser())->limitedToUsers([$user->getUserIdentifier()]),
         );
 
         $items = array_map(self::taskToArray(...), $tasks);
@@ -114,7 +115,7 @@ final class TaskController
         );
         $tasks = $this->taskService->getTasksInDateRange(
             $range,
-            $user->getUserIdentifier(),
+            EventScope::forUser($user->getCoreUser())->limitedToUsers([$user->getUserIdentifier()]),
         );
 
         // Find the one with matching UID

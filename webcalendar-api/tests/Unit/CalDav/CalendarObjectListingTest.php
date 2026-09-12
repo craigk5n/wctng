@@ -147,6 +147,57 @@ final class CalendarObjectListingTest extends TestCase
         return array_map(static fn(array $o): mixed => $o['component'], $objects);
     }
 
+    public function testOneCalendarDoesNotListAnotherUsersTasksOrJournals(): void
+    {
+        // The creator restriction is the whole of the scoping here. The scope
+        // on its own still admits every PUBLIC entry in the installation, so
+        // dropping the login -- limitedToUsers([]) means no restriction at all
+        // -- puts bob's tasks and journals in alice's CalDAV collection.
+        $bob = new User('bob', 'Bob', 'Jones', 'bob@example.com', false, true);
+        $this->factory->getUserService()->createUser($bob, $this->alice);
+
+        $this->factory->getTaskService()->createTask(new Task(
+            id: new EventId(0),
+            uid: 'task-bobs@example.com',
+            name: "Bob's task",
+            description: '',
+            location: '',
+            start: new \DateTimeImmutable('2026-07-02T09:00:00+00:00'),
+            duration: 0,
+            createdBy: 'bob',
+            type: EventType::TASK,
+            access: AccessLevel::PUBLIC,
+            dueDate: new \DateTimeImmutable('2026-07-10T17:00:00+00:00'),
+            percentComplete: 0,
+        ), $bob);
+
+        $this->factory->getJournalService()->createJournal(new Journal(
+            id: new EventId(0),
+            uid: 'journal-bobs@example.com',
+            name: "Bob's journal",
+            description: '',
+            location: '',
+            start: new \DateTimeImmutable('2026-07-03T09:00:00+00:00'),
+            duration: 0,
+            createdBy: 'bob',
+            type: EventType::JOURNAL,
+            access: AccessLevel::PUBLIC,
+        ), $bob);
+
+        $this->addTask();
+        $this->addJournal();
+
+        $bodies = implode("\n", array_map(
+            static fn(array $o): string => (string) $o['calendardata'],
+            $this->listing(),
+        ));
+
+        self::assertStringContainsString('File taxes', $bodies, "alice's own task is missing");
+        self::assertStringContainsString('Retro notes', $bodies, "alice's own journal is missing");
+        self::assertStringNotContainsString("Bob's task", $bodies);
+        self::assertStringNotContainsString("Bob's journal", $bodies);
+    }
+
     public function testATaskIsListedAsItsOwnVtodoObject(): void
     {
         // The task loop was never entered: no test put a task in the

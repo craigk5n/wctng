@@ -8,6 +8,7 @@ use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 use WebCalendar\Core\Domain\ValueObject\EventId;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 use WebCalendar\Core\Domain\ValueObject\EventType;
 
 /**
@@ -78,7 +79,7 @@ final class QueryPerformanceIntegrationTest extends IntegrationTestCase
         $end = new \DateTimeImmutable('2026-06-30');
         $range = new DateRange($start, $end);
 
-        $events = $this->factory->getEventRepository()->findByDateRange($range, $this->normalUser);
+        $events = $this->factory->getEventRepository()->findByDateRange($range, EventScope::forUser($this->normalUser));
 
         // Should return events (verifies the query works)
         $this->assertGreaterThan(0, \count($events));
@@ -93,7 +94,7 @@ final class QueryPerformanceIntegrationTest extends IntegrationTestCase
         $range = new DateRange($start, $end);
 
         // Query with access level filter (used by SEO/sitemap)
-        $events = $this->factory->getEventRepository()->findByDateRange($range, null, 'P', ['alice']);
+        $events = $this->factory->getEventRepository()->findByDateRange($range, EventScope::publicOnly()->limitedToUsers(['alice']));
 
         // Should only return public events (40 of 50 are public)
         $this->assertCount(40, $events);
@@ -123,7 +124,7 @@ final class QueryPerformanceIntegrationTest extends IntegrationTestCase
         $eventIds = [];
         $events = $this->factory->getEventRepository()->findByDateRange(
             new DateRange(new \DateTimeImmutable('2026-06-01'), new \DateTimeImmutable('2026-06-30')),
-            $this->normalUser,
+            EventScope::forUser($this->normalUser),
         );
         foreach (\array_slice($events, 0, 20) as $e) {
             $eventIds[] = $e->id();

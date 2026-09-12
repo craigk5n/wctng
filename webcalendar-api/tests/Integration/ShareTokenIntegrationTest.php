@@ -9,6 +9,7 @@ use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 use WebCalendar\Core\Domain\ValueObject\EventId;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 use WebCalendar\Core\Domain\ValueObject\EventType;
 
 final class ShareTokenIntegrationTest extends IntegrationTestCase
@@ -47,7 +48,7 @@ final class ShareTokenIntegrationTest extends IntegrationTestCase
             new \DateTimeImmutable('2026-06-01'),
             new \DateTimeImmutable('2026-06-30'),
         );
-        $events = $this->factory->getEventRepository()->findByDateRange($range, null, 'P', ['alice']);
+        $events = $this->factory->getEventRepository()->findByDateRange($range, EventScope::publicOnly()->limitedToUsers(['alice']));
         $this->assertGreaterThan(0, \count($events));
 
         // Revoke

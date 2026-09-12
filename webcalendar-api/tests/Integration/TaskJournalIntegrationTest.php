@@ -9,6 +9,7 @@ use WebCalendar\Core\Domain\Entity\Task;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 use WebCalendar\Core\Domain\ValueObject\EventId;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 use WebCalendar\Core\Domain\ValueObject\EventType;
 
 final class TaskJournalIntegrationTest extends IntegrationTestCase
@@ -36,7 +37,7 @@ final class TaskJournalIntegrationTest extends IntegrationTestCase
             new \DateTimeImmutable('2026-01-01'),
             new \DateTimeImmutable('2026-12-31'),
         );
-        $tasks = $taskService->getTasksInDateRange($range, 'admin');
+        $tasks = $taskService->getTasksInDateRange($range, EventScope::forUser($this->adminUser)->limitedToUsers(['admin']));
         $names = array_map(fn($t) => $t->name(), $tasks);
         $this->assertContains('Integration Task', $names);
     }
@@ -64,7 +65,7 @@ final class TaskJournalIntegrationTest extends IntegrationTestCase
             new \DateTimeImmutable('2026-01-01'),
             new \DateTimeImmutable('2026-12-31'),
         );
-        $journals = $journalService->getJournalsInDateRange($range, 'admin');
+        $journals = $journalService->getJournalsInDateRange($range, EventScope::forUser($this->adminUser)->limitedToUsers(['admin']));
         $names = array_map(fn($j) => $j->name(), $journals);
         $this->assertContains('Integration Journal', $names);
     }

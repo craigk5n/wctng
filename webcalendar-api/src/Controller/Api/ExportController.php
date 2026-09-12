@@ -14,6 +14,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use WebCalendar\Core\Application\Service\EventService;
 use WebCalendar\Core\Application\Service\ExportService;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 
 final class ExportController
 {
@@ -57,7 +58,7 @@ final class ExportController
         $coreUser = $user->getCoreUser();
         $range = new DateRange($start, $end);
 
-        $collection = $this->eventService->getEventsInDateRange($range, $coreUser);
+        $collection = $this->eventService->getEventsInDateRange($range, EventScope::forUser($coreUser));
 
         $icsContent = $this->exportService->exportIcal($collection);
 

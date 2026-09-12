@@ -18,6 +18,7 @@ use WebCalendar\Core\Application\Service\ConfigService;
 use WebCalendar\Core\Application\Service\EventService;
 use WebCalendar\Core\Application\Service\LayerService;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 use WebCalendar\Core\Infrastructure\Persistence\PdoCategoryRepository;
 
 final class ListEventsController
@@ -58,7 +59,7 @@ final class ListEventsController
 
         $dateRange = new DateRange($start, $end);
         $coreUser = $user->getCoreUser();
-        $collection = $this->eventService->getEventsInDateRange($dateRange, $coreUser);
+        $collection = $this->eventService->getEventsInDateRange($dateRange, EventScope::forUser($coreUser));
 
         $allEvents = $collection->all();
 
@@ -70,7 +71,16 @@ final class ListEventsController
                 // Load access permissions for layered users
                 $accessMap = $this->accessPerms->findGrantsFor($user->getUserIdentifier(), array_values($layerUsers));
 
-                $layerCollection = $this->eventService->getEventsInDateRange($dateRange, null, null, $layerUsers);
+                // Deliberately unrestricted, and narrowed to the layered logins.
+                // This path reads every access level because it does its own
+                // filtering below: PRIVATE is dropped without a can_view
+                // grant, and CONFIDENTIAL is masked to "Busy" further down.
+                // Passing no filter used to be how that was spelled; naming
+                // administrative() is the same query, said out loud.
+                $layerCollection = $this->eventService->getEventsInDateRange(
+                    $dateRange,
+                    EventScope::administrative()->limitedToUsers($layerUsers),
+                );
                 // Merge, avoiding duplicates by event ID, filtering by access
                 $existingIds = array_map(static fn($e) => $e->id(), $allEvents);
                 foreach ($layerCollection->all() as $layerEvent) {

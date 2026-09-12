@@ -12,6 +12,7 @@ use WebCalendar\Core\Application\Service\ConfigService;
 use WebCalendar\Core\Application\Service\EventService;
 use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 
 /**
  * Sends daily agenda emails to opted-in users.
@@ -87,7 +88,7 @@ final class DailyAgendaService
                 $dayStart = new \DateTimeImmutable("{$today} 00:00:00");
                 $dayEnd = new \DateTimeImmutable("{$today} 23:59:59");
                 $range = new DateRange($dayStart, $dayEnd);
-                $events = $this->eventService->getEventsInDateRange($range, $user);
+                $events = $this->eventService->getEventsInDateRange($range, EventScope::forUser($user));
                 $dayEvents = $events->all();
 
                 // Sort by start time

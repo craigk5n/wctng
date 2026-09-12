@@ -20,6 +20,7 @@ use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 use WebCalendar\Core\Domain\ValueObject\EventId;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 use WebCalendar\Core\Domain\ValueObject\EventType;
 
 /**
@@ -180,7 +181,7 @@ final class McpController
         }
 
         $range = new DateRange($start, $end->setTime(23, 59, 59));
-        $events = $this->eventService->getEventsInDateRange($range, $user)->all();
+        $events = $this->eventService->getEventsInDateRange($range, EventScope::forUser($user))->all();
 
         return $this->jsonRpcResult($id, ['events' => EventResponseDTO::fromCollection(array_values($events))]);
     }
@@ -321,7 +322,7 @@ final class McpController
             return $this->jsonRpcError($id, -32602, 'query parameter required');
         }
 
-        $results = $this->eventRepository->search($query, null, $user, null, 20);
+        $results = $this->eventRepository->search($query, EventScope::forUser($user), null, 20);
         return $this->jsonRpcResult($id, ['events' => EventResponseDTO::fromCollection(array_values($results->all()))]);
     }
 

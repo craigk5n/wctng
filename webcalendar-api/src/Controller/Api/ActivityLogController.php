@@ -60,7 +60,10 @@ final class ActivityLogController
         $loginFilter = $loginRaw === '' ? null : $loginRaw;
 
         $range = new DateRange($start, $end);
-        $entries = $this->activityLogService->getLogs($range, $loginFilter);
+        // The actor is required since core v4.15.0: a non-admin may only read
+        // their own log, and a bare request means their own rather than the
+        // whole site's. This route is admin-only above, so neither fires.
+        $entries = $this->activityLogService->getLogs($range, $user->getCoreUser(), $loginFilter);
 
         $page = max(1, $request->query->getInt('page', 1));
         $limit = min(100, max(1, $request->query->getInt('limit', 50)));

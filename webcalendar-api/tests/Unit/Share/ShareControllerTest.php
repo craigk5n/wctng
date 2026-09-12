@@ -14,6 +14,7 @@ use WebCalendar\Core\Domain\Entity\User;
 use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\EventId;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 use WebCalendar\Core\Domain\ValueObject\EventType;
 use WebCalendar\Core\Domain\ValueObject\Recurrence;
 
@@ -444,8 +445,8 @@ final class ShareControllerTest extends TestCase
 
         $captured = null;
         $this->eventRepo->method('findByDateRange')->willReturnCallback(
-            function (mixed $range, mixed $user, mixed $access, mixed $owners) use (&$captured): array {
-                $captured = $owners;
+            function (mixed $range, EventScope $scope) use (&$captured): array {
+                $captured = $scope->users();
 
                 return [];
             },

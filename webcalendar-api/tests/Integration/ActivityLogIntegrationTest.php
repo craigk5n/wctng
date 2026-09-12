@@ -50,7 +50,7 @@ final class ActivityLogIntegrationTest extends IntegrationTestCase
             new \DateTimeImmutable('2026-01-01'),
             new \DateTimeImmutable('2027-01-01'),
         );
-        $logs = $logService->getLogs($range, 'admin');
+        $logs = $logService->getLogs($range, $this->adminUser, 'admin');
 
         $this->assertGreaterThan(0, \count($logs));
         $found = false;
@@ -99,7 +99,7 @@ final class ActivityLogIntegrationTest extends IntegrationTestCase
             new \DateTimeImmutable('2026-01-01'),
             new \DateTimeImmutable('2027-01-01'),
         );
-        $logs = $logService->getLogs($range, 'admin');
+        $logs = $logService->getLogs($range, $this->adminUser, 'admin');
 
         $updateFound = false;
         foreach ($logs as $entry) {
@@ -122,7 +122,7 @@ final class ActivityLogIntegrationTest extends IntegrationTestCase
             new \DateTimeImmutable('2026-01-01'),
             new \DateTimeImmutable('2027-01-01'),
         );
-        $logs = $logService->getLogs($range, 'admin');
+        $logs = $logService->getLogs($range, $this->adminUser, 'admin');
 
         $deleteFound = false;
         foreach ($logs as $entry) {

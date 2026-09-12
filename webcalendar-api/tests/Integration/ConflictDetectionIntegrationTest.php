@@ -9,6 +9,7 @@ use WebCalendar\Core\Domain\Entity\Event;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 use WebCalendar\Core\Domain\ValueObject\EventId;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 use WebCalendar\Core\Domain\ValueObject\EventType;
 
 final class ConflictDetectionIntegrationTest extends IntegrationTestCase
@@ -50,7 +51,7 @@ final class ConflictDetectionIntegrationTest extends IntegrationTestCase
             new \DateTimeImmutable('2026-06-01'),
             new \DateTimeImmutable('2026-06-01 23:59:59'),
         );
-        $existing = $eventService->getEventsInDateRange($range, $this->adminUser)->all();
+        $existing = $eventService->getEventsInDateRange($range, EventScope::forUser($this->adminUser))->all();
 
         $conflictService = new ConflictDetectionService();
         $conflicts = $conflictService->findConflicts($newEvent, $existing);
@@ -93,7 +94,7 @@ final class ConflictDetectionIntegrationTest extends IntegrationTestCase
             new \DateTimeImmutable('2026-07-01'),
             new \DateTimeImmutable('2026-07-01 23:59:59'),
         );
-        $existing = $eventService->getEventsInDateRange($range, $this->adminUser)->all();
+        $existing = $eventService->getEventsInDateRange($range, EventScope::forUser($this->adminUser))->all();
 
         $conflictService = new ConflictDetectionService();
         $conflicts = $conflictService->findConflicts($newEvent, $existing);

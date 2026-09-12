@@ -15,6 +15,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use WebCalendar\Core\Application\Service\EventService;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 use WebCalendar\Core\Domain\ValueObject\EventId;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 
 final class ConflictsController
 {
@@ -84,7 +85,7 @@ final class ConflictsController
         $dateRange = new DateRange($start->modify('-1 day'), $end->modify('+1 day'));
         $coreUser = $user->getCoreUser();
         $existing = $this->eventService
-            ->getEventsInDateRange($dateRange, $coreUser)->all();
+            ->getEventsInDateRange($dateRange, EventScope::forUser($coreUser))->all();
 
         $conflicts = $this->conflictService->findConflicts(
             $checkEvent,

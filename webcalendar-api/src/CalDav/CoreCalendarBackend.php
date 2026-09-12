@@ -33,6 +33,7 @@ use WebCalendar\Core\Domain\Repository\ReminderRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 use WebCalendar\Core\Domain\ValueObject\EventId;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 use WebCalendar\Core\Domain\ValueObject\EventType;
 use WebCalendar\Core\Domain\ValueObject\ExDate;
 use WebCalendar\Core\Domain\ValueObject\Recurrence;
@@ -165,7 +166,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
                 $this->clock->now()->modify('-2 years'),
                 $this->clock->now()->modify('+2 years'),
             );
-            $collection = $this->eventService->getEventsInDateRange($range, $user);
+            $collection = $this->eventService->getEventsInDateRange($range, EventScope::forUser($user));
 
             $objects = [];
             foreach ($collection->all() as $event) {
@@ -193,7 +194,10 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
 
             // Include tasks (VTODO)
             try {
-                $tasks = $this->taskService->getTasksInDateRange($range, $username);
+                $tasks = $this->taskService->getTasksInDateRange(
+                    $range,
+                    EventScope::forUser($user)->limitedToUsers([$username]),
+                );
                 foreach ($tasks as $task) {
                     $ics = $this->taskToIcs($task);
                     $objects[] = [
@@ -213,7 +217,10 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
 
             // Include journals (VJOURNAL)
             try {
-                $journals = $this->journalService->getJournalsInDateRange($range, $username);
+                $journals = $this->journalService->getJournalsInDateRange(
+                    $range,
+                    EventScope::forUser($user)->limitedToUsers([$username]),
+                );
                 foreach ($journals as $journal) {
                     $ics = $this->journalToIcs($journal);
                     $objects[] = [

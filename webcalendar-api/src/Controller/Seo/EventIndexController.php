@@ -18,6 +18,7 @@ use WebCalendar\Core\Application\Service\UserService;
 use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 
 /**
  * Server-side rendered event index/archive pages for search engine crawlers.
@@ -72,7 +73,7 @@ final class EventIndexController
 
         $range = new DateRange($start, $end);
         $allEvents = PublishedEvents::only(
-            $this->eventRepository->findByDateRange($range, null, 'P', [$username]),
+            $this->eventRepository->findByDateRange($range, EventScope::publicOnly()->limitedToUsers([$username])),
         );
 
         // Sort by date

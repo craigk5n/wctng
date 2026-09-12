@@ -79,7 +79,10 @@ final class ReminderService
 
             try {
                 $range = new \WebCalendar\Core\Domain\ValueObject\DateRange($windowStart, $windowEnd);
-                $events = $this->eventService->getEventsInDateRange($range, $user);
+                $events = $this->eventService->getEventsInDateRange(
+                    $range,
+                    \WebCalendar\Core\Domain\ValueObject\EventScope::forUser($user),
+                );
 
                 foreach ($events->all() as $event) {
                     $eventId = $event->id()->value();
