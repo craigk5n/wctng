@@ -184,6 +184,38 @@ final class WebhookRepositoryTest extends TestCase
         yield 'disabled' => [false];
     }
 
+    /** @return iterable<string, array{bool, int}> */
+    public static function enabledStatesAndTheirStoredValue(): iterable
+    {
+        yield 'enabled is stored as one' => [true, 1];
+        yield 'disabled is stored as zero' => [false, 0];
+    }
+
+    #[DataProvider('enabledStatesAndTheirStoredValue')]
+    public function testTheFlagIsStoredAsOneOrZeroAndNothingElse(bool $enabled, int $stored): void
+    {
+        // The round-trip tests below only ask whether the column equals 1, so
+        // anything that is not 1 reads back as disabled and they pass for all
+        // of it -- the column could be written as -1 and nothing here would
+        // notice. enabled is INTEGER NOT NULL DEFAULT 1 standing in for a
+        // boolean, and what is in it is what anything reading the table
+        // directly sees.
+        $id = $this->repo->save($this->fullyPopulated(enabled: $enabled));
+        self::assertSame($stored, $this->storedEnabled($id));
+
+        // And again down the update path, which writes the same expression.
+        $this->repo->save($this->fullyPopulated($id, $enabled));
+        self::assertSame($stored, $this->storedEnabled($id));
+    }
+
+    private function storedEnabled(int $id): int
+    {
+        $stmt = $this->pdo->prepare('SELECT enabled FROM webhooks WHERE id = :id');
+        $stmt->execute(['id' => $id]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
     #[DataProvider('enabledStates')]
     public function testTheEnabledFlagSurvivesAnInsert(bool $enabled): void
     {
