@@ -219,4 +219,46 @@ final class ReportServiceTest extends TestCase
             $mysqlish->upcomingReport('admin'),
         );
     }
+
+    public function testUpcomingReportOrdersByDayAndThenByTimeOfDay(): void
+    {
+        // The report answers "what is next", so the order is the whole point.
+        // Every existing case has one event per day, which the ORDER BY gets
+        // right whether or not it mentions cal_time.
+        $pdo = $this->seededPdo();
+        $insert = $pdo->prepare(
+            'INSERT INTO webcal_entry (cal_id, cal_name, cal_date, cal_time, cal_type, cal_create_by)
+             VALUES (?, ?, ?, ?, ?, ?)',
+        );
+        // Inserted latest-first so insertion order cannot be mistaken for
+        // sorted order.
+        $insert->execute([101, 'Afternoon', 20260316, 150000, 'E', 'admin']);
+        $insert->execute([102, 'Morning', 20260316, 80000, 'E', 'admin']);
+        $insert->execute([103, 'Day before', 20260315, 233000, 'E', 'admin']);
+
+        $titles = array_column($this->serviceOn($pdo)->upcomingReport('admin'), 'title');
+
+        $positions = array_flip($titles);
+        self::assertLessThan($positions['Morning'], $positions['Day before']);
+        self::assertLessThan($positions['Afternoon'], $positions['Morning']);
+    }
+
+    public function testUpcomingReportStopsAtFiftyEvents(): void
+    {
+        // The query carries a LIMIT 50 and the endpoint hands the result
+        // straight to a client. Nothing held it to that, so the limit could
+        // have been dropped or changed and only a very full calendar would
+        // have noticed.
+        $pdo = $this->seededPdo();
+        $insert = $pdo->prepare(
+            'INSERT INTO webcal_entry (cal_id, cal_name, cal_date, cal_time, cal_type, cal_create_by)
+             VALUES (?, ?, ?, ?, ?, ?)',
+        );
+        // Sixty on a single day inside the default seven-day window.
+        for ($i = 1; $i <= 60; $i++) {
+            $insert->execute([200 + $i, 'Busy ' . $i, 20260316, 90000 + $i, 'E', 'admin']);
+        }
+
+        self::assertCount(50, $this->serviceOn($pdo)->upcomingReport('admin'));
+    }
 }
