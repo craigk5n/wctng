@@ -75,6 +75,14 @@ final class CustomHtmlSanitizer
             return '';
         }
 
+        // A <style> element ends at the first "</style" whatever the CSS
+        // around it says: the HTML parser does not read CSS, so neither a
+        // comment nor a string hides it. Everything after that point is parsed
+        // as HTML, which is how a stylesheet closes its own element and opens
+        // a script -- the one thing the HTML half of this class exists to
+        // prevent. No stylesheet has a use for the sequence.
+        $css = (string) preg_replace('#</style#i', '/* blocked */', $css);
+
         // Strip dangerous CSS constructs
         $css = (string) preg_replace('/expression\s*\(/i', '/* blocked */(', $css);
         $css = (string) preg_replace('/url\s*\(\s*["\']?\s*javascript:/i', 'url(/* blocked */', $css);

@@ -40,6 +40,12 @@ final class CustomHtmlProvider
             return '';
         }
 
+        // Again here, not only where the value was sanitized on its way in:
+        // rows stored before that check existed are still served from this
+        // method, and this is the one place that knows the CSS is about to
+        // become the body of a <style> element.
+        $css = (string) preg_replace('#</style#i', '/* blocked */', $css);
+
         return '<style>' . $css . '</style>';
     }
 }
