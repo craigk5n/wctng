@@ -62,6 +62,17 @@ final class SetupController
             return ApiResponse::error(400, 'Missing required field: email');
         }
 
+        // The repository saves by upsert, keyed on login, and this endpoint is
+        // public until an administrator exists. Without this an installation
+        // that has ordinary users but no administrator -- one deleted, or
+        // accounts imported before setup -- would let an anonymous caller name
+        // an existing login and have that account promoted to administrator,
+        // its email replaced and its password overwritten. Setup creates an
+        // account; it never edits one.
+        if ($this->userService->getUserByLogin($username) !== null) {
+            return ApiResponse::error(400, 'That username is already taken. Choose another.');
+        }
+
         try {
             $admin = new User(
                 login: $username,

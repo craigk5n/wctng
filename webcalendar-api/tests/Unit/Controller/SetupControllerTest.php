@@ -148,6 +148,43 @@ final class SetupControllerTest extends TestCase
         self::assertTrue($this->needsSetup());
     }
 
+    public function testSetupWillNotTakeOverAnAccountThatAlreadyExists(): void
+    {
+        // With ordinary users but no administrator, setup is genuinely still
+        // needed -- and the repository saves by upsert on login. Naming an
+        // existing user here would promote them to administrator, replace
+        // their email and overwrite their password, all from an anonymous
+        // request. Setup creates an account; it never edits one.
+        $seedAdmin = new User('seed', 'Seed', 'Admin', 'seed@example.com', true, true);
+        $this->factory->getUserService()->createUser(
+            new User('bob', 'Bob', 'Jones', 'bob@example.com', false, true),
+            $seedAdmin,
+        );
+        $this->factory->getUserRepository()->setPassword(
+            'bob',
+            $this->factory->getUserService()->hashPassword('bobs-own-password'),
+        );
+        self::assertTrue($this->needsSetup(), 'no administrator exists yet, so setup is still open');
+
+        $response = $this->install([
+            'username' => 'bob',
+            'password' => 'attacker-chosen',
+            'email' => 'attacker@evil.test',
+        ]);
+
+        self::assertSame(400, $response->getStatusCode());
+
+        $bob = $this->factory->getUserService()->getUserByLogin('bob');
+        self::assertNotNull($bob);
+        self::assertFalse($bob->isAdmin(), 'bob must not have been promoted');
+        self::assertSame('bob@example.com', $bob->email(), 'nor had his address replaced');
+        self::assertTrue(
+            password_verify('bobs-own-password', (string) $this->factory->getUserRepository()->getPasswordHash('bob')),
+            'nor his password overwritten',
+        );
+        self::assertSame([], $this->adminLogins());
+    }
+
     // ------------------------------------------------------------ install
 
     public function testTheInstalledAdminCanSignInWithThePasswordItWasGiven(): void
