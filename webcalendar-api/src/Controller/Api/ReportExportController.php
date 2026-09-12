@@ -6,6 +6,7 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
+use App\Service\EventInputParser;
 use App\Service\ReportService;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Clock\NativeClock;
@@ -16,6 +17,14 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class ReportExportController
 {
+    /**
+     * A spreadsheet reads a cell beginning with one of these as a formula
+     * rather than as text. Not every title in a report is the reader's own
+     * writing: the public booking route builds one out of an anonymous
+     * request, and a category can belong to somebody else.
+     */
+    private const FORMULA_LEADERS = ['=', '+', '-', '@', "\t", "\r"];
+
     public function __construct(
         private readonly ReportService $reportService,
         private readonly ClockInterface $clock = new NativeClock(),
@@ -29,8 +38,29 @@ final class ReportExportController
         }
 
         $now = $this->clock->now();
-        $start = $request->query->getString('start', $now->modify('-30 days')->format('Ymd'));
-        $end = $request->query->getString('end', $now->format('Ymd'));
+        $startStr = $request->query->getString('start', '');
+        $endStr = $request->query->getString('end', '');
+
+        $start = $startStr === '' ? $now->modify('-30 days')->format('Ymd') : $startStr;
+        $end = $endStr === '' ? $now->format('Ymd') : $endStr;
+
+        // Both go into the SQL and into the filename below, which is a quoted
+        // value in a response header -- so an unchecked quote ended that
+        // string and an unchecked newline was written into the header as it
+        // arrived. Checked here, the only things that reach the filename are
+        // eight digits and one of three report types.
+        if (
+            EventInputParser::parseDateParam($start) === null
+            || EventInputParser::parseDateParam($end) === null
+        ) {
+            return ApiResponse::error(400, 'Invalid date format. Expected YYYYMMDD.');
+        }
+
+        // Both are YYYYMMDD by now, so they sort as strings.
+        if ($start > $end) {
+            return ApiResponse::error(400, 'The start date must not be after the end date.');
+        }
+
         $login = $user->getUserIdentifier();
 
         $csv = match ($type) {
@@ -69,8 +99,7 @@ final class ReportExportController
         $data = $this->reportService->categoriesReport($login, $start, $end);
         $lines = ['Category,Event Count'];
         foreach ($data as $row) {
-            $name = str_replace('"', '""', $row['category_name']);
-            $lines[] = "\"{$name}\",{$row['count']}";
+            $lines[] = self::cell($row['category_name']) . ",{$row['count']}";
         }
 
         return implode("\r\n", $lines);
@@ -81,10 +110,23 @@ final class ReportExportController
         $data = $this->reportService->upcomingReport($login, 30);
         $lines = ['ID,Title,Date,Type'];
         foreach ($data as $row) {
-            $title = str_replace('"', '""', $row['title']);
-            $lines[] = "{$row['id']},\"{$title}\",{$row['start_date']},{$row['type']}";
+            $lines[] = "{$row['id']}," . self::cell($row['title']) . ",{$row['start_date']},{$row['type']}";
         }
 
         return implode("\r\n", $lines);
+    }
+
+    /**
+     * One CSV field: quoted, with its own quotes doubled, and kept out of the
+     * formula parser. The leading apostrophe is how a spreadsheet is told the
+     * cell is text; it is not part of the value once the file is open.
+     */
+    private static function cell(string $value): string
+    {
+        if ($value !== '' && \in_array($value[0], self::FORMULA_LEADERS, true)) {
+            $value = "'" . $value;
+        }
+
+        return '"' . str_replace('"', '""', $value) . '"';
     }
 }
