@@ -294,8 +294,24 @@ final class OAuthController
             isEnabled: true,
         );
 
+        // createUser() checks that the actor may create users, and the account
+        // being provisioned is not an administrator -- passing it as its own
+        // actor made every first sign-in throw AuthorizationException, which
+        // the catch below turned into "Failed to provision user". Provisioning
+        // is the system acting, not the new user, so it is named as such: the
+        // same synthetic actor LegacyImportService uses when it imports
+        // accounts nobody is signed in to create.
+        $systemActor = new User(
+            login: 'oauth',
+            firstName: 'OAuth',
+            lastName: 'Provisioning',
+            email: 'oauth@provisioning.local',
+            isAdmin: true,
+            isEnabled: true,
+        );
+
         try {
-            $this->userService->createUser($newUser, $newUser);
+            $this->userService->createUser($newUser, $systemActor);
             // Set a random password (user authenticates via OAuth)
             $hash = $this->userService->hashPassword(bin2hex(random_bytes(32)));
             $this->userRepository->setPassword($login, $hash);
