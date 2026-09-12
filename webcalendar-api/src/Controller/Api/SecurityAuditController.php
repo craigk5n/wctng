@@ -93,17 +93,26 @@ final class SecurityAuditController
      */
     private function checkDefaultPassword(): array
     {
+        // Every administrator, not the one called "admin". Asking for that
+        // login by name told an installation whose administrator is called
+        // anything else that the password "has been changed from the default"
+        // -- while the account could still be opened with "admin", which web
+        // setup is happy to accept as a password.
         $isDefault = false;
         try {
-            $stmt = $this->pdo->prepare('SELECT cal_passwd FROM webcal_user WHERE cal_login = :login');
-            $stmt->execute(['login' => 'admin']);
-            /** @var string|false $hash */
-            $hash = $stmt->fetchColumn();
-            if (\is_string($hash) && password_verify('admin', $hash)) {
-                $isDefault = true;
+            $stmt = $this->pdo->query("SELECT cal_passwd FROM webcal_user WHERE cal_is_admin = 'Y'");
+            if ($stmt !== false) {
+                /** @var list<string|null> $hashes */
+                $hashes = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+                foreach ($hashes as $hash) {
+                    if (\is_string($hash) && password_verify('admin', $hash)) {
+                        $isDefault = true;
+                        break;
+                    }
+                }
             }
         } catch (\Throwable $e) {
-            $this->logger->warning('pdo->prepare() failed', ['exception' => $e->getMessage()]);
+            $this->logger->warning('pdo->query() failed', ['exception' => $e->getMessage()]);
         }
 
         return [
@@ -111,8 +120,8 @@ final class SecurityAuditController
             'name' => 'Default admin password',
             'status' => $isDefault ? 'fail' : 'pass',
             'detail' => $isDefault
-                ? 'The admin account still uses the default password "admin". Change it immediately.'
-                : 'Admin password has been changed from the default.',
+                ? 'An admin account still uses the default password "admin". Change it immediately.'
+                : 'No admin account uses the default password.',
         ];
     }
 
