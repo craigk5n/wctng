@@ -69,6 +69,14 @@ test.describe('Core User Flows E2E', () => {
     const title = 'E2E Journal ' + Date.now();
     await page.getByLabel(/title/i).fill(title);
 
+    // Give it a date. Left blank, the entry is stamped with the time the
+    // suite happened to run, which puts it on today's calendar on top of
+    // whatever else is there -- it took out event-crud's 21:00 event twice
+    // on 2026-09-12 by intercepting the click meant for it. No static slot
+    // is safe from an entry whose time is "now", so this one gets a date of
+    // its own instead.
+    await page.getByLabel(/^date$/i).fill('2027-06-15');
+
     // Submit
     const submitBtn = page.getByRole('button', { name: /create entry/i });
     await submitBtn.scrollIntoViewIfNeeded();
