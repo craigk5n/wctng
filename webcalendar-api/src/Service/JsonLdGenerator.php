@@ -92,6 +92,14 @@ final class JsonLdGenerator
     {
         $nonceAttr = $nonce !== '' ? ' nonce="' . htmlspecialchars($nonce, \ENT_QUOTES, 'UTF-8') . '"' : '';
 
+        // An event name or description containing "</script>" would otherwise
+        // close this block early, and everything after it would be parsed as
+        // HTML -- an event's name reaches here from the anonymous booking
+        // route. JSON_UNESCAPED_SLASHES keeps the URLs in here readable but
+        // leaves that sequence intact, so it is escaped at the end: "<\/" and
+        // "</" are the same two characters to anything reading the JSON.
+        $json = str_replace('</', '<\\/', $json);
+
         return '<script type="application/ld+json"' . $nonceAttr . '>' . $json . '</script>';
     }
 

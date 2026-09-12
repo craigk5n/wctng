@@ -66,7 +66,11 @@ final class EventPageController
         }
 
         $displayName = $user->fullName();
-        $title = $event->name();
+        // Escaped like the location below it and like the same field in
+        // EventIndexController: this page is public, and an event's name can
+        // reach it from the anonymous booking route, which writes
+        // "Booking: {whatever was posted}" straight into it.
+        $title = htmlspecialchars($event->name(), \ENT_QUOTES, 'UTF-8');
         $description = $this->sanitizer->sanitize($event->description());
         $location = htmlspecialchars($event->location(), \ENT_QUOTES, 'UTF-8');
         $dateFormatted = $event->start()->format('l, F j, Y');
