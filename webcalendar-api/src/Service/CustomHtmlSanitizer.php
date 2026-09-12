@@ -81,7 +81,11 @@ final class CustomHtmlSanitizer
         // as HTML, which is how a stylesheet closes its own element and opens
         // a script -- the one thing the HTML half of this class exists to
         // prevent. No stylesheet has a use for the sequence.
-        $css = (string) preg_replace('#</style#i', '/* blocked */', $css);
+        // `?? ''` rather than a cast: preg_replace() returns null only on a
+        // PCRE failure this literal pattern cannot cause, and if it somehow
+        // did, emitting nothing is the safe end of that -- not the CSS that
+        // has just been left unfiltered.
+        $css = preg_replace('#</style#i', '/* blocked */', $css) ?? '';
 
         // Strip dangerous CSS constructs
         $css = (string) preg_replace('/expression\s*\(/i', '/* blocked */(', $css);
