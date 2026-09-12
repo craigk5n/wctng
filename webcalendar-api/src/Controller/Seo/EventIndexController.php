@@ -6,6 +6,7 @@ namespace App\Controller\Seo;
 
 use App\Security\CspNonceProvider;
 use App\Service\CustomHtmlProvider;
+use App\Service\PublishedEvents;
 use App\Service\SeoEligibilityService;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Clock\NativeClock;
@@ -70,7 +71,9 @@ final class EventIndexController
         }
 
         $range = new DateRange($start, $end);
-        $allEvents = $this->eventRepository->findByDateRange($range, null, 'P', [$username]);
+        $allEvents = PublishedEvents::only(
+            $this->eventRepository->findByDateRange($range, null, 'P', [$username]),
+        );
 
         // Sort by date
         usort($allEvents, fn($a, $b) => $a->start() <=> $b->start());

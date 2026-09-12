@@ -7,6 +7,7 @@ namespace App\Controller\Api;
 use App\DTO\EventResponseDTO;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
+use App\Service\PublishedEvents;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
@@ -100,11 +101,13 @@ final class PublicCalendarController
         $limit = min(100, max(1, $request->query->getInt('limit', 20)));
 
         $dateRange = new DateRange($start, $end);
-        $events = $this->eventRepo->findByDateRange($dateRange, null, 'P', [$username]);
+        $events = PublishedEvents::only(
+            $this->eventRepo->findByDateRange($dateRange, null, 'P', [$username]),
+        );
 
         $total = \count($events);
         $offset = ($page - 1) * $limit;
-        $pageItems = array_values(\array_slice($events, $offset, $limit));
+        $pageItems = \array_slice($events, $offset, $limit);
 
         $items = EventResponseDTO::fromCollection($pageItems);
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Seo;
 
+use App\Service\PublishedEvents;
 use App\Service\SeoEligibilityService;
 use App\Service\TenantAwarePdoProvider;
 use Psr\Clock\ClockInterface;
@@ -92,7 +93,9 @@ final class SitemapController
             $start = $now->modify('-1 year');
             $end = $now->modify('+1 year');
             $range = new DateRange($start, $end);
-            $events = $this->eventRepository->findByDateRange($range, null, 'P', [$login]);
+            $events = PublishedEvents::only(
+                $this->eventRepository->findByDateRange($range, null, 'P', [$login]),
+            );
 
             foreach ($events as $event) {
                 if ($event->access() !== AccessLevel::PUBLIC) {

@@ -9,6 +9,7 @@ use App\Service\CustomHtmlProvider;
 use App\Service\DescriptionSanitizer;
 use App\Service\GeoRepository;
 use App\Service\JsonLdGenerator;
+use App\Service\PublishedEvents;
 use App\Service\SeoEligibilityService;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -60,8 +61,10 @@ final class EventPageController
             return new Response('Not Found', 404);
         }
 
-        // Only show public access events
-        if ($event->access()->value !== 'P') {
+        // Only show public access events that are actually published: an
+        // entry awaiting approval, one that was refused, and one its owner
+        // deleted are all still access 'P'.
+        if ($event->access()->value !== 'P' || !PublishedEvents::isPublished($event)) {
             return new Response('Not Found', 404);
         }
 

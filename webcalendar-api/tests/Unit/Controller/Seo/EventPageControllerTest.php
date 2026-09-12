@@ -61,7 +61,7 @@ final class EventPageControllerTest extends TestCase
         );
     }
 
-    private function eventNamed(string $name, string $location = 'Room 2'): void
+    private function eventNamed(string $name, string $location = 'Room 2', ?string $status = null): void
     {
         $this->event = new Event(
             id: new EventId(7),
@@ -74,6 +74,7 @@ final class EventPageControllerTest extends TestCase
             createdBy: 'alice',
             type: EventType::EVENT,
             access: AccessLevel::PUBLIC,
+            status: $status,
         );
     }
 
@@ -161,6 +162,35 @@ final class EventPageControllerTest extends TestCase
 
         $this->assertSame(404, $this->controller(publicCalendar: false)->detail('alice', 7)->getStatusCode());
         $this->assertSame(404, $this->controller(seoGlobally: false)->detail('alice', 7)->getStatusCode());
+    }
+
+    /**
+     * Access 'P' was the only thing this page asked about, so an entry waiting
+     * for an administrator, one they refused, and one its owner deleted --
+     * DeleteEventController soft-deletes by writing 'cancelled' -- all stayed
+     * on a page anyone can read.
+     */
+    #[DataProvider('withheldStatuses')]
+    public function testAnEntryThatIsNotPublishedIsNotThere(string $status): void
+    {
+        $this->eventNamed('Quarterly review', status: $status);
+
+        $this->assertSame(404, $this->controller()->detail('alice', 7)->getStatusCode());
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function withheldStatuses(): iterable
+    {
+        yield 'waiting for an administrator' => ['needs_approval'];
+        yield 'refused' => ['rejected'];
+        yield 'deleted by its owner' => ['cancelled'];
+    }
+
+    public function testAConfirmedEntryIsStillThere(): void
+    {
+        $this->eventNamed('Quarterly review', status: 'confirmed');
+
+        $this->assertSame(200, $this->controller()->detail('alice', 7)->getStatusCode());
     }
 
     public function testAnEventThatIsNotThereIsNotThere(): void

@@ -45,8 +45,12 @@ final class PublicCalendarControllerTest extends TestCase
         return new User($login, ucfirst($login), 'Smith', $login . '@example.com', $admin, true);
     }
 
-    private function makeEvent(int $id, string $createdBy, AccessLevel $access = AccessLevel::PUBLIC): Event
-    {
+    private function makeEvent(
+        int $id,
+        string $createdBy,
+        AccessLevel $access = AccessLevel::PUBLIC,
+        ?string $status = null,
+    ): Event {
         return new Event(
             id: new EventId($id),
             uid: "event-{$id}@example.com",
@@ -59,7 +63,40 @@ final class PublicCalendarControllerTest extends TestCase
             type: EventType::EVENT,
             access: $access,
             recurrence: new Recurrence(),
+            status: $status,
         );
+    }
+
+    /**
+     * Access 'P' is the only thing the query filters on, so an entry waiting
+     * for an administrator, one they refused, and one its owner deleted --
+     * DeleteEventController soft-deletes by writing 'cancelled' -- all came
+     * back from it and all reached this list.
+     */
+    public function testListPublicEventsLeavesOutWhatWasNeverPublished(): void
+    {
+        $this->allowRateLimit();
+
+        $this->userRepo->method('findByLogin')->willReturn($this->makeUser('alice'));
+        $this->userRepo->method('getPreferences')
+            ->willReturn([new UserPreference('public_calendar_enabled', 'Y')]);
+
+        $this->eventRepo->method('findByDateRange')->willReturn([
+            $this->makeEvent(1, 'alice', AccessLevel::PUBLIC, 'needs_approval'),
+            $this->makeEvent(2, 'alice', AccessLevel::PUBLIC, 'confirmed'),
+            $this->makeEvent(3, 'alice', AccessLevel::PUBLIC, 'cancelled'),
+            $this->makeEvent(4, 'alice', AccessLevel::PUBLIC, 'rejected'),
+            $this->makeEvent(5, 'alice', AccessLevel::PUBLIC),
+        ]);
+
+        $request = Request::create('/api/v2/public/calendars/alice/events?start=20260401&end=20260430');
+        $response = $this->controller->listPublicEvents('alice', $request);
+
+        /** @var array{data: list<array{id: int}>, meta: array{total: int}} $body */
+        $body = json_decode((string) $response->getContent(), true);
+
+        $this->assertSame([2, 5], array_column($body['data'], 'id'));
+        $this->assertSame(2, $body['meta']['total'], 'the count has to match what is listed');
     }
 
     private function allowRateLimit(): void
