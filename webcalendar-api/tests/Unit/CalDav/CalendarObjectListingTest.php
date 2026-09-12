@@ -1030,4 +1030,58 @@ final class CalendarObjectListingTest extends TestCase
         // 03:04:05 in New York on that date (EST, -05:00) is 08:04:05 UTC.
         self::assertStringContainsString('DTSTAMP:20200102T080405Z', $ics);
     }
+
+    // ---------------------------------------------- what an import keeps
+
+    public function testAPlainDescriptionSurvivesBeingUploaded(): void
+    {
+        // extractDescription() prefers STYLED-DESCRIPTION, then an HTML
+        // X-ALT-DESC, and falls back to DESCRIPTION -- which is what almost
+        // every client actually sends. Nothing covered that fallback: the test
+        // named for plain text exercises core's EventMapper, a different class
+        // going the other way, so the description could have been dropped on
+        // the way in and only the round trip of an HTML one was ever checked.
+        $ics = "BEGIN:VCALENDAR\r\n"
+            . "VERSION:2.0\r\n"
+            . "BEGIN:VEVENT\r\n"
+            . "UID:plain-desc@example.com\r\n"
+            . "DTSTART:20260701T090000Z\r\n"
+            . "DURATION:PT1H\r\n"
+            . "SUMMARY:Kickoff\r\n"
+            . "DESCRIPTION:Bring the signed contract\r\n"
+            . "END:VEVENT\r\n"
+            . "END:VCALENDAR\r\n";
+
+        $this->backend()->createCalendarObject('alice', 'plain.ics', $ics);
+
+        $stored = $this->backend()->getCalendarObjectByUID('principals/alice', 'plain-desc@example.com');
+        self::assertNotNull($stored);
+        $body = (string) $this->backend()->getCalendarObject('alice', basename($stored))['calendardata'];
+
+        self::assertStringContainsString('DESCRIPTION:Bring the signed contract', $body);
+    }
+
+    public function testAnUploadWithNoUidIsGivenOne(): void
+    {
+        // A UID is what a client finds the object by afterwards, so one has to
+        // be invented when the upload omits it. Nothing checked the invented
+        // value at all.
+        $ics = "BEGIN:VCALENDAR\r\n"
+            . "VERSION:2.0\r\n"
+            . "BEGIN:VEVENT\r\n"
+            . "DTSTART:20260702T090000Z\r\n"
+            . "DURATION:PT1H\r\n"
+            . "SUMMARY:No identifier\r\n"
+            . "END:VEVENT\r\n"
+            . "END:VCALENDAR\r\n";
+
+        $this->backend()->createCalendarObject('alice', 'nouid.ics', $ics);
+
+        $listed = $this->listing();
+        self::assertCount(1, $listed);
+
+        $body = (string) $listed[0]['calendardata'];
+        self::assertSame(1, preg_match('/^UID:(.+)$/m', $body, $m), 'the stored object carries no UID');
+        self::assertMatchesRegularExpression('/^caldav-[0-9a-f]{16}$/', trim($m[1]));
+    }
 }
