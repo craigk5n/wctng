@@ -88,6 +88,10 @@ final readonly class SavedViewRepository
      */
     public function update(int $id, string $owner, string $name, array $userLogins, bool $isGlobal = false, array $categoryIds = []): bool
     {
+        // The reads and the insert create the table; without this the first
+        // change after a deploy raises "no such table" instead of reporting
+        // the view missing.
+        $this->ensureTable();
         $stmt = $this->pdo->prepare(
             'UPDATE saved_views SET name = :name, user_logins = :logins, is_global = :global, category_ids = :cats WHERE id = :id AND owner_login = :owner',
         );
@@ -104,6 +108,7 @@ final readonly class SavedViewRepository
 
     public function delete(int $id, string $owner): bool
     {
+        $this->ensureTable();
         $stmt = $this->pdo->prepare('DELETE FROM saved_views WHERE id = :id AND owner_login = :owner');
         $stmt->execute(['id' => $id, 'owner' => $owner]);
         return $stmt->rowCount() > 0;
