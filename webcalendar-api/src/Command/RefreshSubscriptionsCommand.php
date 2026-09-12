@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Subscription\IcsFetcher;
 use App\Subscription\SubscriptionRepository;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -19,7 +20,7 @@ final class RefreshSubscriptionsCommand extends Command
 {
     private readonly SubscriptionRepository $repo;
 
-    public function __construct(\PDO $pdo)
+    public function __construct(\PDO $pdo, private readonly IcsFetcher $fetcher)
     {
         parent::__construct();
         $this->repo = new SubscriptionRepository($pdo);
@@ -38,18 +39,17 @@ final class RefreshSubscriptionsCommand extends Command
         foreach ($due as $sub) {
             $io->text(sprintf('Refreshing: %s (%s)', $sub->name(), $sub->url()));
 
-            $context = stream_context_create([
-                'http' => [
-                    'timeout' => 15,
-                    'header' => $sub->etag() !== null
-                        ? "If-None-Match: {$sub->etag()}\r\n"
-                        : '',
-                ],
-            ]);
+            try {
+                $fetched = $this->fetcher->fetch($sub->url(), $sub->etag());
+            } catch (\InvalidArgumentException $e) {
+                // A URL stored before the outbound checks existed, or a host
+                // that now answers with an internal address.
+                $io->text(sprintf('  → Skipped: %s', $e->getMessage()));
+                $failed++;
+                continue;
+            }
 
-            $content = @file_get_contents($sub->url(), false, $context);
-
-            if ($content === false) {
+            if ($fetched === null) {
                 // Could be 304 Not Modified or actual failure
                 $io->text('  → No new content (cached or failed)');
                 $this->repo->updateFetchStatus($sub->id(), $sub->etag());
@@ -57,16 +57,8 @@ final class RefreshSubscriptionsCommand extends Command
                 continue;
             }
 
-            // Extract ETag (set by file_get_contents)
-            $etag = null;
-            foreach ($http_response_header as $header) {
-                if (stripos($header, 'ETag:') === 0) {
-                    $etag = trim(substr($header, 5));
-                }
-            }
-
-            $this->repo->updateFetchStatus($sub->id(), $etag);
-            $io->text(sprintf('  → Fetched %d bytes', \strlen($content)));
+            $this->repo->updateFetchStatus($sub->id(), $fetched['etag']);
+            $io->text(sprintf('  → Fetched %d bytes', \strlen($fetched['body'])));
             $success++;
         }
 

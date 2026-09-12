@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
+use App\Security\OutboundUrlValidator;
 use App\Security\WebCalendarUser;
+use App\Subscription\IcsFetcher;
 use App\Subscription\SubscriptionRepository;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,8 +17,13 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class SubscriptionController
 {
+    private const DEFAULT_REFRESH_SECONDS = 3600;
+    private const MIN_REFRESH_SECONDS = 300;
+
     public function __construct(
         private readonly SubscriptionRepository $repo,
+        private readonly IcsFetcher $fetcher,
+        private readonly OutboundUrlValidator $urlValidator,
     ) {}
 
     #[Route('/api/v2/calendars/subscriptions', name: 'api_subscriptions_list', methods: ['GET'])]
@@ -39,18 +46,41 @@ final class SubscriptionController
             return ApiResponse::error(401, 'Authentication required');
         }
 
-        /** @var array{url?: string, name?: string, color?: string, refresh_interval?: int} $data */
-        $data = json_decode($request->getContent(), true) ?? [];
+        /** @var mixed $decoded */
+        $decoded = json_decode($request->getContent(), true);
+        /** @var array<string, mixed> $data */
+        $data = \is_array($decoded) ? $decoded : [];
 
-        $url = $data['url'] ?? '';
-        $name = $data['name'] ?? '';
+        $url = isset($data['url']) && \is_string($data['url']) ? $data['url'] : '';
+        $name = isset($data['name']) && \is_string($data['name']) ? $data['name'] : '';
 
         if ($url === '' || $name === '') {
             return ApiResponse::error(400, 'Missing required fields: url, name');
         }
 
-        $color = $data['color'] ?? '#3788d8';
-        $interval = $data['refresh_interval'] ?? 3600;
+        // The stored URL is fetched by the server, so it gets the same
+        // outbound checks a webhook target does. CurlIcsFetcher re-checks
+        // before each fetch; rejecting here turns a subscription that could
+        // never load into an immediate 400.
+        try {
+            $this->urlValidator->validate($url);
+        } catch (\InvalidArgumentException $e) {
+            return ApiResponse::error(400, $e->getMessage());
+        }
+
+        $color = isset($data['color']) && \is_string($data['color']) ? $data['color'] : '#3788d8';
+        $interval = isset($data['refresh_interval']) && \is_int($data['refresh_interval'])
+            ? $data['refresh_interval']
+            : self::DEFAULT_REFRESH_SECONDS;
+
+        // Unbounded, a single subscription is a standing instruction to fetch
+        // a chosen URL as fast as the refresh job runs.
+        if ($interval < self::MIN_REFRESH_SECONDS) {
+            return ApiResponse::error(400, sprintf(
+                'refresh_interval must be at least %d seconds.',
+                self::MIN_REFRESH_SECONDS,
+            ));
+        }
 
         $sub = $this->repo->create($user->getUserIdentifier(), $url, $name, $color, $interval);
 
@@ -85,20 +115,14 @@ final class SubscriptionController
             return ApiResponse::error(404, 'Subscription not found');
         }
 
-        // Fetch ICS content
-        $context = stream_context_create([
-            'http' => [
-                'timeout' => 10,
-                'header' => $sub->etag() !== null
-                    ? "If-None-Match: {$sub->etag()}\r\n"
-                    : '',
-            ],
-        ]);
+        try {
+            $fetched = $this->fetcher->fetch($sub->url(), $sub->etag());
+        } catch (\InvalidArgumentException $e) {
+            return ApiResponse::error(400, $e->getMessage());
+        }
 
-        $content = @file_get_contents($sub->url(), false, $context);
-
-        // Check for 304 Not Modified
-        if ($content === false) {
+        // 304 Not Modified, or the feed could not be read
+        if ($fetched === null) {
             return ApiResponse::success([
                 'subscription_id' => $id,
                 'events' => [],
@@ -106,18 +130,10 @@ final class SubscriptionController
             ]);
         }
 
-        // Extract ETag from response headers (set by file_get_contents)
-        $etag = null;
-        foreach ($http_response_header as $header) {
-            if (stripos($header, 'ETag:') === 0) {
-                $etag = trim(substr($header, 5));
-            }
-        }
-
-        $this->repo->updateFetchStatus($id, $etag);
+        $this->repo->updateFetchStatus($id, $fetched['etag']);
 
         // Parse ICS
-        $events = $this->parseIcs($content, $sub->name(), $sub->color());
+        $events = $this->parseIcs($fetched['body'], $sub->name(), $sub->color());
 
         return ApiResponse::success([
             'subscription_id' => $id,

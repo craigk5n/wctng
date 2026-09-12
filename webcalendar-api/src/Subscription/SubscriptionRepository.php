@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Subscription;
 
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
+
 final readonly class SubscriptionRepository
 {
     public const SCHEMA_SQL = <<<'SQL'
@@ -34,6 +37,7 @@ final readonly class SubscriptionRepository
 
     public function __construct(
         private \PDO $pdo,
+        private ClockInterface $clock = new NativeClock(),
     ) {}
 
     /** @return CalendarSubscription[] */
@@ -64,26 +68,59 @@ final readonly class SubscriptionRepository
         return \is_array($row) ? $this->mapRow($row) : null;
     }
 
-    /** @return CalendarSubscription[] */
+    /**
+     * The interval arithmetic is done here rather than in SQL because the
+     * expression that did it was SQLite's -- `datetime('now', '-' || ... )`
+     * -- and MySQL, which every deployment actually runs, rejects it outright.
+     * There is no one expression both accept, and the table holds one row per
+     * subscribed calendar, so the comparison is cheap in PHP.
+     *
+     * @return CalendarSubscription[]
+     */
     public function findDueForRefresh(): array
     {
         $this->ensureTable();
-        $stmt = $this->pdo->query(
-            "SELECT * FROM calendar_subscriptions WHERE last_fetched IS NULL OR last_fetched < datetime('now', '-' || refresh_interval || ' seconds')"
-        );
+        $stmt = $this->pdo->query('SELECT * FROM calendar_subscriptions');
         if ($stmt === false) {
             return [];
         }
+
+        $now = $this->clock->now()->getTimestamp();
 
         $items = [];
         /** @var array<string, mixed>|false $row */
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
         while (\is_array($row)) {
-            $items[] = $this->mapRow($row);
+            $sub = $this->mapRow($row);
+            if (self::isDue($sub, $now)) {
+                $items[] = $sub;
+            }
             /** @var array<string, mixed>|false $row */
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
         }
         return $items;
+    }
+
+    private static function isDue(CalendarSubscription $sub, int $now): bool
+    {
+        $lastFetched = $sub->lastFetched();
+
+        if ($lastFetched === null) {
+            return true;
+        }
+
+        $fetchedAt = strtotime($lastFetched . ' UTC');
+
+        // An unparseable stamp is not evidence the feed is fresh. Infection
+        // reports removing this return as a surviving mutant; falling through
+        // compares false against the interval, which PHP reads as 0, and any
+        // clock past 1970 answers "due" either way. Kept explicit because the
+        // agreement is a coincidence of type juggling, not a decision.
+        if ($fetchedAt === false) {
+            return true;
+        }
+
+        return $fetchedAt + $sub->refreshInterval() <= $now;
     }
 
     public function create(string $userLogin, string $url, string $name, string $color, int $refreshInterval = 3600): CalendarSubscription
@@ -108,12 +145,23 @@ final readonly class SubscriptionRepository
     public function updateFetchStatus(int $id, ?string $etag): void
     {
         $this->pdo->prepare(
-            "UPDATE calendar_subscriptions SET last_fetched = datetime('now'), etag = :etag WHERE id = :id"
-        )->execute(['id' => $id, 'etag' => $etag]);
+            'UPDATE calendar_subscriptions SET last_fetched = :fetched, etag = :etag WHERE id = :id'
+        )->execute([
+            'id' => $id,
+            'etag' => $etag,
+            // datetime('now') here was SQLite-only and threw on MySQL, which
+            // took the whole fetch down after the feed had already been read.
+            // UTC, matching what that expression used to store.
+            'fetched' => $this->clock->now()->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s'),
+        ]);
     }
 
     public function delete(int $id, string $userLogin): bool
     {
+        // Every other entry point creates the table first; without it here a
+        // delete on an install where nobody has listed a subscription yet
+        // throws instead of reporting the row missing.
+        $this->ensureTable();
         $stmt = $this->pdo->prepare('DELETE FROM calendar_subscriptions WHERE id = :id AND user_login = :login');
         $stmt->execute(['id' => $id, 'login' => $userLogin]);
         return $stmt->rowCount() > 0;

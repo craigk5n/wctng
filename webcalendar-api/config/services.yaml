@@ -125,6 +125,7 @@ services:
             $pdo: '@pdo.connection'
 
     App\Webhook\WebhookTransport: '@App\Webhook\CurlWebhookTransport'
+    App\Subscription\IcsFetcher: '@App\Subscription\CurlIcsFetcher'
 
     # Same seam for the control plane's own notifications, kept separate from
     # the tenant webhook transport: those are signed and SSRF-checked because

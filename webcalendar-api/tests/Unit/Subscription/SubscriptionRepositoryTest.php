@@ -7,6 +7,7 @@ namespace App\Tests\Unit\Subscription;
 use App\Subscription\SubscriptionRepository;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Clock\MockClock;
 
 final class SubscriptionRepositoryTest extends TestCase
 {
@@ -179,5 +180,101 @@ final class SubscriptionRepositoryTest extends TestCase
         $result = $read(new SubscriptionRepository($pdo));
 
         $this->assertTrue($result === null || $result === []);
+    }
+
+    // ------------------------------------------------------- when it is due
+
+    /**
+     * `datetime('now')` is SQLite's, and the deployments that matter run
+     * MySQL, which rejects it -- so this stamp was never written anywhere but
+     * a test. It is now taken from the injected clock, in UTC, which is what
+     * the old expression produced.
+     */
+    public function testTheFetchStampIsWrittenInUtc(): void
+    {
+        $clock = new MockClock(new \DateTimeImmutable('2026-04-01 12:00:00', new \DateTimeZone('America/New_York')));
+        $repo = new SubscriptionRepository($this->pdo, $clock);
+        $sub = $repo->create('alice', 'https://a.example/cal.ics', 'Hourly', '#111');
+
+        $repo->updateFetchStatus($sub->id(), '"v1"');
+
+        $this->assertSame('2026-04-01 16:00:00', $repo->findById($sub->id())?->lastFetched());
+    }
+
+    public function testASubscriptionFetchedWithinItsIntervalIsNotDue(): void
+    {
+        $clock = new MockClock(new \DateTimeImmutable('2026-04-01 12:00:00', new \DateTimeZone('UTC')));
+        $repo = new SubscriptionRepository($this->pdo, $clock);
+        $sub = $repo->create('alice', 'https://a.example/cal.ics', 'Hourly', '#111', 3600);
+        $repo->updateFetchStatus($sub->id(), '"v1"');
+
+        $clock->modify('+59 minutes');
+
+        $this->assertSame([], $repo->findDueForRefresh());
+    }
+
+    public function testASubscriptionFetchedLongerAgoThanItsIntervalIsDue(): void
+    {
+        $clock = new MockClock(new \DateTimeImmutable('2026-04-01 12:00:00', new \DateTimeZone('UTC')));
+        $repo = new SubscriptionRepository($this->pdo, $clock);
+        $sub = $repo->create('alice', 'https://a.example/cal.ics', 'Hourly', '#111', 3600);
+        $repo->updateFetchStatus($sub->id(), '"v1"');
+
+        $clock->modify('+61 minutes');
+
+        $this->assertCount(1, $repo->findDueForRefresh());
+    }
+
+    public function testEachSubscriptionIsMeasuredAgainstItsOwnInterval(): void
+    {
+        // One cutoff for the whole table would make the shorter interval wait
+        // for the longer one, or refresh the longer one far too often.
+        $clock = new MockClock(new \DateTimeImmutable('2026-04-01 12:00:00', new \DateTimeZone('UTC')));
+        $repo = new SubscriptionRepository($this->pdo, $clock);
+        $quick = $repo->create('alice', 'https://a.example/quick.ics', 'Quick', '#111', 900);
+        $slow = $repo->create('alice', 'https://a.example/slow.ics', 'Slow', '#222', 86400);
+        $repo->updateFetchStatus($quick->id(), null);
+        $repo->updateFetchStatus($slow->id(), null);
+
+        $clock->modify('+30 minutes');
+
+        $due = $repo->findDueForRefresh();
+        $this->assertSame(['Quick'], array_map(static fn(object $s): string => $s->name(), $due));
+    }
+
+    public function testASubscriptionIsDueExactlyOneIntervalAfterItWasFetched(): void
+    {
+        // The boundary decides whether an hourly calendar refreshes on the
+        // hour or an hour and a tick later, every time, forever.
+        $clock = new MockClock(new \DateTimeImmutable('2026-04-01 12:00:00', new \DateTimeZone('UTC')));
+        $repo = new SubscriptionRepository($this->pdo, $clock);
+        $sub = $repo->create('alice', 'https://a.example/cal.ics', 'Hourly', '#111', 3600);
+        $repo->updateFetchStatus($sub->id(), '"v1"');
+
+        $clock->modify('+3600 seconds');
+
+        $this->assertCount(1, $repo->findDueForRefresh());
+    }
+
+    public function testAnUnreadableFetchStampLeavesTheSubscriptionDue(): void
+    {
+        // Whatever wrote it, it is not evidence the feed is fresh.
+        $clock = new MockClock(new \DateTimeImmutable('2026-04-01 12:00:00', new \DateTimeZone('UTC')));
+        $repo = new SubscriptionRepository($this->pdo, $clock);
+        $sub = $repo->create('alice', 'https://a.example/cal.ics', 'Hourly', '#111', 3600);
+        $this->pdo->prepare('UPDATE calendar_subscriptions SET last_fetched = :stamp WHERE id = :id')
+            ->execute(['stamp' => 'not a date', 'id' => $sub->id()]);
+
+        $this->assertCount(1, $repo->findDueForRefresh());
+    }
+
+    public function testADeleteOnAFreshDatabaseReportsTheRowMissing(): void
+    {
+        // The other entry points create the table; this one did not, so the
+        // first delete after a deploy raised "no such table" instead of 404.
+        $pdo = new \PDO('sqlite::memory:');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+        $this->assertFalse((new SubscriptionRepository($pdo))->delete(1, 'alice'));
     }
 }
