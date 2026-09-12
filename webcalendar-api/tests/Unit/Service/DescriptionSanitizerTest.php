@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Service;
 
 use App\Service\DescriptionSanitizer;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class DescriptionSanitizerTest extends TestCase
@@ -27,6 +28,30 @@ final class DescriptionSanitizerTest extends TestCase
     public function testEmptyStringUnchanged(): void
     {
         $this->assertSame('', $this->sanitizer->sanitize(''));
+    }
+
+    /**
+     * The plain-text fast path is load-bearing, not an optimisation.
+     *
+     * Handed straight to the HTML sanitizer, "Alice < Bob" comes back as
+     * "Alice  Bob" -- it reads "< B" as the start of a tag and swallows the
+     * rest of the phrase -- and an ampersand comes back as "&amp;". Anything
+     * strip_tags() leaves alone is not markup, so it is returned verbatim.
+     */
+    #[DataProvider('plainTextWithPunctuationProvider')]
+    public function testPunctuationThatIsNotMarkupSurvivesVerbatim(string $input): void
+    {
+        $this->assertSame($input, $this->sanitizer->sanitize($input));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function plainTextWithPunctuationProvider(): iterable
+    {
+        yield 'bare less-than' => ['Alice < Bob'];
+        yield 'ampersand' => ['R&D sync'];
+        yield 'both, as an inequality' => ['5 < 10 and 10 > 5'];
     }
 
     // --- Allowed tags preserved ---

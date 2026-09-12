@@ -6,6 +6,7 @@ namespace App\Service;
 
 use Symfony\Component\HtmlSanitizer\HtmlSanitizer;
 use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
+use WebCalendar\Core\Application\Contract\HtmlSanitizerInterface;
 
 /**
  * Sanitizes HTML descriptions for events, tasks, and journals.
@@ -13,7 +14,7 @@ use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
  * Preserves safe formatting tags while stripping dangerous elements,
  * attributes, and javascript: schemes.
  */
-final class DescriptionSanitizer
+final class DescriptionSanitizer implements HtmlSanitizerInterface
 {
     private readonly HtmlSanitizer $sanitizer;
 
@@ -48,13 +49,14 @@ final class DescriptionSanitizer
      * Plain text passes through unchanged. HTML is filtered to only allow
      * safe formatting tags and attributes.
      */
-    public function sanitize(string $description): string
+    #[\Override]
+    public function sanitize(string $html): string
     {
         // Fast path: no HTML at all
-        if ($description === '' || $description === strip_tags($description)) {
-            return $description;
+        if ($html === '' || $html === strip_tags($html)) {
+            return $html;
         }
 
-        return $this->sanitizer->sanitize($description);
+        return $this->sanitizer->sanitize($html);
     }
 }

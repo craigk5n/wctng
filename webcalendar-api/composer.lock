@@ -57,16 +57,16 @@
         },
         {
             "name": "craigk5n/webcalendar-core",
-            "version": "v4.10.0",
+            "version": "v4.12.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/craigk5n/webcalendar-core.git",
-                "reference": "596e22b3dbcea6a33901e4491908cfd7f05756ce"
+                "reference": "f6ace692db5ab7d9b47f9c1d66059af0b34afd57"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/craigk5n/webcalendar-core/zipball/596e22b3dbcea6a33901e4491908cfd7f05756ce",
-                "reference": "596e22b3dbcea6a33901e4491908cfd7f05756ce",
+                "url": "https://api.github.com/repos/craigk5n/webcalendar-core/zipball/f6ace692db5ab7d9b47f9c1d66059af0b34afd57",
+                "reference": "f6ace692db5ab7d9b47f9c1d66059af0b34afd57",
                 "shasum": ""
             },
             "require": {
@@ -85,7 +85,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-main": "4.10.x-dev"
+                    "dev-main": "4.12.x-dev"
                 }
             },
             "autoload": {
@@ -142,10 +142,10 @@
                 "webcalendar"
             ],
             "support": {
-                "source": "https://github.com/craigk5n/webcalendar-core/tree/v4.10.0",
+                "source": "https://github.com/craigk5n/webcalendar-core/tree/v4.12.0",
                 "issues": "https://github.com/craigk5n/webcalendar-core/issues"
             },
-            "time": "2026-08-11T13:17:44+00:00"
+            "time": "2026-09-12T20:29:15+00:00"
         },
         {
             "name": "doctrine/dbal",

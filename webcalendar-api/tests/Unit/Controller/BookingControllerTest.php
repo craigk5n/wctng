@@ -244,13 +244,12 @@ final class BookingControllerTest extends TestCase
 
         $data = self::payload($this->controller()->availability('alice', self::availabilityRequest('date=2026-10-01')))['data'];
 
-        // Thirteen, not fourteen: DateRange::overlaps() is closed at both
-        // ends, so the 10:00 slot counts as overlapping an event that finishes
-        // at 10:00 and is reported busy. The slot immediately after every
-        // appointment is lost that way. Pinned rather than corrected --
-        // overlaps() is shared with conflict detection in webcalendar-core.
-        $this->assertCount(13, $data['slots']);
-        $this->assertSame(['start' => '10:30', 'end' => '11:00'], $data['slots'][0]);
+        // Fourteen: a slot that begins exactly when the appointment ends is
+        // free. DateRange::overlaps() read intervals as closed until
+        // webcalendar-core v4.11.0, which cost the slot after every
+        // appointment.
+        $this->assertCount(14, $data['slots']);
+        $this->assertSame(['start' => '10:00', 'end' => '10:30'], $data['slots'][0]);
     }
 
     #[DataProvider('unusableAvailabilityDates')]
@@ -296,6 +295,10 @@ final class BookingControllerTest extends TestCase
         $this->assertCount(1, $this->saved);
         $event = $this->saved[0];
         $this->assertSame('Booking: Bob Jones', $event->name());
+        // Nobody authenticated this, so it waits for the owner rather than
+        // appearing on the calendar -- and the public read paths hold back
+        // anything in this state.
+        $this->assertSame('needs_approval', $event->status());
         $this->assertSame('2026-10-01 10:00:00', $event->start()->format('Y-m-d H:i:s'));
         $this->assertSame(30, $event->duration());
         $this->assertSame('alice', $event->createdBy());
@@ -422,29 +425,53 @@ final class BookingControllerTest extends TestCase
         $this->assertSame(480, $this->saved[0]->duration());
     }
 
+    /**
+     * The guard that used to refuse these outright is gone: BookingService
+     * takes a sanitizer of its own since webcalendar-core v4.11.0, and the
+     * factory hands it the same DescriptionSanitizer every other write path
+     * uses. A name with a bracket in it is a name, not an attack -- what
+     * matters is that no markup reaches the event.
+     */
     #[DataProvider('namesCarryingMarkup')]
-    public function testANameCannotCarryMarkup(string $name): void
+    public function testMarkupInANameNeverReachesTheEvent(string $name, string $goneForGood): void
     {
-        // BookingService builds the event description itself and skips the
-        // sanitizer every controller write path uses, and the event's name
-        // reaches a public HTML page. Either bracket alone is enough to open a
-        // tag, so either one is enough to refuse the booking.
         $this->userExists();
 
         $response = $this->controller()->book('alice', self::bookRequest(self::goodBooking(['name' => $name])));
 
-        $this->assertSame(400, $response->getStatusCode());
-        $this->assertSame('Name must not contain markup', self::payload($response)['error']['message']);
-        $this->assertSame([], $this->saved);
+        $this->assertSame(201, $response->getStatusCode());
+        $this->assertCount(1, $this->saved);
+
+        foreach ([$this->saved[0]->name(), $this->saved[0]->description()] as $stored) {
+            // Nothing that can open a tag, and the dangerous word itself gone.
+            $this->assertDoesNotMatchRegularExpression('#<[a-zA-Z/!]#', $stored);
+            $this->assertStringNotContainsString($goneForGood, $stored);
+        }
     }
 
-    /** @return iterable<string, array{string}> */
+    /** @return iterable<string, array{string, string}> */
     public static function namesCarryingMarkup(): iterable
     {
-        yield 'a whole tag' => ['<script>alert(1)</script>'];
-        yield 'an unterminated tag' => ['<img src=x onerror=alert(1)'];
-        yield 'only an opening bracket' => ['Alice < Bob'];
-        yield 'only a closing bracket' => ['Alice > Bob'];
+        yield 'a whole tag' => ['<script>alert(1)</script>', 'script'];
+        yield 'an unterminated tag' => ['<img src=x onerror=alert(1)', 'onerror'];
+        // v4.11.1 closed this one: a browser decodes an unterminated numeric
+        // reference, html_entity_decode() does not.
+        yield 'an entity without its semicolon' => ['&#60script&#62', '&#60'];
+    }
+
+    public function testABracketThatIsNotMarkupIsLeftInTheName(): void
+    {
+        // "Alice < Bob" is a name, not an attack. It reaches the page escaped,
+        // so the sanitizer has no reason to take it apart.
+        $this->userExists();
+
+        $response = $this->controller()->book(
+            'alice',
+            self::bookRequest(self::goodBooking(['name' => 'Alice < Bob'])),
+        );
+
+        $this->assertSame(201, $response->getStatusCode());
+        $this->assertSame('Booking: Alice < Bob', $this->saved[0]->name());
     }
 
     public function testAnEmailOfExactlyTheLimitIsAccepted(): void

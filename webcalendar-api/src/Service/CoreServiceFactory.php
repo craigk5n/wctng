@@ -503,6 +503,10 @@ final class CoreServiceFactory implements ResetInterface
         return $this->bookingService ??= new BookingService(
             $this->getEventService(),
             $this->logger,
+            // One sanitizer across every write path: BookingService builds the
+            // name and description itself, so without this it would use its own
+            // default rather than the one every controller uses.
+            new DescriptionSanitizer(),
         );
     }
 

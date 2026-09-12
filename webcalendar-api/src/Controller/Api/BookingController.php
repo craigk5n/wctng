@@ -43,6 +43,9 @@ final class BookingController
      */
     private const PUBLIC_PREFERENCE = 'public_calendar_enabled';
 
+    /** What ApprovalController::listPending() looks for. */
+    private const AWAITING_APPROVAL = 'needs_approval';
+
     private const DEFAULT_DURATION = 30;
     private const MIN_DURATION = 1;
 
@@ -143,15 +146,6 @@ final class BookingController
             return ApiResponse::error(400, 'Invalid email address');
         }
 
-        // BookingService builds the event's description itself -- "Booked by
-        // {name} ({email})" -- and, unlike every controller write path, does
-        // not run it through DescriptionSanitizer. The SEO event page emits
-        // the event's name into its <title> and <h1>. A booking name has no
-        // reason to carry markup, so it does not get to.
-        if (str_contains($name, '<') || str_contains($name, '>')) {
-            return ApiResponse::error(400, 'Name must not contain markup');
-        }
-
         $stamp = "{$dateStr} {$timeStr}";
         $start = self::readDate('Y-m-d H:i', $stamp);
         if ($start === null) {
@@ -171,7 +165,11 @@ final class BookingController
         }
 
         try {
-            $this->bookingService->book($user, $name, $email, $start, $duration);
+            // Somebody nobody has authenticated put this on a calendar, so
+            // it waits for the owner rather than appearing on it. This is the
+            // status ApprovalController::listPending() reads, and the one the
+            // public read paths hold back until it changes.
+            $this->bookingService->book($user, $name, $email, $start, $duration, self::AWAITING_APPROVAL);
         } catch (\Throwable $e) {
             // The caller is anonymous, so anything the storage layer says
             // about itself would go straight to the open internet.
