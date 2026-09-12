@@ -6,6 +6,7 @@ namespace App\Controller\Api;
 
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
+use App\Service\EventInputParser;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -35,11 +36,22 @@ final class ExportController
             return ApiResponse::error(400, 'Missing required query params: start, end (YYYYMMDD)');
         }
 
-        $start = self::parseDate($startStr);
-        $end = self::parseDate($endStr);
+        // The private copy this used to carry left out the round-trip check
+        // that EventInputParser makes, so createFromFormat rolled a date that
+        // does not exist forward to one that does: 20260231 exported March
+        // under a file named for February. The filename echoes these two
+        // parameters verbatim, so the wrong month arrived correctly labelled.
+        $start = EventInputParser::parseDateParam($startStr);
+        $end = EventInputParser::parseDateParam($endStr);
 
         if ($start === null || $end === null) {
             return ApiResponse::error(400, 'Invalid date format');
+        }
+
+        // DateRange throws when these arrive the wrong way round, and nothing
+        // catches it here -- a 500 out of an endpoint that answers in JSON.
+        if ($start > $end) {
+            return ApiResponse::error(400, 'start must not be after end');
         }
 
         $coreUser = $user->getCoreUser();
@@ -59,17 +71,5 @@ final class ExportController
         ]);
 
         return $response;
-    }
-
-    private static function parseDate(string $dateStr): ?\DateTimeImmutable
-    {
-        if (\strlen($dateStr) !== 8 || !ctype_digit($dateStr)) {
-            return null;
-        }
-
-        $formatted = sprintf('%s-%s-%s', substr($dateStr, 0, 4), substr($dateStr, 4, 2), substr($dateStr, 6, 2));
-        $dt = \DateTimeImmutable::createFromFormat('Y-m-d', $formatted);
-
-        return $dt === false ? null : $dt->setTime(0, 0);
     }
 }
