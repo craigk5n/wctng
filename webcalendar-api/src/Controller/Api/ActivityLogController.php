@@ -37,16 +37,27 @@ final class ActivityLogController
             $end = $this->clock->now();
             $start = $end->modify('-30 days');
         } else {
-            $start = \DateTimeImmutable::createFromFormat('Ymd', $startStr);
-            $end = \DateTimeImmutable::createFromFormat('Ymd', $endStr);
-            if ($start === false || $end === false) {
+            $start = self::readDate($startStr);
+            $end = self::readDate($endStr);
+            if ($start === null || $end === null) {
                 return ApiResponse::error(400, 'Invalid date format. Expected YYYYMMDD.');
             }
             $start = $start->setTime(0, 0);
             $end = $end->setTime(23, 59, 59);
+
+            // DateRange refuses this pair, and nothing here caught it, so a
+            // range entered the wrong way round took the whole page down with
+            // an uncaught InvalidArgumentException.
+            if ($start > $end) {
+                return ApiResponse::error(400, 'The start date must not be after the end date.');
+            }
         }
 
-        $loginFilter = $request->query->getString('user', '') ?: null;
+        // Not `?: null`: that reads the account named "0" as nobody named,
+        // which answers the narrowest possible question with everybody's
+        // activity.
+        $loginRaw = $request->query->getString('user', '');
+        $loginFilter = $loginRaw === '' ? null : $loginRaw;
 
         $range = new DateRange($start, $end);
         $entries = $this->activityLogService->getLogs($range, $loginFilter);
@@ -81,5 +92,24 @@ final class ActivityLogController
         }, $pageItems);
 
         return ApiResponse::paginated(array_values($items), $total, $page, $limit);
+    }
+
+    /**
+     * createFromFormat rolls an impossible date forward rather than refusing
+     * it -- 20260231 comes back as the 3rd of March, and 20261345 as the 14th
+     * of February the year after. An audit trail that answers for a day nobody
+     * asked about, and says nothing about having done so, is worse than one
+     * that refuses. The round trip is what separates a date from a
+     * date-shaped string.
+     */
+    private static function readDate(string $value): ?\DateTimeImmutable
+    {
+        $parsed = \DateTimeImmutable::createFromFormat('Ymd', $value);
+
+        if ($parsed === false || $parsed->format('Ymd') !== $value) {
+            return null;
+        }
+
+        return $parsed;
     }
 }
