@@ -35,9 +35,19 @@ RUN apk add --no-cache openldap-dev \
 # `make coverage` and for Infection to know which tests touch which lines.
 # pcov is a fraction of xdebug's overhead and, unlike xdebug, costs nothing
 # when disabled. Separate layer so it does not invalidate the layers above.
+#
+# Pinned to the published tarball rather than `pecl install pcov`, which asks
+# PECL's release index which version to fetch first. That index went down on
+# 2026-09-12 -- "No releases available for package pecl.php.net/pcov" -- and
+# took the E2E stack with it while the tarball itself was being served fine.
+# A PECL release is immutable once published, so the checksum below stays a
+# pin rather than becoming a snapshot of whatever is there today.
 RUN apk add --no-cache --virtual .pcov-build $PHPIZE_DEPS \
-    && pecl install pcov \
+    && curl -fsSLo /tmp/pcov.tgz https://pecl.php.net/get/pcov-1.0.12.tgz \
+    && echo "23255c8c9335a9636ccb743f5302436a97a582a0bbde9869485be911bbc15da8  /tmp/pcov.tgz" | sha256sum -c - \
+    && pecl install /tmp/pcov.tgz \
     && docker-php-ext-enable pcov \
+    && rm -f /tmp/pcov.tgz \
     && apk del .pcov-build
 
 # Install Composer
