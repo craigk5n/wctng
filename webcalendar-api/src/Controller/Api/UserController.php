@@ -7,8 +7,6 @@ namespace App\Controller\Api;
 use App\Response\ApiResponse;
 use App\Security\TokenRevocationService;
 use App\Security\WebCalendarUser;
-use Psr\Clock\ClockInterface;
-use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,7 +25,6 @@ final class UserController
         private readonly UserRepositoryInterface $userRepository,
         private readonly AuthServiceInterface $authService,
         private readonly TokenRevocationService $tokenRevoker,
-        private readonly ClockInterface $clock = new NativeClock(),
     ) {}
 
     #[Route('/api/v2/users', name: 'api_users_list', methods: ['GET'])]
@@ -329,59 +326,6 @@ final class UserController
         }
 
         return ApiResponse::success(['message' => 'Preferences saved']);
-    }
-
-    #[Route('/api/v2/users/{login}/location', name: 'api_users_get_location', methods: ['GET'])]
-    public function getLocation(string $login, Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
-    {
-        if ($user === null) {
-            return ApiResponse::error(401, 'Authentication required');
-        }
-
-        $date = $request->query->getString('date', $this->clock->now()->format('Y-m-d'));
-        $prefKey = "working_location_{$date}";
-
-        $prefs = $this->userRepository->getPreferences($login);
-        $location = 'office'; // default
-        foreach ($prefs as $pref) {
-            if ($pref->key() === $prefKey) {
-                $location = $pref->value();
-                break;
-            }
-        }
-
-        return ApiResponse::success(['location' => $location, 'date' => $date]);
-    }
-
-    #[Route('/api/v2/users/{login}/location', name: 'api_users_set_location', methods: ['PUT'])]
-    public function setLocation(string $login, Request $request, #[CurrentUser] ?WebCalendarUser $user): JsonResponse
-    {
-        if ($user === null) {
-            return ApiResponse::error(401, 'Authentication required');
-        }
-
-        // Only own location
-        if ($user->getUserIdentifier() !== $login && !$user->getCoreUser()->isAdmin()) {
-            return ApiResponse::error(403, 'Cannot set another user\'s location');
-        }
-
-        $decoded = json_decode($request->getContent(), true);
-        if (!\is_array($decoded)) {
-            return ApiResponse::error(400, 'Invalid JSON body');
-        }
-
-        /** @var array{date?: string, location?: string} $data */
-        $data = $decoded;
-        $date = $data['date'] ?? $this->clock->now()->format('Y-m-d');
-        $location = $data['location'] ?? 'office';
-
-        $prefKey = "working_location_{$date}";
-        $this->userRepository->savePreference(
-            $login,
-            new \WebCalendar\Core\Domain\ValueObject\UserPreference($prefKey, $location),
-        );
-
-        return ApiResponse::success(['location' => $location, 'date' => $date]);
     }
 
     /**
