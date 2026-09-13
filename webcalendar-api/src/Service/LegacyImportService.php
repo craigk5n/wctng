@@ -22,7 +22,10 @@ final class LegacyImportService
     /** @var array<string, list<string>> Column maps per table */
     private array $columnMap = [];
 
-    /** @var array{users: array{imported: int, skipped: int, errors: int}, events: array{imported: int, skipped: int, errors: int}, categories: array{imported: int, skipped: int}, participants: array{imported: int, skipped: int}, preferences: array{imported: int, skipped: int}} */
+    /** @var array<string, \DateTimeZone> Legacy TIMEZONE preferences per user login */
+    private array $userTimezones = [];
+
+    /** @var array{users: array{imported: int, skipped: int, errors: int}, events: array{imported: int, skipped: int, errors: int}, categories: array{imported: int, skipped: int, icons_dropped: int}, participants: array{imported: int, skipped: int}, preferences: array{imported: int, skipped: int}} */
     private array $stats;
 
     public function __construct(
@@ -38,7 +41,7 @@ final class LegacyImportService
     /**
      * Run the import from a legacy database.
      *
-     * @return array{users: array{imported: int, skipped: int, errors: int}, events: array{imported: int, skipped: int, errors: int}, categories: array{imported: int, skipped: int}, participants: array{imported: int, skipped: int}, preferences: array{imported: int, skipped: int}}
+     * @return array{users: array{imported: int, skipped: int, errors: int}, events: array{imported: int, skipped: int, errors: int}, categories: array{imported: int, skipped: int, icons_dropped: int}, participants: array{imported: int, skipped: int}, preferences: array{imported: int, skipped: int}}
      */
     public function import(\PDO $legacyPdo, bool $dryRun = false): array
     {
@@ -48,7 +51,11 @@ final class LegacyImportService
         $this->probeSchema($legacyPdo);
         $this->validateSchema();
 
-        // Step 2: Import in dependency order
+        // Step 2: Load user timezones so event times can be converted from
+        // legacy GMT storage to each owner's local wall clock.
+        $this->userTimezones = $this->loadUserTimezones($legacyPdo);
+
+        // Step 3: Import in dependency order
         $this->importUsers($legacyPdo, $dryRun);
         $this->importCategories($legacyPdo, $dryRun);
         $this->importEvents($legacyPdo, $dryRun);
@@ -358,7 +365,9 @@ final class LegacyImportService
             try {
                 $date = (string) ($row['cal_date'] ?? '');
                 $time = (string) ($row['cal_time'] ?? '-1');
-                $start = $this->parseLegacyDateTime($date, $time);
+                $creator = (string) ($row['cal_create_by'] ?? 'admin');
+                $tz = $this->userTimezones[$creator] ?? new \DateTimeZone('UTC');
+                $start = $this->parseLegacyDateTime($date, $time, $tz);
 
                 $accessChar = (string) ($row['cal_access'] ?? 'P');
                 $typeChar = (string) ($row['cal_type'] ?? 'E');
@@ -514,7 +523,7 @@ final class LegacyImportService
         }
     }
 
-    private function parseLegacyDateTime(string $date, string $time): \DateTimeImmutable
+    private function parseLegacyDateTime(string $date, string $time, \DateTimeZone $tz): \DateTimeImmutable
     {
         // Legacy format: date = YYYYMMDD (int), time = HHMMSS (int, -1 for all-day)
         $y = substr($date, 0, 4);
@@ -523,6 +532,7 @@ final class LegacyImportService
 
         $timeInt = (int) $time;
         if ($timeInt < 0) {
+            // All-day events have no time component — no TZ shift applies.
             return new \DateTimeImmutable("{$y}-{$m}-{$d} 00:00:00");
         }
 
@@ -531,7 +541,53 @@ final class LegacyImportService
         $min = substr($timeStr, 2, 2);
         $s = substr($timeStr, 4, 2);
 
-        return new \DateTimeImmutable("{$y}-{$m}-{$d} {$h}:{$min}:{$s}");
+        // Legacy WebCalendar stored cal_time/cal_date in GMT
+        // (see legacy includes/functions.php — gmdate/gmmktime everywhere).
+        // The rewrite stores wall-clock HHMMSS in the owner's local TZ, so
+        // interpret the legacy values as UTC and shift into the owner's
+        // preferred zone. setTimezone() handles DST correctly and will roll
+        // the date forward or backward when the conversion crosses midnight.
+        $utc = new \DateTimeImmutable("{$y}-{$m}-{$d} {$h}:{$min}:{$s}", new \DateTimeZone('UTC'));
+        return $utc->setTimezone($tz);
+    }
+
+    /**
+     * @return array<string, \DateTimeZone>
+     */
+    private function loadUserTimezones(\PDO $legacyPdo): array
+    {
+        if (($this->columnMap['webcal_user_pref'] ?? []) === []) {
+            return [];
+        }
+
+        $map = [];
+        try {
+            $stmt = $legacyPdo->query(
+                "SELECT cal_login, cal_value FROM webcal_user_pref WHERE cal_setting = 'TIMEZONE'"
+            );
+        } catch (\Throwable) {
+            return [];
+        }
+        if ($stmt === false) {
+            return [];
+        }
+
+        while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+            /** @var array<string, string|int|null> $row */
+            $login = (string) ($row['cal_login'] ?? '');
+            $value = (string) ($row['cal_value'] ?? '');
+            if ($login === '' || $value === '') {
+                continue;
+            }
+            try {
+                $map[$login] = new \DateTimeZone($value);
+            } catch (\Throwable) {
+                $this->logger->warning(
+                    "Invalid TIMEZONE value '{$value}' for user {$login} — treating events as UTC"
+                );
+            }
+        }
+        return $map;
     }
 
     private function mapAccessLevel(string $access): \WebCalendar\Core\Domain\ValueObject\AccessLevel

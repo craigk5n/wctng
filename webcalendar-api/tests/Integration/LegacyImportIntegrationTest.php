@@ -152,6 +152,78 @@ final class LegacyImportIntegrationTest extends IntegrationTestCase
         $this->assertSame(0, $stats['events']['errors']);
     }
 
+    public function testConvertsLegacyUtcTimesToUserTimezone(): void
+    {
+        // Legacy WebCalendar stored cal_time in GMT (see functions.php: gmdate/gmmktime).
+        // The rewrite stores cal_time as wall-clock in the owner's local TZ. Without
+        // conversion, a 14:00 UTC legacy row would display as "14:00" in the new UI
+        // rather than the 10:00 EDT the user actually saw.
+        //
+        // legacyuser has TIMEZONE=America/New_York. April is EDT (UTC-4).
+        // Legacy event on 2026-04-13 @ 14:00:00 UTC should import as 10:00:00.
+        $this->legacyPdo->exec(
+            'INSERT INTO webcal_entry (cal_create_by, cal_date, cal_time, cal_duration, cal_name, cal_uid) '
+            . "VALUES ('legacyuser', 20260413, 140000, 60, 'Daisy cardiologist', 'tz-check@legacy')"
+        );
+
+        $this->service->import($this->legacyPdo);
+
+        $event = $this->factory->getEventRepository()->findByUid('tz-check@legacy');
+        $this->assertNotNull($event);
+        $this->assertSame('10:00:00', $event->start()->format('H:i:s'));
+        $this->assertSame('2026-04-13', $event->start()->format('Y-m-d'));
+    }
+
+    public function testAllDayEventsAreNotTimezoneShifted(): void
+    {
+        // All-day events (cal_time = -1) have no time component, so they must
+        // not be shifted across a date boundary by the TZ conversion applied
+        // to timed events. The date stays as-is.
+        $this->legacyPdo->exec(
+            'INSERT INTO webcal_entry (cal_create_by, cal_date, cal_time, cal_duration, cal_name, cal_uid) '
+            . "VALUES ('legacyuser', 20260101, -1, 0, 'Holiday', 'allday-check@legacy')"
+        );
+
+        $this->service->import($this->legacyPdo);
+
+        $event = $this->factory->getEventRepository()->findByUid('allday-check@legacy');
+        $this->assertNotNull($event);
+        $this->assertTrue($event->isAllDay());
+        $this->assertSame('2026-01-01', $event->start()->format('Y-m-d'));
+    }
+
+    public function testLegacyTimesRemainAsUtcWhenNoTimezonePreference(): void
+    {
+        // Users without a TIMEZONE preference fall back to UTC — we can't
+        // invent a timezone they never configured.
+        $this->legacyPdo->exec(
+            'INSERT INTO webcal_entry (cal_create_by, cal_date, cal_time, cal_duration, cal_name, cal_uid) '
+            . "VALUES ('legacyadmin', 20260413, 140000, 60, 'No TZ Event', 'notz-check@legacy')"
+        );
+
+        $this->service->import($this->legacyPdo);
+
+        $event = $this->factory->getEventRepository()->findByUid('notz-check@legacy');
+        $this->assertNotNull($event);
+        $this->assertSame('14:00:00', $event->start()->format('H:i:s'));
+    }
+
+    public function testTimezoneConversionCrossesDateBoundary(): void
+    {
+        // 02:00 UTC on 2026-04-13 is 22:00 on 2026-04-12 in America/New_York.
+        // The import must carry the date shift, not just the time.
+        $this->legacyPdo->exec(
+            'INSERT INTO webcal_entry (cal_create_by, cal_date, cal_time, cal_duration, cal_name, cal_uid) '
+            . "VALUES ('legacyuser', 20260413, 20000, 30, 'Early Morning UTC', 'boundary-check@legacy')"
+        );
+
+        $this->service->import($this->legacyPdo);
+
+        $event = $this->factory->getEventRepository()->findByUid('boundary-check@legacy');
+        $this->assertNotNull($event);
+        $this->assertSame('2026-04-12 22:00:00', $event->start()->format('Y-m-d H:i:s'));
+    }
+
     public function testGeneratesUidsForLegacyEvents(): void
     {
         $this->service->import($this->legacyPdo);

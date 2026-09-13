@@ -358,21 +358,6 @@
     <DeprecatedClass>
       <code><![CDATA[private]]></code>
     </DeprecatedClass>
-    <InvalidPropertyAssignmentValue>
-      <code><![CDATA[$this->stats]]></code>
-    </InvalidPropertyAssignmentValue>
-    <PropertyTypeCoercion>
-      <code><![CDATA[$this->stats]]></code>
-      <code><![CDATA[$this->stats]]></code>
-      <code><![CDATA[$this->stats]]></code>
-      <code><![CDATA[[
-            'users' => ['imported' => 0, 'skipped' => 0, 'errors' => 0],
-            'events' => ['imported' => 0, 'skipped' => 0, 'errors' => 0],
-            'categories' => ['imported' => 0, 'skipped' => 0, 'icons_dropped' => 0],
-            'participants' => ['imported' => 0, 'skipped' => 0],
-            'preferences' => ['imported' => 0, 'skipped' => 0],
-        ]]]></code>
-    </PropertyTypeCoercion>
     <RedundantCondition>
       <code><![CDATA[\is_array($row)]]></code>
       <code><![CDATA[\is_array($row)]]></code>
