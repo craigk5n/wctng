@@ -176,6 +176,70 @@ final class LegacyImportIntegrationTest extends IntegrationTestCase
         $stats = $this->service->import($this->legacyPdo);
 
         $this->assertSame(2, $stats['categories']['imported']);
+
+        // Regression: previously every legacy category was assigned cat_id=0,
+        // causing save()'s INSERT-or-UPDATE against the composite PK
+        // (cat_id, cat_owner) to collapse all global rows into one.
+        // Verify the actual row count in the destination.
+        $count = (int) $this->pdo->query('SELECT COUNT(*) FROM webcal_categories')->fetchColumn();
+        $this->assertSame(2, $count, 'Both legacy categories must persist as distinct rows.');
+
+        $names = $this->pdo->query('SELECT cat_name FROM webcal_categories ORDER BY cat_name')
+            ->fetchAll(\PDO::FETCH_COLUMN);
+        $this->assertSame(['Personal', 'Work'], $names);
+    }
+
+    public function testImportsCategoriesWithMixedOwners(): void
+    {
+        // Drop autoincrement cat_id constraint and add cat_owner so we can
+        // exercise a v1.9-style schema with owner diversity.
+        $this->legacyPdo->exec('DROP TABLE webcal_categories');
+        $this->legacyPdo->exec('
+            CREATE TABLE webcal_categories (
+                cat_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cat_name VARCHAR(80) NOT NULL,
+                cat_color VARCHAR(16),
+                cat_owner VARCHAR(60)
+            )
+        ');
+
+        // Four global + two personal, mirroring a real legacy dataset
+        // where many global categories share owner=NULL.
+        $this->legacyPdo->exec("INSERT INTO webcal_categories (cat_name, cat_color, cat_owner) VALUES ('Work', '#000000', NULL)");
+        $this->legacyPdo->exec("INSERT INTO webcal_categories (cat_name, cat_color, cat_owner) VALUES ('Auto', '#00c000', NULL)");
+        $this->legacyPdo->exec("INSERT INTO webcal_categories (cat_name, cat_color, cat_owner) VALUES ('Home', '#ff0000', NULL)");
+        $this->legacyPdo->exec("INSERT INTO webcal_categories (cat_name, cat_color, cat_owner) VALUES ('Travel', '#0000ff', NULL)");
+        $this->legacyPdo->exec("INSERT INTO webcal_categories (cat_name, cat_owner) VALUES ('Holidays', 'legacyuser')");
+        $this->legacyPdo->exec("INSERT INTO webcal_categories (cat_name, cat_owner) VALUES ('Personal', 'legacyuser')");
+
+        $stats = $this->service->import($this->legacyPdo);
+
+        $this->assertSame(6, $stats['categories']['imported']);
+
+        $count = (int) $this->pdo->query('SELECT COUNT(*) FROM webcal_categories')->fetchColumn();
+        $this->assertSame(6, $count);
+
+        $globalNames = $this->pdo->query(
+            "SELECT cat_name FROM webcal_categories WHERE cat_owner = '' ORDER BY cat_name"
+        )->fetchAll(\PDO::FETCH_COLUMN);
+        $this->assertSame(['Auto', 'Home', 'Travel', 'Work'], $globalNames);
+
+        $personalNames = $this->pdo->query(
+            "SELECT cat_name FROM webcal_categories WHERE cat_owner = 'legacyuser' ORDER BY cat_name"
+        )->fetchAll(\PDO::FETCH_COLUMN);
+        $this->assertSame(['Holidays', 'Personal'], $personalNames);
+    }
+
+    public function testCategoryImportIsIdempotent(): void
+    {
+        $this->service->import($this->legacyPdo);
+        $firstCount = (int) $this->pdo->query('SELECT COUNT(*) FROM webcal_categories')->fetchColumn();
+
+        // Second run must not create duplicates.
+        $this->service->import($this->legacyPdo);
+        $secondCount = (int) $this->pdo->query('SELECT COUNT(*) FROM webcal_categories')->fetchColumn();
+
+        $this->assertSame($firstCount, $secondCount);
     }
 
     public function testImportsPreferences(): void

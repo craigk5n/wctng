@@ -255,6 +255,7 @@ final class LegacyImportService
         }
 
         $catService = $this->factory->getCategoryService();
+        $catRepo = $this->factory->getCategoryRepository();
         $adminUser = new \WebCalendar\Core\Domain\Entity\User('admin', 'Admin', 'Import', 'admin@import.local', true, true);
 
         while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
@@ -268,18 +269,32 @@ final class LegacyImportService
                 continue;
             }
 
+            $color = isset($row['cat_color']) && \is_string($row['cat_color']) && $row['cat_color'] !== '' ? $row['cat_color'] : null;
+            $owner = isset($row['cat_owner']) && \is_string($row['cat_owner']) && $row['cat_owner'] !== '' ? $row['cat_owner'] : null;
+            // cat_status: 'A' = active (default), anything else = disabled (added in 1.9.11)
+            $enabled = !isset($row['cat_status']) || $row['cat_status'] === 'A';
+
             if ($dryRun) {
                 $this->stats['categories']['imported']++;
                 $this->logger->info("[DRY RUN] Would import category: {$name}");
                 continue;
             }
 
+            // Idempotent: skip if a category with the same (name, owner) already
+            // exists in the destination. Dedupe by name because the destination
+            // uses its own id-space — legacy cat_id is not preserved.
+            if ($catRepo->findByName($name, $owner ?? '') !== null) {
+                $this->stats['categories']['skipped']++;
+                continue;
+            }
+
             try {
-                $color = isset($row['cat_color']) && \is_string($row['cat_color']) && $row['cat_color'] !== '' ? $row['cat_color'] : null;
-                $owner = isset($row['cat_owner']) && \is_string($row['cat_owner']) && $row['cat_owner'] !== '' ? $row['cat_owner'] : null;
-                // cat_status: 'A' = active (default), anything else = disabled (added in 1.9.11)
-                $enabled = !isset($row['cat_status']) || $row['cat_status'] === 'A';
-                $category = new \WebCalendar\Core\Domain\Entity\Category(0, $owner, $name, $color, $enabled);
+                // Assign a fresh id from the destination. Passing id=0 would
+                // collide with the composite PK (cat_id, cat_owner) and cause
+                // save() to UPDATE each subsequent row, collapsing all
+                // same-owner categories into one.
+                $newId = $catRepo->nextId();
+                $category = new \WebCalendar\Core\Domain\Entity\Category($newId, $owner, $name, $color, $enabled);
                 $catService->createCategory($category, $adminUser);
                 $this->stats['categories']['imported']++;
             } catch (\Throwable $e) {
