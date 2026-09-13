@@ -20,6 +20,7 @@ use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\DateRange;
 use WebCalendar\Core\Domain\ValueObject\EventId;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 use WebCalendar\Core\Domain\ValueObject\EventType;
 use WebCalendar\Core\Domain\ValueObject\Recurrence;
 use WebCalendar\Core\Domain\ValueObject\UserPreference;
@@ -237,6 +238,33 @@ final class FeedControllerTest extends TestCase
         $this->assertStringContainsString('BEGIN:VCALENDAR', $body);
         $this->assertStringContainsString('BEGIN:VFREEBUSY', $body);
         $this->assertStringContainsString('FREEBUSY', $body);
+    }
+
+    public function testTheFreeBusyFeedDoesNotPublishPrivateTime(): void
+    {
+        // This route is unauthenticated: anyone who knows the login can fetch
+        // it. VFREEBUSY carries no detail, but it does carry exact intervals,
+        // so with private entries in it a stranger reads the owner's whole
+        // occupied day. The RSS feed beside it has always been public-only;
+        // this one was the outlier.
+        $this->allowRateLimit();
+        $this->enablePublicCalendar('alice');
+
+        $captured = null;
+        $this->eventRepo->method('findByDateRange')->willReturnCallback(
+            function (mixed $range, EventScope $scope) use (&$captured): array {
+                $captured = $scope;
+
+                return [];
+            },
+        );
+
+        $this->controller->freeBusy('alice', Request::create('/api/v2/public/calendars/alice/freebusy.ifb'));
+
+        self::assertInstanceOf(EventScope::class, $captured);
+        self::assertSame('P', $captured->accessLevel(), 'the feed asked for more than public entries');
+        self::assertSame(['alice'], $captured->users());
+        self::assertFalse($captured->isAdministrative());
     }
 
     public function testRssDaysParameterClamped(): void

@@ -87,7 +87,19 @@ final class FeedController
         $end = $start->modify("+{$days} days");
         $range = new DateRange($start, $end);
 
-        $ics = $this->feedService->generateFreeBusy($user, $range);
+        // includePrivate: false. Core defaults it to true and says why --
+        // VFREEBUSY carries no detail, so hiding private entries reports the
+        // owner as free during them and invites double-booking. That reasoning
+        // is for a feed an authenticated peer schedules against. This route is
+        // /api/v2/public/..., unauthenticated, rate-limited per IP and gated
+        // only on public_calendar_enabled, so the reader is anyone who knows
+        // the login. Exact busy intervals for private entries are more than a
+        // stranger should be handed, and the RSS feed beside it has always
+        // been public-only.
+        //
+        // The cost is real and worth naming: an external scheduler reading
+        // this will see free time the owner has already committed.
+        $ics = $this->feedService->generateFreeBusy($user, $range, includePrivate: false);
 
         return new Response($ics, 200, [
             'Content-Type' => 'text/calendar; charset=utf-8',
