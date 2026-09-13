@@ -1,9 +1,19 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QuickAddInput } from '../QuickAddInput';
 
 describe('QuickAddInput', () => {
+  beforeAll(async () => {
+    // The parser reaches chrono-node through a dynamic import, kept out of the
+    // main bundle since the vendor-chunk split. Whichever test submits first
+    // pays for loading and transforming it, and under the full suite that cost
+    // lands inside a waitFor window and overruns its one-second default. On its
+    // own this file has always passed, which is why it only ever failed when
+    // everything ran together. Pay the cost here, where nothing is timing it.
+    await import('chrono-node');
+  });
+
   it('renders input and button', () => {
     render(<QuickAddInput onParsed={vi.fn()} />);
     expect(screen.getByPlaceholderText(/quick add/i)).toBeInTheDocument();
