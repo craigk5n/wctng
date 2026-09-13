@@ -80,6 +80,31 @@ final class LocationControllerTest extends TestCase
         $this->assertSame(401, $this->controller()->getLocation('alice', self::getRequest(), null)->getStatusCode());
     }
 
+    public function testYouMayOnlyReadYourOwn(): void
+    {
+        // setLocation has always said this; getLocation said nothing, so
+        // where everybody was working on any day was readable by anybody
+        // signed in. Nothing reads it but the widget, which asks about the
+        // account it is signed in as.
+        $this->preferences = [new UserPreference('location_2026-09-11', 'traveling')];
+
+        $response = $this->controller()->getLocation('alice', self::getRequest(), self::user('bob'));
+
+        $this->assertSame(403, $response->getStatusCode());
+        $this->assertStringNotContainsString('traveling', (string) $response->getContent());
+    }
+
+    public function testAnAdministratorMayReadSomebodyElses(): void
+    {
+        // Matching the write rule: an administrator already sets these.
+        $this->preferences = [new UserPreference('location_2026-09-11', 'traveling')];
+
+        $response = $this->controller()->getLocation('alice', self::getRequest(), self::user('root', admin: true));
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('traveling', self::payload($response)['data']['location']);
+    }
+
     public function testWithNoDateItAnswersForToday(): void
     {
         $this->preferences = [

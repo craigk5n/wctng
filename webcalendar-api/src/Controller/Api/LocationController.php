@@ -41,6 +41,15 @@ final class LocationController
             return ApiResponse::error(401, 'Authentication required');
         }
 
+        // setLocation below has always refused somebody else's calendar;
+        // reading said nothing, so where anyone was working on any day was
+        // readable by any account. The only caller is the widget, which asks
+        // about the login it is signed in as, and nothing else in the
+        // application reads these preferences at all.
+        if ($login !== $user->getUserIdentifier() && !$user->getCoreUser()->isAdmin()) {
+            return ApiResponse::error(403, 'Can only read your own location');
+        }
+
         $date = $request->query->getString('date', '');
         if ($date === '') {
             $date = $this->clock->now()->format('Y-m-d');
