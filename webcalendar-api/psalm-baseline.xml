@@ -142,7 +142,6 @@
     </InvalidArrayOffset>
     <InvalidOperand>
       <code><![CDATA[$count * 0.05]]></code>
-      <code><![CDATA[($i / \count(self::FIRST_NAMES)) % \count(self::LAST_NAMES)]]></code>
     </InvalidOperand>
     <MixedArgument>
       <code><![CDATA[$names[$i]]]></code>

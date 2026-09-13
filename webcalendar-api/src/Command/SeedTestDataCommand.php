@@ -58,6 +58,20 @@ final class SeedTestDataCommand extends Command
     private const MEETING_LOCATIONS = ['Conference Room A','Conference Room B','Board Room','Zoom','Google Meet',
         'Teams Call','Building 2 Room 101','Cafeteria','Offsite','Remote'];
 
+    /**
+     * How --cleanup recognises what the seeder wrote.
+     *
+     * The underscore is escaped, and the escape matters more than it looks:
+     * in LIKE, `_` is a single-character wildcard, so `perf_%` reads as "perf,
+     * then any character, then anything" and matches perfecto, performance and
+     * perfume as readily as perf_alice_smith_0. This string is the whole of
+     * what stands between --cleanup and somebody's real account, and it runs
+     * against whichever database the application is pointed at.
+     *
+     * Verified against both engines: SQLite and MySQL agree on it.
+     */
+    private const SEEDED_LOGIN_LIKE = "LIKE 'perf\\_%' ESCAPE '\\'";
+
     public function __construct(
         private readonly TenantAwarePdoProvider $pdoProvider,
         private readonly UserService $userService,
@@ -178,7 +192,18 @@ final class SeedTestDataCommand extends Command
 
         for ($i = 0; $i < $count; $i++) {
             $first = self::FIRST_NAMES[$i % \count(self::FIRST_NAMES)];
-            $last = self::LAST_NAMES[($i / \count(self::FIRST_NAMES)) % \count(self::LAST_NAMES)];
+            // intdiv, not /: the quotient indexes an array, and a float index
+            // is deprecated in PHP 8 and an error after it. The value is
+            // unchanged -- % casts to int anyway -- so this only stops the
+            // notice that running the command for the first time turned up.
+            //
+            // The annotation states what the loop above guarantees and Psalm
+            // does not carry this far: $i counts up from nought, so the
+            // quotient cannot be negative and the surname index stays inside
+            // the array. Without it the offset widens to int<-29, 29>.
+            /** @var int<0, max> $surnameCycle */
+            $surnameCycle = intdiv($i, \count(self::FIRST_NAMES));
+            $last = self::LAST_NAMES[$surnameCycle % \count(self::LAST_NAMES)];
             $login = 'perf_' . strtolower($first) . '_' . strtolower($last) . '_' . $i;
             $email = "{$login}@perftest.local";
             $isAdmin = $i < max(1, (int) ($count * 0.05)); // 5% admins
@@ -361,21 +386,21 @@ final class SeedTestDataCommand extends Command
         $pdo = $this->pdoProvider->get();
 
         // Delete events by perf_ users
-        $stmt = $pdo->query("SELECT COUNT(*) FROM webcal_entry WHERE cal_create_by LIKE 'perf_%'");
+        $stmt = $pdo->query('SELECT COUNT(*) FROM webcal_entry WHERE cal_create_by ' . self::SEEDED_LOGIN_LIKE);
         $eventCount = $stmt !== false ? (int) $stmt->fetchColumn() : 0;
 
-        $pdo->exec("DELETE FROM webcal_entry_categories WHERE cal_id IN (SELECT cal_id FROM webcal_entry WHERE cal_create_by LIKE 'perf_%')");
-        $pdo->exec("DELETE FROM webcal_entry_repeats WHERE cal_id IN (SELECT cal_id FROM webcal_entry WHERE cal_create_by LIKE 'perf_%')");
-        $pdo->exec("DELETE FROM webcal_entry_repeats_not WHERE cal_id IN (SELECT cal_id FROM webcal_entry WHERE cal_create_by LIKE 'perf_%')");
-        $pdo->exec("DELETE FROM webcal_entry_user WHERE cal_id IN (SELECT cal_id FROM webcal_entry WHERE cal_create_by LIKE 'perf_%')");
-        $pdo->exec("DELETE FROM webcal_entry WHERE cal_create_by LIKE 'perf_%'");
+        $pdo->exec('DELETE FROM webcal_entry_categories WHERE cal_id IN (SELECT cal_id FROM webcal_entry WHERE cal_create_by ' . self::SEEDED_LOGIN_LIKE . ')');
+        $pdo->exec('DELETE FROM webcal_entry_repeats WHERE cal_id IN (SELECT cal_id FROM webcal_entry WHERE cal_create_by ' . self::SEEDED_LOGIN_LIKE . ')');
+        $pdo->exec('DELETE FROM webcal_entry_repeats_not WHERE cal_id IN (SELECT cal_id FROM webcal_entry WHERE cal_create_by ' . self::SEEDED_LOGIN_LIKE . ')');
+        $pdo->exec('DELETE FROM webcal_entry_user WHERE cal_id IN (SELECT cal_id FROM webcal_entry WHERE cal_create_by ' . self::SEEDED_LOGIN_LIKE . ')');
+        $pdo->exec('DELETE FROM webcal_entry WHERE cal_create_by ' . self::SEEDED_LOGIN_LIKE);
 
         // Delete perf_ users
-        $stmt = $pdo->query("SELECT COUNT(*) FROM webcal_user WHERE cal_login LIKE 'perf_%'");
+        $stmt = $pdo->query('SELECT COUNT(*) FROM webcal_user WHERE cal_login ' . self::SEEDED_LOGIN_LIKE);
         $userCount = $stmt !== false ? (int) $stmt->fetchColumn() : 0;
 
-        $pdo->exec("DELETE FROM webcal_user_pref WHERE cal_login LIKE 'perf_%'");
-        $pdo->exec("DELETE FROM webcal_user WHERE cal_login LIKE 'perf_%'");
+        $pdo->exec('DELETE FROM webcal_user_pref WHERE cal_login ' . self::SEEDED_LOGIN_LIKE);
+        $pdo->exec('DELETE FROM webcal_user WHERE cal_login ' . self::SEEDED_LOGIN_LIKE);
 
         $io->success("Cleaned up {$eventCount} events and {$userCount} users.");
 
