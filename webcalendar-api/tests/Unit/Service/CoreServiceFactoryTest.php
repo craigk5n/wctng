@@ -14,6 +14,9 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use WebCalendar\Core\Domain\Entity\User;
+use WebCalendar\Core\Domain\ValueObject\DateRange;
+use WebCalendar\Core\Domain\ValueObject\EventScope;
 
 /**
  * The lazy service locator.
@@ -64,6 +67,58 @@ final class CoreServiceFactoryTest extends TestCase
         // TenantDatabaseManager::createConnection(), so this yields a real
         // connection that is demonstrably not the default one.
         return new Tenant(1, $slug, 'Tenant', '', ':memory:', '', '', TenantPlan::Free, TenantStatus::Active);
+    }
+
+    private function loadSchema(): void
+    {
+        $path = realpath(__DIR__ . '/../../../vendor/craigk5n/webcalendar-core/src/Infrastructure/Persistence/sqlite-schema.sql');
+        self::assertIsString($path);
+        $schema = file_get_contents($path);
+        self::assertIsString($schema);
+        /** @var string[] $stmts */
+        $stmts = preg_split('/;\s*\n/', (string) preg_replace('/--[^\n]*/', '', $schema)) ?? [];
+        foreach ($stmts as $statement) {
+            if (trim($statement) !== '') {
+                try {
+                    $this->pdo->exec(trim($statement));
+                } catch (\PDOException) {
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------- what it wires in
+
+    public function testABookingCannotCarryALinkOntoSomebodysCalendar(): void
+    {
+        // BookingControllerTest builds `new BookingService($events)` by hand,
+        // so it exercises core's default sanitizer whatever this factory
+        // passes -- the two can disagree without either failing. The wiring is
+        // only observable here, and it is the wiring that decides what a
+        // stranger who has authenticated to nothing may leave on a calendar.
+        $this->loadSchema();
+        $factory = $this->factory();
+
+        $alice = new User('alice', 'A', 'B', 'alice@example.com', true, true);
+        $factory->getUserService()->createUser($alice, $alice);
+
+        $factory->getBookingService()->book(
+            $alice,
+            '<a href="https://evil.test">Click</a>',
+            'bob@example.com',
+            new \DateTimeImmutable('2026-06-01 10:00:00'),
+            30,
+        );
+
+        $events = $factory->getEventRepository()->findByDateRange(
+            new DateRange(new \DateTimeImmutable('2026-06-01'), new \DateTimeImmutable('2026-06-02')),
+            EventScope::administrative(),
+        );
+
+        self::assertCount(1, $events);
+        self::assertStringNotContainsString('evil.test', $events[0]->name());
+        self::assertStringNotContainsString('evil.test', $events[0]->description());
+        self::assertDoesNotMatchRegularExpression('#<[a-zA-Z/!]#', $events[0]->name());
     }
 
     // ------------------------------------------------------------ memoisation

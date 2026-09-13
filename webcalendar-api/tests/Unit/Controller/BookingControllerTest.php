@@ -457,6 +457,10 @@ final class BookingControllerTest extends TestCase
         // v4.11.1 closed this one: a browser decodes an unterminated numeric
         // reference, html_entity_decode() does not.
         yield 'an entity without its semicolon' => ['&#60script&#62', '&#60'];
+        // Nobody has authenticated the person who typed this. A sanitizer
+        // that keeps an allow-list keeps the anchor, and a live link from a
+        // stranger then sits on somebody's calendar under their own name.
+        yield 'a link somewhere else' => ['<a href="https://evil.test">Click</a>', 'evil.test'];
     }
 
     public function testABracketThatIsNotMarkupIsLeftInTheName(): void

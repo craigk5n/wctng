@@ -503,10 +503,17 @@ final class CoreServiceFactory implements ResetInterface
         return $this->bookingService ??= new BookingService(
             $this->getEventService(),
             $this->logger,
-            // One sanitizer across every write path: BookingService builds the
-            // name and description itself, so without this it would use its own
-            // default rather than the one every controller uses.
-            new DescriptionSanitizer(),
+            // No sanitizer: core's default is PlainTextHtmlSanitizer, which
+            // strips markup rather than filtering it against an allow-list.
+            //
+            // DescriptionSanitizer stood here so one sanitizer covered every
+            // write path, which reads well until you notice who is writing.
+            // Its allow-list permits <a href>, and this path takes a name from
+            // somebody who has authenticated to nothing -- so a stranger could
+            // leave a live link on a calendar, under the owner's own event.
+            // Plain text is the right reading of a booking name anyway: it is
+            // rendered as HTML in a browser and as text in iCalendar and RSS,
+            // and only one of those was ever going to be safe.
         );
     }
 
