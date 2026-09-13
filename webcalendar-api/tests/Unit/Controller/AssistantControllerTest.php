@@ -53,7 +53,10 @@ final class AssistantControllerTest extends TestCase
         $this->factory->getUserService()->createUser(self::coreUser('alice'), $admin);
         $this->factory->getUserService()->createUser(self::coreUser('bob'), $admin);
 
-        $this->controller = new AssistantController($this->factory->getAssistantService());
+        $this->controller = new AssistantController(
+            $this->factory->getAssistantService(),
+            $this->factory->getUserRepository(),
+        );
     }
 
     private static function coreUser(string $login, bool $admin = false): User
@@ -222,6 +225,16 @@ final class AssistantControllerTest extends TestCase
     #[DataProvider('loginsThatExactlyFitTheColumn')]
     public function testALoginThatExactlyFillsTheColumnIsAccepted(string $login): void
     {
+        // The account has to exist for the length guard to be what refuses --
+        // or fails to refuse -- this, now that a name nobody holds is turned
+        // away before the column width is ever considered.
+        $admin = $this->factory->getUserService()->getUserByLogin('admin');
+        self::assertNotNull($admin);
+        $this->factory->getUserService()->createUser(
+            new User($login, 'Long', 'Name', 'long@test.com', false, true),
+            $admin,
+        );
+
         $response = $this->add('alice', ['assistant' => $login], self::actor('alice'));
 
         self::assertSame(201, $response->getStatusCode());
@@ -237,6 +250,31 @@ final class AssistantControllerTest extends TestCase
 
         self::assertSame(400, $response->getStatusCode());
         self::assertSame([], $this->factory->getAssistantService()->getAssistantsForBoss('alice'));
+    }
+
+    public function testTheAssistantHasToBeSomebodyWhoExists(): void
+    {
+        // Standing in for a boss is a capability, and it was recorded against
+        // whatever login arrived in the body. Nobody named this holds it
+        // today; create the account tomorrow and it holds it on arrival.
+        $response = $this->add('alice', ['assistant' => 'nobody_at_all'], self::actor('alice'));
+
+        self::assertSame(404, $response->getStatusCode());
+        self::assertSame('User not found', self::message($response));
+        self::assertSame([], $this->factory->getAssistantService()->getAssistantsForBoss('alice'));
+    }
+
+    public function testALoginTooLongForTheColumnIsStillRefusedOnItsOwnTerms(): void
+    {
+        // Both guards refuse this and the length one answers first, which is
+        // deliberate: "too long" says what is wrong with the name, where the
+        // existence check would only say nobody is called that. The check
+        // below would catch it anyway -- no account can be named something
+        // that does not fit cal_assistant.
+        $response = $this->add('alice', ['assistant' => str_repeat('a', 61)], self::actor('alice'));
+
+        self::assertSame(400, $response->getStatusCode());
+        self::assertSame('assistant is too long', self::message($response));
     }
 
     public function testAddingAnAssistantAnswersWithWhatItStored(): void

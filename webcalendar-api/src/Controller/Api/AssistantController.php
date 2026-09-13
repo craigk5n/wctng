@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use WebCalendar\Core\Application\Service\AssistantService;
+use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 
 final class AssistantController
 {
@@ -20,6 +21,7 @@ final class AssistantController
 
     public function __construct(
         private readonly AssistantService $assistantService,
+        private readonly UserRepositoryInterface $userRepository,
     ) {}
 
     #[Route('/api/v2/users/{login}/assistants', name: 'api_assistants_list', methods: ['GET'])]
@@ -90,6 +92,16 @@ final class AssistantController
         // silent success in the one the tests run against.
         if (mb_strlen($asstLogin) > self::MAX_LOGIN_LENGTH) {
             return ApiResponse::error(400, 'assistant is too long');
+        }
+
+        // Standing in for somebody is a capability, and it was recorded
+        // against whatever login arrived in the body. Nobody holds a
+        // relationship made out to an account that does not exist -- until it
+        // is created, and then it holds it on arrival, with nothing in the
+        // flow that granted it. The same rule AccessController applies to a
+        // calendar grant.
+        if ($this->userRepository->findByLogin($asstLogin) === null) {
+            return ApiResponse::error(404, 'User not found');
         }
 
         $this->assistantService->assignAssistant($login, $asstLogin);
