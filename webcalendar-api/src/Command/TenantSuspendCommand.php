@@ -44,14 +44,28 @@ final class TenantSuspendCommand extends Command
         /** @var string $action */
         $action = $input->getArgument('action');
 
+        // Read as `$action === 'activate' ? Active : Suspended`, everything
+        // that was not exactly "activate" meant suspend -- a misspelling of it
+        // included. Reaching for activate and mistyping it took a live tenant
+        // offline, and said "is now suspended" as though that had been asked
+        // for. An argument naming a verb has to be a verb it knows.
+        $newStatus = match ($action) {
+            'activate' => TenantStatus::Active,
+            'suspend' => TenantStatus::Suspended,
+            default => null,
+        };
+
+        if ($newStatus === null) {
+            $io->error("Unknown action '{$action}'. Use 'suspend' or 'activate'.");
+            return Command::FAILURE;
+        }
+
         $existing = $this->tenantRepository->findBySlug($slug);
 
         if ($existing === null) {
             $io->error("Tenant '{$slug}' not found.");
             return Command::FAILURE;
         }
-
-        $newStatus = $action === 'activate' ? TenantStatus::Active : TenantStatus::Suspended;
 
         $updated = new Tenant(
             id: $existing->id(),

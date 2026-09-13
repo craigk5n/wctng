@@ -15,7 +15,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'tenant:delete',
-    description: 'Delete a tenant and its registry entry.',
+    description: 'Remove a tenant from the registry. Its database is left in place.',
 )]
 final class TenantDeleteCommand extends Command
 {
