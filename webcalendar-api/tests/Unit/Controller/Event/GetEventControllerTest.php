@@ -8,6 +8,7 @@ use App\Controller\Api\Event\GetEventController;
 use App\Security\WebCalendarUser;
 use App\Service\AccessPermissionRepository;
 use App\Service\CoreServiceFactory;
+use App\Service\EventVisibilityPolicy;
 use App\Service\ExtParticipantRepository;
 use App\Service\GeoRepository;
 use App\Service\TenantAwarePdoProvider;
@@ -79,7 +80,7 @@ final class GetEventControllerTest extends TestCase
             new GeoRepository($this->pdo),
             $this->factory->getEventRepository(),
             new ExtParticipantRepository($this->pdo),
-            new AccessPermissionRepository(new TenantAwarePdoProvider($this->pdo)),
+            new EventVisibilityPolicy(new AccessPermissionRepository(new TenantAwarePdoProvider($this->pdo))),
         );
     }
 

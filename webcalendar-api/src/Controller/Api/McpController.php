@@ -6,6 +6,8 @@ namespace App\Controller\Api;
 
 use App\DTO\EventResponseDTO;
 use App\Service\EventInputParser;
+use App\Service\EventVisibility;
+use App\Service\EventVisibilityPolicy;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
@@ -93,6 +95,7 @@ final class McpController
         private readonly BookingService $bookingService,
         private readonly EventRepositoryInterface $eventRepository,
         private readonly UserRepositoryInterface $userRepository,
+        private readonly EventVisibilityPolicy $visibility,
     ) {}
 
     #[Route('/api/v2/mcp', name: 'api_mcp', methods: ['POST'])]
@@ -143,7 +146,7 @@ final class McpController
         try {
             return match ($name) {
                 'list_events' => $this->listEvents($rpcId, $args, $user),
-                'get_event' => $this->getEvent($rpcId, $args),
+                'get_event' => $this->getEvent($rpcId, $args, $user),
                 'create_event' => $this->createEvent($rpcId, $args, $user),
                 'update_event' => $this->updateEvent($rpcId, $args, $user),
                 'delete_event' => $this->deleteEvent($rpcId, $args, $user),
@@ -187,14 +190,35 @@ final class McpController
     }
 
     /** @param array<string, mixed> $args */
-    private function getEvent(string|int|null $id, array $args): JsonResponse
+    private function getEvent(string|int|null $id, array $args, User $user): JsonResponse
     {
         $eventId = \is_numeric($args['id'] ?? null) ? (int) $args['id'] : 0;
         $event = $this->eventService->getEventById(new EventId($eventId));
         if ($event === null) {
             return $this->jsonRpcError($id, -32602, 'Event not found');
         }
-        return $this->jsonRpcResult($id, ['event' => EventResponseDTO::fromEntity($event)]);
+
+        // list_events and search_events are both scoped by EventScope; this
+        // one took an id and answered with whatever came back. A token is
+        // issued to a person, so an assistant holding one could read every
+        // private entry on the installation by counting through the numbers.
+        $visibility = $this->visibility->forReader($event, $user);
+
+        if ($visibility === EventVisibility::Hidden) {
+            // The same answer as an id that is not there: telling an agent
+            // apart would tell it which numbers are events.
+            return $this->jsonRpcError($id, -32602, 'Event not found');
+        }
+
+        $payload = EventResponseDTO::fromEntity($event);
+
+        if ($visibility === EventVisibility::TimeOnly) {
+            $payload['title'] = 'Busy';
+            $payload['description'] = '';
+            $payload['location'] = '';
+        }
+
+        return $this->jsonRpcResult($id, ['event' => $payload]);
     }
 
     /** @param array<string, mixed> $args */

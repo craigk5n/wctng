@@ -7,7 +7,8 @@ namespace App\Controller\Api\Event;
 use App\DTO\EventResponseDTO;
 use App\Response\ApiResponse;
 use App\Security\WebCalendarUser;
-use App\Service\AccessPermissionRepository;
+use App\Service\EventVisibility;
+use App\Service\EventVisibilityPolicy;
 use App\Service\ExtParticipantRepository;
 use App\Service\GeoRepository;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -15,7 +16,6 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use WebCalendar\Core\Application\Service\EventService;
 use WebCalendar\Core\Domain\Repository\EventRepositoryInterface;
-use WebCalendar\Core\Domain\ValueObject\AccessLevel;
 use WebCalendar\Core\Domain\ValueObject\EventId;
 use WebCalendar\Core\Infrastructure\Persistence\PdoCategoryRepository;
 
@@ -27,7 +27,7 @@ final class GetEventController
         private readonly GeoRepository $geoRepository,
         private readonly EventRepositoryInterface $eventRepository,
         private readonly ExtParticipantRepository $extParticipants,
-        private readonly AccessPermissionRepository $accessPerms,
+        private readonly EventVisibilityPolicy $visibility,
     ) {}
 
     #[Route('/api/v2/events/{id}', name: 'api_events_get', methods: ['GET'])]
@@ -45,24 +45,12 @@ final class GetEventController
 
         // Nothing checked who was asking, so any signed-in account could read
         // any event -- private ones included -- by counting through the ids.
-        //
-        // The rule is the listing's own, so the two cannot disagree: an event
-        // is readable if you created it, if you are an administrator, if it is
-        // public (which is what EventScope::forUser already hands everybody),
-        // or if its owner has granted you view access (which is what the
-        // layers view already shows you).
-        $actor = $user->getCoreUser();
-        $owner = $event->createdBy();
-        $grant = null;
+        $visibility = $this->visibility->forReader($event, $user->getCoreUser());
 
-        if ($owner !== $actor->login() && !$actor->isAdmin()) {
-            $grant = $this->accessPerms->findGrantsFor($actor->login(), [$owner])[$owner] ?? null;
-
-            if ($event->access() !== AccessLevel::PUBLIC && ($grant === null || !$grant['can_view'])) {
-                // Not 403: the id is a small integer anyone can walk, and a
-                // 403 here would map out which numbers are events.
-                return ApiResponse::error(404, 'Event not found');
-            }
+        if ($visibility === EventVisibility::Hidden) {
+            // Not 403: the id is a small integer anyone can walk, and a 403
+            // here would map out which numbers are events.
+            return ApiResponse::error(404, 'Event not found');
         }
 
         // Load category ids for this event. Previously this was
@@ -98,11 +86,10 @@ final class GetEventController
         // Include external (email-only) participants
         $response['ext_participants'] = $this->extParticipants->findForEvent($id);
 
-        // A see_time_only grant is the free/busy reading of a calendar: when
-        // it is busy, not what with. The listing masks the same three fields;
-        // the guest list goes too, because who is in a confidential meeting is
-        // the thing being kept back.
-        if ($grant !== null && $grant['see_time_only'] && $event->access() === AccessLevel::CONFIDENTIAL) {
+        // The listing masks the same three fields; the guest list goes too,
+        // because who is in a confidential meeting is the thing being kept
+        // back, and this route is the one that would have named them.
+        if ($visibility === EventVisibility::TimeOnly) {
             $response['title'] = 'Busy';
             $response['description'] = '';
             $response['location'] = '';

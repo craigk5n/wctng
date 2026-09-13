@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Controller;
 
 use App\Controller\Api\McpController;
+use App\Service\AccessPermissionRepository;
 use App\Service\CoreServiceFactory;
+use App\Service\EventVisibilityPolicy;
+use App\Service\TenantAwarePdoProvider;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -60,6 +63,7 @@ final class McpControllerTest extends TestCase
             $this->factory->getBookingService(),
             $this->factory->getEventRepository(),
             $this->factory->getUserRepository(),
+            new EventVisibilityPolicy(new AccessPermissionRepository(new TenantAwarePdoProvider($this->pdo))),
         );
     }
 
@@ -922,6 +926,104 @@ final class McpControllerTest extends TestCase
 
         self::assertSame('143000', $body['result']['event']['start_time']);
         self::assertFalse($body['result']['event']['all_day']);
+    }
+
+    // ------------------------------------------------- who may read an event
+
+    /** Gives $grantee view access to $owner's calendar. */
+    private function grant(string $owner, string $grantee, bool $canView, bool $seeTimeOnly = false): void
+    {
+        $this->pdo->prepare(
+            'INSERT INTO webcal_access_user (cal_login, cal_other_user, cal_can_view, cal_can_edit, cal_see_time_only)
+             VALUES (?, ?, ?, 0, ?)',
+        )->execute([$owner, $grantee, $canView ? 1 : 0, $seeTimeOnly ? 'Y' : 'N']);
+    }
+
+    /** A second account, not an administrator, holding its own API token. */
+    private function mallory(): void
+    {
+        $admin = $this->factory->getUserService()->getUserByLogin('admin');
+        self::assertNotNull($admin);
+        $this->factory->getUserService()->createUser(
+            new User('mallory', 'Mal', 'Lory', 'mallory@test.com', false, true),
+            $admin,
+        );
+        $this->factory->getUserRepository()->savePreference('mallory', new UserPreference('api_token', 'mallory-token'));
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function levelsThatAreNotPublic(): iterable
+    {
+        yield 'confidential' => ['C'];
+        yield 'private' => ['R'];
+    }
+
+    #[DataProvider('levelsThatAreNotPublic')]
+    public function testAnAgentCannotReadWhatIsNotPublicOnSomebodyElsesCalendar(string $access): void
+    {
+        // get_event looked the id up and handed it over. An API token is
+        // issued to a person, so an assistant holding one could read every
+        // private entry on the installation by counting through the numbers.
+        $id = $this->createEvent('Board pay review', '20260601', '100000');
+        $this->pdo->prepare('UPDATE webcal_entry SET cal_access = ? WHERE cal_id = ?')->execute([$access, $id]);
+        $this->mallory();
+
+        $body = $this->call('tools/call', ['name' => 'get_event', 'arguments' => ['id' => $id]], 'mallory-token');
+
+        self::assertSame(-32602, $body['error']['code'] ?? null, $access . ' was handed over');
+        self::assertStringNotContainsString('Board pay review', json_encode($body, \JSON_THROW_ON_ERROR));
+    }
+
+    public function testAnAgentReadsAPublicEventOnAnotherCalendar(): void
+    {
+        // list_events already hands mallory admin's public entries, so
+        // refusing this would refuse something already in front of her.
+        $id = $this->createEvent('Company all-hands', '20260601', '100000');
+        $this->mallory();
+
+        $body = $this->call('tools/call', ['name' => 'get_event', 'arguments' => ['id' => $id]], 'mallory-token');
+
+        self::assertSame('Company all-hands', $body['result']['event']['title']);
+    }
+
+    #[DataProvider('levelsThatAreNotPublic')]
+    public function testAGrantOpensWhatWouldOtherwiseBeRefused(string $access): void
+    {
+        $id = $this->createEvent('Board pay review', '20260601', '100000');
+        $this->pdo->prepare('UPDATE webcal_entry SET cal_access = ? WHERE cal_id = ?')->execute([$access, $id]);
+        $this->mallory();
+        $this->grant('admin', 'mallory', canView: true);
+
+        $body = $this->call('tools/call', ['name' => 'get_event', 'arguments' => ['id' => $id]], 'mallory-token');
+
+        self::assertSame('Board pay review', $body['result']['event']['title']);
+    }
+
+    public function testSeeTimeOnlyGetsTheHourAndNotTheSubject(): void
+    {
+        $id = $this->createEvent('Board pay review', '20260601', '100000');
+        $this->pdo->prepare("UPDATE webcal_entry SET cal_access = 'C' WHERE cal_id = ?")->execute([$id]);
+        $this->mallory();
+        $this->grant('admin', 'mallory', canView: true, seeTimeOnly: true);
+
+        $body = $this->call('tools/call', ['name' => 'get_event', 'arguments' => ['id' => $id]], 'mallory-token');
+
+        self::assertSame('Busy', $body['result']['event']['title']);
+        self::assertSame('', $body['result']['event']['description']);
+        self::assertSame('', $body['result']['event']['location']);
+        self::assertStringNotContainsString('Board pay review', json_encode($body, \JSON_THROW_ON_ERROR));
+        // The hour is what the grant is for.
+        self::assertSame('20260601', $body['result']['event']['start_date']);
+    }
+
+    public function testTheOwnerStillReadsTheirOwnConfidentialEvent(): void
+    {
+        $id = $this->createEvent('Board pay review', '20260601', '100000');
+        $this->pdo->prepare("UPDATE webcal_entry SET cal_access = 'C' WHERE cal_id = ?")->execute([$id]);
+
+        $body = $this->call('tools/call', ['name' => 'get_event', 'arguments' => ['id' => $id]]);
+
+        self::assertSame('Board pay review', $body['result']['event']['title']);
     }
 
     // ----------------------------------------------------------- tools/list
