@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthProvider } from '../AuthProvider';
@@ -15,6 +15,26 @@ function renderLoginPage() {
       </AuthProvider>
     </MemoryRouter>,
   );
+}
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+function mockFeatureFlagsFetch(flags: Record<string, string>): void {
+  globalThis.fetch = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+    const url = typeof input === 'string' ? input : input.toString();
+    if (url.includes('/config/features')) {
+      return Promise.resolve(jsonResponse({ data: flags, error: null }));
+    }
+    if (url.includes('/auth/oauth/providers')) {
+      return Promise.resolve(jsonResponse({ data: [], error: null }));
+    }
+    return Promise.resolve(jsonResponse({ data: null, error: null }, 404));
+  });
 }
 
 describe('LoginPage', () => {
@@ -100,5 +120,27 @@ describe('LoginPage', () => {
 
     expect(usernameInput).toHaveAttribute('type', 'text');
     expect(passwordInput).toHaveAttribute('type', 'password');
+  });
+
+  it('shows Remember me checkbox when the feature is enabled', async () => {
+    mockFeatureFlagsFetch({ DISABLE_REMEMBER_ME: 'N' });
+
+    renderLoginPage();
+
+    expect(await screen.findByLabelText(/remember me/i)).toBeInTheDocument();
+  });
+
+  it('hides Remember me checkbox when admin has disabled it', async () => {
+    mockFeatureFlagsFetch({ DISABLE_REMEMBER_ME: 'Y' });
+
+    renderLoginPage();
+
+    // Give the fetch a chance to resolve and the component to re-render
+    await waitFor(() => {
+      expect(screen.queryByLabelText(/remember me/i)).not.toBeInTheDocument();
+    });
+
+    // Username field should still be there — confirms the page did render
+    expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
   });
 });

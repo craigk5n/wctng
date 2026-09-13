@@ -14,6 +14,7 @@ export interface FeatureFlags {
   DISABLE_COMMENTS: string;
   ENABLE_SEO_PAGES: string;
   ENABLE_GEOCODING: string;
+  DISABLE_REMEMBER_ME: string;
 }
 
 const DEFAULTS: FeatureFlags = {
@@ -29,6 +30,7 @@ const DEFAULTS: FeatureFlags = {
   DISABLE_COMMENTS: 'N',
   ENABLE_SEO_PAGES: 'N',
   ENABLE_GEOCODING: 'Y',
+  DISABLE_REMEMBER_ME: 'N',
 };
 
 export function useFeatureFlags(): FeatureFlags {

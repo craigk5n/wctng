@@ -52,4 +52,18 @@ final class SessionTtlIntegrationTest extends IntegrationTestCase
         $rememberTtl = (int) ($configService->getSetting('SESSION_TTL_REMEMBER_ME') ?? '2592000');
         $this->assertSame(1209600, $rememberTtl);
     }
+
+    public function testDisableRememberMeDefaultsToOff(): void
+    {
+        $configService = $this->factory->getConfigService();
+        $value = $configService->getSetting('DISABLE_REMEMBER_ME') ?? 'N';
+        $this->assertSame('N', $value);
+    }
+
+    public function testAdminCanDisableRememberMe(): void
+    {
+        $configService = $this->factory->getConfigService();
+        $configService->updateSetting('DISABLE_REMEMBER_ME', 'Y');
+        $this->assertSame('Y', $configService->getSetting('DISABLE_REMEMBER_ME'));
+    }
 }

@@ -87,4 +87,21 @@ describe('AdminSettingsPage', () => {
       expect(checkboxes.length).toBeGreaterThanOrEqual(5);
     });
   });
+
+  it('shows the Remember Me login toggle', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true, status: 200,
+      json: async () => ({
+        data: { DISABLE_REMEMBER_ME: 'N' },
+        error: null,
+      }),
+    });
+
+    renderPage();
+
+    // Feature-toggle label — distinct from the "Remember Me Duration" session setting.
+    await waitFor(() => {
+      expect(screen.getByText('"Remember Me" on Login')).toBeInTheDocument();
+    });
+  });
 });

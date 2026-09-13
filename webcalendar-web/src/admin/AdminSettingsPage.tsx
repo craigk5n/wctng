@@ -99,6 +99,13 @@ const FEATURES: FeatureToggle[] = [
     description: 'Allow users to opt in to a daily email summarizing their events for the day.',
     inverted: false,
   },
+  {
+    key: 'DISABLE_REMEMBER_ME',
+    label: '"Remember Me" on Login',
+    description:
+      'Show the "Remember me" checkbox on the login page so users can extend their session.',
+    inverted: true,
+  },
 ];
 
 interface NumericSetting {

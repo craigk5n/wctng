@@ -17,6 +17,7 @@ export function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [oauthProviders, setOauthProviders] = useState<OAuthProviderInfo[]>([]);
+  const [allowRememberMe, setAllowRememberMe] = useState(true);
   const { tenant } = useTenant();
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -31,6 +32,20 @@ export function LoginPage() {
       .then((body) => {
         if (body?.data && Array.isArray(body.data)) {
           setOauthProviders(body.data as OAuthProviderInfo[]);
+        }
+      })
+      .catch(() => {});
+  }, [baseUrl]);
+
+  // Fetch public feature flags so we know whether the Remember Me option is allowed.
+  useEffect(() => {
+    void fetch(`${baseUrl}/config/features`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body) => {
+        const value = body?.data?.DISABLE_REMEMBER_ME;
+        if (value === 'Y') {
+          setAllowRememberMe(false);
+          setRememberMe(false);
         }
       })
       .catch(() => {});
@@ -199,15 +214,17 @@ export function LoginPage() {
             />
           </div>
 
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 rounded border-input"
-            />
-            <span className="text-sm text-muted-foreground">Remember me</span>
-          </label>
+          {allowRememberMe && (
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 rounded border-input"
+              />
+              <span className="text-sm text-muted-foreground">Remember me</span>
+            </label>
+          )}
 
           <button
             type="submit"
