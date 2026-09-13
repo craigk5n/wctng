@@ -10,11 +10,13 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 
 final class AccessController
 {
     public function __construct(
         private readonly \PDO $pdo,
+        private readonly UserRepositoryInterface $userRepository,
     ) {}
 
     /**
@@ -60,6 +62,18 @@ final class AccessController
     {
         if ($user === null) {
             return ApiResponse::error(401, 'Authentication required');
+        }
+
+        // A grant is a capability, and it was recorded against whatever string
+        // arrived in the path. Nobody holds a grant made out to a login that
+        // does not exist -- until that account is created, and then it holds
+        // it on arrival, with nothing in the flow that granted it.
+        //
+        // This subsumes a length check as well: cal_other_user is VARCHAR(60)
+        // under a MySQL running in strict mode, and no account can be named
+        // something that would not fit.
+        if ($this->userRepository->findByLogin($login) === null) {
+            return ApiResponse::error(404, 'User not found');
         }
 
         $decoded = json_decode($request->getContent(), true);

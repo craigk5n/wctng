@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use WebCalendar\Core\Domain\Entity\User;
+use WebCalendar\Core\Domain\Repository\UserRepositoryInterface;
 
 /**
  * Who may see and change another user's calendar.
@@ -28,6 +29,9 @@ final class AccessControllerTest extends TestCase
 {
     private \PDO $pdo;
     private AccessController $controller;
+
+    /** @var list<string> Logins the directory knows about. */
+    private array $existingLogins = ['alice', 'bob', 'carol', 'dave'];
 
     #[\Override]
     protected function setUp(): void
@@ -48,7 +52,14 @@ final class AccessControllerTest extends TestCase
             )',
         );
 
-        $this->controller = new AccessController($this->pdo);
+        $users = $this->createMock(UserRepositoryInterface::class);
+        $users->method('findByLogin')->willReturnCallback(
+            fn(string $login): ?User => \in_array($login, $this->existingLogins, true)
+                ? new User($login, ucfirst($login), 'Smith', $login . '@example.com', false, true)
+                : null,
+        );
+
+        $this->controller = new AccessController($this->pdo, $users);
     }
 
     private static function user(string $login): WebCalendarUser
@@ -90,6 +101,37 @@ final class AccessControllerTest extends TestCase
     }
 
     // ------------------------------------------------------------- refused
+
+    public function testTheGranteeHasToBeSomebodyWhoExists(): void
+    {
+        // A grant is a capability, and it was recorded against whatever string
+        // arrived in the path. Nobody named "nobody_at_all" holds it today --
+        // but create that account tomorrow and it holds it on arrival, with
+        // nothing in the flow that granted it.
+        $response = $this->set('nobody_at_all', ['can_view' => true]);
+
+        $this->assertSame(404, $response->getStatusCode());
+        $this->assertSame([], $this->storedRows());
+    }
+
+    public function testALoginTooLongToBeOneIsRefusedToo(): void
+    {
+        // cal_other_user is VARCHAR(60), and MySQL runs strict here, so an
+        // over-long login was a 500 on the deployment that matters. No account
+        // can have a name that will not fit, so the existence check answers
+        // this as well -- which is why there is no separate length guard.
+        $response = $this->set(str_repeat('a', 61), ['can_view' => true]);
+
+        $this->assertSame(404, $response->getStatusCode());
+        $this->assertSame([], $this->storedRows());
+    }
+
+    public function testAGrantToSomebodyRealIsStillRecorded(): void
+    {
+        $this->assertSame(200, $this->set('bob', ['can_view' => true])->getStatusCode());
+        $this->assertCount(1, $this->storedRows());
+    }
+
 
     public function testListingNeedsSomebodyToBeSignedIn(): void
     {
