@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Service\CoreServiceFactory;
+use App\Service\LegacyDsn;
 use App\Service\LegacyImportService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -110,53 +111,11 @@ final class ImportLegacyCommand extends Command
 
     private function createLegacyPdo(string $dsn): \PDO
     {
-        $parsed = parse_url($dsn);
+        $parsed = LegacyDsn::parse($dsn);
 
-        if ($parsed === false || !isset($parsed['scheme'])) {
-            throw new \InvalidArgumentException('Invalid DSN format. Expected: mysql://user:pass@host/dbname or sqlite:///path/to/db');
-        }
+        $pdo = new \PDO($parsed['dsn'], $parsed['user'], $parsed['password']);
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
-        $scheme = $parsed['scheme'];
-
-        if ($scheme === 'sqlite') {
-            $path = ($parsed['host'] ?? '') . ($parsed['path'] ?? '');
-            $pdo = new \PDO("sqlite:{$path}");
-            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-            return $pdo;
-        }
-
-        if ($scheme === 'mysql') {
-            $host = $parsed['host'] ?? '127.0.0.1';
-            $port = $parsed['port'] ?? 3306;
-            $dbname = ltrim($parsed['path'] ?? '', '/');
-            $user = $parsed['user'] ?? 'root';
-            $pass = $parsed['pass'] ?? '';
-
-            $pdo = new \PDO(
-                "mysql:host={$host};port={$port};dbname={$dbname};charset=utf8mb4",
-                $user,
-                $pass,
-            );
-            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-            return $pdo;
-        }
-
-        if ($scheme === 'pgsql' || $scheme === 'postgresql') {
-            $host = $parsed['host'] ?? '127.0.0.1';
-            $port = $parsed['port'] ?? 5432;
-            $dbname = ltrim($parsed['path'] ?? '', '/');
-            $user = $parsed['user'] ?? 'postgres';
-            $pass = $parsed['pass'] ?? '';
-
-            $pdo = new \PDO(
-                "pgsql:host={$host};port={$port};dbname={$dbname}",
-                $user,
-                $pass,
-            );
-            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-            return $pdo;
-        }
-
-        throw new \InvalidArgumentException("Unsupported database scheme: {$scheme}");
+        return $pdo;
     }
 }
