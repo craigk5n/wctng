@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { loginAsAdmin } from './fixtures/auth';
+import { openPreferences, reloadPreferences, savePreferences } from './fixtures/preferences';
 
 async function getToken(page: import('@playwright/test').Page): Promise<string> {
   const response = await page.request.post('http://localhost:47180/api/v2/auth/login', {
@@ -15,7 +16,7 @@ test.describe('Settings Forms E2E', () => {
 
   test('preferences: change default view persists on reload', async ({ page }) => {
     await loginAsAdmin(page);
-    await page.goto('/settings/preferences');
+    await openPreferences(page);
     await expect(page.getByRole('heading', { name: /preferences/i })).toBeVisible();
 
     const viewSelect = page.getByLabel(/default view/i);
@@ -28,32 +29,22 @@ test.describe('Settings Forms E2E', () => {
     // Wait for the PUT itself, not the toast. The toast can render before the
     // request settles, so reloading on it raced the save and the reloaded page
     // showed the old value.
-    const saved = page.waitForResponse(
-      (r) => r.url().includes('/preferences') && r.request().method() === 'PUT' && r.ok(),
-      { timeout: 10000 },
-    );
-    await page.getByRole('button', { name: /save/i }).click();
-    await saved;
+    await savePreferences(page);
 
     // Reload and verify
-    await page.reload();
+    await reloadPreferences(page);
     await expect(page.getByLabel(/default view/i)).toHaveValue(newValue);
 
     // Restore original -- awaited like the save above. A fixed 1s wait could
     // still be in flight when the next spec read this preference, which is
     // what left this test flaky even on a single worker.
     await page.getByLabel(/default view/i).selectOption(originalValue);
-    const restored = page.waitForResponse(
-      (r) => r.url().includes('/preferences') && r.request().method() === 'PUT' && r.ok(),
-      { timeout: 10000 },
-    );
-    await page.getByRole('button', { name: /save/i }).click();
-    await restored;
+    await savePreferences(page);
   });
 
   test('preferences: email reminder dropdown saves', async ({ page }) => {
     await loginAsAdmin(page);
-    await page.goto('/settings/preferences');
+    await openPreferences(page);
 
     const reminderSelect = page.getByLabel(/email reminder/i);
     await expect(reminderSelect).toBeVisible();
@@ -62,12 +53,7 @@ test.describe('Settings Forms E2E', () => {
     await reminderSelect.selectOption('15');
     await expect(reminderSelect).toHaveValue('15');
 
-    const saved = page.waitForResponse(
-      (r) => r.url().includes('/preferences') && r.request().method() === 'PUT' && r.ok(),
-      { timeout: 10000 },
-    );
-    await page.getByRole('button', { name: /save/i }).click();
-    await saved;
+    await savePreferences(page);
 
     // Verify save succeeded via API
     const token = await getToken(page);
@@ -81,8 +67,7 @@ test.describe('Settings Forms E2E', () => {
 
     // Restore default
     await reminderSelect.selectOption('30');
-    await page.getByRole('button', { name: /save/i }).click();
-    await page.waitForTimeout(1000);
+    await savePreferences(page);
   });
 
   test('preferences: daily agenda toggle shows time picker', async ({ page }) => {
@@ -91,12 +76,7 @@ test.describe('Settings Forms E2E', () => {
     // The form re-renders once the preferences GET resolves; interacting before
     // that reverted the checkbox, failing with "Clicking the checkbox did not
     // change its state".
-    const loaded = page.waitForResponse(
-      (r) => r.url().includes('/preferences') && r.request().method() === 'GET',
-      { timeout: 10000 },
-    );
-    await page.goto('/settings/preferences');
-    await loaded;
+    await openPreferences(page);
 
     const agendaCheckbox = page.getByLabel(/daily agenda email/i);
 

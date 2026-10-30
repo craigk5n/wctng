@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { loginAsAdmin } from './fixtures/auth';
 import { getAdminToken, createTestEvent, cleanupEvents } from './fixtures/db';
+import { openPreferences, reloadPreferences, savePreferences } from './fixtures/preferences';
 
 test.describe('Phase 6 Features E2E', () => {
 
@@ -141,34 +142,23 @@ test.describe('Phase 6 Features E2E', () => {
 
   test('settings — change and verify preference persists', async ({ page }) => {
     await loginAsAdmin(page);
-    await page.goto('/settings/preferences');
+    await openPreferences(page);
 
-    // Wait on the save request rather than a fixed delay: 1.5s raced the PUT,
-    // and the reload below then read back the old value.
-    const savePut = () =>
-      page.waitForResponse(
-        (r) =>
-          /\/users\/[^/]+\/preferences$/.test(new URL(r.url()).pathname) &&
-          r.request().method() !== 'GET',
-      );
-
-    // Change default view to Week
+    // Change default view to Week. Wait on the save request rather than a
+    // fixed delay: 1.5s raced the PUT, and the reload below then read back the
+    // old value.
     await page.getByLabel(/default view/i).selectOption('timeGridWeek');
-    const saved = savePut();
-    await page.getByRole('button', { name: /save/i }).click();
-    await saved;
+    await savePreferences(page);
 
     // Reload and verify
-    await page.reload();
+    await reloadPreferences(page);
     await expect(page.getByLabel(/default view/i)).toHaveValue('timeGridWeek', { timeout: 5000 });
 
     // Reset to Month -- awaited too, so the next spec does not start against a
     // half-written preference. Leaving this unawaited is what made the
     // settings-forms specs flaky alongside this one.
     await page.getByLabel(/default view/i).selectOption('dayGridMonth');
-    const reset = savePut();
-    await page.getByRole('button', { name: /save/i }).click();
-    await reset;
+    await savePreferences(page);
   });
 
   test('admin settings — feature toggles page loads', async ({ page }) => {
