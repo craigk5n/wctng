@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "cdbf5d38f70af3e945e092f994f22122",
+    "content-hash": "39c0813d9fa8e70809c573bf7cd8191a",
     "packages": [
         {
             "name": "craigk5n/php-icalendar-core",
@@ -57,16 +57,16 @@
         },
         {
             "name": "craigk5n/webcalendar-core",
-            "version": "v4.18.0",
+            "version": "v4.18.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/craigk5n/webcalendar-core.git",
-                "reference": "5f87260c8ef3388bcfb03a1166fb6ee2c74df6e7"
+                "reference": "64b1cd43ecaffb6723607dd69f55f21295b7e2ee"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/craigk5n/webcalendar-core/zipball/5f87260c8ef3388bcfb03a1166fb6ee2c74df6e7",
-                "reference": "5f87260c8ef3388bcfb03a1166fb6ee2c74df6e7",
+                "url": "https://api.github.com/repos/craigk5n/webcalendar-core/zipball/64b1cd43ecaffb6723607dd69f55f21295b7e2ee",
+                "reference": "64b1cd43ecaffb6723607dd69f55f21295b7e2ee",
                 "shasum": ""
             },
             "require": {
@@ -142,10 +142,10 @@
                 "webcalendar"
             ],
             "support": {
-                "source": "https://github.com/craigk5n/webcalendar-core/tree/v4.18.0",
+                "source": "https://github.com/craigk5n/webcalendar-core/tree/v4.18.1",
                 "issues": "https://github.com/craigk5n/webcalendar-core/issues"
             },
-            "time": "2026-10-30T10:44:31+00:00"
+            "time": "2026-10-30T18:28:39+00:00"
         },
         {
             "name": "doctrine/dbal",
