@@ -14,83 +14,90 @@ test.describe('Settings Forms E2E', () => {
 
   // --- Preferences ---
 
-  test('preferences: change default view persists on reload', async ({ page }) => {
-    await loginAsAdmin(page);
-    await openPreferences(page);
-    await expect(page.getByRole('heading', { name: /preferences/i })).toBeVisible();
+  // Every preferences save sends the whole form, so two of these tests
+  // running at once overwrite each other's values. Run them in order on one
+  // worker. No other spec saves the admin's preferences.
+  test.describe('preferences', () => {
+    test.describe.configure({ mode: 'default' });
 
-    const viewSelect = page.getByLabel(/default view/i);
-    const originalValue = await viewSelect.inputValue();
+    test('preferences: change default view persists on reload', async ({ page }) => {
+      await loginAsAdmin(page);
+      await openPreferences(page);
+      await expect(page.getByRole('heading', { name: /preferences/i })).toBeVisible();
 
-    // Change to a different view
-    const newValue = originalValue === 'dayGridMonth' ? 'timeGridWeek' : 'dayGridMonth';
-    await viewSelect.selectOption(newValue);
+      const viewSelect = page.getByLabel(/default view/i);
+      const originalValue = await viewSelect.inputValue();
 
-    // Wait for the PUT itself, not the toast. The toast can render before the
-    // request settles, so reloading on it raced the save and the reloaded page
-    // showed the old value.
-    await savePreferences(page);
+      // Change to a different view
+      const newValue = originalValue === 'dayGridMonth' ? 'timeGridWeek' : 'dayGridMonth';
+      await viewSelect.selectOption(newValue);
 
-    // Reload and verify
-    await reloadPreferences(page);
-    await expect(page.getByLabel(/default view/i)).toHaveValue(newValue);
+      // Wait for the PUT itself, not the toast. The toast can render before the
+      // request settles, so reloading on it raced the save and the reloaded page
+      // showed the old value.
+      await savePreferences(page);
 
-    // Restore original -- awaited like the save above. A fixed 1s wait could
-    // still be in flight when the next spec read this preference, which is
-    // what left this test flaky even on a single worker.
-    await page.getByLabel(/default view/i).selectOption(originalValue);
-    await savePreferences(page);
-  });
+      // Reload and verify
+      await reloadPreferences(page);
+      await expect(page.getByLabel(/default view/i)).toHaveValue(newValue);
 
-  test('preferences: email reminder dropdown saves', async ({ page }) => {
-    await loginAsAdmin(page);
-    await openPreferences(page);
-
-    const reminderSelect = page.getByLabel(/email reminder/i);
-    await expect(reminderSelect).toBeVisible();
-
-    // Change value and save
-    await reminderSelect.selectOption('15');
-    await expect(reminderSelect).toHaveValue('15');
-
-    await savePreferences(page);
-
-    // Verify save succeeded via API
-    const token = await getToken(page);
-    const res = await page.request.get('http://localhost:47180/api/v2/users/admin/preferences', {
-      headers: { Authorization: `Bearer ${token}` },
+      // Restore original -- awaited like the save above. A fixed 1s wait could
+      // still be in flight when the next spec read this preference, which is
+      // what left this test flaky even on a single worker.
+      await page.getByLabel(/default view/i).selectOption(originalValue);
+      await savePreferences(page);
     });
-    const prefs = (await res.json())?.data as Array<{ key: string; value: string }> | undefined;
-    const reminderPref = prefs?.find((p) => p.key === 'REMINDER_MINUTES');
-    // Verify the API received the preference (UI load-back is a known issue)
-    expect(reminderPref).toBeTruthy();
 
-    // Restore default
-    await reminderSelect.selectOption('30');
-    await savePreferences(page);
-  });
+    test('preferences: email reminder dropdown saves', async ({ page }) => {
+      await loginAsAdmin(page);
+      await openPreferences(page);
 
-  test('preferences: daily agenda toggle shows time picker', async ({ page }) => {
-    await loginAsAdmin(page);
+      const reminderSelect = page.getByLabel(/email reminder/i);
+      await expect(reminderSelect).toBeVisible();
 
-    // The form re-renders once the preferences GET resolves; interacting before
-    // that reverted the checkbox, failing with "Clicking the checkbox did not
-    // change its state".
-    await openPreferences(page);
+      // Change value and save
+      await reminderSelect.selectOption('15');
+      await expect(reminderSelect).toHaveValue('15');
 
-    const agendaCheckbox = page.getByLabel(/daily agenda email/i);
+      await savePreferences(page);
 
-    // Enable daily agenda
-    if (!(await agendaCheckbox.isChecked())) {
-      await agendaCheckbox.check();
-    }
+      // Verify save succeeded via API
+      const token = await getToken(page);
+      const res = await page.request.get('http://localhost:47180/api/v2/users/admin/preferences', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const prefs = (await res.json())?.data as Array<{ key: string; value: string }> | undefined;
+      const reminderPref = prefs?.find((p) => p.key === 'REMINDER_MINUTES');
+      // Verify the API received the preference (UI load-back is a known issue)
+      expect(reminderPref).toBeTruthy();
 
-    // Time picker should be visible when enabled
-    await expect(page.getByLabel(/send at/i)).toBeVisible();
+      // Restore default
+      await reminderSelect.selectOption('30');
+      await savePreferences(page);
+    });
 
-    // Disable — time picker hides
-    await agendaCheckbox.uncheck();
-    await expect(page.getByLabel(/send at/i)).not.toBeVisible();
+    test('preferences: daily agenda toggle shows time picker', async ({ page }) => {
+      await loginAsAdmin(page);
+
+      // The form re-renders once the preferences GET resolves; interacting before
+      // that reverted the checkbox, failing with "Clicking the checkbox did not
+      // change its state".
+      await openPreferences(page);
+
+      const agendaCheckbox = page.getByLabel(/daily agenda email/i);
+
+      // Enable daily agenda
+      if (!(await agendaCheckbox.isChecked())) {
+        await agendaCheckbox.check();
+      }
+
+      // Time picker should be visible when enabled
+      await expect(page.getByLabel(/send at/i)).toBeVisible();
+
+      // Disable — time picker hides
+      await agendaCheckbox.uncheck();
+      await expect(page.getByLabel(/send at/i)).not.toBeVisible();
+    });
   });
 
   // --- Access Settings ---
