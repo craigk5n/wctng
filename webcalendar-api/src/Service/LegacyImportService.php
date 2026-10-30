@@ -349,8 +349,9 @@ final class LegacyImportService
                 $uid = "legacy-{$calId}@imported";
             }
 
-            // Check if already imported (idempotent)
-            $existing = $eventRepo->findByUid($uid);
+            // Check if already imported (idempotent). UIDs are unique per
+            // creator, so another user's event with this UID is not a match.
+            $existing = $eventRepo->findByUidAndCreator($uid, (string) ($row['cal_create_by'] ?? 'admin'));
             if ($existing !== null) {
                 $this->stats['events']['skipped']++;
                 continue;

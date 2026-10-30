@@ -353,6 +353,8 @@ final class CoreServiceFactory implements ResetInterface
         return $this->categoryService ??= new CategoryService(
             $this->getCategoryRepository(),
             $this->logger,
+            // Lets assignToEvent check a non-admin is on the event.
+            $this->getEventRepository(),
         );
     }
 

@@ -142,8 +142,9 @@ final class CreateEventController
 
         // Retrieve the created event to get the assigned ID
         // The core service saves the event; we need the generated ID.
-        // Since Event is immutable with id=0, we search for it by UID.
-        $created = $this->eventRepository->findByUid($event->uid());
+        // Since Event is immutable with id=0, we search for it by UID, in
+        // its creator's events: UIDs are unique per creator, not per site.
+        $created = $this->eventRepository->findByUidAndCreator($event->uid(), $event->createdBy());
 
         if ($created === null) {
             return ApiResponse::error(500, 'Event created but could not be retrieved');
