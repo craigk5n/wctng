@@ -1135,4 +1135,63 @@ final class CalendarObjectListingTest extends TestCase
         self::assertSame(1, preg_match('/^UID:(.+)$/m', $body, $m), 'the stored object carries no UID');
         self::assertMatchesRegularExpression('/^caldav-[0-9a-f]{16}$/', trim($m[1]));
     }
+
+    /**
+     * Two users who imported one feed each hold an event under its UID.
+     * A UID lookup must find the asking calendar's copy, never the other.
+     *
+     * @return array{int, int} alice's and bob's event ids
+     */
+    private function twoCopiesOfOneUid(): array
+    {
+        $bob = new User('bob', 'Bob', 'Jones', 'bob@example.com', false, true);
+        $this->factory->getUserService()->createUser($bob, $this->alice);
+
+        $ids = [];
+        foreach ([$this->alice, $bob] as $owner) {
+            $this->factory->getEventService()->createEvent(new Event(
+                id: new EventId(0),
+                uid: 'holiday@public-feed.test',
+                name: 'Holiday for ' . $owner->login(),
+                description: '',
+                location: '',
+                start: new \DateTimeImmutable('2026-07-04T09:00:00+00:00'),
+                duration: 60,
+                createdBy: $owner->login(),
+                type: EventType::EVENT,
+                access: AccessLevel::PRIVATE,
+            ), $owner);
+            $saved = $this->factory->getEventRepository()
+                ->findByUidAndCreator('holiday@public-feed.test', $owner->login());
+            self::assertNotNull($saved);
+            $ids[] = $saved->id()->value();
+        }
+
+        return [$ids[0], $ids[1]];
+    }
+
+    public function testAUidLookupFindsOnlyThePrincipalsOwnCopy(): void
+    {
+        [$aliceId, $bobId] = $this->twoCopiesOfOneUid();
+        $backend = $this->backend();
+
+        self::assertSame(
+            'calendars/bob/default/' . $bobId . '.ics',
+            $backend->getCalendarObjectByUID('principals/bob', 'holiday@public-feed.test')
+        );
+        self::assertSame(
+            'calendars/alice/default/' . $aliceId . '.ics',
+            $backend->getCalendarObjectByUID('principals/alice', 'holiday@public-feed.test')
+        );
+    }
+
+    public function testAUidFilenameResolvesWithinTheRequestedCalendar(): void
+    {
+        $this->twoCopiesOfOneUid();
+
+        $object = $this->backend()->getCalendarObject('bob', 'holiday@public-feed.test.ics');
+
+        self::assertNotNull($object);
+        self::assertStringContainsString('Holiday for bob', (string) $object['calendardata']);
+    }
 }

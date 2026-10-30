@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7b57384919a4f86ee93fee1e874e144b",
+    "content-hash": "cdbf5d38f70af3e945e092f994f22122",
     "packages": [
         {
             "name": "craigk5n/php-icalendar-core",
-            "version": "1.2.0",
+            "version": "1.2.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/craigk5n/php-icalendar-core.git",
-                "reference": "9babd271a785ad85bf6d80352703b34f2447ec7d"
+                "reference": "e89720105441e1222fd1535dcb61065b55b1b81d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/craigk5n/php-icalendar-core/zipball/9babd271a785ad85bf6d80352703b34f2447ec7d",
-                "reference": "9babd271a785ad85bf6d80352703b34f2447ec7d",
+                "url": "https://api.github.com/repos/craigk5n/php-icalendar-core/zipball/e89720105441e1222fd1535dcb61065b55b1b81d",
+                "reference": "e89720105441e1222fd1535dcb61065b55b1b81d",
                 "shasum": ""
             },
             "require": {
@@ -53,24 +53,24 @@
                 "issues": "https://github.com/craigk5n/php-icalendar-core/issues",
                 "source": "https://github.com/craigk5n/php-icalendar-core"
             },
-            "time": "2026-07-19T11:07:26+00:00"
+            "time": "2026-10-24T01:15:44+00:00"
         },
         {
             "name": "craigk5n/webcalendar-core",
-            "version": "v4.15.0",
+            "version": "v4.18.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/craigk5n/webcalendar-core.git",
-                "reference": "ef2d1243b0b5624fc659a1e2671475a56ba9cd1e"
+                "reference": "5f87260c8ef3388bcfb03a1166fb6ee2c74df6e7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/craigk5n/webcalendar-core/zipball/ef2d1243b0b5624fc659a1e2671475a56ba9cd1e",
-                "reference": "ef2d1243b0b5624fc659a1e2671475a56ba9cd1e",
+                "url": "https://api.github.com/repos/craigk5n/webcalendar-core/zipball/5f87260c8ef3388bcfb03a1166fb6ee2c74df6e7",
+                "reference": "5f87260c8ef3388bcfb03a1166fb6ee2c74df6e7",
                 "shasum": ""
             },
             "require": {
-                "craigk5n/php-icalendar-core": "^1.2.0",
+                "craigk5n/php-icalendar-core": "^1.2.1",
                 "php": ">=8.1",
                 "psr/log": "^3.0"
             },
@@ -85,7 +85,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-main": "4.15.x-dev"
+                    "dev-main": "4.17.x-dev"
                 }
             },
             "autoload": {
@@ -142,10 +142,10 @@
                 "webcalendar"
             ],
             "support": {
-                "source": "https://github.com/craigk5n/webcalendar-core/tree/v4.15.0",
+                "source": "https://github.com/craigk5n/webcalendar-core/tree/v4.18.0",
                 "issues": "https://github.com/craigk5n/webcalendar-core/issues"
             },
-            "time": "2026-09-12T22:47:33+00:00"
+            "time": "2026-10-30T10:44:31+00:00"
         },
         {
             "name": "doctrine/dbal",

@@ -252,7 +252,7 @@ final class McpController
         );
 
         $this->eventService->createEvent($event, $user);
-        $created = $this->eventRepository->findByUid($event->uid());
+        $created = $this->eventRepository->findByUidAndCreator($event->uid(), $user->login());
 
         return $this->jsonRpcResult($id, [
             'created' => true,

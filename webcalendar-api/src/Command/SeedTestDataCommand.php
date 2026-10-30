@@ -336,7 +336,7 @@ final class SeedTestDataCommand extends Command
 
                 // Assign category (70% of events get one)
                 if ($catId !== null && mt_rand(1, 100) <= 70) {
-                    $createdEvent = $this->eventRepository->findByUid($uid);
+                    $createdEvent = $this->eventRepository->findByUidAndCreator($uid, $login);
                     if ($createdEvent !== null) {
                         try {
                             $this->categoryRepository->assignToEvent($createdEvent->id(), $login, [$catId]);

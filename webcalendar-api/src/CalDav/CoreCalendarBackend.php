@@ -266,7 +266,9 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             return $this->getJournalObject($calendarId, $uri);
         }
 
-        $eventId = $this->extractEventId($uri);
+        /** @var string $owner */
+        $owner = $calendarId;
+        $eventId = $this->extractEventId($uri, $owner);
         if ($eventId === null) {
             return null;
         }
@@ -364,7 +366,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             // subsequent read (the backend regenerates ICS from the domain
             // entity, so hashing the client's upload would give a different
             // value and break If-Match optimistic concurrency).
-            $saved = $this->eventRepository->findByUid($event->uid());
+            $saved = $this->eventRepository->findByUidAndCreator($event->uid(), $username);
             if ($saved !== null) {
                 return '"' . md5($this->eventToIcs($saved)) . '"';
             }
@@ -381,7 +383,9 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
         $uri = $objectUri;
         /** @var string $icsString */
         $icsString = $calendarData;
-        $eventId = $this->extractEventId($uri);
+        /** @var string $owner */
+        $owner = $calendarId;
+        $eventId = $this->extractEventId($uri, $owner);
 
         if ($eventId === null) {
             return null;
@@ -410,7 +414,10 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
                 return null;
             }
 
-            $updated = $this->vEventToEntity($vevent, $username, $eventId);
+            // The stored owner stays the owner, whichever calendar the edit
+            // arrived through.
+            $updated = $this->vEventToEntity($vevent, $username, $eventId)
+                ->with(createdBy: $existing->createdBy());
             $this->eventService->updateEvent($updated, $user);
 
             $this->bumpSyncToken($username);
@@ -433,7 +440,9 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
     {
         /** @var string $uri */
         $uri = $objectUri;
-        $eventId = $this->extractEventId($uri);
+        /** @var string $owner */
+        $owner = $calendarId;
+        $eventId = $this->extractEventId($uri, $owner);
         if ($eventId === null) {
             return;
         }
@@ -544,15 +553,17 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
         $uidStr = $uid;
 
         try {
-            $event = $this->eventRepository->findByUid($uidStr);
-            if ($event === null) {
-                return null;
-            }
-
             /** @var string $pUri */
             $pUri = $principalUri;
             $parts = explode('/', $pUri);
             $username = end($parts);
+
+            // Only the principal's own event: another user may hold the
+            // same UID (both imported one feed, say).
+            $event = $this->eventRepository->findByUidAndCreator($uidStr, $username);
+            if ($event === null) {
+                return null;
+            }
 
             return 'calendars/' . $username . '/default/' . $event->id()->value() . '.ics';
         } catch (\Throwable) {
@@ -647,7 +658,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
      *      interop is broken: events can be created via PUT but not fetched
      *      back, updated, or deleted at the client's chosen URI.
      */
-    private function extractEventId(string $objectUri): ?int
+    private function extractEventId(string $objectUri, string $owner): ?int
     {
         if (!str_ends_with($objectUri, '.ics')) {
             return null;
@@ -662,9 +673,10 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             return (int) $key;
         }
 
-        // Fall back to UID lookup for client-chosen filenames.
+        // Fall back to UID lookup for client-chosen filenames. UIDs are
+        // unique per creator, not per site, so look in this calendar only.
         try {
-            $event = $this->eventRepository->findByUid($key);
+            $event = $this->eventRepository->findByUidAndCreator($key, $owner);
             if ($event !== null) {
                 return $event->id()->value();
             }
@@ -1072,7 +1084,7 @@ final class CoreCalendarBackend implements BackendInterface, SyncSupport, Schedu
             }
 
             // Find the created event by UID to get the real ID
-            $created = $this->eventRepository->findByUid($event->uid());
+            $created = $this->eventRepository->findByUidAndCreator($event->uid(), $event->createdBy());
             if ($created === null) {
                 return;
             }
